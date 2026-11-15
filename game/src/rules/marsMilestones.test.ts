@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import placeholder from '../../public/terrain/mars-placeholder/terrain.json';
-import { buildZones, hydrogenSignal, MilestoneTracker, PHOTO_ZONE_IDS, zoneContains, type MilestoneFeatures, type Point3, type SunPhoto } from './milestones';
+import { buildZones, distanceToPath, hydrogenSignal, MilestoneTracker, PHOTO_ZONE_IDS, zoneContains, type MilestoneFeatures, type Point3, type SunPhoto } from './milestones';
 import { buildLeads, buildSites, discover, distanceToArea, leadBearing, nearestOnPath, type SurveyFeatures } from './survey';
 import { selectedParts } from './rover';
 import { validateGameData } from './validate';
@@ -89,10 +89,16 @@ describe('Mars zones', () => {
 
   it('the delta front counts within its zone radius of the scarp line', () => {
     const z = zone('delta-front');
-    const [x0, z0] = f.deltaFront.scarpLocal_xz[3]!;
-    expect(zoneContains(z, at(x0 + f.deltaFront.zoneRadius_m - 5, z0))).toBe(true);
-    expect(zoneContains(z, at(x0 + f.deltaFront.zoneRadius_m + 60, z0))).toBe(false);
+    const path = f.deltaFront.scarpLocal_xz;
+    const r = f.deltaFront.zoneRadius_m;
+    const [x0, z0] = path[3]!;
+    expect(zoneContains(z, at(x0 + r - 5, z0))).toBe(true);
     expect(zoneContains(z, at(L.x, L.z))).toBe(false);
+    // A point beyond the radius from every segment is outside (the scarp may bend back toward an offset point).
+    const off = at(x0 + r + 60, z0);
+    expect(zoneContains(z, off)).toBe(distanceToPath(path, off.x, off.z) <= r);
+    expect(distanceToPath([[0, 0], [100, 0]], 50, 30)).toBeCloseTo(30);
+    expect(zoneContains({ ...z, shape: { kind: 'path', points: [[0, 0], [100, 0]], r: 20 } }, at(50, 30))).toBe(false);
   });
 
   it('Séítah is its outline; the delta layers viewpoint is a photo-zone circle', () => {
@@ -252,9 +258,11 @@ describe('Mars survey', () => {
     expect(distanceToArea(area, q)).toBe(0);
   });
 
-  it('Perseverance\'s landing site is a landmark found by the first reveal on the placeholder', () => {
+  it('Perseverance\'s landing site is a landmark, found once the reveal circle reaches it', () => {
     const fresh = buildSites(sf, t, 'unused');
-    const found = discover(fresh, landing, data.tuning.explore.revealRadiusM).map((s) => s.kind);
-    expect(found).toContain('landmark');
+    const p = f.perseveranceLanding.local;
+    const r = data.tuning.explore.revealRadiusM;
+    expect(discover(fresh, { x: p.x + r + 5, z: p.z }, r).map((s) => s.kind)).not.toContain('landmark');
+    expect(discover(fresh, { x: p.x + r - 5, z: p.z }, r).map((s) => s.kind)).toContain('landmark');
   });
 });
