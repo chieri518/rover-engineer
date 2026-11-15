@@ -2,8 +2,8 @@
 > Written to the event guide's rules on "Super Intelligence" (SI) tools: SI may assist but should not originate the solution idea; describe how it was used; visibly watermark generated images and video; acknowledge generated audio, code and data in descriptive text and metadata; generated content must not use or modify NASA branding. The disclosure field is not shown to judges.
 >
 > **For the team to check before pasting:**
-> - The guide asks for generated code to be acknowledged in **metadata** as well as text. Consider adding a one-line note to the repository README or `game/package.json`, such as "Code written with AI assistance (Anthropic Claude via Claude Code); see ai-disclosure.md."
-> - Confirm that no SI tool other than Claude was used (for example, chat assistants, code completion, translation or image tools). If one was, add it under "Tool used".
+> - ~~Metadata acknowledgement~~ Done: the repository `README.md` and `game/package.json` (`description`) now carry the note "Code written with AI assistance (Anthropic Claude via Claude Code)" and point to this file.
+> - Confirmed by the team: no AI tool other than Claude was used.
 > - If the demo video or slides use any AI-generated images, video, voice or music, they must be watermarked or acknowledged, and this file updated.
 
 # Rover Engineer: AI Use Disclosure
