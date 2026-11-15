@@ -52,6 +52,12 @@ describe('game data', () => {
     expect(quotes.some((q) => q.canLaunch && !q.canAfford)).toBe(true);
   });
 
+  it('the top tier is a real limit: the bulkiest builds cannot launch', () => {
+    const quotes = allBuilds().map((b) => quoteBuild(b, data, data.tuning.budget.startingBudget));
+    expect(quotes.some((q) => !q.canLaunch)).toBe(true);
+    expect(quotes.filter((q) => q.canLaunch).length).toBeGreaterThan(quotes.length * 0.9);
+  });
+
   it('the Moon minimum budget is enough to buy at least one launchable rover', () => {
     const min = data.tuning.budget.minimumBudget.moon;
     const quotes = allBuilds().map((b) => quoteBuild(b, data, min));
