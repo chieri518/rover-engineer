@@ -130,3 +130,44 @@ describe('Mars Sun on the sol clock', () => {
     expect(sun(22.5).z).toBeGreaterThan(0); // noon Sun is south
   });
 });
+
+describe('morning start (startSecondsIntoDay)', () => {
+  const morning: SolTuning = { ...sol, startSecondsIntoDay: 7.25 };
+  const sun = (t: number) => marsSunAt(t, morning, jezero);
+
+  it('starts with the Sun about 15° up in the east, not at sunrise', () => {
+    expect(sun(0).elevationDeg).toBeGreaterThan(14);
+    expect(sun(0).elevationDeg).toBeLessThan(16);
+    expect(sun(0).x).toBeGreaterThan(0);
+    expect(solClock(0, morning, jezero.latitudeDeg)).toMatchObject({ sol: 1, isNight: false, sunSetting: false });
+  });
+
+  it('keeps 45 s of day and 15 s of night per sol; sol 1 is shorter and sols change at dawn', () => {
+    const at = (t: number) => solClock(t, morning, jezero.latitudeDeg);
+    expect(at(37.7).isNight).toBe(false);
+    expect(at(37.8)).toMatchObject({ sol: 1, isNight: true });
+    expect(at(52.7)).toMatchObject({ sol: 1, isNight: true });
+    expect(at(52.8)).toMatchObject({ sol: 2, isNight: false });
+    expect(at(52.75 + 45 + 0.05)).toMatchObject({ sol: 2, isNight: true });
+    expect(at(599)).toMatchObject({ sol: 10, isNight: false }); // the morning after the tenth night
+    expect(at(600).sol).toBe(10);
+  });
+
+  it('reports ten sunsets and ten dawns over the mission, and not the start', () => {
+    expect(solEdge(0, 0.1, morning)).toBeNull();
+    expect(solEdge(37.7, 37.8, morning)).toBe('dusk');
+    expect(solEdge(52.7, 52.8, morning)).toBe('dawn');
+    let dusks = 0;
+    let dawns = 0;
+    let nightSeconds = 0;
+    for (let t = 0; t < 600; t += 0.25) {
+      const e = solEdge(t, t + 0.25, morning);
+      if (e === 'dusk') dusks++;
+      if (e === 'dawn') dawns++;
+      if (solClock(t + 0.125, morning, jezero.latitudeDeg).isNight) nightSeconds += 0.25;
+    }
+    expect(dusks).toBe(10);
+    expect(dawns).toBe(10);
+    expect(nightSeconds).toBeCloseTo(150, 6);
+  });
+});

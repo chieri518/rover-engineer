@@ -573,6 +573,7 @@ The Moon teaches one trade-off. Mars and Titan add more intricate ones about wha
 - **60 s per sol:** 45 s of day (dawn to dusk), then 15 s of night. Night is time-lapsed three times faster than day. Like the Moon's speed compression, this is a game-feel choice: real rovers sleep through most of the night. Night adds up to 150 s per mission.
 - **The player sits through the night.** There is no skip.
 - **No clock,** as on the Moon. The Sun follows the real path for Jezero's latitude and the chosen season.
+- **The mission starts in the morning.** *Decided (main, fix pass, November 15):* the first sol starts with the Sun about 15° up, 7.25 s after sunrise, because a start at sunrise read dark and gloomy for the first seconds. Every sol still has 45 s of day and 15 s of night. Sol 1 is 7.25 s shorter, and the mission still lasts 10 minutes, so it ends 7.25 s after the dawn that follows the tenth night. Sol numbers change at dawn.
 
 #### Night: lights on or sleep
 
@@ -606,7 +607,7 @@ All *Proposed*. Solar flares and moonquakes stay on the Moon.
 
 The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the Mars parts of `energy.ts`, `cold.ts`, `mission.ts`). The numbers are in `game/data/mars/tuning.json` (`sol`, `night`) and `events.json` (`duststorm`). All numbers are placeholders, tuned against the Moon parts.
 
-- **Sol clock and Sun.** The mission starts at sunrise on sol 1. The Sun follows real local solar time at Jezero:
+- **Sol clock and Sun.** The clock starts at sunrise on sol 1, and the mission starts 7.25 s later, with the Sun about 15° up (`sol.startSecondsIntoDay`, see [Time](#time-10-sols-in-10-minutes)). The Sun follows real local solar time at Jezero:
   - Solar declination is sin δ = sin 25.19° × sin Ls (Mars24). It is −8.4° at Ls 200, and the season moves on 0.6° of Ls per sol.
   - The Sun rises at azimuth about 99°, is due south at 63° elevation at noon, and sets at about 261°.
   - Within each day and each night, the clock eases the Sun's speed: about a quarter of its mean day speed at the horizon, faster at noon and midnight. So 0 to 10° of elevation lasts about 5.5 s at sunset, and twilight (0 to −8°) about 3.5 s. This gives the blue sunset look and photo time. Day stays 45 s and night 15 s.

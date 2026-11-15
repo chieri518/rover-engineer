@@ -71,6 +71,14 @@ describe('Mars data', () => {
     expect(t.cold.zones).toEqual([]);
   });
 
+  it('starts the mission in the morning, with the Sun about 15° up', () => {
+    const setup = missionSetup([], t, [], marsSetup(site, data.events, seededRng(1)));
+    const start = marsStatus(startMission(setup), setup, t)!;
+    expect(start.sun.elevationDeg).toBeGreaterThan(13);
+    expect(start.sun.elevationDeg).toBeLessThan(17);
+    expect(start.clock).toMatchObject({ sol: 1, isNight: false });
+  });
+
   it('freezes a rover without a heater before its first dawn; the radioisotope heater lasts the night', () => {
     const heat = (id: string) => data.parts.parts.find((p) => p.id === id)!.effects.heat ?? 0;
     expect(marsSecondsToFreeze(heat('heater-none'), t.cold, t.night!)).toBeLessThan(t.sol!.nightSeconds);

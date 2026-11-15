@@ -74,6 +74,8 @@ export interface SolTuning {
   solarLongitudeDegPerSol?: number; // how fast the season advances (about 0.6 deg per sol near Ls 200)
   /** The Sun's speed at sunrise and sunset as a share of its mean day speed (1 = uniform; lower = longer low-Sun light). */
   horizonRateShare?: number;
+  /** The mission starts this many seconds after sunrise of sol 1 (the Sun about 15° up), not at sunrise. */
+  startSecondsIntoDay?: number;
 }
 
 /** Night: lights on or sleep, and the map-wide night cold. Owner: rules (M3). */

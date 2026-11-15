@@ -8,6 +8,11 @@
 // +H0 (sunset) over the day and on round to 360° − H0 over the night. Within each half the hour angle
 // follows a smooth cubic warp, so the Sun moves slower near the horizon (longer sunsets) and faster at
 // noon and midnight; its speed is continuous at sunrise and sunset.
+//
+// The mission starts in the morning, not at sunrise: SolTuning.startSecondsIntoDay shifts the clock so
+// that mission time 0 is that far into the first day (the Sun about 15° up at Jezero). Each sol still
+// has 45 s of day and 15 s of night; the first sol is shorter by the shift, and the mission ends that
+// many seconds after the tenth night's dawn. Sol numbers change at dawn.
 import type { SolTuning } from './marsTypes';
 
 const DEG = Math.PI / 180;
@@ -23,6 +28,11 @@ export function marsSolarDeclinationDeg(solarLongitudeDeg: number): number {
 export function sunriseHourAngleDeg(latitudeDeg: number, declinationDeg: number): number {
   const c = -Math.tan(latitudeDeg * DEG) * Math.tan(declinationDeg * DEG);
   return Math.acos(Math.min(1, Math.max(-1, c))) / DEG;
+}
+
+/** Clock time for mission time `seconds`: 0 is sunrise of sol 1, and the mission starts startSecondsIntoDay later. */
+export function solClockSeconds(seconds: number, sol: SolTuning): number {
+  return Math.max(0, seconds) + Math.max(0, sol.startSecondsIntoDay ?? 0);
 }
 
 /** The season (Ls) after `seconds` of play: the start value advanced by solarLongitudeDegPerSol each sol. */
@@ -51,13 +61,14 @@ function warp(u: number, edge: number): number {
 }
 
 /**
- * The sol clock after `seconds` of play. t = 0 is sunrise of sol 1. Needs the site latitude for the real
- * day length.
+ * The sol clock after `seconds` of play. Mission time 0 is startSecondsIntoDay after sunrise of sol 1.
+ * Needs the site latitude for the real day length.
  */
 export function solClock(seconds: number, sol: SolTuning, latitudeDeg: number): SolState {
-  const t = Math.max(0, seconds);
-  const index = Math.min(Math.floor(t / sol.secondsPerSol), sol.sols - 1);
-  const into = Math.min(t - index * sol.secondsPerSol, sol.secondsPerSol);
+  const t = solClockSeconds(seconds, sol);
+  const clockIndex = Math.floor(t / sol.secondsPerSol);
+  const index = Math.min(clockIndex, sol.sols - 1); // the mission's last seconds (the dawn after the last night) stay on the last sol
+  const into = t - clockIndex * sol.secondsPerSol;
   const declinationDeg = marsSolarDeclinationDeg(solarLongitudeAt(t, sol));
   const h0 = sunriseHourAngleDeg(latitudeDeg, declinationDeg);
   const nightSpan = 360 - 2 * h0;
@@ -95,10 +106,13 @@ export function solClock(seconds: number, sol: SolTuning, latitudeDeg: number): 
 
 export type SolEdge = 'dawn' | 'dusk';
 
-/** The sunrise or sunset crossed between two times (prev < edge ≤ now), or null. Mission start is not a dawn. */
-export function solEdge(prevSeconds: number, seconds: number, sol: SolTuning): SolEdge | null {
-  if (seconds <= prevSeconds) return null;
-  const last = sol.sols * sol.secondsPerSol;
+/** The sunrise or sunset crossed between two mission times (prev < edge ≤ now), or null. Mission start is not a dawn. */
+export function solEdge(prevMissionSeconds: number, missionSeconds: number, sol: SolTuning): SolEdge | null {
+  if (missionSeconds <= prevMissionSeconds) return null;
+  const shift = solClockSeconds(0, sol);
+  const prevSeconds = prevMissionSeconds + shift;
+  const seconds = missionSeconds + shift;
+  const last = sol.sols * sol.secondsPerSol + shift; // the mission end, in clock time
   for (let k = Math.floor(prevSeconds / sol.secondsPerSol); k * sol.secondsPerSol <= seconds; k++) {
     const dusk = k * sol.secondsPerSol + sol.daySeconds;
     if (prevSeconds < dusk && dusk <= seconds && dusk < last) return 'dusk';

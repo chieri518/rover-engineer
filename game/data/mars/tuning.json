@@ -43,14 +43,15 @@
     "sunsetPhotoMinDistanceM": 300
   },
   "sol": {
-    "_note": "Decided (game-design.md, The Mars mission): 10 sols of 60 s, 45 s of day then 15 s of night, season Ls about 200 (early northern autumn). Rules track (M3): t = 0 is sunrise of sol 1. The Sun follows real local solar time at Jezero (rules/sol.ts, rules/marsSun.ts); the season advances about 0.6 deg of Ls per sol near Ls 200 (Mars24 orbit). horizonRateShare: the Sun moves at 0.25 x its mean day speed at sunrise and sunset (faster at noon and midnight), so 0 to 10 deg of elevation lasts about 5.5 s at sunset and twilight (0 to -8 deg) about 3.5 s.",
+    "_note": "Decided (game-design.md, The Mars mission): 10 sols of 60 s, 45 s of day then 15 s of night, season Ls about 200 (early northern autumn). Rules track (M3): clock time 0 is sunrise of sol 1. The Sun follows real local solar time at Jezero (rules/sol.ts, rules/marsSun.ts); the season advances about 0.6 deg of Ls per sol near Ls 200 (Mars24 orbit). horizonRateShare: the Sun moves at 0.25 x its mean day speed at sunrise and sunset (faster at noon and midnight), so 0 to 10 deg of elevation lasts about 5.5 s at sunset and twilight (0 to -8 deg) about 3.5 s. startSecondsIntoDay (fix pass, decided by main): the mission starts in the Mars morning, 7.25 s after sunrise of sol 1 with the Sun about 15 deg up, instead of at sunrise (the first seconds read dark). Sol 1 is that much shorter, the mission still lasts 600 s and ends 7.25 s after the dawn that follows the tenth night.",
     "sols": 10,
     "secondsPerSol": 60,
     "daySeconds": 45,
     "nightSeconds": 15,
     "solarLongitudeDeg": 200,
     "solarLongitudeDegPerSol": 0.6,
-    "horizonRateShare": 0.25
+    "horizonRateShare": 0.25,
+    "startSecondsIntoDay": 7.25
   },
   "night": {
     "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving: lights on 4 (a parked night costs 60, about a fixed panel's whole sol of income), awake without lights 1 (electronics), asleep 0.2 (3 per night). Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
