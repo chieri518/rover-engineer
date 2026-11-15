@@ -1,7 +1,7 @@
 // Data sources and credits, generated from the source metadata in the data files: terrain.json and
 // texture.json (fetched at runtime, as the mission does), events.json, milestones.json and text.json.
 import type { Screen } from '../flow/flow';
-import type { CreditEntry, HistoryKey, TextFile } from '../rules/types';
+import type { CreditEntry, GameData, HistoryKey, TextFile } from '../rules/types';
 import { el, fill } from './dom';
 
 /** The fields of public/terrain/terrain.json this screen reads. */
@@ -96,6 +96,19 @@ function fallback(c: TextFile['credits'], lines: string[]): Node[] {
   return [el('p', { class: 'note' }, c.loadFailed), ...lines.map((l) => el('p', {}, l))];
 }
 
+/** One entry per source behind a relationship, skipping sources already listed under the instrument facts. */
+function relationshipEntries(data: GameData): HTMLLIElement[] {
+  const seen = new Set<string>();
+  for (const p of data.parts.parts) {
+    const src = p.effects.instrument ? data.text.instrumentText[p.effects.instrument]?.source : undefined;
+    if (src) seen.add(src);
+  }
+  // No lesson names: undiscovered lessons stay hidden (the notebook shows them only as a count).
+  const sources = new Set<string>();
+  for (const r of data.relationships.relationships) if (r.source && !seen.has(r.source)) sources.add(r.source);
+  return [...sources].map((source) => entry(null, source));
+}
+
 export const creditsScreen: Screen = (game, root) => {
   const { data } = game;
   const { text } = data;
@@ -136,6 +149,7 @@ export const creditsScreen: Screen = (game, root) => {
             const it = p.effects.instrument ? text.instrumentText[p.effects.instrument] : undefined;
             return it?.source ? [entry(p.name, it.source)] : [];
           }))),
+      section(c.relationshipsLabel, el('ul', { class: 'credit-list' }, ...relationshipEntries(data))),
       section(c.debrief,
         el('ul', { class: 'credit-list' }, ...HISTORY_KEYS.map((k) => entry(historyLabel(k), text.historySources[k])))),
       section(c.generatedHeading, el('p', {}, c.generated)),

@@ -362,10 +362,19 @@
         ]
       },
       {
+        "title": "Payload bay",
+        "body": [
+          "The payload bay holds the instruments, one of each. Each instrument takes one mounting point, and the chassis sets how many there are: {bayMin} or {bayMax}, depending on the frame. A full bay cannot take another instrument, and a chassis with fewer points removes the last ones added.",
+          "Each instrument card shows its cost, mass and size, and what it costs in energy: some use energy every time they work, and some draw a little while switched on. The specification sheet adds these to the range estimate. \"No instruments\" is also a choice, but a rover with no instruments cannot earn much.",
+          "The order of the bay is the order of the number keys in the mission: the first instrument added is key 1."
+        ]
+      },
+      {
         "title": "Launch ticket",
         "body": [
           "REL buys the rover a spot on the next launch. The ticket tier is the smallest one that fits both the rover's mass and its size: {tiers}.",
-          "A rover just over a tier limit pays the much higher price of the next tier. A rover above the {top} limits cannot launch. The marks on the mass and size gauges show each limit."
+          "A rover just over a tier limit pays the much higher price of the next tier. A rover above the {top} limits cannot launch. The marks on the mass and size gauges show each limit.",
+          "On the launch ticket screen, the pre-launch review lists lessons from the engineering notebook that apply to this rover, and a few problems that are always checked. It never stops a launch. At first it has little to say: the notebook fills as the rover learns things on the surface."
         ]
       },
       {
@@ -418,6 +427,7 @@
         },
         "body": [
           "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
+          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it.",
           "The map shows the lander, viewpoints, craters, permanent shadow and the area explored so far."
         ]
       }
@@ -458,6 +468,7 @@
     ],
     "speedLabel": "Real drive speeds (design screen)",
     "instrumentsLabel": "Instrument facts",
+    "relationshipsLabel": "Engineering lessons (how parts affect each other)",
     "survivedLabel": "Mission completed",
     "back": "Back"
   }

@@ -30,6 +30,7 @@ export function tutorialPages(
     earthMinDistance: tuning.milestones.earthPhotoMinDistanceM,
     sampleSpacing: tuning.milestones.sampleSpacingM,
     bayMax: Math.max(0, ...data.parts.parts.map((p) => p.effects.mountingPoints ?? 0)),
+    bayMin: Math.min(...data.parts.parts.flatMap((p) => (p.effects.mountingPoints === undefined ? [] : [p.effects.mountingPoints]))),
     sunlit: text.hud.sunlit,
     shadow: text.hud.shadow,
   };

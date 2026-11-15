@@ -351,7 +351,7 @@ export interface TextFile {
     | 'open' | 'heading' | 'intro' | 'disclaimer'
     | 'terrain' | 'imagery' | 'spaceWeather' | 'soil' | 'milestones' | 'debrief' | 'generatedHeading' | 'generated'
     | 'loading' | 'loadFailed' | 'imageryFallback' | 'provider' | 'imageCredit' | 'license' | 'productPage'
-    | 'flaresUsed' | 'speedLabel' | 'instrumentsLabel' | 'survivedLabel' | 'back',
+    | 'flaresUsed' | 'speedLabel' | 'instrumentsLabel' | 'relationshipsLabel' | 'survivedLabel' | 'back',
     string
   > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
 }
