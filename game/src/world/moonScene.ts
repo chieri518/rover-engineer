@@ -79,6 +79,8 @@ export interface MoonScene {
   terrain: Terrain;
   /** Stop mission time (the Sun stops moving) once the mission has ended. */
   stopClock(): void;
+  /** Pause or resume physics and mission time (e.g. while the tutorial is open). The view keeps drawing. */
+  setPaused(paused: boolean): void;
   /** Switch the floodlights (if the rover has them). */
   setFloodlights(on: boolean): void;
   /** Shake the camera, e.g. for a moonquake. */
@@ -203,6 +205,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   let seconds = 0;
   let timeScale = 1;
   let clockRunning = true;
+  let paused = false;
   let shakeLeft = 0;
   let limits: MoonDriveLimits = { allowForward: true, allowReverse: true, speedFactor: 1 };
   const gravityStep = tuning.mission.gravity * tuning.rover.gravityScale * PHYSICS_STEP;
@@ -251,7 +254,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     last = now;
 
     const raw = input.read();
-    acc += dt;
+    acc = paused ? 0 : acc + dt;
     let steps = 0;
     while (acc >= PHYSICS_STEP && steps < 5) {
       rover.setInput(limitInput(raw));
@@ -382,6 +385,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     terrain,
     stopClock() {
       clockRunning = false;
+    },
+    setPaused(p: boolean) {
+      paused = p;
     },
     setFloodlights(on: boolean) {
       if (lamp) lamp.intensity = on ? FLOODLIGHT_INTENSITY : 0;
