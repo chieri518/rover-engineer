@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "generated": "2026-11-15",
+  "generator": "game/tools/build_texture_mars.py",
+  "playArea": {
+    "file": "albedo.jpg",
+    "encoding": "8-bit grayscale JPEG, sRGB-encoded linear albedo",
+    "size_px": [
+      1601,
+      1601
+    ],
+    "pixel_m": 5,
+    "grid": "Same grid as heightmap.png: pixel (col, row) is centered on heightmap vertex (col, row), i.e. x = (col - 800) * 5, z = (row - 800) * 5. Row 0 = -z (north), column 0 = -x (west). The image covers x, z in [-4002.5, 4002.5] m.",
+    "uv": "u = (x + 4002.5) / 8005, v_down = (z + 4002.5) / 8005 (v_down = 0 at the top row). With a PlaneGeometry spanning the play area the error is at most half a texel.",
+    "values": "linear_albedo = srgb_to_linear(value / 255). Mean = 0.25 (value 137). Grayscale: tint it in the shader. To use it as a multiplier on a base color, divide the decoded value by 0.25.",
+    "filled": "0.17% of pixels (no image data or grazing modelled light) are copied from the nearest real pixel.",
+    "bytes": 470560
+  },
+  "source": {
+    "dataset": "Mars 2020 HiRISE orthorectified image mosaic, 25 cm/px (JEZ_hirise_soc_007_orthoMosaic_25cm_Ortho_blend120), area-averaged to 2.5 m then 5 m",
+    "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_007_orthoMosaic_25cm_Ortho_blend120.tif",
+    "page": "https://doi.org/10.5066/P9QJDP48",
+    "citation": "Fergason, R.L., Galuszka, D.M., Hare, T.M. (2020), High-Resolution Imaging Science Experiment Orthorectified Image Mosaic for Mars 2020 Surface Operations, U.S. Geological Survey data release, doi:10.5066/P9QJDP48. HiRISE: McEwen, A.S., et al. (2007), J. Geophys. Res. 112, E05S02",
+    "credit": "NASA/JPL-Caltech/University of Arizona/USGS",
+    "license": "Public domain (USGS / NASA)",
+    "shadingDem": "heightmap.png (USGS Mars 2020 TRN HiRISE 1 m DTM at 5 m), same grid"
+  },
+  "alignment": {
+    "bestShift_px": {
+      "rows": 0,
+      "cols": -1
+    },
+    "corrAtBest": 0.7559,
+    "corrUnshifted": 0.7426
+  },
+  "processing": [
+    "Area-averaged from 25 cm to 2.5 m (cached) and resampled to the play-area grid (azimuthal equidistant, 5 m) by area averaging.",
+    "Shading removal: local Lambert fit I ~ g * (n . s) with n from heightmap.png, Gaussian-weighted least squares (sigma 400 m). Only the shading relative to flat ground is divided out, so real albedo differences (dark sand, light-toned rock) are kept. Fitted Sun elevation p10/p50/p90 = [33.5, 45.4, 68.0] deg, azimuth (from north toward east) [211.8, 261.8, 280.0] deg.",
+    "Scaled so the mean is linear albedo 0.25, clipped to 0.3..2.5 times the mean."
+  ],
+  "limits": [
+    "Absolute albedo is not calibrated: the mosaic is stretched per image; only relative brightness is real.",
+    "Rocks, ripples and craters smaller than ~20 m keep the shading and shadows of the original afternoon Sun (from the west), because the 5 m heights cannot model them.",
+    "Grayscale only (HiRISE red band)."
+  ]
+}
