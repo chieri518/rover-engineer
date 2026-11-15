@@ -15,7 +15,7 @@ Quick navigation: [Scope](#scope) · [Architecture](#architecture-the-world-spin
 - Night: lights on (battery drain, no solar), sleep (the existing P power-down, slow drain, wakes at dawn), and no driving at night without lights.
 - Cold: the freeze meter rises everywhere at night, slowed by the heater; milder during the storm.
 - One dust storm per mission: forecast a sol ahead, solar income about a third for about 2 sols, haze visuals.
-- Mars milestones: Touchdown, Odometer, Night drive, Storm survivor, Delta layers (camera), Lake sediment sample (drill, up to three sites), Blue sunset (camera). Mapper reused if free.
+- Mars milestones: Touchdown, Odometer, Night drive, Storm survivor, Delta layers (camera), Core sample (drill, up to three sites; renamed from Lake sediment sample, see the design doc), Blue sunset (camera). Mapper reused if free.
 - Mars survey leads, fog, and site discovery (reuse of the Moon minimap).
 - Mars text: briefing, landing survey, milestone pop-ups with fact-checked facts, debrief, credits for the Mars datasets.
 

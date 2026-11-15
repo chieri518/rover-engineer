@@ -27,8 +27,20 @@
     "zones": []
   },
   "survey": {
-    "_placeholder": "Milestones and survey track (M5): leads to the delta front, Seitah and a rocky area (site keys from the Mars terrain.json features). Text in data/mars/text.json survey.leads.",
-    "leads": []
+    "_note": "Orbital survey leads (M5): the delta front (deltaFront, aimed at its nearest point), Seitah (seitah) and the first rocky area in terrain.json (rockyAreas.0, so the lead survives the pipeline renaming it). Text in data/mars/text.json survey.leads. Rounding is the Moon's.",
+    "leads": [
+      { "id": "delta", "site": "deltaFront" },
+      { "id": "seitah", "site": "seitah" },
+      { "id": "rocks", "site": "rockyAreas.0" }
+    ]
+  },
+  "milestones": {
+    "_note": "M5. Mars zones: the delta front (deltaFront.zoneRadius_m from terrain.json), Seitah's outline, and photoZoneRadiusM circles around the deltaLayers and sunset viewpoints. Samples: the Moon's 200 m from the lander and from each other. No hydrogen signal (no ice on Mars).",
+    "hydrogenSignal": false,
+    "_sunset": "Blue sunset: the setting Sun's center between sunsetMinElevationDeg and sunsetMaxElevationDeg, in frame and not hidden by terrain, at least sunsetPhotoMinDistanceM from the lander (the Sun sets in view of the lander every sol). With the rules track's eased Sun near the horizon (about 1.5 deg/s), 0 to 10 deg lasts about 6 s per dusk; widen the band here if playtests find it too tight.",
+    "sunsetMinElevationDeg": 0,
+    "sunsetMaxElevationDeg": 10,
+    "sunsetPhotoMinDistanceM": 300
   },
   "sol": {
     "_note": "Decided (game-design.md, The Mars mission): 10 sols of 60 s, 45 s of day then 15 s of night, season Ls about 200. Owner: rules track (M3).",

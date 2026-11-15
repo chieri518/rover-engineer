@@ -1,6 +1,6 @@
 // Types for the JSON files in game/data/. These are the data contract.
 import type { DamageCause } from './damage';
-import type { DustStormSpec, MarsMilestoneTrigger, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
+import type { DustStormSpec, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
 
 export type Slot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater' | 'instrument';
 export type Instrument = 'camera' | 'drill';
@@ -174,7 +174,7 @@ export interface Tuning {
     boundaryInsetM: number; // the operating boundary sits this far inside the 8 km play area
     warningDistanceM: number; // the "leaving the area" notice shows this close to the boundary
   };
-  milestones: MilestoneTuning;
+  milestones: MilestoneTuning & Partial<MarsMilestoneTuning>; // Mars fields: rules/marsTypes.ts
   /** Mars only (data/mars/tuning.json): the sol clock and the night. See rules/marsTypes.ts. */
   sol?: SolTuning;
   night?: NightTuning;

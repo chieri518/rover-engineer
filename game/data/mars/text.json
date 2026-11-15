@@ -27,5 +27,38 @@
     "started": "[placeholder] Dust storm. Solar power is down to about a third.",
     "cleared": "[placeholder] The dust storm has cleared.",
     "credit": "[placeholder]"
+  },
+  "survey": {
+    "_owner": "M5. Lead ids match data/mars/tuning.json survey.leads. Directions and distances are computed, so the text names none.",
+    "_sources": "Delta: Fassett and Head, GRL 32 (2005), doi.org/10.1029/2005GL023456. Seitah: NASA JPL, \"NASA's Perseverance Rover Begins Its First Science Campaign on Mars\" (jpl.nasa.gov/news/nasas-perseverance-rover-begins-its-first-science-campaign-on-mars/). HiRISE scale: uahirise.org/TRA_000823_1720; usgs.gov/news/mars-2020-mission-be-guided-usgs-astrogeology-maps.",
+    "intro": "Orbital data from Mars Reconnaissance Orbiter show three areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
+    "leads": {
+      "delta": {
+        "name": "Delta front",
+        "source": "Orbital images show the fan of an ancient river delta, first described as a delta built into a crater lake in 2005. Its front is a cliff where the layers are exposed."
+      },
+      "seitah": {
+        "name": "Séítah",
+        "source": "HiRISE images show ridged rock with sand ripples between the ridges; the ripples are soft ground. Séítah means \"amidst the sand\" in the Navajo language."
+      },
+      "rocks": {
+        "name": "Boulder field",
+        "source": "HiRISE images, at about 25 cm per pixel, show a rough patch of boulders on the crater floor."
+      }
+    },
+    "legendRocky": "Boulder field",
+    "legendDelta": "Delta front",
+    "legendRegion": "Séítah"
+  },
+  "instruments": {
+    "_owner": "M5: Mars overrides of the shared instrument notices, plus the sunset notices (rules/marsTypes.ts MarsInstrumentText).",
+    "photoNoZone": "Photograph added to the album. Milestones count only at viewpoints, or with the setting Sun low in view.",
+    "drillDone": "Rock core collected.",
+    "captionDay": "{place}, sol {day}",
+    "captionSurface": "Jezero crater floor",
+    "captionSunset": "Sunset over Jezero crater",
+    "sunsetHint": "The setting Sun is low in view. Press C to take a photograph.",
+    "sunsetTooHigh": "The Sun is in view but still high. The sunset photo counts once it is within {max}° of the horizon.",
+    "sunsetTooClose": "The setting Sun is in view, but the rover is only {distance} m from the lander. The sunset photo counts at least {min} m away."
   }
 }

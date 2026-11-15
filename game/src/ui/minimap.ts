@@ -4,7 +4,8 @@
 // crater's outline) appear only once discovered. Undiscovered orbital survey leads show as numbered
 // arrows on the map's edge, pointing from the rover toward their areas: bearings, not markers. The
 // lander, the operating boundary and the rover are always drawn. Up is local −z (grid north, toward
-// Earth). The ice spot is never marked.
+// Earth). The ice spot is never marked. On Mars the map also draws the delta front's scarp line, Séítah's
+// outline and Perseverance's landing site once discovered; it has no cold zones, so no cold legend.
 import { growBounds, mapView, type Bounds, type MapView, type Site } from '../rules/survey';
 import type { TextFile, Tuning } from '../rules/types';
 import type { HeightGrid } from '../world/terrainData';
@@ -16,6 +17,8 @@ const FOG = '#070a10';
 const MARK = '#f0b429';
 const COLD = 'rgba(90, 150, 255, 0.85)';
 const LEAD = '#5ec8ff';
+const DELTA = '#e8a06a'; // the delta front's scarp
+const REGION = 'rgba(240, 200, 120, 0.85)'; // Séítah's outline
 const ZOOM_RATE = 2.5; // per second: the view eases toward the explored area, so the map widens smoothly
 const REVEAL_SOFT_EDGE = 0.8; // the fog fades out over the outer 20% of each reveal circle
 
@@ -59,14 +62,18 @@ export class Minimap {
     this.fogCtx.fillRect(0, 0, this.basePx, this.basePx);
     this.drawBase(grid);
     const h = text.hud;
+    const sv = text.survey;
+    const hasCold = this.masks.cold.includes(1);
     this.root = el('div', { class: 'minimap', role: 'img', 'aria-label': h.minimap },
       this.canvas,
       el('div', { class: 'minimap-legend' },
         el('span', { class: 'lg lander' }, h.legendLander),
         el('span', { class: 'lg viewpoint' }, h.legendViewpoint),
-        el('span', { class: 'lg crater' }, h.legendCrater),
-        el('span', { class: 'lg cold' }, h.legendCold),
-        el('span', { class: 'lg lead' }, text.survey.legendLead),
+        el('span', { class: 'lg crater' }, sv.legendRocky ?? h.legendCrater),
+        ...(sv.legendDelta ? [el('span', { class: 'lg delta' }, sv.legendDelta)] : []),
+        ...(sv.legendRegion ? [el('span', { class: 'lg region' }, sv.legendRegion)] : []),
+        ...(hasCold ? [el('span', { class: 'lg cold' }, h.legendCold)] : []),
+        el('span', { class: 'lg lead' }, sv.legendLead),
       ),
       this.leadList,
     );
@@ -120,9 +127,13 @@ export class Minimap {
     f.restore();
   }
 
-  /** Widen the map to show a newly discovered site whole (the dark crater is larger than the reveal circle). */
+  /**
+   * Widen the map to show a newly discovered site whole (the dark crater is larger than the reveal circle).
+   * Not the delta front: its scarp runs for kilometers, so the map shows the part the rover has explored.
+   */
   includeSite(site: Site): void {
     const a = site.area;
+    if (a.kind === 'path') return;
     const pts: [number, number][] = a.kind === 'polygon' ? a.points : [[a.x - a.r, a.z - a.r], [a.x + a.r, a.z + a.r]];
     for (const [x, z] of pts) this.bounds = growBounds(this.bounds, { x, z }, 0);
   }
@@ -174,12 +185,25 @@ export class Minimap {
     for (const s of sites) {
       if (!s.discovered) continue;
       const a = s.area;
-      if (s.kind === 'shadowed-crater' && a.kind === 'polygon') {
-        ctx.strokeStyle = COLD;
-        ctx.lineWidth = 1.5;
+      if (a.kind === 'polygon' || a.kind === 'path') {
+        ctx.strokeStyle = s.kind === 'shadowed-crater' ? COLD : a.kind === 'path' ? DELTA : REGION;
+        ctx.lineWidth = a.kind === 'path' ? 3 : 1.5;
+        ctx.setLineDash(s.kind === 'region' ? [5, 4] : []);
         ctx.beginPath();
         a.points.forEach(([x, z], i) => (i ? ctx.lineTo(px(x), py(z)) : ctx.moveTo(px(x), py(z))));
-        ctx.closePath();
+        if (a.kind === 'polygon') ctx.closePath();
+        ctx.stroke();
+        ctx.setLineDash([]);
+      } else if (s.kind === 'landmark') {
+        const x = px(a.x);
+        const y = py(a.z);
+        ctx.strokeStyle = MARK;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x - 5, y - 5);
+        ctx.lineTo(x + 5, y + 5);
+        ctx.moveTo(x + 5, y - 5);
+        ctx.lineTo(x - 5, y + 5);
         ctx.stroke();
       } else if (a.kind === 'circle' && s.kind === 'viewpoint') {
         const x = px(a.x);

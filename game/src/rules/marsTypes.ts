@@ -102,14 +102,38 @@ export type MarsMilestoneTrigger =
   | { type: 'night-distance'; meters: number[] } // driven at night, one reward per threshold
   | { type: 'storm-survive' }; // still running when the dust storm clears
 
-/** Mars zone ids that milestones.json triggers may name (M5 builds the zones). */
+/** Mars zone ids that milestones.json triggers may name (rules/milestones.ts buildZones). */
 export type MarsZoneId = 'delta-front' | 'delta-layers' | 'seitah' | 'sunset-viewpoint';
+
+/** Mars-only milestone tuning (data/mars/tuning.json `milestones`), merged over the shared MilestoneTuning. */
+export interface MarsMilestoneTuning {
+  sunsetMinElevationDeg: number; // Blue sunset: the Sun's center at least this high (and not hidden by terrain)...
+  sunsetMaxElevationDeg: number; // ...and at most this high, while setting (after local noon)
+  sunsetPhotoMinDistanceM: number; // ...taken at least this far from the landing point (sunset is in view from the lander every sol)
+}
+
+/** Mars-only instrument notices (data/mars/text.json `instruments`); absent on the Moon. */
+export interface MarsInstrumentText {
+  sunsetHint?: string; // the setting Sun is low and in frame: press C
+  sunsetTooClose?: string; // {distance} {min}
+  sunsetTooHigh?: string; // the Sun is in frame but not yet low
+  captionSunset?: string;
+}
+
+/** Mars-only survey and minimap legend text (data/mars/text.json `survey`); absent on the Moon. */
+export interface MarsSurveyText {
+  legendRocky?: string; // replaces the Moon's "Crater" legend for rocky-area rings
+  legendDelta?: string;
+  legendRegion?: string; // Séítah's outline
+}
 
 // ---------------------------------------------------------------------------------------------------
 // Text sections (data/mars/text.json). Owners: integration (M6) for night and storm notices,
 // campaign and screens (M4) for the rest. Strings marked [placeholder] are stubs.
 
 export interface MarsTextSections {
+  instruments: MarsInstrumentText; // M5
+  survey: MarsSurveyText; // M5
   sol: Record<'hudSol' | 'lasted', string>;
   night: Record<'sunset' | 'dawn' | 'sleeping' | 'noLights' | 'lightsOn', string>;
   storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string>;

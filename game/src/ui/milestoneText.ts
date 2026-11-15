@@ -14,7 +14,7 @@ export function categoryLabel(c: MilestoneCategory, text: TextFile): string {
 export function milestoneSummary(m: Milestone, stage = 1): string {
   const tr = m.trigger;
   return fill(m.summary, {
-    meters: tr.type === 'distance' ? (tr.meters[stage - 1] ?? 0) : 0,
+    meters: tr.type === 'distance' || tr.type === 'night-distance' ? (tr.meters[stage - 1] ?? 0) : 0,
     share: tr.type === 'explore' ? Math.round(tr.share * 1000) / 10 : 0,
   });
 }
