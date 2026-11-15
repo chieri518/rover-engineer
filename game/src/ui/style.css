@@ -87,6 +87,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .meter.energy.alert .meter-fill { background: var(--warn); }
 .sun-state { font-size: 0.8rem; color: var(--accent); }
 .sun-state.shadow { color: var(--muted); }
+.sol-state { display: grid; gap: 2px; font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); }
+.sol-state .night-state { font-family: var(--font-body); font-size: 0.75rem; color: var(--info); }
+.sol-state[hidden], .sol-state [hidden] { display: none; }
 .power-toggle { font-size: 0.85rem; padding: 6px 10px; }
 .power-toggle.active { background: #12304a; border-color: var(--info); color: #dff4ff; }
 /* Between the HUD panel (left, 260 px) and the minimap (right, up to 216 px), so long notices never cover them. */
