@@ -1,0 +1,481 @@
+{
+  "version": 1,
+  "generated": "2026-11-15",
+  "generator": "game/scripts/make-mars-placeholder.mjs",
+  "placeholder": true,
+  "site": "PLACEHOLDER procedural terrain standing in for Jezero crater, Mars (not real data)",
+  "frame": {
+    "description": "Local right-handed, y-up frame in meters (Three.js convention). Origin = play-area center at originLatLon (Octavia E. Butler Landing). +x = east, +z = south, +y = up. Image rows increase with +z, columns with +x.",
+    "originLatLon": [
+      18.4447,
+      77.4508
+    ],
+    "azimuthConvention": "azimuth_deg is measured from local -z (north), turning toward +x (east)",
+    "heights": "All heightmaps store TANGENT-PLANE heights: elevation (m, MOLA-like datum) minus the curvature drop r^2 / (2R), r = horizontal distance from the origin, R = 3389500 m. To recover elevation: elevation = height + (x^2 + z^2) / (2 * 3389500)."
+  },
+  "sunAndEarth": {
+    "siteLatitude_deg": 18.4447,
+    "siteLongitude_deg": 77.4508
+  },
+  "playArea": {
+    "size_m": 8000,
+    "pixel_m": 5,
+    "samples": 1601,
+    "boundsLocal": {
+      "xMin": -4000,
+      "xMax": 4000,
+      "zMin": -4000,
+      "zMax": 4000
+    },
+    "pixelToLocal": "sample (col, row) -> x = (col - 800) * 5, z = (row - 800) * 5 (vertex-centered grid)",
+    "files": {
+      "heightmap": {
+        "file": "heightmap.png",
+        "encoding": "uint16 grayscale PNG",
+        "min_m": -2665,
+        "max_m": -2583,
+        "formula": "height_m = min_m + value / 65535 * (max_m - min_m)"
+      },
+      "slope": {
+        "file": "slope.png",
+        "encoding": "uint8 grayscale PNG",
+        "formula": "slope_deg = value / 4"
+      },
+      "softGround": {
+        "file": "soft-ground.png",
+        "encoding": "uint8 grayscale PNG",
+        "formula": "softness = value / 255 (0 normal, 1 softest sand ripples)"
+      }
+    },
+    "elevationRange_m": [
+      -2664.6,
+      -2583.6
+    ]
+  },
+  "distantTerrain": [
+    {
+      "name": "near ring",
+      "file": "distant-near.png",
+      "encoding": "uint16 grayscale PNG",
+      "min_m": -2713,
+      "max_m": -1841,
+      "formula": "height_m = min_m + value / 65535 * (max_m - min_m)",
+      "size_m": 50000,
+      "pixel_m": 50,
+      "samples": 1001,
+      "boundsLocal": {
+        "xMin": -25000,
+        "xMax": 25000,
+        "zMin": -25000,
+        "zMax": 25000
+      },
+      "pixelToLocal": "x = (col - 500) * 50, z = (row - 500) * 50",
+      "hole": "Covers the play area too; skip or sink the part inside playArea.boundsLocal.",
+      "source": "placeholder"
+    },
+    {
+      "name": "far ring",
+      "file": "distant-far.png",
+      "encoding": "uint16 grayscale PNG",
+      "min_m": -5472,
+      "max_m": -1842,
+      "formula": "height_m = min_m + value / 65535 * (max_m - min_m)",
+      "size_m": 200000,
+      "pixel_m": 200,
+      "samples": 1001,
+      "boundsLocal": {
+        "xMin": -100000,
+        "xMax": 100000,
+        "zMin": -100000,
+        "zMax": 100000
+      },
+      "pixelToLocal": "x = (col - 500) * 200, z = (row - 500) * 200",
+      "hole": "Covers the near ring too; skip or sink the part inside the near ring's bounds.",
+      "source": "placeholder"
+    }
+  ],
+  "landing": {
+    "name": "Landing",
+    "local": {
+      "x": 250,
+      "y": -2659.51,
+      "z": 0
+    },
+    "latLon": [
+      18.4447,
+      77.45525
+    ],
+    "elevation_m": -2659.5,
+    "slope_deg": 0
+  },
+  "features": {
+    "deltaFront": {
+      "name": "Delta front",
+      "description": "PLACEHOLDER: a ~40 m scarp where the ancient river delta (higher ground, west) meets the crater floor; steepest ~23 deg, with a gentle ~4 deg ramp on its northern stretch.",
+      "scarpLocal_xz": [
+        [
+          -2133,
+          -3650
+        ],
+        [
+          -2133,
+          -3350
+        ],
+        [
+          -2146,
+          -3051
+        ],
+        [
+          -2170,
+          -2752
+        ],
+        [
+          -2161,
+          -2447
+        ],
+        [
+          -1992,
+          -2106
+        ],
+        [
+          -2106,
+          -1813
+        ],
+        [
+          -2378,
+          -1570
+        ],
+        [
+          -2495,
+          -1292
+        ],
+        [
+          -2598,
+          -1010
+        ],
+        [
+          -2713,
+          -733
+        ],
+        [
+          -2839,
+          -462
+        ],
+        [
+          -2978,
+          -196
+        ],
+        [
+          -3128,
+          64
+        ],
+        [
+          -3289,
+          316
+        ],
+        [
+          -3461,
+          562
+        ],
+        [
+          -3643,
+          800
+        ]
+      ],
+      "zoneRadius_m": 150,
+      "samplePoint": {
+        "name": "Delta front sample point",
+        "local": {
+          "x": -2598,
+          "y": -2643.09,
+          "z": -1010
+        },
+        "latLon": [
+          18.46177,
+          77.40451
+        ],
+        "elevation_m": -2641.9,
+        "slope_deg": 5.5,
+        "distanceFromLanding_m": 3022,
+        "driveDistanceFromLanding_m": 3475,
+        "source": "placeholder"
+      },
+      "source": "placeholder"
+    },
+    "seitah": {
+      "name": "Seitah",
+      "description": "PLACEHOLDER: ridged rock unit with sand ripples (soft ground) southwest of the landing point.",
+      "outlineLocal_xz": [
+        [
+          -540,
+          1150
+        ],
+        [
+          -605,
+          1360
+        ],
+        [
+          -639,
+          1594
+        ],
+        [
+          -812,
+          1753
+        ],
+        [
+          -1051,
+          1763
+        ],
+        [
+          -1250,
+          1810
+        ],
+        [
+          -1485,
+          1872
+        ],
+        [
+          -1711,
+          1785
+        ],
+        [
+          -1796,
+          1547
+        ],
+        [
+          -1841,
+          1342
+        ],
+        [
+          -1876,
+          1150
+        ],
+        [
+          -1959,
+          920
+        ],
+        [
+          -1813,
+          741
+        ],
+        [
+          -1624,
+          635
+        ],
+        [
+          -1451,
+          531
+        ],
+        [
+          -1250,
+          466
+        ],
+        [
+          -1034,
+          484
+        ],
+        [
+          -773,
+          494
+        ],
+        [
+          -656,
+          719
+        ],
+        [
+          -668,
+          961
+        ]
+      ],
+      "centroidLocal": {
+        "x": -1250,
+        "z": 1150
+      },
+      "area_km2": 1.5,
+      "entryPoint": {
+        "name": "Seitah entry",
+        "local": {
+          "x": -662,
+          "y": -2654.45,
+          "z": 700
+        },
+        "latLon": [
+          18.43287,
+          77.439
+        ],
+        "elevation_m": -2654.3,
+        "slope_deg": 2.7,
+        "distanceFromLanding_m": 1150,
+        "driveDistanceFromLanding_m": 1322,
+        "source": "placeholder"
+      },
+      "source": "placeholder"
+    },
+    "softGround": {
+      "description": "Sand ripples inside Seitah: softness 1 inside each circle, fading to 0 over 80 m (soft-ground.png).",
+      "areas": [
+        {
+          "name": "Seitah ripples 1",
+          "local": {
+            "x": -1450,
+            "z": 1270
+          },
+          "radius_m": 230
+        },
+        {
+          "name": "Seitah ripples 2",
+          "local": {
+            "x": -1020,
+            "z": 1000
+          },
+          "radius_m": 200
+        },
+        {
+          "name": "Seitah ripples 3",
+          "local": {
+            "x": -1190,
+            "z": 1480
+          },
+          "radius_m": 160
+        }
+      ]
+    },
+    "rockyAreas": [
+      {
+        "name": "East boulder field",
+        "local": {
+          "x": 2300,
+          "y": -2652.66,
+          "z": -350
+        },
+        "latLon": [
+          18.45062,
+          77.49178
+        ],
+        "elevation_m": -2651.9,
+        "slope_deg": 15.8,
+        "distanceFromLanding_m": 2080,
+        "driveDistanceFromLanding_m": 2392,
+        "source": "placeholder",
+        "radius_m": 180,
+        "slopeExcess_deg": 4.6,
+        "description": "PLACEHOLDER: boulder field on the crater floor (bumpy, steeper ground)."
+      },
+      {
+        "name": "North boulder field",
+        "local": {
+          "x": 450,
+          "y": -2648.81,
+          "z": -2500
+        },
+        "latLon": [
+          18.48696,
+          77.45882
+        ],
+        "elevation_m": -2647.9,
+        "slope_deg": 5.3,
+        "distanceFromLanding_m": 2508,
+        "driveDistanceFromLanding_m": 2884,
+        "source": "placeholder",
+        "radius_m": 160,
+        "slopeExcess_deg": 4.9,
+        "description": "PLACEHOLDER: boulder field on the crater floor (bumpy, steeper ground)."
+      }
+    ],
+    "viewpoints": [
+      {
+        "name": "Delta layers view",
+        "local": {
+          "x": -2500,
+          "y": -2646.6,
+          "z": -745
+        },
+        "latLon": [
+          18.45729,
+          77.40625
+        ],
+        "elevation_m": -2645.6,
+        "slope_deg": 1.1,
+        "distanceFromLanding_m": 2849,
+        "driveDistanceFromLanding_m": 3276,
+        "source": "placeholder",
+        "kind": "deltaLayers",
+        "lookToward": {
+          "x": -0.921,
+          "z": -0.39
+        }
+      },
+      {
+        "name": "Sunset over the delta",
+        "local": {
+          "x": -2677,
+          "y": -2605.97,
+          "z": -1792
+        },
+        "latLon": [
+          18.47499,
+          77.4031
+        ],
+        "elevation_m": -2604.4,
+        "slope_deg": 1.5,
+        "distanceFromLanding_m": 3432,
+        "driveDistanceFromLanding_m": 3947,
+        "source": "placeholder",
+        "kind": "sunset",
+        "lookToward": {
+          "x": -1,
+          "z": 0
+        }
+      }
+    ],
+    "perseveranceLanding": {
+      "name": "Octavia E. Butler Landing",
+      "local": {
+        "x": 0,
+        "z": 0
+      },
+      "latLon": [
+        18.4447,
+        77.4508
+      ],
+      "source": "placeholder position"
+    },
+    "deltaRamp": {
+      "name": "Delta ramp foot",
+      "local": {
+        "x": -2013,
+        "y": -2648.98,
+        "z": -1983
+      },
+      "latLon": [
+        18.47822,
+        77.41493
+      ],
+      "elevation_m": -2647.8,
+      "slope_deg": 1.4,
+      "distanceFromLanding_m": 3009,
+      "driveDistanceFromLanding_m": 3460,
+      "source": "placeholder"
+    },
+    "notes": [
+      "PLACEHOLDER: procedural terrain, replaced by the real Jezero terrain in terrain/mars/."
+    ]
+  },
+  "files_bytes": {
+    "albedo.png": 795619,
+    "distant-far.png": 1176623,
+    "distant-near.png": 1253861,
+    "heightmap.png": 3236352,
+    "slope.png": 674138,
+    "soft-ground.png": 11861
+  },
+  "sources": [
+    {
+      "dataset": "Placeholder procedural terrain (not real data)",
+      "provider": "Rover Engineer team"
+    }
+  ],
+  "credits": [
+    "Placeholder terrain: procedural, not NASA data. The real Jezero crater terrain replaces it."
+  ]
+}
