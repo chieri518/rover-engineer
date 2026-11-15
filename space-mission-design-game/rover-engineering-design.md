@@ -485,7 +485,7 @@ Before buying the launch ticket, the desk runs a short review, as real missions 
 
 ### Engineering notebook
 
-A collection of relationships the player has met, kept across the campaign. **Decided (November 15):** unlike balance, RP, and records, the notebook is **not** rolled back by a restart: knowledge from a failed run is the point of failing, and it cannot be farmed for money. An entry unlocks the first time a relationship affects a mission, and holds the cause, what happened, how to solve it, and the real story (for example Curiosity's neutron detector and its generator). It rewards discovery, gives players a reason to try different builds, and shows judges the learning design. Real basis: NASA keeps a lessons learned system for exactly this.
+A collection of relationships the player has met, kept across the campaign. The notebook opens from the desk, the title screen, and during the mission (pausing it), so a relationship can be read as soon as it is discovered. **Decided (November 15):** unlike balance, RP, and records, the notebook is **not** rolled back by a restart: knowledge from a failed run is the point of failing, and it cannot be farmed for money. An entry unlocks the first time a relationship affects a mission, and holds the cause, what happened, how to solve it, and the real story (for example Curiosity's neutron detector and its generator). It rewards discovery, gives players a reason to try different builds, and shows judges the learning design. Real basis: NASA keeps a lessons learned system for exactly this.
 
 ### Moon relationships
 

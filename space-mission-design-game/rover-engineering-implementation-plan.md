@@ -161,11 +161,12 @@ All behavior is pure rules in a new `rules/instruments.ts`; the mission screen o
 
 ### Phase 5: Engineering notebook and pre-launch review
 
-- Campaign rules (`rules/campaign.ts`): `finishMission` adds the mission's relationship ids to `notebook`; `restartRound` keeps it; tests cover both.
-- Notebook screen: a list of discovered relationships (cause, what happened, answers, real story), opened from the desk and the title screen. Undiscovered entries show as a count only ("3 of 4 Moon lessons found"), with no names.
+- Campaign rules (`rules/campaign.ts`): `finishMission` adds the mission's relationship ids to `notebook` (the mission screen shows them in its overlay before that); `restartRound` keeps it; tests cover both.
+- Notebook screen: a list of discovered relationships (cause, what happened, answers, real story), opened from the desk, the title screen, and during the mission. Undiscovered entries show as a count only ("3 of 4 Moon lessons found"), with no names.
+- In the mission: a HUD button (and a key) opens the notebook as an overlay and pauses the mission, as the drive tutorial does. A relationship discovered in this mission is added at once, so the player can read it right after its notice; the button shows a marker while there is an unread entry. The campaign save is still written only when the mission ends.
 - Pre-launch review (`ui/ticketScreen.ts`, pure `reviewItems(build, notebook, data)` in `rules/relationships.ts`): before the ticket purchase, lists the build's relationships that are in the notebook, with green, yellow, or red marks, plus hard blocks. A first build shows hard blocks only. The player can always continue.
 
-**Done when:** a relationship met in one mission appears in the notebook and in the next review for a build that triggers it, survives a restart, and never appears in the review before it is discovered.
+**Done when:** a relationship met in a mission appears in the notebook during that mission and in the next review for a build that triggers it, survives a restart, and never appears in the review before it is discovered.
 
 ### Phase 6: Text, tutorial, and playtest
 
@@ -183,7 +184,7 @@ All behavior is pure rules in a new `rules/instruments.ts`; the mission screen o
 | Rules | `rules/rover.ts`, `rules/payload.ts` (new), `rules/quote.ts`, `rules/mission.ts`, `rules/instruments.ts` (new), `rules/relationships.ts` (new), `rules/milestones.ts` (drop `hydrogenSignal`; `Missed.missing` uses `Instrument`), `rules/campaign.ts`, `rules/validate.ts`, `rules/balance.ts`, `rules/winPaths.ts` |
 | Save | `save/campaignSave.ts` (notebook default) |
 | Desk | `ui/designScreen.ts`, `ui/buildPreview.ts`, `ui/ticketScreen.ts` (review), `ui/tutorialText.ts` |
-| Mission | `ui/missionScreen.ts`, `ui/hud.ts` (instrument buttons, hydrogen meter, seismometer trace, Earth light), `rover/roverModel.ts`, a station mesh in `world/` |
+| Mission | `ui/missionScreen.ts`, `ui/hud.ts` (instrument buttons, hydrogen meter, seismometer trace, Earth light, notebook button), `rover/roverModel.ts`, a station mesh in `world/` |
 | Screens | `ui/screens.ts` (debrief sections, notebook screen), `ui/creditsScreen.ts` |
 
 ## Tests
@@ -203,11 +204,11 @@ All behavior is pure rules in a new `rules/instruments.ts`; the mission screen o
 
 ## Decisions
 
-Decided November 15, 2026.
+Decided November 15, 2026:
 
 | # | Question | Decision |
 | --- | --- | --- |
-| I1 | Keep C and F as extra keys for the camera and drill? | No. Number keys and HUD buttons only, so every instrument works the same way |
-| I2 | Where the notebook opens | From the desk and the title screen |
-| I3 | Should the debrief instrument log wait for milestones? | No. Show it from Phase 3, so the new instruments have visible results |
-| I4 | Ship phases separately or together? | Separately where it helps: Phases 1 and 2 can ship alone (camera plus drill on one rover is already new play); Phases 3 to 5 ship together, so new instruments arrive with their relationships |
+| I1 | Keep C and F as extra keys for the camera and drill? | No: number keys and HUD buttons only, so every instrument works the same way |
+| I2 | Where the notebook opens | From the desk, the title screen, and during the mission (an overlay that pauses the mission), so a new discovery can be read right away |
+| I3 | Should the debrief instrument log wait for milestones? | No: show it from Phase 3, so the new instruments have visible results |
+| I4 | Ship phases separately or together? | Phases 1 and 2 can ship alone (camera plus drill on one rover is already new play); Phases 3 to 5 ship together, so new instruments arrive with their relationships |
