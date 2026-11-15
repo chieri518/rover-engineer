@@ -6,7 +6,6 @@ import {
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
 import type { MissionResult } from '../rules/payout';
-import { cheapestBuild } from '../rules/rover';
 import { quoteBuild } from '../rules/quote';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 
@@ -29,7 +28,7 @@ export class Game {
     private readonly screens: Record<ScreenId, Screen>,
   ) {
     this.campaign = loadCampaign();
-    this.build = this.campaign?.lastBuild ?? cheapestBuild(data.parts);
+    this.build = this.campaign?.lastBuild ?? data.parts.defaultBuild;
   }
 
   get screen(): ScreenId {
@@ -60,7 +59,7 @@ export class Game {
   newCampaign(): void {
     clearCampaign();
     this.setCampaign(startRound(newCampaign(this.data.tuning)));
-    this.build = cheapestBuild(this.data.parts);
+    this.build = this.data.parts.defaultBuild;
     this.outcome = null;
     this.go('design');
   }

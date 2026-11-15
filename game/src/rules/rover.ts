@@ -56,7 +56,7 @@ export function meetsRequirements(parts: Part[], milestone: Milestone): boolean 
   return true;
 }
 
-/** The cheapest option in each slot; used as the default build. */
+/** The cheapest option in each slot. */
 export function cheapestBuild(catalog: PartsFile): Build {
   const build = {} as Build;
   for (const slot of catalog.slots) {

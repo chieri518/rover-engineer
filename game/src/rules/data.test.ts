@@ -6,6 +6,7 @@ import { cheapestBuild } from './rover';
 import { meetsRequirements, selectedParts } from './rover';
 import type { Build, GameData, Slot } from './types';
 import terrain from '../../public/terrain/terrain.json';
+import { missionSetup, startMission, stepMission, type MissionState } from './mission';
 
 const data: GameData = loadGameData();
 
@@ -64,9 +65,18 @@ describe('game data', () => {
     expect(quotes.some((q) => q.canLaunch && q.canAfford)).toBe(true);
   });
 
-  it('the starting budget is above the Moon minimum, and the default build can launch', () => {
+  it('the starting budget is above the Moon minimum, and the cheapest build can launch', () => {
     expect(data.tuning.budget.startingBudget).toBeGreaterThanOrEqual(data.tuning.budget.minimumBudget.moon);
     expect(quoteBuild(cheapestBuild(data.parts), data, data.tuning.budget.startingBudget).canLaunch).toBe(true);
+  });
+
+  it('the default build fits the Medium ticket, is affordable and not overloaded', () => {
+    const q = quoteBuild(data.parts.defaultBuild, data, data.tuning.budget.startingBudget);
+    const medium = data.tiers.tiers.findIndex((t) => t.id === 'medium');
+    expect(q.tier).not.toBeNull();
+    expect(data.tiers.tiers.indexOf(q.tier!)).toBeLessThanOrEqual(medium);
+    expect(q.canAfford).toBe(true);
+    expect(q.overloaded).toBe(false);
   });
 
   it('death penalties are ordered energy < stuck < froze < destroyed', () => {
@@ -93,5 +103,35 @@ describe('game data', () => {
     // Top speed for the whole mission, with room for slopes, turns and stops.
     expect(fastest * seconds).toBeGreaterThan(craterM * 1.1);
     expect(slowest * seconds).toBeLessThan(craterM * 0.75);
+  });
+
+  // Drive flat out at top speed for the whole mission with a given share of sunlight.
+  function nonstop(build: Build, sunlight: number, uphillDeg = 0): MissionState {
+    const parts = selectedParts(build, data.parts);
+    const setup = missionSetup(parts, data.tuning, []);
+    let s = startMission(setup);
+    const dt = 0.5;
+    while (!s.end) {
+      const v = setup.stats.topSpeed;
+      s = stepMission(s, {
+        dt, distanceM: v * dt, speedMps: v, uphillDeg, slopeDeg: 5, sunlight, inColdZone: false, softness: 0,
+        throttling: true, impactMps: 0, upY: 1,
+      }, setup, data.tuning, data.events).state;
+    }
+    return s;
+  }
+
+  it('energy: the default build driving nonstop in half sunlight finishes with charge left, in shadow it runs out', () => {
+    const half = nonstop(data.parts.defaultBuild, 0.5);
+    expect(half.end?.survived).toBe(true);
+    expect(half.energy).toBeGreaterThan(0.1 * quoteBuild(data.parts.defaultBuild, data, 0).drive.batteryCapacity);
+    const dark = nonstop(data.parts.defaultBuild, 0);
+    expect(dark.end?.cause).toBe('energy');
+    expect(dark.end!.seconds).toBeGreaterThan(200);
+  });
+
+  it('energy: climbing all mission long in little sunlight drains the cheapest build', () => {
+    const s = nonstop(cheapestBuild(data.parts), 0.25, 5);
+    expect(s.end?.cause).toBe('energy');
   });
 });
