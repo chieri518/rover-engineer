@@ -8,11 +8,11 @@
     "startingBudget": 750,
     "minimumBudget": {
       "moon": 520,
-      "mars": 830
+      "mars": 780
     }
   },
   "payout": {
-    "survivalPayout": 100,
+    "survivalPayout": 50,
     "deathPenalty": {
       "energy": 100,
       "stuck": 200,

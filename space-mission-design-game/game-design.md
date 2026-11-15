@@ -208,53 +208,68 @@ The real NASA milestone types and rewards behind this design are in [rover-engin
 
 *Decided November 15, 2026 (balance pass).*
 
-**Design rule.** No single right answer. Passing the Moon must need real milestone money that only an intentionally designed rover, driven along a route that suits it, can earn. Several different designs pass, each by doing a different job. Idling, surviving without a plan, or bringing an instrument and not using it fails. The ice is the highest-reward, highest-risk path, never the only one. It is the first level, so a well-planned rover keeps room for one or two mistakes.
+**Design rule.** No single right answer. Passing the Moon must need real milestone money that only an intentionally designed rover, driven along a route that suits it, can earn. Several different designs pass, each by doing a different job. Idling, surviving without a plan, a short trip near the lander, or bringing an instrument and not using it fails. The ice is the highest-reward, highest-risk path, never the only one. It is the first level, so a well-planned rover keeps room for one or two mistakes.
 
 **Pass rule (unchanged in shape).** After the Moon mission the balance must reach the Mars minimum budget. Starting budget 750; the parts and the ticket are paid first; then money = survival payout + milestone money − death penalty. Before this pass, the Mars minimum was 300 and the cheapest rover ended at about 730 by doing nothing, so every build passed.
 
 | Number | Before | Now |
 | --- | --- | --- |
-| Mars minimum budget (the pass mark) | 300 | **830** (the Moon must more than pay for itself) |
-| Survival payout | 250 | **100** |
+| Mars minimum budget (the pass mark) | 300 | **780** (the Moon must pay for itself) |
+| Survival payout | 250 | **50** |
 | Touchdown | 150 | **50** |
 | Odometer (per stage: 500 m, 1 km, 2 km) | 30 | 30 |
 | Mapper | 50 | **60** |
 | Crater descent | 60 | 60 |
-| Boulder field | 50 | **150** |
+| Boulder field | 50 | **100** |
 | Into the dark | 80 | **150** |
-| Flare survivor | 40 | **20** |
-| Clean run | 60 | **30** |
-| Crater layers | 20 | **100** |
-| Regolith sample (per site, up to 3) | 20 (once) | **120** |
+| Flare survivor | 40 | **30** |
+| Clean run | 60 | **50** |
+| Crater layers | 20 | **80** |
+| Regolith sample | 20, once | **100 per site, up to 3 sites** |
 | Water ice | 200 | **350** |
-| Earth on the horizon | 25 | **80** |
+| Earth on the horizon | 25 | **100** |
 | Rim panorama | 20 | **70** |
 | Wire-mesh wheels, real speed | 3.0 m/s | **3.3 m/s** (13.2 m/s in game) |
 
-Moon minimum (520), starting budget (750), part costs, ticket tiers, death penalties and RP are unchanged. The restart loop is unchanged: a restart restores the round snapshot (750), which is above the Moon minimum. Instruments now earn real money, so the camera's pictures and the drill's samples pay more than the categories table above suggests ("mainly RP", "a little money"); capability milestones still pay the most per milestone except the ice.
+Moon minimum (520), starting budget (750), part costs, ticket tiers, death penalties and RP are unchanged. The restart loop is unchanged: a restart restores the round snapshot (750), which is above the Moon minimum. Instruments now earn real money, so the camera's pictures and the drill's samples pay more than the categories table above suggests ("mainly RP", "a little money"). Survival alone is worth little; staying alive matters because dying forfeits it and costs a penalty on top.
 
-**How it was checked.** `src/rules/winPaths.ts` (pure, unit-tested) drives every build along route plans with the real mission rules: energy, solar income from the real lit share of each leg over time, cold, overload, soft-ground slip at boulder fields, and the two flares (the player powers down for 8 s each). Drive legs between the milestone sites were measured once on the real terrain (least-cost routes on a 10 m grid, slopes up to 18°) and are stored with the plans in `game/data/balance.json`, which the game does not load. "Reasonable play" means driving at 90% of top speed, recharging in sunlight before a leg the battery cannot cover with a 10% reserve, and touching a rock when crossing a boulder field (so no Clean run there). `winPaths.test.ts` holds the targets: idling fails for every build by more than 100; driving around without a plan, or one or two short stops near the lander, fails for every build; at least three archetypes with different parts and routes pass with a margin of at least 50; each archetype fails if it skips its instrument; fewer than 35% of affordable builds can pass even with their best route; the cheapest build fails on every route; more than five builds pass without the ice.
+**How it was checked.** `src/rules/winPaths.ts` (pure, unit-tested) drives every build along route plans with the real mission rules: energy, solar income from the real lit share of each leg over time, cold, overload, soft-ground slip at boulder fields, and two flares (the player powers down for 8 s each). Drive legs between the milestone sites were measured once on the real terrain (least-cost routes on a 10 m grid, slopes up to 18°) and are stored with the plans in `game/data/balance.json`, which the game does not load. "Reasonable play" means driving at 90% of top speed, recharging in sunlight before a leg the battery cannot cover with a 10% reserve, and touching a rock when crossing a boulder field (so no Clean run there; real drives often keep it). `winPaths.test.ts` holds the targets: idling fails for every build by more than 100; wandering, or one or two short stops near the lander, fails for every build; at least three archetypes with different parts and routes, using both instruments, pass with a margin of at least 50; each archetype fails if it skips its instrument; fewer than 35% of affordable builds can pass even with their best route; the cheapest build fails on every route; more than five builds pass without the ice.
 
-**Archetypes** (estimate; final balance, pass mark 830):
+**Archetypes** (model estimate; pass mark 780):
 
 | Archetype | Build | Cost + ticket | Route | Milestones | Final | Without using the instrument |
 | --- | --- | --- | --- | --- | --- | --- |
-| Camera scout | steel, mesh, fixed panel, NiH2, no lights, no heater, camera | 330 + Medium 120 = 450 | Down the de Gerlache wall (photo), back up, across Rocky area 1, Rim viewpoint 1 (photo), wait for Earth (photo after 238 s) | Crater layers, Crater descent, Boulder field, Rim panorama, Earth, Odometer ×3, Flare survivor | 1020 (+190) | 770 (fails) |
-| Drill geologist | steel, mesh, fixed panel, NiH2, no lights, no heater, drill | 370 + Large 200 = 570 (80 kg: the drill tips it over the Medium limit) | Wall (sample), back up, Rocky area 1 (sample), across it, Rim viewpoint 1 (sample) | Regolith ×3, Crater descent, Boulder field, Odometer ×3, Flare survivor | 1010 (+180) | 650 (fails) |
-| Light sampler | titanium, solid, fixed panel, Li-ion, no lights, no heater, drill | 410 + Small 60 = 470 | North only: Rocky area 1 (sample), across it, Rim viewpoint 1 (sample); slow, recharges on the rim | Regolith ×2, Boulder field, Odometer ×2, Flare survivor | 900 (+70) | 660 (fails) |
-| Ice hunter | titanium, mesh, fixed panel, Li-ion, lights, heater, drill | 615 + Medium 120 = 735 | Straight to the dark crater, sample at the edge, find and drill the ice (about 293 s) | Water ice, Regolith ×2, Mapper, Odometer ×3, Clean run, Flare survivor | 955 (+125); 605 if the ice is not found | 365 (fails) |
+| Camera scout | steel, mesh, fixed panel, NiH2, no lights, no heater, camera | 330 + Medium 120 = 450 | Down the de Gerlache wall (photo), back up, across Rocky area 1, Rim viewpoint 1 (photo), wait there for Earth (photo after 238 s) | Crater layers, Crater descent, Boulder field, Rim panorama, Earth, Odometer ×3, Flare survivor | 930 (+150) | 680 (fails) |
+| Drill geologist | steel, mesh, fixed panel, Li-ion, no lights, no heater, drill | 430 + Medium 120 = 550 | North: Rocky area 1 (sample), across it, Rim viewpoint 1 (sample), Rim viewpoint 2 (sample) | Regolith ×3, Boulder field, Mapper, Odometer ×3, Flare survivor | 880 (+100) | 580 (fails) |
+| Ice hunter | titanium, mesh, fixed panel, Li-ion, lights, heater, drill | 615 + Medium 120 = 735 | Straight to the dark crater, sample at the edge, find and drill the ice (about 293 s) | Water ice, Regolith ×2, Mapper, Odometer ×3, Clean run, Flare survivor | 895 (+115); 545 if the ice is not found | 345 (fails) |
 
-**Builds without a plan** (best route in the analysis): 37 of 115 affordable builds can pass with their best route (15 of 63 camera builds, 22 of 52 drill builds); none pass by idling or wandering. Examples that fail, and why:
+Other designs also pass in the model, for example a camera build on titanium and mesh wheels doing the scout route, or a drill build with a NiH2 battery sampling the crater wall, the boulder field and the rim. 27 of 115 affordable builds can pass with their best route (13 camera, 14 drill); none pass by idling, wandering or a short trip.
+
+**Browser check** (headless Chrome, real game flow, an autopilot following the measured routes, honest play; run before the final number pass, so the finals below are re-priced with the final money from the milestones each run actually earned):
+
+| Run | Build | Result in the browser | Final with final numbers |
+| --- | --- | --- | --- |
+| Idle | cheapest parts, camera | survived at the lander: Touchdown, Flare survivor, Clean run | 510, fails |
+| Camera scout | as above | survived; all its milestones plus Clean run (Boulder field after fixing the crossing point, see below) | 980, passes |
+| Drill geologist (crater wall variant) | steel, mesh, panel, NiH2, drill | survived; Regolith ×3, Crater descent, Odometer ×3, Clean run, Flare survivor | 810, passes |
+| Light sampler | titanium, solid, panel, Li-ion, drill | survived; Regolith ×3, Odometer ×2, Clean run, Flare survivor | 820, passes (the model says 770: it assumes two sites and a rock touch) |
+| Ice hunter | as above | survived with 1% battery and 21 damage; ice drilled at 276 s, Into the dark too | 895, passes |
+| Random A (the old default build: titanium, solid, panel, Li-ion, lights, heater, camera) | wandered with photos | survived; Rim panorama, Crater layers, Odometer ×2, Clean run, Flare survivor | 555, fails |
+| Random B (cheapest parts) | wandered | stuck in soft ground at a boulder field at 127 s | 373, fails |
+
+The browser runs found one model error, now fixed: the boulder-field crossing point on the north side sat short of the 90° the Boulder field rule needs, so the route now exits about 40 m farther round.
+
+**Builds without a plan** (best route in the model). Examples that fail, and why:
 
 | Build | Cost + ticket | Best final | Why it fails |
 | --- | --- | --- | --- |
 | Cheapest parts (steel, solid, panel, NiH2, none, none, camera) | 220 + Large 200 = 420 | 740 | Heavy on solid wheels: digs in on soft boulder-field ground, too slow for the wall and the rim in one mission; the Large ticket eats the savings |
-| Titanium, solid, panel, Li-ion, lights, heater, camera (the old default build) | 465 + Medium 120 = 585 | 615 | Pays for lights and a heater it cannot use (too slow to reach the dark crater), small battery |
-| Steel, mesh, mast, Li-ion, lights, heater, camera | 575 + Medium 120 = 695 | 775 | Does the full scout route but carries about 250 of parts it does not need (lights, heater, mast, lithium-ion) |
-| Titanium, solid, panel, NiH2, lights, heater, drill | 445 + Large 200 = 645 | 545 | Overloads the titanium frame (damage while driving), slow, Large ticket |
-| Any build that stays at the lander | | at most 550 | Survival, Touchdown, Flare survivor and Clean run are worth 200 together |
+| Titanium, solid, panel, Li-ion, lights, heater, camera (the old default build) | 465 + Medium 120 = 585 | 575 | Pays for lights and a heater it cannot use (too slow to reach the dark crater), small battery |
+| Steel, mesh, mast, Li-ion, lights, heater, camera | 575 + Medium 120 = 695 | 685 | Does the full scout route but carries about 250 of parts it does not need (lights, heater, mast, lithium-ion) |
+| Titanium, solid, panel, NiH2, lights, heater, drill | 445 + Large 200 = 645 | 465 | Overloads the titanium frame (damage while driving), slow, Large ticket |
+| Any build that stays at the lander | | at most 530 | Survival, Touchdown, Flare survivor and Clean run are worth 180 together |
 
-**Limits of the estimate.** The ice route needs good driving (about 90% of top speed for 3.3 km) and the hydrogen clue to find the spot; the analysis assumes the spot is found. Boulder-field crossings assume one rock touch. Mapper uses the playtest rate of about 0.77% of the map per km of new ground. The browser playtests are the check; see the status notes below.
+**Limits of the estimate.** The ice route needs good driving (about 90% of top speed for 3.3 km) and the hydrogen clue to find the spot; the model assumes the spot is found. Boulder-field crossings assume one rock touch. Mapper uses the playtest rate of about 0.77% of the map per km of new ground.
 
 ## 7. Rover design
 
