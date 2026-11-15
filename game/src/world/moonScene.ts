@@ -1,5 +1,7 @@
-// The drivable Moon: terrain, rover, low Sun with moving shadows, sky, and the operating boundary.
-// The mission screen starts it and runs the mission systems on top through onStep and onFrame.
+// The drivable world (the Moon, or Mars): terrain, rover, Sun with moving shadows, sky, and the operating
+// boundary. The mission screen starts it and runs the mission systems on top through onStep and onFrame.
+// The world's sky model (worlds.ts) picks the look: the lunar black sky and regolith photometry, or the
+// Mars dust sky, ground color, sky light, fog and storm haze (marsLook.ts, marsSky.ts).
 import * as THREE from 'three';
 import type { GameData, Part } from '../rules/types';
 import type { RoverParams } from '../rules/drive';
@@ -10,11 +12,13 @@ import { Lander } from './lander';
 import type { SoftArea } from '../rules/ground';
 import { ChunkLayer } from './terrainChunks';
 import { SunMasks } from './sunMask';
-import { ALBEDO_MEAN, createMoonLightUniforms, patchMoonLighting } from './lunarLighting';
+import { ALBEDO_MEAN, createMoonLightUniforms, patchMoonLighting, type Photometry } from './lunarLighting';
 import { Sky } from './sky';
+import { MarsSky } from './marsSky';
+import { MARS_GROUND_HEX, marsLook, type MarsLook } from './marsLook';
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
-import { terrainUrl, type WorldId } from '../worlds';
+import { terrainUrl, WORLDS, type WorldId } from '../worlds';
 import { RoverVehicle } from '../rover/vehicle';
 import { KeyboardInput } from '../rover/input';
 import type { DriveInput } from '../rover/vehicle';
@@ -34,6 +38,13 @@ const CHUNK_REBUILDS_PER_FRAME = 2;
 const MASK_BANDS: [number, number, number] = [16, 4, 2];
 const ALBEDO_EDGE_FADE_M = 150; // the LROC albedo blends to the plain regolith tone at the play-area edge
 const MAX_ANISOTROPY = 8;
+// Mars: the Sun moves 1.5°/s near the horizon and up to 5°/s at noon (the Moon's 0.6°/s), so the masks
+// refresh in fewer bands (a full refresh in 10 frames, no single band costlier than the Moon's largest),
+// and not at all once the Sun is well below the horizon.
+const MARS_MASK_BANDS: [number, number, number] = [4, 4, 2];
+const MARS_MASK_MIN_ELEVATION_DEG = -3;
+const MARS_ALBEDO_CONTRAST = 0.7; // HiRISE images are stretched: keep the ground's contrast in check
+const STORM_EASE_S = 2; // the haze eases toward the storm intensity it is given
 
 export interface MoonFrameState {
   seconds: number; // mission time; the HUD does not show it (time reads from the Sun)
@@ -70,8 +81,10 @@ export interface MoonDriveLimits {
 
 export interface MoonSceneOptions {
   container: HTMLElement;
-  /** Which world's terrain and albedo to load. Sky and lighting stay lunar until the Mars sky track (M2). */
+  /** Which world's terrain, albedo, sky and lighting to use. */
   world: WorldId;
+  /** Where the Sun is after `seconds` of mission time. Default: the lunar model (rules/sun.ts sunAt). */
+  sunAt?: (seconds: number) => SkyDirection;
   data: GameData;
   rover: RoverParams;
   parts?: Part[]; // the selected parts, for the rover model
@@ -89,6 +102,8 @@ export interface MoonScene {
   setPaused(paused: boolean): void;
   /** Switch the floodlights (if the rover has them). */
   setFloodlights(on: boolean): void;
+  /** Dust-storm haze, 0 (clear) to 1 (peak storm); the view eases toward it. Mars only (ignored on the Moon). */
+  setStorm(intensity: number): void;
   /** Shake the camera, e.g. for a moonquake. */
   shake(seconds: number): void;
   /** Render the current view and return it as a JPEG data URL, at most maxWidth pixels wide. */
@@ -105,7 +120,7 @@ const HARD_STOP_KEEP = 0.9; // share of horizontal velocity kept per physics ste
 export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene> {
   const { container, data } = opts;
   const tuning = data.tuning;
-  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(opts.world), initRapier(), loadAlbedo(opts.world)]);
+  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(opts.world), initRapier(), loadAlbedo(opts.world, WORLDS[opts.world].sky === 'mars')]);
   const { fine, near, far, info } = terrain;
   const site = { latitudeDeg: info.sunAndEarth.siteLatitude_deg, longitudeDeg: info.sunAndEarth.siteLongitude_deg };
 
@@ -120,11 +135,15 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400_000);
-  const sky = new Sky(skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg));
+  const mars = WORLDS[opts.world].sky === 'mars';
+  const marsSky = mars ? new MarsSky() : null;
+  const sky = marsSky ?? new Sky(skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg));
+  const photometry: Photometry = mars ? 'mars' : true;
+  const groundColor = mars ? MARS_GROUND_HEX : REGOLITH_COLOR;
 
   // Terrain: three chunked layers sharing one regolith material.
   const lightUniforms = createMoonLightUniforms(fine, near, far);
-  const masks = new SunMasks(terrain, MASK_BANDS);
+  const masks = new SunMasks(terrain, mars ? MARS_MASK_BANDS : MASK_BANDS);
   lightUniforms.moonMaskFine.value = masks.fine;
   lightUniforms.moonMaskNear.value = masks.near;
   lightUniforms.moonMaskFar.value = masks.far;
@@ -132,13 +151,14 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     albedo.texture.anisotropy = Math.min(MAX_ANISOTROPY, renderer.capabilities.getMaxAnisotropy());
     lightUniforms.moonAlbedo.value = albedo.texture;
     lightUniforms.moonAlbedoRect.value.set(albedo.minX, albedo.minZ, albedo.span, ALBEDO_EDGE_FADE_M);
+    if (mars) lightUniforms.moonAlbedoTone.value.set(albedo.mean ?? ALBEDO_MEAN, MARS_ALBEDO_CONTRAST);
   } else {
     // No map: a 1×1 texture at the mean albedo, so the shader stays the same and the ground is plain.
     lightUniforms.moonAlbedo.value = plainAlbedo();
   }
   // The play area gets the albedo map and fine detail; the distant rings stay plain regolith of the same mean tone.
-  const groundMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: REGOLITH_COLOR }), lightUniforms, true, true);
-  const terrainMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: REGOLITH_COLOR }), lightUniforms, true);
+  const groundMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: groundColor }), lightUniforms, photometry, true);
+  const terrainMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: groundColor }), lightUniforms, photometry);
   const layers = [
     new ChunkLayer({ grid: fine, chunkCells: 100, lod: { steps: [1, 2, 4, 10], distances: [500, 1200, 2500, Infinity] } }, groundMaterial),
     new ChunkLayer({ grid: near, chunkCells: 100, inner: fine, lod: { steps: [1, 2, 4], distances: [7000, 15000, Infinity] } }, terrainMaterial),
@@ -161,7 +181,26 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   sunLight.shadow.camera.updateProjectionMatrix();
   sunLight.shadow.bias = -0.0005;
   sunLight.shadow.normalBias = 0.02;
-  scene.add(sunLight, sunLight.target, new THREE.AmbientLight(0xffffff, AMBIENT_INTENSITY));
+  // Mars: sunlight color and strength, sky light and fog follow the Sun's height and the storm each frame.
+  const skyLight = mars ? new THREE.HemisphereLight(0xffffff, 0x000000, 1) : new THREE.AmbientLight(0xffffff, AMBIENT_INTENSITY);
+  scene.add(sunLight, sunLight.target, skyLight);
+  const fog = mars ? new THREE.FogExp2(0x000000, 0) : null;
+  scene.fog = fog;
+  let storm = 0;
+  let stormTarget = 0;
+  let look: MarsLook | null = null;
+  const applyMarsLook = (sun: SkyDirection) => {
+    if (!marsSky || !fog) return;
+    look = marsLook(sun.elevationDeg, storm);
+    sunLight.intensity = 1; // the look's sunlight color carries its strength
+    sunLight.color.setRGB(...look.sun);
+    const hemi = skyLight as THREE.HemisphereLight;
+    hemi.color.setRGB(...look.skyLight);
+    hemi.groundColor.setRGB(...look.groundLight);
+    fog.color.setRGB(...look.fog);
+    fog.density = look.fogDensity;
+    marsSky.setLook(look);
+  };
 
   // Physics world with the operating boundary as invisible walls.
   const world = new rapier.World({ x: 0, y: -tuning.mission.gravity, z: 0 });
@@ -205,7 +244,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     rover.object.add(lamp, lamp.target);
   }
   const boulders = new Boulders(rapier, world, opts.boulderAreas ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
-  patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, true);
+  patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, photometry);
   scene.add(boulders.mesh);
   const input = new KeyboardInput();
   const chase = new ChaseCamera(camera, (x, z) => terrain.heightAt(x, z));
@@ -236,7 +275,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     if ((raw.throttle > 0 && !limits.allowForward) || (raw.throttle < 0 && !limits.allowReverse)) return { ...raw, throttle: 0 };
     return raw;
   };
-  const sunNow = () => sunAt(seconds, tuning.sun, tuning.mission, site);
+  let sunOverride: SkyDirection | null = null; // development: hold the Sun at a set direction
+  let lampOverride: boolean | null = null; // development: force the floodlights on or off
+  const sunNow = () => sunOverride ?? (opts.sunAt ? opts.sunAt(seconds) : sunAt(seconds, tuning.sun, tuning.mission, site));
   const forward = new THREE.Vector3();
   const placeSun = (sun: SkyDirection) => {
     const p = rover.position;
@@ -247,6 +288,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
 
   for (const layer of layers) layer.update(landing.x, landing.z, Infinity);
   masks.updateAll(renderer, sunNow());
+  applyMarsLook(sunNow());
 
   const draw = () => {
     renderer.setRenderTarget(null);
@@ -341,7 +383,12 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
 
     const sun = sunNow();
     placeSun(sun);
-    masks.updateStep(renderer, sun);
+    // Mars nights: the Sun is far below the horizon and gives no light, so the masks can wait for dawn.
+    if (!mars || sun.elevationDeg > MARS_MASK_MIN_ELEVATION_DEG) masks.updateStep(renderer, sun);
+    if (mars) {
+      storm += (stormTarget - storm) * Math.min(1, dt / STORM_EASE_S);
+      applyMarsLook(sun);
+    }
 
     chase.update(dt, pos, rover.forward(forward));
     if (orbit) {
@@ -378,6 +425,26 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       setTime(s: number) {
         seconds = s;
         masks.updateAll(renderer, sunNow());
+      },
+      /** Hold the Sun at a sky direction (deg); null returns it to mission time. */
+      setSun(azimuthDeg: number | null, elevationDeg = 0) {
+        sunOverride = azimuthDeg === null ? null : skyDirection(azimuthDeg, elevationDeg);
+        masks.updateAll(renderer, sunNow());
+        applyMarsLook(sunNow());
+      },
+      /** Set the storm haze at once (no easing), 0..1. */
+      setStorm(k: number) {
+        stormTarget = storm = Math.min(1, Math.max(0, k));
+        applyMarsLook(sunNow());
+      },
+      /** Force the floodlights on or off (null: back to the mission's choice). */
+      lamp(on: boolean | null) {
+        lampOverride = on;
+        if (lamp && on !== null) lamp.intensity = on ? FLOODLIGHT_INTENSITY : 0;
+      },
+      /** The current Mars look (null on the Moon). */
+      look() {
+        return look;
       },
       setTimeScale(k: number) {
         timeScale = k;
@@ -458,8 +525,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     setPaused(p: boolean) {
       paused = p;
     },
+    setStorm(intensity: number) {
+      stormTarget = Math.min(1, Math.max(0, Number.isFinite(intensity) ? intensity : 0));
+    },
     setFloodlights(on: boolean) {
-      if (lamp) lamp.intensity = on ? FLOODLIGHT_INTENSITY : 0;
+      if (lamp) lamp.intensity = (lampOverride ?? on) ? FLOODLIGHT_INTENSITY : 0;
     },
     shake(secondsToShake: number) {
       shakeLeft = Math.max(shakeLeft, secondsToShake);
@@ -513,9 +583,13 @@ interface TextureInfo {
 /**
  * The LROC albedo map of the play area (public/terrain/texture.json): pixel (col, row) is centered
  * on heightmap vertex (col, row), so the image spans half a pixel beyond the grid on each side.
- * Returns null if it fails to load: the ground is then plain regolith.
+ * Returns null if it fails to load: the ground is then plain regolith. `measureMean`: also measure the
+ * image's mean linear value (Mars: the grayscale HiRISE image is relative brightness on the ground color).
  */
-async function loadAlbedo(world: WorldId): Promise<{ texture: THREE.Texture; minX: number; minZ: number; span: number } | null> {
+async function loadAlbedo(
+  world: WorldId,
+  measureMean = false,
+): Promise<{ texture: THREE.Texture; minX: number; minZ: number; span: number; mean?: number } | null> {
   try {
     const base = terrainUrl(world);
     const res = await fetch(`${base}texture.json`);
@@ -527,9 +601,31 @@ async function loadAlbedo(world: WorldId): Promise<{ texture: THREE.Texture; min
     texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
     texture.needsUpdate = true;
     const span = p.size_px[0] * p.pixel_m;
-    return { texture, minX: -span / 2, minZ: -span / 2, span };
+    const mean = measureMean ? meanLinear(texture.image as CanvasImageSource) : undefined;
+    return { texture, minX: -span / 2, minZ: -span / 2, span, mean };
   } catch {
     return null;
+  }
+}
+
+/** Mean linear value of an sRGB grayscale image (red channel), measured on a small copy. */
+function meanLinear(image: CanvasImageSource): number | undefined {
+  try {
+    const n = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = n;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true })!;
+    ctx.drawImage(image, 0, 0, n, n);
+    const px = ctx.getImageData(0, 0, n, n).data;
+    let sum = 0;
+    for (let i = 0; i < px.length; i += 4) {
+      const v = px[i]! / 255;
+      sum += v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
+    }
+    const mean = sum / (n * n);
+    return mean > 1e-3 ? mean : undefined;
+  } catch {
+    return undefined;
   }
 }
 

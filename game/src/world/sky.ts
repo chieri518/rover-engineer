@@ -3,7 +3,7 @@
 import * as THREE from 'three';
 import type { SkyDirection } from '../rules/sun';
 
-const SKY_RADIUS = 5000;
+export const SKY_RADIUS = 5000;
 const STAR_COUNT = 4000;
 const EARTH_RADIUS_DEG = 0.95; // Earth seen from the Moon: about 1.9° across
 const SUN_RADIUS_DEG = 0.267;
@@ -16,7 +16,8 @@ function seededRandom(seed: number): () => number {
   };
 }
 
-function makeStars(): THREE.Points {
+/** The star field (shared with the Mars sky). */
+export function makeStars(): THREE.Points {
   const rand = seededRandom(7);
   const positions = new Float32Array(STAR_COUNT * 3);
   const colors = new Float32Array(STAR_COUNT * 3);
