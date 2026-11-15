@@ -99,6 +99,7 @@ Drive ──► Reach milestones ──► Earn RP and money
 
 - **Driving uses energy.** Heavier rovers use more energy per meter.
 - **Speed depends on the configuration.** The wheels set a base speed, and a heavier rover is slower. A heavy rover reaches fewer places in the mission time.
+- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 12 m/s for a light one, to be tuned). A light build can just reach the dark crater; a heavy one cannot. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts.
 - **Milestones** come from driving and from using equipped instruments. A rover without a drill drives past the ice.
 - **Night (Mars and Titan only).** The player chooses:
   - **Lights on:** keep exploring, but energy drains fast.
@@ -114,13 +115,14 @@ Dying costs money, and the cause sets how much. The penalty also shrinks the lon
 | Out of energy | The battery reaches zero | Smallest | The rover used up what it had. A tolerable outcome. |
 | Stuck | Soft ground combined with heavy mass or weak wheels | Medium | A driving mistake, but the rover is intact |
 | Froze | Staying in a cold zone without enough heating | Large | The player stayed in the cold too long |
-| Destroyed | Damage builds up until the rover breaks. See [Damage](#damage) below. | Largest | The most preventable loss |
+| Destroyed | Damage builds up until the rover breaks, or the rover rolls over. See [Damage](#damage) below. | Largest | The most preventable loss |
 
 #### Damage
 
 The rover has a damage meter. These all cause damage, and **the amount depends on the cause**:
 
 - Hitting rocks
+- **Rolling over ends the mission at once** and counts as destroyed. A flipped rover is lost, as it would be in reality.
 - Driving on slopes that are too steep
 - Moonquakes
 - Solar flares, if the rover is still driving when one hits
@@ -356,7 +358,7 @@ Not planned for now: two-player mode and randomly generated maps.
 | Tone | Scientific and formal |
 | Characters | None. All text (tutorial, briefings, milestone pop-ups, debrief) reads as neutral mission documentation, not dialogue. |
 | Onboarding | Tutorial text guides the player through the design screen and the first drive |
-| Real facts | **Optional.** A "Mission history" setting, on by default, that players who just want to play can turn off. When on: a one-sentence real fact on each milestone pop-up, and a debrief comparing the rover's fate with a real rover's. Tutorial text is always shown. |
+| Real facts | **Optional.** A "Mission history" setting, on by default, that players who just want to play can turn off. When on: a one-sentence real fact on each milestone pop-up, and a debrief comparing the rover's fate with a real rover's. Tutorial text is always shown. The same optional pattern is used for other extra learning, such as the real-speed pop-up on the design screen. |
 
 ## 12. Tech stack and fit with the brief
 
