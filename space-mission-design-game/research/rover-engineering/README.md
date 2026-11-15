@@ -15,6 +15,7 @@ Researched November 14, 2026. About 48,000 words across eight files, with inline
 | [04-rover-games-and-scenarios.md](04-rover-games-and-scenarios.md) | Existing rover games and classroom activities with a gap analysis, 12 mission cards based on real science goals, misconceptions, NGSS alignment, feedback design, and a solo-developer scope | You are designing mission cards, onboarding, or educational framing |
 | [06-milestones-and-sustainment.md](06-milestones-and-sustainment.md) | Milestones NASA measures and how they are rewarded (extended missions, honor awards, the Collier Trophy), the eight pillars of keeping a rover mission going, and game rules: milestone rewards, sustainment rules, a rover health dashboard, and a senior review event | You are designing progression, achievements, or long-term survival rules |
 | [07-nasa-data-for-the-game.md](07-nasa-data-for-the-game.md) | Real NASA datasets for the Moon mission (LRO terrain, sunlight and shadow, Diviner temperatures, M3 ice, moonquakes, DONKI solar flares, star maps), what each adds to play, effort and priority, a recommended site, and an orbital map layers idea | You are building the Moon map or choosing which NASA data to feature |
+| [08-moon-surface-data.md](08-moon-surface-data.md) | Data for the drivable Moon surface: elevation for the play area and horizon, LROC and ShadowCam imagery for textures, rock and crater placement rules, and Apollo 15 soil numbers for driving and getting stuck | You are building the terrain, textures, obstacles, or driving physics |
 
 ## Conventions
 

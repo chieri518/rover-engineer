@@ -1,6 +1,6 @@
 # NASA Data for the Game
 
-Real NASA data that can make the Moon mission feel more real and more fun, what each dataset adds to play, and how hard it is to use. The team has already decided to build the Moon map from real terrain. Everything else here is a recommendation. Decisions live in [game design](../../game-design.md#nasa-data).
+Real NASA data that can make the Moon mission feel more real and more fun, what each dataset adds to play, and how hard it is to use. The team has already decided to build the Moon map from real terrain. Everything else here is a recommendation. Decisions live in [game design](../../game-design.md#9-nasa-data).
 
 Researched November 14, 2026. Written for our team, not for players.
 
@@ -8,7 +8,7 @@ Quick navigation: [Recommended site](#recommended-site-de-gerlache-rim) · [Data
 
 ## Recommended site: de Gerlache rim
 
-**Our analysis.** The map should be a small area, about 2 km × 2 km, cut from a real south pole elevation model. The de Gerlache crater rim is the strongest candidate because several real datasets line up there:
+**Our analysis.** The map should be cut from a real south pole elevation model. (Updated November 14, 2026: the team chose a map bigger than one mission can cover, about 8 km × 8 km of detailed terrain plus coarser distant terrain; see the game design doc's Map size and edges section. This file originally assumed 2 km × 2 km.) The de Gerlache crater rim is the strongest candidate because several real datasets line up there:
 
 | Why de Gerlache rim | Detail | Source |
 | --- | --- | --- |
@@ -36,10 +36,10 @@ Priority is our analysis for the Moon build: **Core** means build it in, **Stron
 | **Real solar flares** | NASA's space weather database DONKI lists real flares with class and time ([CCMC DONKI](https://ccmc.gsfc.nasa.gov/tools/DONKI)); its API endpoint is `api.nasa.gov/DONKI/FLR` | Each in-game flare is a real past flare, shown with its date and class: "This X-class flare really happened on …" | JSON. Download once and ship a small list with the game. Do not call the API during play: third-party reports describe outages (*unverified*). Low effort. | **Strong** |
 | **Earth in the sky** | At the south pole, Earth is below the horizon about half of each lunar day ([NTRS VIPER](https://ntrs.nasa.gov/api/citations/20220008301/downloads/2022-06-02-spaceops-viper-planning.pdf)); NASA visualization of Earth and Sun seen from the south pole ([SVS 4944](https://svs.gsfc.nasa.gov/4944)) | Earth hangs low on the horizon and bobs up and down. The "Earth on the horizon" photo is only possible while Earth is up. | A simple model in code. Low effort. | **Strong** |
 | **Star field** | NASA SVS Deep Star Maps 2020: about 1.7 billion stars from Hipparcos-2, Tycho-2, and Gaia DR2; the 4K version is about 34 MB ([SVS 4851](https://svs.gsfc.nasa.gov/4851)) | A real night sky above the airless Moon | EXR image. Convert to a smaller JPG sky texture. Very low effort. | **Strong** |
-| **Rocks** | Diviner rock abundance: typically under 1%, higher on fresh crater ejecta and crater walls ([Bandfield et al. 2011](https://gemelli.spacescience.org/jbandfield/publications/bandfield_diviner_ra.pdf); [GDR L3](https://ode.rsl.wustl.edu/moon/pagehelp/Content/Missions_Instruments/LRO/DIVINER/GDR_L3.htm)) | A placement rule for boulder fields: dense around fresh craters and on crater walls, sparse elsewhere | Use as a rule; the gridded map is coarse for a 2 km area. Very low effort. | **Extra** |
+| **Rocks** | Diviner rock abundance: typically under 1%, higher on fresh crater ejecta and crater walls ([Bandfield et al. 2011](https://gemelli.spacescience.org/jbandfield/publications/bandfield_diviner_ra.pdf); [GDR L3](https://ode.rsl.wustl.edu/moon/pagehelp/Content/Missions_Instruments/LRO/DIVINER/GDR_L3.htm)) | A placement rule for boulder fields: dense around fresh craters and on crater walls, sparse elsewhere | Use as a rule; the gridded map is coarse even for the 8 km play area. Very low effort. | **Extra** |
 | **Whole-Moon globe** | NASA SVS CGI Moon Kit: LROC color map and LOLA height map, finest version about 470 m per pixel at the equator (our calculation from 64 pixels per degree) ([SVS 4720](https://svs.gsfc.nasa.gov/4720)) | The Moon seen from orbit on the mission screen or during landing | Image textures. Too coarse for driving. Very low effort. | **Extra** |
 | **3D models and textures** | NASA 3D Resources, free and without copyright, subject to NASA's usage guidelines ([GitHub](https://github.com/nasa/NASA-3D-Resources), [site](https://nasa3d.arc.nasa.gov/)) | Spacecraft, landing site, and Moon models for menus or Easter eggs | glTF or OBJ. Check each model's license notes. Low effort. | **Extra** |
-| **Regolith strength** | Apollo 15 Lunar Roving Vehicle mobility studies, including soil density and strength estimates ([NASA TR R-401 PDF](https://www.nasa.gov/wp-content/uploads/static/history/alsj/19730008090_1973008090.pdf)) | Grounds the "getting stuck" rule: heavier rovers sink deeper in soft soil | Reading only, no file. *Values not yet extracted.* | **Extra** |
+| **Regolith strength** | Apollo 15 Lunar Roving Vehicle mobility studies, including soil density and strength estimates ([NASA TR R-401 PDF](https://ntrs.nasa.gov/api/citations/19730008090/downloads/19730008090.pdf)) | Grounds the "getting stuck" rule: heavier rovers sink deeper in soft soil | Reading only, no file. Values extracted in [08](08-moon-surface-data.md#soil-and-driving). | **Extra** |
 
 Numbers already sourced in [03](03-surface-environments-and-operations.md#key-numbers-for-the-game), such as shadowed-crater temperatures of about 33 to 38 K, Moon gravity of 1.62 m/s², and the 1.3 s signal delay, can be used alongside these.
 
@@ -75,7 +75,7 @@ This is how real teams plan: VIPER's traverse planning combined orbital light, t
 
 **Our analysis.**
 
-1. **Process everything offline.** A Python script crops each dataset to the same 2 km square and saves small files the game loads: a heightmap PNG, a shadow mask PNG, a temperature grid, and a flare list in JSON.
+1. **Process everything offline.** A Python script crops each dataset to the same play-area square and saves small files the game loads: a heightmap PNG, a shadow mask PNG, a temperature grid, and a flare list in JSON.
 2. **Never call live APIs during play.** It keeps the game fast and avoids API keys and outages.
 3. **Keep a credits file.** Record each dataset, its instrument, and its citation. It doubles as the evidence list for judging and the in-game "data sources" screen.
 4. **Follow NASA's media guidelines.** NASA data and most imagery are free to use, but do not use NASA logos or imply endorsement.
@@ -91,12 +91,12 @@ Not researched in depth yet. Starting points when the Mars design begins:
 
 ## Open verification items
 
-- Whether the Site11 "de Gerlache rim" elevation tile overlaps the Artemis "de Gerlache Rim 2" region and the fault scarp cluster.
-- The exact file names in the PGDA folder (the README and the page use different naming).
+- Partly answered in [08](08-moon-surface-data.md#site-check-de-gerlache-rim): the tile matches the 2025 "de Gerlache Rim" region but only partly overlaps "Rim 2". Still to check: whether the Site11 "de Gerlache rim" elevation tile overlaps the Artemis "de Gerlache Rim 2" region and the fault scarp cluster.
+- ~~The exact file names in the PGDA folder.~~ Answered in [08](08-moon-surface-data.md#elevation): `SiteNN/SiteNN_final_adj_5mpp_surf.tif` (plus `_slp` for slope).
 - The current Artemis III candidate list. The October 2024 list of nine regions is the latest official list found; no confirmed 2026 update was found.
 - Whether the DONKI API is currently reliable.
-- The resolution of the Diviner Polar Resource Product over a 2 km area.
-- Soil strength values from NASA TR R-401.
+- The resolution of the Diviner Polar Resource Product over the 8 km play area.
+- ~~Soil strength values from NASA TR R-401.~~ Extracted in [08](08-moon-surface-data.md#soil-and-driving).
 
 ## Sources
 
@@ -118,6 +118,6 @@ Not researched in depth yet. Starting points when the Mars design begins:
 - [NASA SVS 4851: Deep Star Maps 2020](https://svs.gsfc.nasa.gov/4851)
 - [NASA SVS 4720: CGI Moon Kit](https://svs.gsfc.nasa.gov/4720)
 - [NASA 3D Resources (GitHub)](https://github.com/nasa/NASA-3D-Resources)
-- [NASA TR R-401: LRV mobility performance, Apollo 15 (PDF)](https://www.nasa.gov/wp-content/uploads/static/history/alsj/19730008090_1973008090.pdf)
+- [NASA TR R-401: LRV mobility performance, Apollo 15 (PDF)](https://ntrs.nasa.gov/api/citations/19730008090/downloads/19730008090.pdf)
 - [NTRS: VIPER mission planning (2022)](https://ntrs.nasa.gov/api/citations/20220008301/downloads/2022-06-02-spaceops-viper-planning.pdf)
 - [Space.com: NASA announces 9 possible Artemis III landing regions (2024)](https://www.space.com/space-exploration/artemis/nasa-announces-9-possible-moon-landing-sites-for-artemis-3-lunar-mission)

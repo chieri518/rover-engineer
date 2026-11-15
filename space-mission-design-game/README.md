@@ -2,7 +2,7 @@
 
 Everything for our entry to the 2026 [Space Mission Design Game](https://www.spaceappschallenge.org/2026/challenges/space-mission-design-game/) challenge. Event-wide rules are in the [event guide](../space-apps-2026-event-guide.md). The workspace overview is in the [top-level README](../README.md).
 
-**The concept in one line:** the player is a new rover engineer who designs a rover within a budget and mass limit, then drives it in real-time 3D on the Moon, then Mars, then Titan. See the [game design](game-design.md#concept).
+**The concept in one line:** the player is a new rover engineer who designs a rover within a budget, buys it a launch ticket sized to its mass and size, then drives it in real-time 3D on the Moon, then Mars, then Titan. See the [game design](game-design.md#1-the-game-in-one-page).
 
 ## Documents
 
