@@ -286,8 +286,8 @@ Very cold zones. Lights and a heater are needed to enter safely, and a drill is 
 
 | Event | What happens | Player response |
 | --- | --- | --- |
-| Solar flare | A radiation burst that threatens the electronics, with a warning a few seconds ahead. Each one is a real past flare from NASA DONKI, named by class and date. | Power down or shelter in shadow in time. A rover that is powered on in sunlight when it hits takes damage. |
-| Moonquake | The ground shakes | The rover takes damage |
+| Solar flare | A radiation burst that threatens the electronics, with a warning a few seconds ahead. Each one is a real past flare from NASA DONKI, named by class and date. | Power down or shelter in shadow in time. A rover that is powered on in sunlight when it hits takes damage, more for stronger flare classes. |
+| Moonquake | The ground shakes | The rover takes damage. Quakes hit equally everywhere: the real fault scarp lies outside the play area. |
 
 ### Moon milestones
 
@@ -327,7 +327,7 @@ All datasets below are decided. The priority column is build order: **Core** goe
 | Permanent shadow and sunlight maps | LRO LOLA and LROC | Cold zones sit where they really are | Core |
 | Temperatures and ice depth | LRO Diviner | How fast the rover freezes in each zone; where ice can exist | Strong |
 | Where ice is exposed | Moon Mineralogy Mapper (M3) | Ice only in a few cold spots, so drilling the wrong crater finds nothing | Strong |
-| Moonquakes | Apollo seismometers and a real south pole fault scarp | Quakes are rare but hit harder near the fault | Strong |
+| Moonquakes | Apollo seismometers; south pole fault scarps (outside the play area) | Rare quakes that damage the rover; the facts explain the real cause | Strong |
 | Solar flares | NASA's DONKI space weather database | Each flare is a real past flare, named with its date and class | Strong |
 | Earth in the sky | Polar geometry | Earth bobs above and below the horizon, so the Earth photo is a timing puzzle | Strong |
 | Star field | NASA SVS Deep Star Maps | A real sky above the airless Moon | Strong |
