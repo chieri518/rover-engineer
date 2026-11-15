@@ -53,8 +53,9 @@ The design screen is a **constraint puzzle**. On the Moon it is simply mass vers
 | # | Question | Current proposal |
 | --- | --- | --- |
 | 1 | **Balance numbers.** Money, RP, milestone rewards, death penalties, part costs, masses, and sizes, launch ticket tier prices and limits, minimum budgets, base speed per wheel type and how much mass slows the rover, Odometer distances | Tune in playtests. The 5-minute mission limits how far a rover can drive. |
-| 1a | **Sun window.** With the current real Sun path (start azimuth 17.4°), the landing point stays sunlit all mission, but the north flank toward the dark crater and the rim viewpoints fall into shadow from about 145 s (day 6.8) to the end. See [Sun and shadows](#sun-and-shadows). | Team to decide: keep it as a mechanic, or pick another real start azimuth (about 60° to 75° keeps the route mostly lit). |
-| 1b | **Water ice reach.** No drill build with lights and heater that fits the Moon budget (750) can reach the ice spot in one mission: the drill's size pushes such builds to the Large ticket, and the fast ones then cost 815 to 905. The 905 build arrives at about 275 s. | Team to decide: lighten or shrink the drill, raise the budget, or accept Water ice as out of reach on the first Moon round. |
+| 1a | **Sun window.** With a Sun start azimuth of 17.4°, the landing point stays sunlit all mission, but the north flank toward the dark crater and the rim viewpoints fall into shadow from about 145 s (day 6.8) to the end. See [Sun and shadows](#sun-and-shadows). | *Provisional default, pending team confirmation:* start azimuth 75° (also real geometry), which keeps the route and rim viewpoints lit until about 220 to 250 s. **To switch:** `sun.startAzimuthDeg` in `game/data/tuning.json` (17.4 restores the old window). Note that with 17.4 the cheapest ice build (1b) runs out of energy before the ice. |
+| 1b | **Water ice reach.** With the old drill (size 5, 12 kg), no drill build with lights and heater that fit the Moon budget (750) could reach the ice spot: the fast ones needed the Large ticket and cost 815 to 905. | *Provisional default, pending team confirmation:* a smaller, lighter drill (size 3, 8 kg, cost unchanged at 90). The cheapest ice build (titanium, mesh wheels, fixed panel, lithium-ion, lights, heater, drill) now fits the Medium ticket for 735. **To switch:** the `instrument-drill` entry in `game/data/parts.json` (size 5, mass 12 restores the old drill). |
+| 1c | **Clue for finding the ice.** The ice spot is a 50 m circle in a 0.87 km² crater, reached with about 20 s to spare, so a blind search is mostly luck. | *Provisional default, pending team confirmation:* each drill sample in the dark crater reports a hydrogen signal (weak, moderate or strong) that grows nearer the ice. See [How the milestones work](#how-the-milestones-work-decided-during-implementation-phase-5). **To switch off:** `milestones.hydrogenSignal` in `game/data/tuning.json` (`false`: no clue, the old "test-drill" hint). |
 
 ### Later: Mars and Titan
 
@@ -284,6 +285,22 @@ At the south pole the Sun stays within 1.5° of the horizon and circles the sky 
 
 *Measured on the real terrain (fix pass):* with the current Sun path (start azimuth 17.4°, subsolar latitude −0.52°, elevation 0.6° to 2°), the landing point itself stays sunlit for the whole mission. The rim crest is narrow, though. Once the Sun swings west past about azimuth 300° (about 145 s, day 6.8), it sits behind the rim as seen from the north flank. From then on the whole route to the dark crater and both rim viewpoints are in shadow until the end. Within 150 m of the landing, 63% to 100% of the ground is lit. This is real geometry, not a rendering error, and is open question 1a.
 
+*Provisional default (open question 1a): start azimuth 75°.* The mission now starts about 4.7 Earth days earlier in the lunar day, so the Sun sweeps from azimuth 75° to 264°. It is still real geometry: at t = 0 the Sun is at elevation −0.64°, yet the high rim still sees it over the curved horizon. Sunlit share over the mission, offline shadow test, sampled every 5 s:
+
+| Place | Start 17.4° | Start 75° |
+| --- | --- | --- |
+| Landing | 100% | 100% |
+| Rim viewpoint 1 | 47% | 80% |
+| Rim viewpoint 2 | 55% | 88% |
+| Route to the dark crater (share of the route lit) | 42% | 71% |
+| de Gerlache wall descent (Crater layers) | 48% | 14% |
+| A light build (12 m/s) driving the crater route | 47% | 68% |
+
+- **Rims and route.** The route stays lit until about 220 s and the rims until about 240 to 250 s; after that the north flank goes dark as before.
+- **Browser check.** In the game, the landing stayed lit the whole mission, and the rims and route were lit from 60 s to 210 s.
+- **Starting azimuths 60° to 75°** all keep the landing lit, and a later start lights the route and rims a little more. 75° was the best in the 60° to 75° range.
+- **Cost of this choice.** The inner-wall descent point (Crater layers) is now mostly in shadow, because the Sun stays on the north side.
+
 ### Shadowed craters
 
 Very cold zones. Lights and a heater are needed to enter safely, and a drill is needed to sample ice. Real basis: LRO's Diviner instrument measured about 25 to 40 K in craters near the poles that never see sunlight, and in 2009 the LCROSS impact plume at Cabeus crater indicated about 5.6% (± 2.9%) water by mass, one reason NASA designed the VIPER rover to look for polar ice ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#the-south-pole-low-sun-long-shadows-ice-and-earth-below-the-horizon)).
@@ -326,15 +343,26 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
 - **Crater descent.** The rover counts as inside when it is more than 150 m below the landing point on the de Gerlache side of the rim (the side the rim viewpoints face), and back out once it climbs above 100 m below landing. The north flank toward the dark crater also drops far below the landing point and does not count.
 - **Boulder field.** Each rocky area is a circle of 1.1 times its radius (where the boulders lie). Crossing means leaving at least 90° around the center from where the rover entered; turning back out the same side does not count.
 - **Into the dark** counts only for the dark crater (its permanent-shadow outline), not the small cold patch in Rocky area 1.
-- **Camera (C key).** Viewpoint zones are 60 m circles: the two rim viewpoints (Rim panorama) and the de Gerlache wall descent point on the inner wall (Crater layers). The Earth photo has no zone: it counts wherever Earth's center is above the real terrain horizon as seen from the camera and inside the frame, so it works only from the north side of the rim and only facing Earth. Earth must also be at least 25% lit (its phase, from the angle between the Sun and Earth; `earthPhotoMinLit` in tuning). Earth starts as a dark new Earth, so the photo counts only from about 137 s (day 6.4) on, when it is a quarter lit, until the end, when it is 95% lit. A photo of a darker Earth goes into the album, with a notice that it does not count. A photo is a real capture of the view. Photos can be taken anywhere for the album (up to 12 per mission) but earn milestones only at viewpoints or with Earth in view. The album is shown in the debrief and is not saved between sessions.
+- **Camera (C key).** Viewpoint zones are 60 m circles: the two rim viewpoints (Rim panorama) and the de Gerlache wall descent point on the inner wall (Crater layers). The Earth photo has no zone: it counts wherever Earth's center is above the real terrain horizon as seen from the camera and inside the frame, so it works only from the north side of the rim and only facing Earth. Earth must also be at least 25% lit (its phase, from the angle between the Sun and Earth; `earthPhotoMinLit` in tuning). With the provisional Sun start (75°, open question 1a), Earth is at least a quarter lit only in the first 26 s, a 37% to 25% crescent, and from about 238 s to the end, up to 55%: about 90 s in all. With the old start (17.4°), the window ran from about 137 s to the end. A photo of a darker Earth goes into the album, with a notice that it does not count. A photo is a real capture of the view. Photos can be taken anywhere for the album (up to 12 per mission) but earn milestones only at viewpoints or with Earth in view. The album is shown in the debrief and is not saved between sessions.
 - **Drill (F key).** The rover must be stopped; drilling takes 3 mission seconds, during which it holds still. A sample counts only at least 200 m from the landing point (`sampleMinDistanceM`), where the lander's engine plume did not disturb the ground, so there is no free sample at the start. Any counted sample earns Regolith sample.
 - **Water ice is found by searching** *(team decision, fix pass)*. The minimap marks the dark crater (the permanent-shadow region), not the ice. The ice spot is a 50 m circle (under 1% of the crater) placed by the terrain pipeline about 100 m inside the shadow edge, on the side facing the landing. It is fully permanently shadowed in the LOLA maps and in the game's own shadow test. A sample there earns Water ice. Anywhere else in the crater the drill reports "No water ice detected at this site." Inside the crater, a drill rover sees a hint to test-drill, never the spot itself. Reaching it needs about 3.2 km of driving: see open question 1b.
+- **Hydrogen signal** *(provisional default, open question 1c)*. Each drill sample inside the dark crater adds a reading to its notice:
+  - "Hydrogen signal: strong" within 100 m of the ice spot's center, "moderate" within 250 m, "weak" farther away. A rover entering at the near edge reads "moderate".
+  - Samples outside the crater give no reading. The numbers are `hydrogenStrongWithinM` and `hydrogenModerateWithinM` in tuning, and `hydrogenSignal: false` turns the clue off.
+  - With Mission history on, the first reading of a mission adds one real fact (`text.json` → `drill`): LRO's LEND neutron detector maps polar hydrogen from orbit the same way.
+- **Reaching the ice** *(measured with the provisional defaults)*. The cheapest ice build costs 735 on the Medium ticket: titanium, mesh wheels, fixed panel, lithium-ion, lights, heater, drill. It is also the only one under the 750 budget that reaches the ice.
+  - Flat-speed simulation on the real route (3.3 km): arrives at 275 s, drill done at 278 s, 5% energy left.
+  - Real browser drive: ice zone at 277 s, drilled at 287 s, survived with 47 energy, after a flare and a moonquake.
+  - The ice is reachable, with about 20 s to search. With the old Sun start (17.4°), the same build runs out of energy at about 250 s.
 - **Mapper** is 1.8% of the map. Measured in playtests with full-throttle drives: a light build drove 3.2 km and revealed 2.8% (Mapper at about 2.2 km); the default build drove 2.0 km before its battery ran out and revealed 1.84%. The share grows about 0.77% per km of new ground.
 - **Clean run** ignores moonquake damage, because every mission has one quake and nothing can prevent its damage. Any other damage (impacts, slopes, overload, flares) loses it. The milestone notice says so.
 - **Records** (Touchdown, Water ice) pay once per campaign. A record already held still shows in the debrief, without a reward. A restart restores the records list from the round snapshot, so records from a failed round can be earned again.
 - **Mission history setting** (title screen → Settings; on by default, saved in the browser). When on, each milestone pop-up shows its real fact (staged milestones on the first stage only), the debrief lists the facts, and the debrief compares the rover's fate with a real rover's. Every fact has a source in `milestones.json` or `text.json`; the debrief shows the comparison's source.
 - **Rollover** is reported as "Destroyed by rollover", with its own real-rover comparison (no planetary rover is known to have been lost to a rollover).
-- **Earth's look.** At the start of the mission the Sun is close to Earth's direction, so Earth is a dark new Earth; it fills toward a full Earth as the Sun circles away. This is real geometry.
+- **Earth's look.** Earth's phase follows the angle between the Sun and Earth, which is real geometry.
+  - With the provisional Sun start (75°), Earth starts as a thin crescent. It goes dark (new Earth) when the Sun passes behind it at about 132 s, then fills again.
+  - At that moment the Sun passes 0.5° from Earth's center, so it is hidden behind Earth's 1.9° disc for about 4 s, a real solar eclipse seen from the Moon. The sky shows it, but sunlight on the ground does not dim.
+  - With the old start (17.4°), the same pass happened at about 31 s.
 
 ## 9. NASA data
 
