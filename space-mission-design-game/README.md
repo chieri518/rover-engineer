@@ -9,6 +9,8 @@ Everything for our entry to the 2026 [Space Mission Design Game](https://www.spa
 | Document | What it holds | Kind |
 | --- | --- | --- |
 | [game-design.md](game-design.md) | The working design: decisions, economy, milestones, rover slots, hazards, the Moon level, tech stack, open questions, build order | Living, team-owned |
+| [implementation-plan.md](implementation-plan.md) | How the first version (the Moon mission) is built: scope, architecture, data files, phases with a submission cut, risks | Plan |
+| [team-plan.md](team-plan.md) | How our two-person team splits design ownership after the first version, and what we decide together | Plan |
 | [challenge-brief.md](challenge-brief.md) | The official brief, core outcomes, the optional feature register with IDs, the nine NASA resources, and notes on the two PDFs | Official material |
 | [research/landscape-precedents-and-judging.md](research/landscape-precedents-and-judging.md) | Comparable games and the market gap, past Space Apps precedents, applying the judging criteria, open decisions from before the design | Analysis |
 
