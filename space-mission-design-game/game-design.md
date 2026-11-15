@@ -6,6 +6,8 @@ Last updated November 15, 2026. The official brief is in [challenge brief](chall
 
 **How to read this doc.** Everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). All open items are collected in [Open questions](#2-open-questions).
 
+**Titan draft (November 15, 2026, Owner B):** the Titan lesson (a steady power budget in the deep cold), site (Shangri-La dunes near Selk), time (one Titan day in 15 minutes), cold, rainstorm, milestones and campaign end are drafted in [The Titan mission](#the-titan-mission). Titan parts wait for Owner A.
+
 **Mars draft (November 15, 2026, Owner B):** the Mars lesson, site (Jezero crater), time (10 sols, 60 s each), night, cold, events, and milestones are drafted in [The Mars mission](#the-mars-mission). Items the team plan says to decide together are marked for Owner A to confirm.
 
 **Recent changes (November 15, 2026, playtest fixes):** the minimap starts zoomed in and widens as the rover explores, hides unexplored ground and undiscovered sites, and points to orbital survey leads; the map resets on every try; the rover no longer flies over bumps (time-lapse gravity while its wheels are in the air).
@@ -68,13 +70,13 @@ The design screen is a **constraint puzzle**. On the Moon it is simply mass vers
 
 | # | Question | Notes |
 | --- | --- | --- |
-| 2 | Mars and Titan constraints | Mars: energy through day and night, decided by Owner B (Owner A to confirm); see [The Mars mission](#the-mars-mission). Titan: open. |
+| 2 | Mars and Titan constraints | Mars: energy through day and night, decided by Owner B (Owner A to confirm); see [The Mars mission](#the-mars-mission). Titan: a steady power budget in the deep cold, decided by Owner B (Owner A to confirm); see [The Titan mission](#the-titan-mission). |
 | 3 | The RP unlock tree | Which parts and map layers unlock, at which thresholds (Owner A) |
-| 4 | Mars and Titan random events | Mars: *Proposed:* dust storm and dust devils, marsquake optional. Titan: not discussed. |
-| 5 | Mission length in game time | Mars: 10 sols at 60 s each, decided by Owner B (Owner A to confirm). Titan: *Proposed:* 1 Titan day. |
+| 4 | Mars and Titan random events | Mars: *Proposed:* dust storm and dust devils, marsquake optional. Titan: *Proposed:* one methane rainstorm. |
+| 5 | Mission length in game time | Mars: 10 sols at 60 s each, decided by Owner B (Owner A to confirm). Titan: 1 Titan day in 15 min, decided by Owner B (Owner A to confirm). |
 | 6 | Data and communications as a resource? | **Decided:** not on the Moon; a real constraint on Mars, designed later and not in the first Mars build. At the south pole Earth dips below the horizon, which could later become a contact blackout. |
 | 7 | Two-player mode | Later |
-| 8 | Mars parts, ticket tiers, budget | Owner A: the Mars part catalog (power source, heater, air-sample instrument?), Mars ticket tiers, whether 780 stays the pass mark, and whether Mars ends on "Titan: coming soon" |
+| 8 | Mars parts, ticket tiers, budget | Owner A: the Mars part catalog (power source, heater, air-sample instrument?), Mars ticket tiers, whether 780 stays the pass mark, and the Titan part catalog (radioisotope power source, insulation, organics instrument?). The demo plays Titan with the Moon parts until Owner A decides. |
 
 ## 3. Campaign: the outer loop
 
@@ -176,7 +178,7 @@ Missions get longer with each destination, and the player should feel that time 
 | --- | --- | --- | --- | --- |
 | Moon | 5 min | 14 Earth days (one lunar daylight period) | about 21 s per Earth day | All daylight |
 | Mars | 10 min | 10 sols (about 10.3 Earth days); Owner A to confirm | 60 s per sol: 45 s of day, 15 s of night | Day and night every sol; night is time-lapsed three times faster than day |
-| Titan | 15 min | *Proposed:* 1 Titan day (about 16 Earth days) | The whole mission: about 7.5 min of light, then 7.5 min of dark | Always cold; one long day and one long night |
+| Titan | 15 min | 1 Titan day (about 16 Earth days) | The whole day: 450 s of light, then 450 s of dark; the mission starts 150 s after sunrise | Always cold; one long day and one long night |
 
 **Real basis**
 
@@ -523,7 +525,7 @@ Not data files: low Sun and moving shadows and Earth bobbing near the horizon co
 The Moon teaches one trade-off. Mars and Titan add more intricate ones about what to put on the rover and which capabilities to enable. The team has a list of candidate constraints to evaluate (question 2). Already decided:
 
 - **Mars** adds day and night, which brings in the lights-on or sleep choice. See [The Mars mission](#the-mars-mission).
-- **Titan** is always cold.
+- **Titan** is always cold and has no useful sunlight. See [The Titan mission](#the-titan-mission).
 - Each world has its own random events.
 
 ### The Mars mission
@@ -687,11 +689,107 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 - **Title screen.** The kicker reads "Campaign · The Moon, then Mars"; the cover and its caption stay the Moon's.
 - **Credits.** The credits list every world, each with its own terrain, imagery, events, milestone facts and debrief comparisons, whichever world the campaign is on.
 
+### The Titan mission
+
+*Owner B draft, November 15, 2026.* Items marked decided were decided by Owner B on November 15 (Owner A to confirm the joint ones: lesson and length). *Proposed* items are suggestions the build uses until someone says no. Facts marked *(to fact-check)* are checked by the research track before they reach `text.json`. **Titan parts wait for Owner A** (question 8): the demo plays Titan with the Moon parts and ticket tiers, and no placeholder parts are added. Rewards and rates marked "interface" are set together, as on Mars.
+
+**Lesson: a steady power budget in the deep cold.** *Decided (Owner A to confirm).* The Moon teaches mass versus cost; Mars adds a sunlight budget that changes every sol. Titan takes the Sun away. Sunlight at the surface is far too weak for solar panels (Dragonfly carries an MMRTG for this reason), so energy is a fixed budget the player cannot refill faster by driving into the light. Every powered choice (driving, lights, staying awake) draws on that budget, and the cold punishes saving energy by sleeping: the rover's electronics keep it warm only while they run. Mass versus cost still applies.
+
+- **With the Moon parts (demo).** Solar panels earn almost nothing, so Titan plays as a battery-only mission: the battery choice and how the player spends it decide the run. The design screen and briefing say so plainly ("Solar panels: almost no power at Titan").
+- **With Owner A's catalog (later).** A radioisotope power source (small, constant income, waste heat that warms the rover) turns the fixed budget into a steady trickle, and the trade becomes power source versus battery versus heater. The rules accept a constant-power part effect so this slots in without rework.
+
+| Element | Design |
+| --- | --- |
+| Length | 15 minutes of play covering one Titan day (about 16 Earth days) |
+| Site | Interdune corridor in the Shangri-La dune field, near Selk crater, where Dragonfly is going |
+| Day and night | One long day and one long night: about 5 min of day, 7.5 min of night, then dawn |
+| Power | No useful solar; a fixed battery budget (demo) |
+| Cold | Always, day and night; sleeping lets the rover cool |
+| Events | *Proposed:* one methane rainstorm |
+| Core puzzle | Spending a fixed energy budget across one long night without freezing |
+| Ending | The last mission: the campaign ends, and the debrief reveals that the real Titan mission flies |
+
+#### Site: Shangri-La dunes near Selk crater
+
+*Decided:* the Dragonfly landing region. Dragonfly will land in the interdune areas of the Shangri-La dune field and fly toward Selk, an impact crater about 80 to 90 km across near 7°N, 199°W, where liquid water may once have mixed with organics *(to fact-check)*.
+
+- **Terrain modeled on real data.** *Decided:* Titan has no rover-scale elevation model. Cassini's radar mapped the dunes and Selk at hundreds of meters per pixel, and its altimetry and stereo topography are sparse. The play area is generated from published measurements of the Shangri-La dunes (linear dunes roughly west-southwest to east-northeast, about 1 to 2 km wide, 1 to 4 km apart and up to about 100 m high, separated by flat interdune corridors; *to fact-check*), and Selk's rim is placed on the horizon from Cassini maps. The credits and the briefing say "modeled on Cassini data", never "real elevation".
+- **Play area.** *Proposed:* 8 km × 8 km at 5 m, the Moon and Mars format, so the loader carries over. A few dunes cross the map; the rover lands on a firm interdune corridor and can follow it or climb over a dune.
+- **Ground.** Dune sand is dark and soft (the Moon's sinkage and slip rules, from a soft-ground mask like Séítah's); interdune ground is brighter and firm. The ground texture is generated to match Cassini's radar and infrared look (dark dunes, bright interdunes), with Huygens-like pebbles near the landing.
+- **Sites** *(Proposed, the pipeline sets real positions)*: the landing corridor, a dune crest viewpoint over the dune field, a dune-crossing route, a bright interdune patch to sample, and a field of Selk ejecta blocks at the edge of the map (the rocky area and the farthest goal).
+- **Gravity** is about one-seventh of Earth's (1.35 m/s²), a little less than the Moon's *(to fact-check)*.
+
+#### Time: one Titan day in 15 minutes
+
+*Decided:* 15 minutes covering one Titan day, as proposed in [Time on each world](#5-time-on-each-world). A Titan day is about 15.9 Earth days, roughly half light and half dark.
+
+- **450 s of day, then 450 s of night**, a single cycle.
+- **The mission starts in the morning.** *Proposed:* 150 s after sunrise, matching the Mars start. The player gets about 5 minutes of day, then one 7.5-minute night, then dawn returns for the last 2.5 minutes. Surviving the night to see dawn is the mission's climax.
+- **No clock.** The Sun is a dim disc behind the haze and follows a real path for the site's latitude and season *(season to fact-check: Dragonfly arrives in 2034, around northern winter)*.
+
+#### Light and sky
+
+*Proposed:* daylight at Titan's surface is very dim (on the order of a thousandth of Earth's, *to fact-check*) and scattered by thick orange haze, so there are almost no sharp shadows. The game keeps it readable: a hazy orange-brown sky, soft light, short visibility, a faint Sun. Night is close to black; Saturn is hidden by the haze. Lights are what let the rover see at night.
+
+#### Power and night
+
+*Proposed*, all numbers placeholders tuned against the Moon parts and checked by a battery-only test, as `marsNight.test.ts` checks Mars:
+
+- **Solar income** is the Moon panel rate times a tiny Titan factor (effectively zero), plus nothing at night.
+- **Night** uses the Mars night rules: lights on to keep driving (higher drain), awake without lights (electronics only, no driving), or sleep (P, slow drain, wakes at dawn).
+- **Sleeping fast-forwards time.** *Proposed:* while asleep at night, the clock runs 4× faster, so a player who sleeps through the whole night waits under 2 minutes instead of 7.5. Battery drain and cooling still follow game time. The mission still covers one Titan day; it just takes less wall time for a sleeper.
+- **The balance target:** a big-battery build that drives sensibly by day and sleeps at night survives; driving with lights all night empties a small battery; a careful lights-on night is possible with the big battery and little day driving.
+
+#### Cold: always on
+
+*Decided:* Titan is always cold, about 94 K (−179 °C), day and night.
+
+- *Proposed:* the freeze meter rises everywhere, all mission, at a constant base rate.
+- Heat sources cut the rate: the radioisotope heater (Moon part), and the rover's own electronics while it is awake. Driving warms a little more than sitting awake.
+- **Sleep cools the rover.** Asleep, only the heater fights the cold, so a long sleep brings the rover close to freezing. Without a heater, a sleeping rover freezes before dawn and an awake one freezes within the mission. This is the Titan trade: sleep saves energy and costs warmth; staying awake keeps warm and costs energy. With the heater, a sleeper survives the night with little margin.
+- Real basis: Dragonfly keeps warm with the waste heat of its MMRTG inside an insulated body ([NASA Dragonfly spacecraft](https://science.nasa.gov/mission/dragonfly/spacecraft-and-instruments/)) *(to fact-check)*.
+
+#### Events
+
+*Proposed:* solar flares, moonquakes and dust storms stay on their worlds.
+
+| Event | What happens | Player response | Real basis |
+| --- | --- | --- | --- |
+| Methane rainstorm | One per mission, forecast 60 s ahead by the lander's weather station. For about 60 s, visibility closes in, photos do not count, and the cold rises faster. | Park near the lander or keep driving blind on a known route; sleep through it (and get colder) | Cassini saw large equatorial storms darken the surface with rain in 2010 *(to fact-check)* |
+
+#### Titan milestones
+
+*Proposed*, rewards are interface numbers. Every fact is fact-checked before it reaches `text.json`.
+
+| Milestone | Category | How to earn it | Equipment |
+| --- | --- | --- | --- |
+| Touchdown | Record: first touch | Land on Titan for the first time | None |
+| Odometer | Capability: coverage | Drive set distances | None |
+| Mapper | Capability: coverage | Reveal a set share of the map | None |
+| Dune crossing | Capability: difficulty | Cross a dune from one interdune corridor to the next without getting stuck | None |
+| Night drive | Capability: robustness | Drive a set distance during the long night | Lights, heater |
+| Dawn | Capability: robustness | Still be running when the Sun rises again | None |
+| Storm survivor | Capability: robustness | Still be running when the methane rain clears | None |
+| Dune sea | Pretty picture | Photograph the dune field from a dune crest | Camera |
+| Organic sands sample | Scientific: new information | Drill at up to three sites, 200 m apart (Moon rule) | Drill |
+| Crater ejecta | Record: first discovery | Drill in the Selk ejecta field, where water and organics may have mixed | Drill |
+| Clean run | Capability: robustness | Finish without damage | None |
+
+#### Campaign end
+
+*Proposed:* Titan is the last mission.
+
+- **Mars to Titan.** The Mars debrief's button reads "Continue to Titan"; the Titan design screen shows "Mission 3 · Titan, Shangri-La dunes", the balance carried over, and that parts and tiers are the Moon's in this version. A short Titan design tutorial and drive tutorial explain the new rules: no solar, always cold, sleep cools, one long night.
+- **Landing briefing.** Titan in a few facts (thick nitrogen air, methane rain, −179 °C), the site, and "New on Titan".
+- **Debrief: the real mission flies.** The Titan debrief compares the rover with Dragonfly, a nuclear-powered rotorcraft that flies between sites because Titan's thick air and low gravity make flight easier than driving. The lesson: the right vehicle depends on the world ([rover-engineering/04](research/rover-engineering/04-rover-games-and-scenarios.md), card 12).
+- **Campaign complete.** Replaces "Titan: coming soon": banked RP, final balance, records held, and the campaign table with one row per mission. *Proposed:* a failed Titan round (rover lost before dawn and the balance below a final mark, interface) can be retried from the Titan snapshot; otherwise the campaign ends.
+- **Credits** add the Titan sources (Cassini radar and maps, Huygens, Dragonfly).
+
 ### Build order
 
 1. **Moon:** being designed now.
 2. **Mars:** built soon after. Moon RP unlocks Mars technology.
-3. **Titan:** after Mars.
+3. **Titan:** drafted November 15 for the demo; see [The Titan mission](#the-titan-mission).
 
 Not planned for now: two-player mode and randomly generated maps.
 
