@@ -1,0 +1,1493 @@
+{
+  "version": 1,
+  "generated": "2026-11-15",
+  "generator": "game/tools/build_terrain_mars.py",
+  "site": "Jezero crater floor, Mars, east of the western delta (USGS Mars 2020 TRN HiRISE DTM)",
+  "frame": {
+    "description": "Local right-handed, y-up frame in meters (Three.js convention). Origin = play-area center. +x = east, +z = south, +y = up. Image columns go with +x, rows with +z; row 0 is the northern edge. Grid north is true north.",
+    "originLatLon": [
+      18.444629,
+      77.433106
+    ],
+    "projection": "Azimuthal equidistant on the Mars sphere R = 3396190 m (the sphere of every input product), centered on the origin. Latitudes are planetocentric, longitudes east. Scale error < 0.001% inside the play area, < 0.1% at 100 km.",
+    "toLatLon": "spherical azimuthal equidistant inverse with x east, y north = -z",
+    "heights": "All heightmaps store TANGENT-PLANE heights: elevation above the Mars areoid (MOLA geoid, as in the source DTMs) minus the curvature drop r^2 / (2R), r = horizontal distance from the origin. The drop is 2.4 m at 4 km, 92 m at 25 km, 1.47 km at 100 km.",
+    "azimuthConvention": "azimuth_deg is measured from north (local -z), turning toward east (+x). Direction vector = (x: sin(az), z: -cos(az))."
+  },
+  "sunAndEarth": {
+    "siteLatitude_deg": 18.4446,
+    "siteLongitude_deg": 77.4331,
+    "note": "Mars: Sun only (no Earth block). Sunset azimuth at Ls 200 is about 261 deg (solar declination -8.4 deg)."
+  },
+  "playArea": {
+    "size_m": 8000,
+    "pixel_m": 5,
+    "samples": 1601,
+    "boundsLocal": {
+      "xMin": -4000,
+      "xMax": 4000,
+      "zMin": -4000,
+      "zMax": 4000
+    },
+    "pixelToLocal": "sample (col, row) -> x = (col - 800) * 5, z = (row - 800) * 5 (vertex-centered grid)",
+    "files": {
+      "heightmap": {
+        "file": "heightmap.png",
+        "encoding": "uint16 grayscale PNG",
+        "min_m": -2652,
+        "max_m": -2396,
+        "formula": "height_m = min_m + value / 65535 * (max_m - min_m)",
+        "source": "USGS Mars 2020 TRN HiRISE 1 m DTM, area-averaged to 5 m"
+      },
+      "slope": {
+        "file": "slope.png",
+        "encoding": "uint8 grayscale PNG",
+        "formula": "slope_deg = value / 4",
+        "source": "Computed from the 5 m heights (central differences)"
+      },
+      "softGround": {
+        "file": "soft-ground.png",
+        "encoding": "uint8 grayscale PNG",
+        "formula": "softness = value / 255 (0 normal ground, 1 sand ripples)",
+        "source": "Seitah ripple mask (see features.softGround), softened over one pixel"
+      }
+    },
+    "elevationRange_m": [
+      -2649.0,
+      -2392.7
+    ]
+  },
+  "distantTerrain": [
+    {
+      "name": "near ring",
+      "file": "distant-near.png",
+      "encoding": "uint16 grayscale PNG",
+      "min_m": -2797,
+      "max_m": -1462,
+      "formula": "height_m = min_m + value / 65535 * (max_m - min_m)",
+      "size_m": 50000,
+      "pixel_m": 50,
+      "samples": 1001,
+      "boundsLocal": {
+        "xMin": -25000,
+        "xMax": 25000,
+        "zMin": -25000,
+        "zMax": 25000
+      },
+      "pixelToLocal": "x = (col - 500) * 50, z = (row - 500) * 50",
+      "hole": "Covers the inner grid too; skip or sink the part inside it.",
+      "source": "HiRISE 1 m DTM area-averaged (12% of the ring), then the JPL CTX 20 m DEM (87%), blended over 500 m; CTX shifted -0.5 m to match HiRISE"
+    },
+    {
+      "name": "far ring",
+      "file": "distant-far.png",
+      "encoding": "uint16 grayscale PNG",
+      "min_m": -6639,
+      "max_m": -815,
+      "formula": "height_m = min_m + value / 65535 * (max_m - min_m)",
+      "size_m": 200000,
+      "pixel_m": 200,
+      "samples": 1001,
+      "boundsLocal": {
+        "xMin": -100000,
+        "xMax": 100000,
+        "zMin": -100000,
+        "zMax": 100000
+      },
+      "pixelToLocal": "x = (col - 500) * 200, z = (row - 500) * 200",
+      "hole": "Covers the inner grid too; skip or sink the part inside it.",
+      "source": "JPL CTX 20 m DEM area-averaged to 200 m, then MOLA 463 m (bilinear) outside it, blended over 1 km; MOLA shifted -6.8 m to match"
+    }
+  ],
+  "landing": {
+    "name": "Landing",
+    "local": {
+      "x": 835,
+      "y": -2571.87,
+      "z": -490
+    },
+    "latLon": [
+      18.4529,
+      77.44796
+    ],
+    "elevation_m": -2571.7,
+    "slope_deg": 0.7,
+    "source": "Picked by this pipeline: flattest spot 300-600 m from Perseverance's landing site, toward the delta",
+    "slope_deg_75m_mean": 1.32,
+    "distanceFromPerseveranceLanding_m": 517
+  },
+  "features": {
+    "deltaFront": {
+      "name": "Delta front",
+      "description": "Eastern front of Jezero's western delta: layered sedimentary cliffs (sandstone and mudstone laid down in the ancient lake) rising 30-60 m above the crater floor. scarpLocal_xz follows the foot of the scarp (DTM contour); samplePoint is a drivable spot at the foot.",
+      "scarpLocal_xz": [
+        [
+          -438,
+          -1270
+        ],
+        [
+          -634,
+          -940
+        ],
+        [
+          -855,
+          -812
+        ],
+        [
+          -910,
+          -794
+        ],
+        [
+          -1155,
+          -766
+        ],
+        [
+          -1295,
+          -769
+        ],
+        [
+          -1499,
+          -745
+        ],
+        [
+          -1547,
+          -725
+        ],
+        [
+          -1578,
+          -685
+        ]
+      ],
+      "zoneRadius_m": 150.0,
+      "footContour_m": -2537.2,
+      "samplePoint": {
+        "name": "Delta front sample",
+        "local": {
+          "x": -1520,
+          "y": -2524.02,
+          "z": -830
+        },
+        "latLon": [
+          18.45863,
+          77.40607
+        ],
+        "elevation_m": -2523.6,
+        "slope_deg": 7.1,
+        "distanceFromLanding_m": 2379,
+        "driveDistanceFromLanding_m": 2501,
+        "source": "Hawksbill Gap, where Perseverance drilled the Wildcat Ridge sample (sols 490-516): Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json)"
+      },
+      "source": "Delta lobe fronts of Sun & Stack 2020 (USGS SIM 3464, doi:10.3133/sim3464; 100-200 m offsets to the Mars 2020 base map), Hawksbill Gap / Three Forks / Enchanted Lake rover positions (Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json)); the line itself is the HiRISE DTM contour at the scarp foot."
+    },
+    "seitah": {
+      "name": "Seitah",
+      "description": "Seitah ('amidst the sand' in Navajo): olivine-rich igneous rock in NE-SW ridges, with dark sand megaripples between them. Perseverance skirted it because the sand is risky, and drove in only at its eastern edge (sols 201-340).",
+      "outlineLocal_xz": [
+        [
+          560,
+          620
+        ],
+        [
+          600,
+          760
+        ],
+        [
+          300,
+          780
+        ],
+        [
+          100,
+          800
+        ],
+        [
+          0,
+          1000
+        ],
+        [
+          -100,
+          1300
+        ],
+        [
+          -250,
+          1600
+        ],
+        [
+          -500,
+          1850
+        ],
+        [
+          -850,
+          2150
+        ],
+        [
+          -1150,
+          2450
+        ],
+        [
+          -1400,
+          2750
+        ],
+        [
+          -1800,
+          2900
+        ],
+        [
+          -2100,
+          2600
+        ],
+        [
+          -2000,
+          2100
+        ],
+        [
+          -1900,
+          1500
+        ],
+        [
+          -1900,
+          1000
+        ],
+        [
+          -1700,
+          650
+        ],
+        [
+          -1300,
+          550
+        ],
+        [
+          -900,
+          450
+        ],
+        [
+          -500,
+          380
+        ],
+        [
+          -300,
+          350
+        ],
+        [
+          0,
+          450
+        ],
+        [
+          300,
+          560
+        ]
+      ],
+      "centroidLocal": {
+        "x": -1053,
+        "z": 1437
+      },
+      "area_km2": 3.53,
+      "entryPoint": {
+        "name": "Seitah entry",
+        "local": {
+          "x": 550,
+          "y": -2569.9,
+          "z": 620
+        },
+        "latLon": [
+          18.43417,
+          77.44289
+        ],
+        "elevation_m": -2569.8,
+        "slope_deg": 4.3,
+        "distanceFromLanding_m": 1146,
+        "driveDistanceFromLanding_m": 1230,
+        "source": "Cheapest drivable point on the Seitah outline from the landing. Perseverance's own first look into Seitah was at 18.4327 N, 77.4413 E (sol 201; Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json))."
+      },
+      "source": "Outline traced by this pipeline on the HiRISE DTM and orthomosaic (ridged unit below the Maaz scarp), following Farley et al. 2022 (Science 377, eabo2196, Fig. 1) and the eolian bedform areas of Sun & Stack 2020 (USGS SIM 3464); Seitah outcrops and rover path from Crumpler et al. 2023 (doi:10.1029/2022JE007444; data doi:10.5281/zenodo.7545299). Approximate (+-100 m)."
+    },
+    "softGround": {
+      "description": "Seitah's sand ripples as circles for the soft-ground rule (sinkage and slip), one per 150 m cell with ripples (circle area = ripple area in the cell). soft-ground.png has the same ripples at 5 m. Ripple fields outside Seitah (e.g. west of Kodiak and at the delta front) are real but left firm in the game.",
+      "areas": [
+        {
+          "name": "Ripple field 1",
+          "local": {
+            "x": -745,
+            "z": 305
+          },
+          "radius_m": 39
+        },
+        {
+          "name": "Ripple field 2",
+          "local": {
+            "x": -1555,
+            "z": 475
+          },
+          "radius_m": 32
+        },
+        {
+          "name": "Ripple field 3",
+          "local": {
+            "x": -305,
+            "z": 380
+          },
+          "radius_m": 43
+        },
+        {
+          "name": "Ripple field 4",
+          "local": {
+            "x": -5,
+            "z": 460
+          },
+          "radius_m": 41
+        },
+        {
+          "name": "Ripple field 5",
+          "local": {
+            "x": 125,
+            "z": 425
+          },
+          "radius_m": 81
+        },
+        {
+          "name": "Ripple field 6",
+          "local": {
+            "x": 260,
+            "z": 440
+          },
+          "radius_m": 71
+        },
+        {
+          "name": "Ripple field 7",
+          "local": {
+            "x": -1800,
+            "z": 590
+          },
+          "radius_m": 57
+        },
+        {
+          "name": "Ripple field 8",
+          "local": {
+            "x": -1680,
+            "z": 570
+          },
+          "radius_m": 84
+        },
+        {
+          "name": "Ripple field 9",
+          "local": {
+            "x": -1540,
+            "z": 560
+          },
+          "radius_m": 76
+        },
+        {
+          "name": "Ripple field 10",
+          "local": {
+            "x": -120,
+            "z": 610
+          },
+          "radius_m": 29
+        },
+        {
+          "name": "Ripple field 11",
+          "local": {
+            "x": -30,
+            "z": 575
+          },
+          "radius_m": 82
+        },
+        {
+          "name": "Ripple field 12",
+          "local": {
+            "x": 110,
+            "z": 575
+          },
+          "radius_m": 52
+        },
+        {
+          "name": "Ripple field 13",
+          "local": {
+            "x": 280,
+            "z": 535
+          },
+          "radius_m": 60
+        },
+        {
+          "name": "Ripple field 14",
+          "local": {
+            "x": 400,
+            "z": 570
+          },
+          "radius_m": 32
+        },
+        {
+          "name": "Ripple field 15",
+          "local": {
+            "x": 540,
+            "z": 615
+          },
+          "radius_m": 33
+        },
+        {
+          "name": "Ripple field 16",
+          "local": {
+            "x": -1925,
+            "z": 765
+          },
+          "radius_m": 29
+        },
+        {
+          "name": "Ripple field 17",
+          "local": {
+            "x": -1825,
+            "z": 720
+          },
+          "radius_m": 83
+        },
+        {
+          "name": "Ripple field 18",
+          "local": {
+            "x": -1695,
+            "z": 705
+          },
+          "radius_m": 71
+        },
+        {
+          "name": "Ripple field 19",
+          "local": {
+            "x": -135,
+            "z": 730
+          },
+          "radius_m": 54
+        },
+        {
+          "name": "Ripple field 20",
+          "local": {
+            "x": -30,
+            "z": 720
+          },
+          "radius_m": 85
+        },
+        {
+          "name": "Ripple field 21",
+          "local": {
+            "x": 75,
+            "z": 710
+          },
+          "radius_m": 52
+        },
+        {
+          "name": "Ripple field 22",
+          "local": {
+            "x": 710,
+            "z": 770
+          },
+          "radius_m": 33
+        },
+        {
+          "name": "Ripple field 23",
+          "local": {
+            "x": -1945,
+            "z": 825
+          },
+          "radius_m": 36
+        },
+        {
+          "name": "Ripple field 24",
+          "local": {
+            "x": -1840,
+            "z": 815
+          },
+          "radius_m": 42
+        },
+        {
+          "name": "Ripple field 25",
+          "local": {
+            "x": -780,
+            "z": 905
+          },
+          "radius_m": 35
+        },
+        {
+          "name": "Ripple field 26",
+          "local": {
+            "x": -150,
+            "z": 850
+          },
+          "radius_m": 56
+        },
+        {
+          "name": "Ripple field 27",
+          "local": {
+            "x": -30,
+            "z": 870
+          },
+          "radius_m": 84
+        },
+        {
+          "name": "Ripple field 28",
+          "local": {
+            "x": 60,
+            "z": 875
+          },
+          "radius_m": 36
+        },
+        {
+          "name": "Ripple field 29",
+          "local": {
+            "x": -730,
+            "z": 980
+          },
+          "radius_m": 34
+        },
+        {
+          "name": "Ripple field 30",
+          "local": {
+            "x": -120,
+            "z": 1035
+          },
+          "radius_m": 30
+        },
+        {
+          "name": "Ripple field 31",
+          "local": {
+            "x": -35,
+            "z": 1015
+          },
+          "radius_m": 82
+        },
+        {
+          "name": "Ripple field 32",
+          "local": {
+            "x": -675,
+            "z": 1160
+          },
+          "radius_m": 49
+        },
+        {
+          "name": "Ripple field 33",
+          "local": {
+            "x": -145,
+            "z": 1180
+          },
+          "radius_m": 58
+        },
+        {
+          "name": "Ripple field 34",
+          "local": {
+            "x": -35,
+            "z": 1170
+          },
+          "radius_m": 83
+        },
+        {
+          "name": "Ripple field 35",
+          "local": {
+            "x": -130,
+            "z": 1320
+          },
+          "radius_m": 49
+        },
+        {
+          "name": "Ripple field 36",
+          "local": {
+            "x": -45,
+            "z": 1310
+          },
+          "radius_m": 74
+        },
+        {
+          "name": "Ripple field 37",
+          "local": {
+            "x": -775,
+            "z": 1435
+          },
+          "radius_m": 50
+        },
+        {
+          "name": "Ripple field 38",
+          "local": {
+            "x": -125,
+            "z": 1455
+          },
+          "radius_m": 39
+        },
+        {
+          "name": "Ripple field 39",
+          "local": {
+            "x": -65,
+            "z": 1460
+          },
+          "radius_m": 60
+        },
+        {
+          "name": "Ripple field 40",
+          "local": {
+            "x": -1980,
+            "z": 1680
+          },
+          "radius_m": 27
+        },
+        {
+          "name": "Ripple field 41",
+          "local": {
+            "x": -2080,
+            "z": 1795
+          },
+          "radius_m": 40
+        },
+        {
+          "name": "Ripple field 42",
+          "local": {
+            "x": -1995,
+            "z": 1765
+          },
+          "radius_m": 74
+        },
+        {
+          "name": "Ripple field 43",
+          "local": {
+            "x": -2095,
+            "z": 1905
+          },
+          "radius_m": 37
+        },
+        {
+          "name": "Ripple field 44",
+          "local": {
+            "x": -1970,
+            "z": 1925
+          },
+          "radius_m": 77
+        },
+        {
+          "name": "Ripple field 45",
+          "local": {
+            "x": -1835,
+            "z": 1940
+          },
+          "radius_m": 71
+        },
+        {
+          "name": "Ripple field 46",
+          "local": {
+            "x": -1680,
+            "z": 1940
+          },
+          "radius_m": 71
+        },
+        {
+          "name": "Ripple field 47",
+          "local": {
+            "x": -1570,
+            "z": 1960
+          },
+          "radius_m": 35
+        },
+        {
+          "name": "Ripple field 48",
+          "local": {
+            "x": -770,
+            "z": 1970
+          },
+          "radius_m": 36
+        },
+        {
+          "name": "Ripple field 49",
+          "local": {
+            "x": -620,
+            "z": 1950
+          },
+          "radius_m": 58
+        },
+        {
+          "name": "Ripple field 50",
+          "local": {
+            "x": -490,
+            "z": 1890
+          },
+          "radius_m": 60
+        },
+        {
+          "name": "Ripple field 51",
+          "local": {
+            "x": -2110,
+            "z": 2035
+          },
+          "radius_m": 41
+        },
+        {
+          "name": "Ripple field 52",
+          "local": {
+            "x": -1985,
+            "z": 2010
+          },
+          "radius_m": 37
+        },
+        {
+          "name": "Ripple field 53",
+          "local": {
+            "x": -1820,
+            "z": 2045
+          },
+          "radius_m": 62
+        },
+        {
+          "name": "Ripple field 54",
+          "local": {
+            "x": -1675,
+            "z": 2065
+          },
+          "radius_m": 64
+        },
+        {
+          "name": "Ripple field 55",
+          "local": {
+            "x": -1580,
+            "z": 2035
+          },
+          "radius_m": 36
+        },
+        {
+          "name": "Ripple field 56",
+          "local": {
+            "x": -785,
+            "z": 2070
+          },
+          "radius_m": 71
+        },
+        {
+          "name": "Ripple field 57",
+          "local": {
+            "x": -665,
+            "z": 2015
+          },
+          "radius_m": 31
+        },
+        {
+          "name": "Ripple field 58",
+          "local": {
+            "x": -2135,
+            "z": 2230
+          },
+          "radius_m": 41
+        },
+        {
+          "name": "Ripple field 59",
+          "local": {
+            "x": -1705,
+            "z": 2160
+          },
+          "radius_m": 32
+        },
+        {
+          "name": "Ripple field 60",
+          "local": {
+            "x": -1395,
+            "z": 2230
+          },
+          "radius_m": 60
+        },
+        {
+          "name": "Ripple field 61",
+          "local": {
+            "x": -1050,
+            "z": 2260
+          },
+          "radius_m": 43
+        },
+        {
+          "name": "Ripple field 62",
+          "local": {
+            "x": -930,
+            "z": 2225
+          },
+          "radius_m": 82
+        },
+        {
+          "name": "Ripple field 63",
+          "local": {
+            "x": -810,
+            "z": 2195
+          },
+          "radius_m": 53
+        },
+        {
+          "name": "Ripple field 64",
+          "local": {
+            "x": -2115,
+            "z": 2370
+          },
+          "radius_m": 62
+        },
+        {
+          "name": "Ripple field 65",
+          "local": {
+            "x": -1525,
+            "z": 2380
+          },
+          "radius_m": 69
+        },
+        {
+          "name": "Ripple field 66",
+          "local": {
+            "x": -1440,
+            "z": 2330
+          },
+          "radius_m": 29
+        },
+        {
+          "name": "Ripple field 67",
+          "local": {
+            "x": -1060,
+            "z": 2360
+          },
+          "radius_m": 57
+        },
+        {
+          "name": "Ripple field 68",
+          "local": {
+            "x": -940,
+            "z": 2360
+          },
+          "radius_m": 77
+        },
+        {
+          "name": "Ripple field 69",
+          "local": {
+            "x": -2130,
+            "z": 2495
+          },
+          "radius_m": 68
+        },
+        {
+          "name": "Ripple field 70",
+          "local": {
+            "x": -2015,
+            "z": 2530
+          },
+          "radius_m": 39
+        },
+        {
+          "name": "Ripple field 71",
+          "local": {
+            "x": -1205,
+            "z": 2530
+          },
+          "radius_m": 65
+        },
+        {
+          "name": "Ripple field 72",
+          "local": {
+            "x": -1090,
+            "z": 2520
+          },
+          "radius_m": 73
+        },
+        {
+          "name": "Ripple field 73",
+          "local": {
+            "x": -1955,
+            "z": 2630
+          },
+          "radius_m": 40
+        },
+        {
+          "name": "Ripple field 74",
+          "local": {
+            "x": -1885,
+            "z": 2675
+          },
+          "radius_m": 27
+        },
+        {
+          "name": "Ripple field 75",
+          "local": {
+            "x": -1375,
+            "z": 2700
+          },
+          "radius_m": 62
+        },
+        {
+          "name": "Ripple field 76",
+          "local": {
+            "x": -1230,
+            "z": 2670
+          },
+          "radius_m": 80
+        },
+        {
+          "name": "Ripple field 77",
+          "local": {
+            "x": -1130,
+            "z": 2625
+          },
+          "radius_m": 32
+        },
+        {
+          "name": "Ripple field 78",
+          "local": {
+            "x": -1365,
+            "z": 2815
+          },
+          "radius_m": 72
+        },
+        {
+          "name": "Ripple field 79",
+          "local": {
+            "x": -1270,
+            "z": 2785
+          },
+          "radius_m": 43
+        },
+        {
+          "name": "Ripple field 80",
+          "local": {
+            "x": -1935,
+            "z": 2945
+          },
+          "radius_m": 37
+        },
+        {
+          "name": "Ripple field 81",
+          "local": {
+            "x": -1860,
+            "z": 2970
+          },
+          "radius_m": 55
+        }
+      ],
+      "source": "Ripple fields detected by this pipeline in the HiRISE 25 cm orthomosaic (oriented texture of megaripple crests, cached at 2.5 m), plus the ripples mapped along Perseverance's traverse by Crumpler et al. 2023 (doi:10.5281/zenodo.7545299, CC BY 4.0)"
+    },
+    "rockyAreas": [
+      {
+        "name": "Rocky area 1",
+        "local": {
+          "x": 972,
+          "y": -2569.39,
+          "z": 199
+        },
+        "latLon": [
+          18.44127,
+          77.4504
+        ],
+        "elevation_m": -2569.2,
+        "slope_deg": 3.8,
+        "distanceFromLanding_m": 703,
+        "driveDistanceFromLanding_m": 744,
+        "source": "Crumpler et al. 2023, Crater Ejecta Blocks layer (107 mapped blocks; doi:10.5281/zenodo.7545299)",
+        "radius_m": 78,
+        "description": "Field of ejecta blocks around a small crater just south of Perseverance's landing site. Scatter boulders densest here."
+      },
+      {
+        "name": "Rocky area 2",
+        "local": {
+          "x": 430,
+          "y": -2574.14,
+          "z": -755
+        },
+        "latLon": [
+          18.45737,
+          77.44075
+        ],
+        "elevation_m": -2574.0,
+        "slope_deg": 1.4,
+        "distanceFromLanding_m": 484,
+        "driveDistanceFromLanding_m": 224,
+        "source": "Picked by this pipeline on the HiRISE DTM: the sharpest small crater on the floor away from the other sites (fresh craters on the Jezero floor carry blocky ejecta in HiRISE images)",
+        "radius_m": 204,
+        "description": "Small fresh crater about 255 m across; scatter boulders on its rim and out to about one crater radius. Its inner wall may be too steep to drive."
+      }
+    ],
+    "viewpoints": [
+      {
+        "name": "Delta viewpoint",
+        "local": {
+          "x": -290,
+          "y": -2546.91,
+          "z": -1270
+        },
+        "latLon": [
+          18.46605,
+          77.42795
+        ],
+        "elevation_m": -2546.7,
+        "slope_deg": 1.4,
+        "distanceFromLanding_m": 1369,
+        "driveDistanceFromLanding_m": 1482,
+        "source": "Picked by this pipeline on the HiRISE DTM: crater-floor spot facing the delta front (Sun & Stack 2020 delta lobe front; Mars 2020 delta-front campaign area)",
+        "kind": "deltaLayers",
+        "lookToward": {
+          "x": -1.0,
+          "z": 0.0
+        },
+        "lookTarget": {
+          "x": -438,
+          "y": -2498.7,
+          "z": -1270
+        },
+        "note": "The scarp rises 48 m, 17.5 deg above the horizontal from here."
+      },
+      {
+        "name": "West viewpoint",
+        "local": {
+          "x": -1680,
+          "y": -2432.79,
+          "z": -2840
+        },
+        "latLon": [
+          18.49254,
+          77.40322
+        ],
+        "elevation_m": -2431.2,
+        "slope_deg": 3.0,
+        "distanceFromLanding_m": 3442,
+        "driveDistanceFromLanding_m": 3616,
+        "source": "Picked by this pipeline on the HiRISE DTM: high drivable ground on the delta with the lowest horizon toward the sunset",
+        "kind": "sunset",
+        "lookToward": {
+          "x": -0.988,
+          "z": 0.156
+        },
+        "note": "Faces azimuth 261 deg (sunset at Ls 200); the horizon there (the western crater rim) is 4.8 deg high."
+      }
+    ],
+    "perseveranceLanding": {
+      "name": "Octavia E. Butler Landing",
+      "local": {
+        "x": 1000,
+        "z": 0
+      },
+      "latLon": [
+        18.44463,
+        77.45089
+      ],
+      "source": "Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json), sol 13 position; NASA gives 18.4447 N, 77.4508 E"
+    },
+    "notes": [
+      "Drive distances are least-cost routes on a 10 m grid avoiding slopes over 18 deg; straight-line distances are also given.",
+      "Names are ASCII; display names (Seitah with accents, etc.) live in the game's text data.",
+      "The landing is near Perseverance's 2021 landing site but not on it; the real site is features.perseveranceLanding.",
+      "Seitah's outline is approximate (+-100 m): no machine-readable map of the unit exists, so it was traced on the HiRISE data following published maps.",
+      "Soft ground is limited to Seitah's ripples (inside its outline plus 150 m); the ripple detection is automatic and may miss small ripple patches or include some finely layered rock."
+    ]
+  },
+  "horizonFromLanding": {
+    "eyeHeight_m": 1.7,
+    "elevation_deg_by_azimuth": [
+      1.93,
+      1.89,
+      1.61,
+      1.47,
+      1.4,
+      1.34,
+      1.25,
+      1.18,
+      1.14,
+      1.15,
+      1.07,
+      1.06,
+      1.1,
+      1.08,
+      1.06,
+      1.05,
+      1.03,
+      1.0,
+      0.92,
+      0.9,
+      0.9,
+      0.87,
+      0.88,
+      0.89,
+      0.88,
+      0.84,
+      0.84,
+      0.83,
+      0.88,
+      0.99,
+      1.06,
+      1.06,
+      1.04,
+      0.93,
+      0.89,
+      0.82,
+      0.79,
+      0.79,
+      0.76,
+      0.74,
+      0.71,
+      0.69,
+      0.78,
+      1.06,
+      0.9,
+      0.82,
+      0.73,
+      0.72,
+      0.74,
+      0.7,
+      0.69,
+      1.01,
+      1.21,
+      0.92,
+      0.75,
+      0.71,
+      0.66,
+      0.59,
+      0.64,
+      0.56,
+      0.56,
+      0.58,
+      0.55,
+      0.51,
+      0.48,
+      0.48,
+      0.41,
+      0.53,
+      0.65,
+      0.89,
+      0.97,
+      1.13,
+      1.03,
+      0.75,
+      0.51,
+      0.48,
+      0.36,
+      0.42,
+      0.35,
+      0.36,
+      0.45,
+      0.46,
+      0.33,
+      0.34,
+      0.36,
+      0.41,
+      0.59,
+      0.55,
+      0.59,
+      0.58,
+      0.54,
+      0.49,
+      0.44,
+      0.37,
+      0.39,
+      0.52,
+      0.34,
+      0.55,
+      0.74,
+      0.82,
+      0.96,
+      1.08,
+      1.23,
+      1.31,
+      1.44,
+      1.59,
+      1.79,
+      1.87,
+      1.93,
+      2.02,
+      2.19,
+      2.18,
+      2.04,
+      1.95,
+      1.9,
+      1.87,
+      1.77,
+      1.77,
+      1.52,
+      1.37,
+      1.11,
+      0.85,
+      0.73,
+      0.55,
+      0.51,
+      0.51,
+      0.47,
+      0.51,
+      0.55,
+      0.48,
+      0.42,
+      0.21,
+      0.23,
+      0.25,
+      0.27,
+      0.3,
+      0.42,
+      0.43,
+      0.43,
+      0.52,
+      0.46,
+      0.44,
+      0.59,
+      0.69,
+      0.89,
+      0.97,
+      1.03,
+      1.09,
+      1.06,
+      1.06,
+      1.11,
+      1.09,
+      1.02,
+      0.8,
+      0.7,
+      0.66,
+      0.72,
+      0.86,
+      1.01,
+      1.14,
+      1.25,
+      1.23,
+      1.17,
+      1.23,
+      1.48,
+      1.56,
+      1.77,
+      1.84,
+      1.88,
+      1.98,
+      2.12,
+      2.13,
+      2.08,
+      2.34,
+      2.42,
+      2.49,
+      2.58,
+      2.63,
+      2.42,
+      2.14,
+      2.03,
+      1.94,
+      1.93,
+      1.92,
+      2.01,
+      2.07,
+      2.19,
+      2.25,
+      2.24,
+      2.17,
+      2.18,
+      2.2,
+      2.29,
+      2.41,
+      2.42,
+      2.41,
+      2.6,
+      2.62,
+      2.56,
+      2.56,
+      2.6,
+      2.72,
+      2.84,
+      2.92,
+      3.04,
+      3.22,
+      3.33,
+      3.35,
+      3.51,
+      3.62,
+      3.72,
+      3.84,
+      3.87,
+      3.89,
+      3.89,
+      3.79,
+      3.7,
+      3.63,
+      3.53,
+      3.5,
+      3.37,
+      3.24,
+      3.22,
+      3.21,
+      3.33,
+      3.45,
+      3.6,
+      3.76,
+      3.88,
+      3.99,
+      3.82,
+      3.58,
+      3.59,
+      3.63,
+      3.55,
+      3.59,
+      3.68,
+      3.66,
+      3.8,
+      3.87,
+      3.85,
+      3.92,
+      3.99,
+      4.04,
+      4.13,
+      4.13,
+      4.05,
+      4.05,
+      4.1,
+      4.07,
+      4.09,
+      4.11,
+      4.19,
+      4.32,
+      4.43,
+      4.55,
+      4.66,
+      4.68,
+      4.74,
+      4.86,
+      4.93,
+      4.9,
+      4.79,
+      4.65,
+      4.6,
+      4.57,
+      4.42,
+      4.38,
+      4.39,
+      4.45,
+      4.46,
+      4.47,
+      4.35,
+      4.35,
+      4.47,
+      4.43,
+      4.39,
+      4.14,
+      3.83,
+      3.69,
+      3.4,
+      3.03,
+      2.6,
+      2.54,
+      2.54,
+      2.57,
+      2.67,
+      2.49,
+      2.63,
+      2.94,
+      3.11,
+      3.12,
+      3.05,
+      3.01,
+      3.04,
+      3.09,
+      3.2,
+      3.39,
+      3.46,
+      3.43,
+      3.55,
+      3.87,
+      4.15,
+      4.31,
+      4.45,
+      4.46,
+      4.48,
+      4.51,
+      4.33,
+      4.17,
+      3.86,
+      3.68,
+      3.43,
+      3.2,
+      3.25,
+      3.22,
+      3.18,
+      3.1,
+      3.06,
+      3.07,
+      2.78,
+      2.77,
+      2.88,
+      2.74,
+      2.76,
+      2.75,
+      2.74,
+      2.6,
+      2.28,
+      2.31,
+      2.44,
+      2.5,
+      2.52,
+      2.6,
+      2.66,
+      2.73,
+      2.84,
+      2.93,
+      2.95,
+      2.96,
+      3.09,
+      3.08,
+      2.96,
+      2.49,
+      2.2,
+      2.21,
+      2.28,
+      2.28,
+      2.33,
+      2.32,
+      2.36,
+      2.24,
+      2.26,
+      2.2,
+      2.12,
+      2.15,
+      2.0,
+      1.92,
+      1.83,
+      1.8
+    ],
+    "note": "Index = azimuth in degrees (see frame.azimuthConvention). Includes curvature."
+  },
+  "files_bytes": {
+    "distant-far.png": 1335430,
+    "distant-near.png": 1392317,
+    "heightmap.png": 3290807,
+    "slope.png": 1335576,
+    "soft-ground.png": 23535
+  },
+  "sources": [
+    {
+      "dataset": "Mars 2020 TRN HiRISE DTM mosaic, 1 m/px (JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40)",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+      "citation": "Fergason, R.L., Galuszka, D.M., Hare, T.M. (2020), High-Resolution Imaging Science Experiment Digital Terrain Model Mosaic for Mars 2020 Terrain Relative Navigation, U.S. Geological Survey data release, doi:10.5066/P9REJ9JN",
+      "provider": "USGS Astrogeology Science Center / NASA-JPL (public domain)"
+    },
+    {
+      "dataset": "Jezero crater CTX DEM, 20 m/px (M20_JezeroCrater_CTXDEM_20m, Mars 2020 science investigation map)",
+      "url": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/CTX/ScienceInvestigationMaps_JPL/M20_JezeroCrater_CTXDEM_20m.tif",
+      "citation": "Mangold, N., et al. (2021), Perseverance rover reveals an ancient delta-lake system and flood deposits at Jezero crater, Mars, Science 374, 711-717, doi:10.1126/science.abl4051 (PDS4 mars2020_ctx_basemap_2021)",
+      "provider": "NASA-JPL / USGS Astrogeology (public domain)"
+    },
+    {
+      "dataset": "Mars MGS MOLA DEM 463 m (Mars_MGS_MOLA_DEM_mosaic_global_463m)",
+      "url": "https://planetarymaps.usgs.gov/mosaic/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
+      "citation": "Smith, D.E., et al. (2001), Mars Orbiter Laser Altimeter: Experiment summary after the first year of global mapping of Mars, J. Geophys. Res. 106(E10), 23689-23722",
+      "provider": "NASA Goddard / USGS Astrogeology (public domain)"
+    },
+    {
+      "dataset": "In situ geologic map along Perseverance's traverse: ripples, ejecta blocks, float lag, Seitah outcrops",
+      "url": "https://doi.org/10.5281/zenodo.7545299",
+      "citation": "Crumpler, L.S., et al. (2023), In situ geologic context mapping transect on the floor of Jezero crater from Mars 2020 Perseverance rover observations, J. Geophys. Res. Planets 128, e2022JE007444. GIS data: Crumpler, L. (2023), Zenodo, CC BY 4.0",
+      "provider": "Zenodo (CC BY 4.0)"
+    },
+    {
+      "dataset": "Geologic map of Jezero crater and the Nili Planum region (delta lobe fronts, eolian bedforms)",
+      "url": "https://doi.org/10.3133/sim3464",
+      "citation": "Sun, V.Z., and Stack, K.M. (2020), Geologic map of Jezero crater and the Nili Planum region, Mars: U.S. Geological Survey Scientific Investigations Map 3464, scale 1:75,000",
+      "provider": "USGS (public domain); used for reference only"
+    },
+    {
+      "dataset": "Mars 2020 rover waypoints (positions of Hawksbill Gap, Three Forks, Seitah entry, landing)",
+      "url": "https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json",
+      "citation": "NASA/JPL-Caltech, Mars 2020 'Where is the rover' map; landing site name per NASA (2021)",
+      "provider": "NASA/JPL-Caltech"
+    },
+    {
+      "dataset": "Seitah geology and location",
+      "url": "https://doi.org/10.1126/science.abo2196",
+      "citation": "Farley, K.A., et al. (2022), Aqueously altered igneous rocks sampled on the floor of Jezero crater, Mars, Science 377, eabo2196",
+      "provider": "AAAS / Mars 2020 team"
+    }
+  ],
+  "credits": [
+    "Jezero terrain: HiRISE and CTX elevation models from the USGS Mars 2020 Terrain Relative Navigation products (NASA/JPL-Caltech/University of Arizona/USGS)",
+    "Distant terrain beyond the crater: MOLA (NASA/GSFC/MGS)",
+    "Ripples, rock fields and Seitah outcrops: Crumpler et al. 2023 (CC BY 4.0)",
+    "Feature positions: Mars 2020 rover waypoints (NASA/JPL-Caltech)"
+  ]
+}

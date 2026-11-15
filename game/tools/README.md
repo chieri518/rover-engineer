@@ -97,3 +97,69 @@ texture at 1 m would be far over a web budget.
   `x = (col − n//2) × pixel_m`, `z = (row − n//2) × pixel_m`.
 - **16-bit PNGs cannot be read through a browser canvas** (it reduces them to 8
   bits). Decode them with a PNG library such as `fast-png` in the game.
+
+## Mars: Jezero crater (`build_terrain_mars.py`, `build_texture_mars.py`)
+
+```sh
+.venv/bin/python build_terrain_mars.py --preview /tmp/mars-preview.png
+.venv/bin/python build_texture_mars.py --preview /tmp/mars-texture.png
+```
+
+The outputs go to `game/public/terrain/mars/` in the Moon's format: the same
+`terrain.json` shape, plus Mars features (the schema is in the Mars build log).
+Shared helpers are in `mars_common.py`; the Moon scripts are not used. No extra
+packages are needed.
+
+The first run reads windows of the USGS Mars 2020 TRN products over HTTP and
+caches them in `raw/mars/`, about 230 MB on disk:
+
+- the HiRISE 1 m DTM: an 8.6 km window (about 750 MB transferred, because the
+  file is stored in full-width strips) plus one decimated pass over the whole
+  file (1.8 GB transferred);
+- the HiRISE 25 cm orthomosaic: an 8.3 km window cached at 2.5 m (about 500 MB of
+  tiles, about 10 minutes);
+- the JPL CTX 20 m DEM (90 MB), a MOLA 463 m window, and the Crumpler et al.
+  2023 shapefiles from Zenodo.
+
+Later runs take about a minute.
+
+1. **Frame.** Azimuthal equidistant on the Mars sphere (R = 3396190 m, the sphere
+   of every product), centered 1 km west of Perseverance's landing site. x points
+   east and z south. Heights are above the areoid, minus the curvature drop, as on
+   the Moon.
+2. **Landing.** The flattest spot (mean slope over 75 m, at most 8° over 45 m)
+   300 to 600 m from Perseverance's landing site. Ties go to the spot nearer the
+   delta.
+3. **Features.** Drive routes are least-cost paths on a 10 m grid that avoid
+   slopes over 18°.
+   - **Delta front:** the line is the HiRISE contour at the foot of the scarp
+     (8 m above the Three Forks floor) around Hawksbill Gap, kept where a scarp
+     of at least 15 m rises behind it. The sample spot is Hawksbill Gap (rover
+     waypoint). The viewpoint is the floor spot 200 to 400 m out with the
+     steepest view up the cliffs.
+   - **Séítah:** no machine-readable map of it exists, so its outline was traced
+     by hand on the HiRISE data and is stored as lat/lon in the script.
+   - **Soft ground:** ripple fields found in the 2.5 m orthomosaic by orientation
+     coherence (megaripple crests), plus Crumpler's mapped ripples. Only those
+     inside Séítah plus 150 m are kept, reported as one circle per 150 m cell.
+   - **Rocky areas:** Crumpler's mapped ejecta blocks, and the sharpest small
+     crater on the floor away from the other sites.
+   - **West viewpoint:** the high drivable spot within 3.5 km with the lowest
+     horizon toward the Ls 200 sunset (azimuth 261°).
+4. **Distant terrain.** The near ring blends HiRISE (the 8 m pass) into the CTX
+   DEM; the far ring blends CTX into MOLA. Datum offsets between the models are
+   measured and applied (under 7 m).
+5. **Texture.** The orthomosaic is resampled onto the play grid. Only the
+   shading relative to flat ground is divided out (local Lambert fit over
+   400 m), so real albedo differences stay. Grayscale JPEG, mean linear albedo
+   0.25.
+
+| File | Size | Content |
+| --- | --- | --- |
+| `heightmap.png` | 1601², 16-bit | Play area heights, 5 m |
+| `slope.png` | 1601², 8-bit | Slope, degrees = value / 4 |
+| `soft-ground.png` | 1601², 8-bit | Séítah ripples, softness = value / 255 |
+| `distant-near.png` | 1001², 16-bit | 50 km square at 50 m |
+| `distant-far.png` | 1001², 16-bit | 200 km square at 200 m |
+| `albedo.jpg` | 1601², 8-bit JPEG | HiRISE orthomosaic, shading removed |
+| `terrain.json`, `texture.json` | | Frame, decoding, landing, features, sources |
