@@ -64,8 +64,8 @@ game/
 ```
 Title ──► Design rover ──► Launch ticket ──► Landing ──► Mission (5 min) ──► Debrief
   ▲            ▲                                                               │
-  │            └──────── restart round (snapshot restored) ◄── failed ─────────┤
-  └──────────────────────────── "Mars: coming soon" ◄── survived ──────────────┘
+  │            └──── restart round (snapshot restored) ◄── balance below Mars minimum ──┤
+  └──────────── "Mars: coming soon" ◄── survived, or died with enough money left ─────┘
 ```
 
 ## Data files: the contract

@@ -1,0 +1,322 @@
+{
+  "moneyPrefix": "$",
+  "moneySuffix": "k",
+  "moneyNote": "All amounts are game values for balancing, not real costs.",
+  "title": {
+    "heading": "Rover Engineer",
+    "subtitle": "REL — Rover Exploration Laboratory",
+    "kicker": "Mission 1 · Lunar south pole",
+    "coverCaption": "De Gerlache crater rim, lunar south pole. The Sun skims the horizon; Earth hangs low in the north.",
+    "newCampaign": "Start new campaign",
+    "continueCampaign": "Continue campaign"
+  },
+  "slots": {
+    "chassis": "Chassis",
+    "wheels": "Wheels",
+    "power": "Power source",
+    "battery": "Battery",
+    "lights": "Lights",
+    "heater": "Heater",
+    "instrument": "Instrument"
+  },
+  "design": {
+    "heading": "Rover design",
+    "tutorial": "Select one part for each slot. Mass and size set the launch ticket tier. Light parts cost more.",
+    "slotEmpty": "Not chosen",
+    "slotsEmpty": "Select a part for every slot before launch. Still empty: {slots}.",
+    "tierSoFar": "Tier for the parts chosen so far. The empty slots will add mass and size.",
+    "overTopTier": "Exceeds the Large ticket limits. The rover cannot launch.",
+    "overBudget": "Total cost exceeds the available budget.",
+    "chassisOverloaded": "Total mass exceeds the chassis maximum load. The frame will take damage during the mission.",
+    "belowMinimum": "The balance is below the minimum budget for this mission. The mission cannot start.",
+    "tierSaving": "Trimming to the {tier} tier would save {saving}.",
+    "speedInfoButton": "About drive speeds",
+    "speedInfoTitle": "Drive speeds",
+    "speedInfo": [
+      "The mission compresses 14 days of lunar daylight into 5 minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
+      "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
+      "Robotic rovers drive far slower. NASA's Curiosity and Perseverance rovers on Mars have a top speed of about 4 cm/s (0.15 km/h) on flat ground."
+    ],
+    "speedInfoBuild": "This build: {game} m/s in the mission, modeled on {real} km/h of real driving.",
+    "speedInfoSources": "Sources: NASA TR R-401, Mobility Performance of the Lunar Roving Vehicle (1972); NASA/JPL Mars Science Laboratory and Mars 2020 press kits."
+  },
+  "ticket": {
+    "heading": "Launch ticket",
+    "briefing": "REL secures a spot for the rover on the next commercial launch to the lunar south pole.",
+    "tierRule": "The ticket tier is the smallest one that fits both the rover's mass and its size.",
+    "whySmallest": "The rover fits the {tier} tier, the smallest available.",
+    "whyPushed": "The rover exceeds the {lower} tier's {reasons}, so {tier} is the smallest tier that fits.",
+    "whyNone": "The rover exceeds the {tier} tier's {reasons}. No tier can carry it.",
+    "massOver": "mass limit by {n} kg",
+    "sizeOver": "size limit by {n}",
+    "and": " and "
+  },
+  "landing": {
+    "heading": "Landing",
+    "briefing": "The lander has touched down on the de Gerlache crater rim. The rover is deploying."
+  },
+  "mission": {
+    "heading": "Mission",
+    "briefing": "Fourteen days of daylight. The Sun stays low and circles the horizon.",
+    "controls": "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
+    "boundary": "Leaving the planned operating area",
+    "loading": "Loading terrain…"
+  },
+  "hud": {
+    "energy": "Energy",
+    "damage": "Damage",
+    "cold": "Cold",
+    "sunlit": "Solar panel in sunlight",
+    "shadow": "Solar panel in shadow",
+    "powerDown": "Power down (P)",
+    "powerUp": "Power up (P)",
+    "poweredDown": "Powered down. The rover cannot drive.",
+    "minimap": "Map of the operating area",
+    "endedHeading": "Mission ended",
+    "endedSurvived": "The rover completed fourteen days of lunar daylight.",
+    "endedFailed": "Cause: {cause}.",
+    "legendLander": "Lander",
+    "legendViewpoint": "Viewpoint",
+    "legendCrater": "Crater",
+    "legendCold": "Permanent shadow",
+    "lasted": "The rover operated for {days} of {total} days.",
+    "toDebrief": "Continue to debrief"
+  },
+  "warnings": {
+    "lowEnergy": "Battery low. Stop in sunlight to recharge.",
+    "highDamage": "Damage critical. Further damage will destroy the rover.",
+    "cold": "Cold zone. The rover is freezing.",
+    "steepSlope": "Slope {slope}°. Ground steeper than {max}° damages the rover.",
+    "slip": "Wheel slip {slip}%. The wheels are digging in. Reverse or stop.",
+    "noLights": "Permanent shadow ahead. Without lights the rover cannot enter.",
+    "poweredDown": "Powered down. The rover cannot drive.",
+    "flareWarning": "Solar flare detected: class {class}, as recorded on {date}. Power down or move into shadow.",
+    "flareHit": "The solar flare struck the rover. Electronics damaged.",
+    "flareSafe": "The solar flare has passed. The rover was protected.",
+    "quake": "Moonquake. The rover was shaken and damaged.",
+    "impact": "Hard impact. The rover was damaged."
+  },
+  "debrief": {
+    "heading": "Mission debrief",
+    "survived": "The rover completed the full mission.",
+    "cause": "Mission ended early. Cause: {cause}.",
+    "rollover": "Destroyed by rollover",
+    "failedRound": "The balance is below the minimum budget for the next mission. The round must be restarted. Balance, research points and records return to their values at the start of the round.",
+    "passedRound": "The balance meets the minimum budget for the next mission.",
+    "milestonesHeading": "Milestones reached",
+    "noMilestones": "No milestones were reached.",
+    "recordHeld": "Record already held this campaign. No reward.",
+    "payoutHeading": "Payout",
+    "survivalPayout": "Survival payout",
+    "milestoneMoney": "Milestone rewards",
+    "penalty": "Loss penalty",
+    "net": "Net change",
+    "rpEarned": "Research points earned",
+    "balance": "Balance",
+    "albumHeading": "Photo album",
+    "noPhotos": "No photographs were taken.",
+    "historyHeading": "Mission history",
+    "restart": "Restart round",
+    "continue": "Continue"
+  },
+  "causes": {
+    "energy": "Out of energy",
+    "stuck": "Stuck in soft regolith",
+    "froze": "Froze in a cold zone",
+    "destroyed": "Destroyed by damage"
+  },
+  "history": {
+    "survived": "India's Pragyan rover did likewise in 2023: it completed its planned one lunar day of operations, about 14 Earth days, before ISRO put it into sleep mode for the lunar night.",
+    "energy": "NASA's solar-powered Opportunity rover ended the same way: a Mars-wide dust storm covered its site, its last signal arrived on June 10, 2018, and NASA declared the mission over on February 13, 2019.",
+    "stuck": "NASA's Spirit rover met this fate on Mars: it became stuck in soft soil on May 1, 2009, and in January 2010 NASA redefined its mission as a stationary science platform.",
+    "froze": "India's Vikram lander and Pragyan rover entered sleep mode before the cold lunar night in September 2023, and ISRO has not reported regaining contact after its wake-up attempts around September 22.",
+    "destroyed": "The Soviet Lunokhod 2 rover was also lost to damage: its lid touched a crater wall on May 9, 1973, dust fell onto its radiator, it overheated, and the mission was closed on June 4, 1973.",
+    "rollover": "No planetary rover is known to have been lost to a rollover. NASA's Spirit rover had a static tip-over angle of 45 degrees, and its software stopped a drive whenever its tilt passed a set limit."
+  },
+  "marsSoon": {
+    "heading": "Mars: coming soon",
+    "body": "The Moon campaign is complete. Research points carry forward to Mars technology.",
+    "rpBanked": "Research points banked: {rp}",
+    "balance": "Balance: {balance}",
+    "backToTitle": "Back to title"
+  },
+  "historySources": {
+    "survived": "ISRO, Chandrayaan-3 details (isro.gov.in/Chandrayaan3_Details.html) and mission updates (isro.gov.in/Chandrayaan3.html): rover deployed Aug 24, 2023; sleep mode Sept 4, 2023",
+    "energy": "NASA JPL, NASA's Opportunity Rover Mission on Mars Comes to End (jpl.nasa.gov/news/nasas-opportunity-rover-mission-on-mars-comes-to-end/)",
+    "stuck": "NASA Science, Spirit (science.nasa.gov/mission/mer-spirit/)",
+    "froze": "ISRO, Chandrayaan-3 mission updates (isro.gov.in/Chandrayaan3.html); ISRO has not stated a cause",
+    "destroyed": "NASA/ASU LROC, Lunokhod 2 (lroc.im-ldi.com/images/699)",
+    "rollover": "Leger et al. (2005), Mars Exploration Rover Surface Operations: Driving Spirit at Gusev Crater, IEEE SMC (www-robotics.jpl.nasa.gov/media/documents/leger_driving05.pdf)"
+  },
+  "milestone": {
+    "reached": "Milestone reached",
+    "stage": "{name} {stage} of {stages}",
+    "reward": "+{money}, +{rp} RP",
+    "record": "Record",
+    "recordHeld": "Record already held this campaign. No reward.",
+    "notCredited": "{name} not credited: this rover has no {missing}.",
+    "categoryCapability": "Capability",
+    "categoryScientific": "Scientific",
+    "categoryRecord": "Record",
+    "categoryPicture": "Pretty picture"
+  },
+  "instruments": {
+    "cameraControls": "C to take a photograph.",
+    "drillControls": "F to drill a sample (stop first).",
+    "photoTaken": "Photograph added to the album: {caption}.",
+    "photoNoZone": "Photograph added to the album. Milestones count only at viewpoints, or with Earth above the horizon in view.",
+    "photoAlbumFull": "The album is full ({max} photographs).",
+    "noCamera": "This rover carries no camera.",
+    "noDrill": "This rover carries no drill.",
+    "viewpointHint": "Viewpoint: {name}. Press C to take a photograph.",
+    "earthHint": "Earth is above the horizon in view. Press C to take a photograph.",
+    "iceSearchHint": "Inside permanent shadow. Stop and press F to test-drill for water ice.",
+    "drilling": "Drilling. The rover holds still.",
+    "drillMoving": "Stop the rover before drilling.",
+    "drillDone": "Regolith sample collected.",
+    "drillSameSite": "Sample collected at an earlier sample site. A new site must be at least {distance} m from the others.",
+    "drillIce": "Sample collected. The regolith contains water ice.",
+    "drillNoIce": "Sample collected. No water ice detected at this site.",
+    "drillNearLander": "Sample not counted: the ground within {distance} m of the lander was disturbed by its engine plume. Drill farther away.",
+    "earthDarkHint": "Earth is in view but only {lit}% lit. The photo counts once at least {min}% of Earth is lit.",
+    "earthTooCloseHint": "Earth is in view, but the rover is only {distance} m from the lander. The Earth photo counts at least {min} m away.",
+    "partialCrossingHint": "Partial crossing: the rover left the boulder field close to where it entered. Drive through to the far side to record a crossing.",
+    "captionEarth": "Earth above the horizon",
+    "captionDay": "{place}, day {day}",
+    "captionSurface": "Lunar surface"
+  },
+  "drill": {
+    "searchHintHydrogen": "Inside permanent shadow. Stop and press F to test-drill. Each sample reports the hydrogen signal: the stronger it is, the closer the ice.",
+    "hydrogenSignal": "Hydrogen signal: {level}.",
+    "hydrogenWeak": "weak",
+    "hydrogenModerate": "moderate",
+    "hydrogenStrong": "strong",
+    "hydrogenHistory": "Orbiters search for polar ice the same way: LEND, the Russian-built neutron detector on NASA's Lunar Reconnaissance Orbiter, maps hydrogen near the poles, because hydrogen in the soil cuts the number of neutrons escaping the surface.",
+    "hydrogenSource": "NASA Goddard, LRO instruments: LEND (lunar.gsfc.nasa.gov/lend.html); Mitrofanov et al. 2010, Science 330:483"
+  },
+  "settings": {
+    "heading": "Settings",
+    "open": "Settings",
+    "history": "Mission history",
+    "historyHelp": "Show a one-sentence real fact on each milestone notice, and a comparison with a real rover in the debrief.",
+    "back": "Back"
+  },
+  "tutorial": {
+    "label": "Tutorial",
+    "designHeading": "Rover design",
+    "driveHeading": "First drive",
+    "help": "Help",
+    "helpDesign": "Open the rover design tutorial",
+    "helpDrive": "Open the driving tutorial",
+    "next": "Next",
+    "back": "Back",
+    "skip": "Skip tutorial",
+    "done": "Done",
+    "step": "{n} of {total}",
+    "reopen": "The Help button reopens this tutorial at any time.",
+    "tierItem": "{name} up to {mass} kg and size {size} ({price})",
+    "tierJoin": "; ",
+    "design": [
+      {
+        "title": "Parts, mass and cost",
+        "body": [
+          "Select one part for each of the seven slots. Every slot starts empty, and the rover can launch only when each slot has a part; \"No lights\" and \"No heater\" count as choices. Each part has a cost, a mass and a size. The specification sheet shows the totals for the rover.",
+          "Cheap parts are heavy and light parts are expensive. A heavier rover is slower, uses more energy per meter and sinks deeper in soft ground."
+        ]
+      },
+      {
+        "title": "Launch ticket",
+        "body": [
+          "REL buys the rover a spot on the next launch. The ticket tier is the smallest one that fits both the rover's mass and its size: {tiers}.",
+          "A rover just over a tier limit pays the much higher price of the next tier. A rover above the {top} limits cannot launch. The marks on the mass and size gauges show each limit."
+        ]
+      },
+      {
+        "title": "Chassis and budget",
+        "body": [
+          "Each chassis has a maximum load. If the total mass exceeds it, the frame takes damage throughout the mission.",
+          "The parts and the ticket are paid from the budget. After the mission, the balance must meet the minimum budget for the next mission ({nextMinimum}), or the round is restarted.",
+          "Optional: the i button beside the maximum speed compares game speeds with real rover speeds."
+        ]
+      }
+    ],
+    "drive": [
+      {
+        "title": "Driving and time",
+        "body": [
+          "W A S D or arrow keys to drive. Space to brake.",
+          "The mission lasts {minutes} minutes, which represent {days} days of lunar daylight. There is no clock: time is read from the Sun, which circles low on the horizon, and from the moving shadows."
+        ]
+      },
+      {
+        "title": "Energy",
+        "body": [
+          "The energy bar is the battery. The solar panel charges it only in sunlight; the readout under the meters shows \"{sunlit}\" or \"{shadow}\".",
+          "Driving uses more energy than the panel earns. Stop in sunlight to recharge. At zero energy the mission ends."
+        ]
+      },
+      {
+        "title": "Damage and cold",
+        "body": [
+          "Hard impacts and ground steeper than {maxSlope}° damage the rover. A rollover ends the mission at once.",
+          "Inside permanent shadow the cold meter rises, and the rover freezes when it is full. Lights are required to enter permanent shadow; a heater slows freezing."
+        ]
+      },
+      {
+        "title": "Solar flares",
+        "body": [
+          "When a solar flare is detected, a warning bar appears {warningSeconds} seconds before it strikes.",
+          "Before the bar runs out, power down with P or move into shadow. A powered-down rover cannot drive, but its panel still charges."
+        ]
+      },
+      {
+        "title": "Instrument and map",
+        "instrument": {
+          "camera": "Camera: C takes a photograph. Photographs count toward milestones at viewpoints, or with Earth above the horizon in view at least {earthMinDistance} m from the lander.",
+          "drill": "Drill: stop the rover, then press F to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
+        },
+        "body": [
+          "The map shows the lander, viewpoints, craters, permanent shadow and the area explored so far."
+        ]
+      }
+    ]
+  },
+  "credits": {
+    "open": "Data sources and credits",
+    "heading": "Data sources and credits",
+    "intro": "The terrain, lighting, ground imagery, solar flares and facts in Rover Engineer come from the published sources below.",
+    "disclaimer": "REL (Rover Exploration Laboratory) is a fictional agency. Rover Engineer is an entry to the NASA Space Apps Challenge 2026 and is not affiliated with or endorsed by NASA.",
+    "terrain": "Terrain and lighting",
+    "imagery": "Ground imagery",
+    "spaceWeather": "Space weather",
+    "soil": "Soil and driving",
+    "milestones": "Milestone facts",
+    "debrief": "Debrief comparisons",
+    "generatedHeading": "Generated by the game",
+    "generated": "The star field and the boulders are generated by the game's own rules, not taken from a data set.",
+    "loading": "Loading source details…",
+    "loadFailed": "The detailed source list could not be loaded.",
+    "terrainFallback": [
+      "Terrain: NASA LRO Lunar Orbiter Laser Altimeter (LOLA) elevation models, NASA Goddard PGDA.",
+      "Sunlight, permanent shadow and Earth visibility: NASA LRO LOLA polar illumination maps."
+    ],
+    "imageryFallback": "LROC NAC de Gerlache Rim mosaic. Image credit: NASA/GSFC/Arizona State University.",
+    "provider": "Provider: {provider}",
+    "imageCredit": "Image credit: {credit}",
+    "license": "License: {license}",
+    "productPage": "Product page",
+    "flaresUsed": "Flares in the game: {list}.",
+    "soilEntries": [
+      {
+        "label": "Soil sinkage, wheel slip and slope",
+        "text": "Sinkage on normal ground and on soft crater rims, and wheel slip, are based on Apollo 15 Lunar Roving Vehicle data.",
+        "citation": "Costes, N.C., et al. (1972), Mobility Performance of the Lunar Roving Vehicle: Terrestrial Studies — Apollo 15 Results, NASA TR R-401, NASA Technical Reports Server",
+        "url": "https://ntrs.nasa.gov/api/citations/19730008090/downloads/19730008090.pdf"
+      }
+    ],
+    "speedLabel": "Real drive speeds (design screen)",
+    "drillHydrogenLabel": "Drill hydrogen readings",
+    "survivedLabel": "Mission completed",
+    "back": "Back"
+  }
+}

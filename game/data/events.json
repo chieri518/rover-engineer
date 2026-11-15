@@ -1,0 +1,38 @@
+{
+  "flare": {
+    "windowsSeconds": [[60, 120], [180, 260]],
+    "warningSeconds": 6,
+    "damage": 20,
+    "damagePerX": 2.5,
+    "shelterSunlight": 0.1,
+    "source": "NASA DONKI (Space Weather Database Of Notifications, Knowledge, Information), CCMC, https://ccmc.gsfc.nasa.gov/tools/DONKI/ . The 20 strongest X-class flares recorded from April 2010 to November 14, 2026 (one per day), downloaded once with game/tools/fetch_flares.py on 2026-11-14. Class and peak time are GOES X-ray values as listed in DONKI.",
+    "realFlares": [
+      { "date": "2011-08-09", "peakUtc": "08:05", "class": "X6.9", "donkiId": "2011-08-09T07:48:00-FLR-001" },
+      { "date": "2012-03-07", "peakUtc": "00:24", "class": "X5.4", "donkiId": "2012-03-07T00:00:00-FLR-001" },
+      { "date": "2013-11-05", "peakUtc": "22:12", "class": "X3.3", "donkiId": "2013-11-05T22:08:00-FLR-001" },
+      { "date": "2014-02-25", "peakUtc": "00:49", "class": "X4.9", "donkiId": "2014-02-25T00:41:00-FLR-001" },
+      { "date": "2017-09-06", "peakUtc": "12:02", "class": "X9.3", "donkiId": "2017-09-06T11:53:00-FLR-001" },
+      { "date": "2017-09-10", "peakUtc": "16:06", "class": "X8.2", "donkiId": "2017-09-10T15:35:00-FLR-001" },
+      { "date": "2023-12-31", "peakUtc": "21:55", "class": "X5.0", "donkiId": "2023-12-31T21:40:00-FLR-001" },
+      { "date": "2024-02-22", "peakUtc": "22:34", "class": "X6.3", "donkiId": "2024-02-22T22:08:00-FLR-001" },
+      { "date": "2024-05-06", "peakUtc": "06:35", "class": "X4.5", "donkiId": "2024-05-06T05:38:00-FLR-001" },
+      { "date": "2024-05-10", "peakUtc": "06:54", "class": "X3.9", "donkiId": "2024-05-10T06:27:00-FLR-001" },
+      { "date": "2024-05-11", "peakUtc": "01:23", "class": "X5.8", "donkiId": "2024-05-11T01:10:00-FLR-001" },
+      { "date": "2024-05-14", "peakUtc": "16:51", "class": "X8.7", "donkiId": "2024-05-14T16:46:00-FLR-001" },
+      { "date": "2024-05-15", "peakUtc": "08:37", "class": "X3.4", "donkiId": "2024-05-15T08:18:00-FLR-001" },
+      { "date": "2024-09-14", "peakUtc": "15:29", "class": "X4.5", "donkiId": "2024-09-14T15:13:00-FLR-001" },
+      { "date": "2024-10-01", "peakUtc": "22:20", "class": "X7.1", "donkiId": "2024-10-01T21:58:00-FLR-001" },
+      { "date": "2024-10-03", "peakUtc": "12:18", "class": "X9.0", "donkiId": "2024-10-03T12:08:00-FLR-001" },
+      { "date": "2025-11-11", "peakUtc": "10:04", "class": "X5.1", "donkiId": "2025-11-11T09:49:00-FLR-001" },
+      { "date": "2025-11-14", "peakUtc": "08:30", "class": "X4.0", "donkiId": "2025-11-14T07:44:00-FLR-001" },
+      { "date": "2026-02-01", "peakUtc": "23:57", "class": "X8.1", "donkiId": "2026-02-01T23:44:00-FLR-001" },
+      { "date": "2026-02-04", "peakUtc": "12:13", "class": "X4.2", "donkiId": "2026-02-04T12:02:00-FLR-001" }
+    ]
+  },
+  "quake": {
+    "windowsSeconds": [[90, 240]],
+    "warningSeconds": 0,
+    "damage": 10,
+    "shakeSeconds": 3
+  }
+}

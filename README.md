@@ -4,6 +4,8 @@ Our team's workspace for NASA Space Apps Challenge 2026. We chose the **Space Mi
 
 This page is the index. Each fact lives in exactly one document, and the others link to it.
 
+**Code written with AI assistance** (Anthropic Claude via Claude Code); see [space-mission-design-game/submission/ai-disclosure.md](space-mission-design-game/submission/ai-disclosure.md). Licensed under the MIT License (see [LICENSE](LICENSE)).
+
 ## Where things are
 
 ```

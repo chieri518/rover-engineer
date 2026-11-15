@@ -1,0 +1,148 @@
+{
+  "mission": {
+    "lengthSeconds": 300,
+    "gameDays": 14,
+    "gravity": 1.62
+  },
+  "budget": {
+    "startingBudget": 750,
+    "minimumBudget": {
+      "moon": 520,
+      "mars": 780
+    }
+  },
+  "payout": {
+    "survivalPayout": 50,
+    "deathPenalty": {
+      "energy": 100,
+      "stuck": 200,
+      "froze": 300,
+      "destroyed": 400
+    },
+    "penaltyMinFraction": 0.25
+  },
+  "mass": {
+    "referenceMass": 60,
+    "speedLossPerKg": 0.01,
+    "energyGainPerKg": 0.01,
+    "minSpeedFactor": 0.4
+  },
+  "speed": {
+    "compression": 4
+  },
+  "energy": {
+    "slopeEnergyFactor": 0.05,
+    "lowWarningShare": 0.2
+  },
+  "damage": {
+    "max": 100,
+    "rockHit": 8,
+    "impactMinMps": 3,
+    "impactPerMps": 4,
+    "impactCooldownSeconds": 0.4,
+    "steepSlopePerSecond": 4,
+    "overloadPerKgSecond": 0.05,
+    "highWarningShare": 0.6,
+    "rolloverTiltDeg": 75,
+    "rolloverSeconds": 0.6
+  },
+  "cold": {
+    "freezeMax": 100,
+    "freezeRatePerSecond": 4,
+    "heaterReductionPerHeat": 1.5,
+    "warmRecoveryPerSecond": 6,
+    "warningShare": 0.5,
+    "zones": ["shadowedCrater", "Rocky area 1"],
+    "zoneSearchRadiusM": 300,
+    "noLightsMarginM": 3
+  },
+  "ground": {
+    "maxSlopeDegrees": 20,
+    "slopeWarningDegrees": 18,
+    "slipLimit": 0.2,
+    "stuckSeconds": 5,
+    "digRecoveryPerSecond": 0.25,
+    "normalSinkageCm": [1, 2],
+    "softRimSinkageCm": [5, 7],
+    "slipPerSinkageCm": 0.03,
+    "referenceGrip": 0.55,
+    "slopeSlipFreeDeg": 10,
+    "slipPerUphillDeg": 0.01,
+    "softRadiusFactor": 1.0,
+    "softFadeFactor": 1.5,
+    "movingSpeedMps": 0.5
+  },
+  "boulders": {
+    "perRockyArea": 160,
+    "spreadRadiusFactor": 1.1,
+    "minDiameterM": 0.4,
+    "maxDiameterM": 2.6,
+    "buriedShare": 0.35,
+    "seed": 11
+  },
+  "explore": {
+    "cellM": 20,
+    "revealRadiusM": 250
+  },
+  "sun": {
+    "startAzimuthDeg": 75,
+    "degreesPerEarthDay": 12.19,
+    "subsolarLatitudeDeg": -1.54
+  },
+  "earth": {
+    "azimuthDeg": 0,
+    "elevationDeg": 0.6
+  },
+  "rover": {
+    "startHeadingDeg": 0,
+    "body": {
+      "lengthM": 1.8,
+      "widthM": 1.3,
+      "heightM": 0.45
+    },
+    "wheelRadiusM": 0.3,
+    "wheelTrackM": 1.5,
+    "wheelBaseM": 1.4,
+    "centerOfMassDropM": 0.45,
+    "suspension": {
+      "restLengthM": 0.35,
+      "maxTravelM": 0.3,
+      "stiffness": 9,
+      "compression": 1.6,
+      "relaxation": 3.5
+    },
+    "accelerationMps2": 2.5,
+    "brakeDecelMps2": 4,
+    "reverseSpeedFactor": 0.5,
+    "gripToFrictionSlip": 1.2,
+    "sideFrictionStiffness": 1.0,
+    "maxSteerDeg": 28,
+    "maxLateralAccelMps2": 3,
+    "gravityScale": 4,
+    "steerRateDegPerSecond": 90,
+    "angularDamping": 1.0
+  },
+  "area": {
+    "boundaryInsetM": 100,
+    "warningDistanceM": 60
+  },
+  "milestones": {
+    "photoZoneRadiusM": 60,
+    "iceSpotRadiusM": 50,
+    "boulderCrossRadiusFactor": 1.1,
+    "boulderCrossMinAngleDeg": 90,
+    "partialCrossingHint": true,
+    "craterDescentDepthM": 150,
+    "craterDescentExitDepthM": 100,
+    "drillSeconds": 3,
+    "albumMax": 12,
+    "photoFrameMargin": 0.85,
+    "sampleMinDistanceM": 200,
+    "sampleSpacingM": 200,
+    "earthPhotoMinLit": 0.25,
+    "earthPhotoMinDistanceM": 300,
+    "hydrogenSignal": true,
+    "hydrogenStrongWithinM": 100,
+    "hydrogenModerateWithinM": 250
+  }
+}

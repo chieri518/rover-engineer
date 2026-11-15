@@ -1,0 +1,127 @@
+// The tutorial dialog: a few short pages with Back / Next / Skip tutorial / Done. Modal: the rest of the
+// screen is inert while it is open, focus stays inside, Escape closes it and Enter goes to the next page.
+import type { TextFile } from '../rules/types';
+import type { TutorialId } from '../save/tutorialSeen';
+import { el, fill } from './dom';
+import type { TutorialPageText } from './tutorialText';
+
+export interface TutorialHandle {
+  readonly root: HTMLElement;
+  /** Close as the player would (runs onClose). */
+  close(): void;
+  /** Remove without running onClose, for a screen that is being torn down. */
+  dispose(): void;
+}
+
+const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+/**
+ * Open the tutorial over `host` (the screen root). `onClose` runs once, however it is closed.
+ * Overlay: div.tutorial-overlay.tutorial-<id>; dialog: section.tutorial#tutorial-dialog.
+ */
+export function openTutorial(
+  host: HTMLElement,
+  id: TutorialId,
+  pages: TutorialPageText[],
+  text: TextFile['tutorial'],
+  onClose: () => void,
+): TutorialHandle {
+  const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  let index = 0;
+  let closed = false;
+
+  const step = el('span', { class: 'tutorial-step' });
+  const title = el('h2', { id: 'tutorial-title' });
+  const body = el('div', { class: 'tutorial-body', id: 'tutorial-body' });
+  const back = el('button', { type: 'button', class: 'tutorial-back', onclick: () => show(index - 1) }, text.back);
+  const next = el('button', {
+    type: 'button',
+    class: 'primary tutorial-next',
+    onclick: () => (index < pages.length - 1 ? show(index + 1) : close()),
+  });
+  const skip = el('button', { type: 'button', class: 'tutorial-skip', onclick: () => close() }, text.skip);
+  const dialog = el('section', {
+    class: 'tutorial',
+    id: 'tutorial-dialog',
+    role: 'dialog',
+    'aria-modal': 'true',
+    'aria-labelledby': 'tutorial-title',
+    'aria-describedby': 'tutorial-body',
+    'data-tutorial': id,
+  },
+    el('div', { class: 'tutorial-head' },
+      el('span', { class: 'tutorial-label' }, `${text.label} · ${id === 'design' ? text.designHeading : text.driveHeading}`),
+      step,
+    ),
+    title,
+    body,
+    el('div', { class: 'tutorial-actions' }, skip, el('span', { class: 'tutorial-spacer' }), back, next),
+  );
+  const root = el('div', { class: `tutorial-overlay tutorial-${id}` }, dialog);
+
+  function show(i: number): void {
+    index = Math.max(0, Math.min(pages.length - 1, i));
+    const page = pages[index]!;
+    const last = index === pages.length - 1;
+    step.textContent = fill(text.step, { n: index + 1, total: pages.length });
+    title.textContent = page.title;
+    body.replaceChildren(...page.paragraphs.map((p) => el('p', {}, p)));
+    if (last) body.append(el('p', { class: 'note' }, text.reopen));
+    back.hidden = index === 0;
+    skip.hidden = last;
+    next.textContent = last ? text.done : text.next;
+    next.focus();
+  }
+
+  const onKey = (e: KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      close();
+    } else if (e.key === 'Enter') {
+      // Enter activates the focused dialog button; anywhere else it means Next / Done.
+      const target = e.target instanceof HTMLElement && dialog.contains(e.target) && e.target.matches('button, a') ? e.target : next;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      target.click();
+    } else if (e.key === 'Tab') {
+      const items = [...dialog.querySelectorAll<HTMLElement>(FOCUSABLE)].filter((n) => !n.hidden);
+      if (items.length === 0) return;
+      const first = items[0]!;
+      const lastItem = items[items.length - 1]!;
+      const active = document.activeElement;
+      if (e.shiftKey && (active === first || !dialog.contains(active))) {
+        e.preventDefault();
+        lastItem.focus();
+      } else if (!e.shiftKey && (active === lastItem || !dialog.contains(active))) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  };
+  // Capture phase, so the screen's own key handlers never see Escape or Enter while the dialog is open.
+  window.addEventListener('keydown', onKey, true);
+
+  // Everything else on the screen is inert while the dialog is open.
+  const others = [...host.children].filter((n): n is HTMLElement => n instanceof HTMLElement && !n.inert);
+  for (const n of others) n.inert = true;
+  host.append(root);
+
+  function teardown(): boolean {
+    if (closed) return false;
+    closed = true;
+    window.removeEventListener('keydown', onKey, true);
+    for (const n of others) n.inert = false;
+    root.remove();
+    return true;
+  }
+
+  function close(): void {
+    if (!teardown()) return;
+    if (returnFocus?.isConnected) returnFocus.focus();
+    onClose();
+  }
+
+  show(0);
+  return { root, close, dispose: () => void teardown() };
+}
