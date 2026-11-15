@@ -6,6 +6,8 @@ import type { HistoryKey } from '../rules/types';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
+import { buildLeads, buildSites } from '../rules/survey';
+import { briefingLines } from './surveyText';
 import { creditsScreen } from './creditsScreen';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
@@ -46,11 +48,27 @@ const title: Screen = (game, root) => {
 };
 
 const landing: Screen = (game, root) => {
-  const t = game.data.text.landing;
+  const { data } = game;
+  const t = data.text.landing;
+  const s = data.text.survey;
+  // Orbital survey leads: a rough bearing and distance from the lander to each area of interest. The
+  // terrain features load here (and stay cached for the mission).
+  const leads = el('ul', { class: 'survey-leads' }, el('li', { class: 'muted' }, s.loading));
+  void import('../world/terrainMasks')
+    .then(async ({ loadTerrainMasks }) => {
+      const masks = await loadTerrainMasks(data.tuning);
+      const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName);
+      const lines = briefingLines(buildLeads(sites, data.tuning.survey), masks.info.landing.local, data);
+      leads.replaceChildren(...lines.map((l) => el('li', {}, l)));
+    })
+    .catch(() => leads.remove());
   root.append(
     panel(
       el('h2', {}, t.heading),
       el('p', {}, t.briefing),
+      el('h3', {}, s.heading),
+      el('p', {}, s.intro),
+      leads,
       el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => game.go('mission') }, 'Begin mission')),
     ),
   );

@@ -145,6 +145,9 @@ export interface Tuning {
     movingSpeedMps: number; // above this speed the rover counts as driving
   };
   explore: { cellM: number; revealRadiusM: number };
+  /** The minimap's zoom: it starts at startSpanM and widens to fit the explored area plus marginM. */
+  minimap: { startSpanM: number; marginM: number; maxSpanM: number };
+  survey: SurveyTuning;
   /** Boulders scattered in the rocky areas (fresh craters): most are small, a few reach maxDiameterM. */
   boulders: {
     perRockyArea: number;
@@ -183,6 +186,14 @@ export interface MilestoneTuning {
   hydrogenSignal: boolean; // drill samples in the dark crater report a hydrogen signal that grows nearer the ice (off: no clue)
   hydrogenStrongWithinM: number; // "strong" within this distance of the ice spot center...
   hydrogenModerateWithinM: number; // ..."moderate" within this one, "weak" farther away
+}
+
+/** Orbital survey leads: rough bearings to areas of interest, given at the landing briefing. */
+export interface SurveyTuning {
+  /** site: a terrain.json feature key (craterDescent, shadowedCrater) or feature name (Rocky area 1). */
+  leads: { id: string; site: string }[];
+  roundKmBelow1: number; // lead distances under 1 km are rounded to this many km...
+  roundKmAbove1: number; // ...and longer ones to this many
 }
 
 /** The Sun's path over the mission. Azimuths follow terrain.json: from local -z, turning toward +x. */
@@ -265,6 +276,14 @@ export interface TextFile {
     string
   >;
   landing: Record<'heading' | 'briefing', string>;
+  survey: Record<
+    | 'heading' | 'intro' | 'lead' | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName' | 'loading',
+    string
+  > & {
+    leads: Record<string, { name: string; source: string }>; // by lead id in tuning.survey
+    compass: string[]; // 16 points from north, full words
+    compassShort: string[]; // 16 points from north, abbreviated
+  };
   mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'

@@ -84,6 +84,20 @@
     "cellM": 20,
     "revealRadiusM": 250
   },
+  "minimap": {
+    "startSpanM": 700,
+    "marginM": 100,
+    "maxSpanM": 8000
+  },
+  "survey": {
+    "leads": [
+      { "id": "layers", "site": "craterDescent" },
+      { "id": "boulders", "site": "Rocky area 1" },
+      { "id": "shadow", "site": "shadowedCrater" }
+    ],
+    "roundKmBelow1": 0.1,
+    "roundKmAbove1": 0.5
+  },
   "sun": {
     "startAzimuthDeg": 75,
     "degreesPerEarthDay": 12.19,

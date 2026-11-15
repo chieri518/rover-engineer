@@ -11,6 +11,7 @@ import { scheduleEvents, seededRng } from '../rules/events';
 import { softnessAt } from '../rules/ground';
 import { noLightsLookaheadM } from '../rules/cold';
 import { createExplored, exploredShare, reveal } from '../rules/explore';
+import { azimuthDeg, areaCenter, buildLeads, buildSites, discover, type Lead, type Site } from '../rules/survey';
 import {
   activeFlareWarning, missionSetup, missionWarnings, startMission, stepMission,
   type MissionEnd, type MissionSample, type MissionState, type WarningId,
@@ -22,6 +23,7 @@ import { flareWarningText, noticeText } from '../events';
 import { el, fill } from './dom';
 import { Hud } from './hud';
 import { Minimap } from './minimap';
+import { hudLeadLine } from './surveyText';
 import { causeText, milestoneCard, missedText } from './milestoneText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { tutorialPages } from './tutorialText';
@@ -314,6 +316,10 @@ export const missionScreen: Screen = (game, root) => {
   };
 
   let minimap: Minimap | null = null;
+  // Sites appear on the map once discovered; leads point toward areas until then. Both start fresh on
+  // every mission (map memory resets each try).
+  let sites: Site[] = [];
+  let leads: Lead[] = [];
   let frame = 0;
   const onFrame = (f: { position: { x: number; z: number }; nearBoundary: boolean; forward: { x: number; z: number } }) => {
     nearBoundary = f.nearBoundary;
@@ -333,11 +339,19 @@ export const missionScreen: Screen = (game, root) => {
     hud.setWarnings([...(nearBoundary ? [text.mission.boundary] : []), ...ids.map(warningText)]);
     if (instrument === 'camera' && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) earthInView = scene.inView(earthDir, mt.photoFrameMargin);
     hud.setHint(hintText());
-    if (reveal(explored, f.position.x, f.position.z, tuning.explore.revealRadiusM) > 0) {
-      minimap?.reveal(f.position.x, f.position.z, tuning.explore.revealRadiusM);
+    const p = f.position;
+    if (reveal(explored, p.x, p.z, tuning.explore.revealRadiusM) > 0) {
+      minimap?.reveal(p.x, p.z, tuning.explore.revealRadiusM);
+      for (const site of discover(sites, p, tuning.explore.revealRadiusM)) hud.notify(fill(text.survey.found, { name: site.name }), 'good');
     }
     if (minimap && frame++ % MINIMAP_EVERY_FRAMES === 0) {
-      minimap.draw({ x: f.position.x, z: f.position.z, headingX: f.forward.x, headingZ: f.forward.z });
+      const open = leads.map((l, i) => ({ l, i })).filter(({ l }) => !l.site.discovered);
+      minimap.draw(
+        { x: p.x, z: p.z, headingX: f.forward.x, headingZ: f.forward.z },
+        sites,
+        open.map(({ l, i }) => ({ label: String(i + 1), azimuth: azimuthDeg(p, areaCenter(l.site.area)) })),
+      );
+      minimap.setLeads(open.map(({ l, i }) => hudLeadLine(l, i, p, data)));
     }
   };
 
@@ -347,7 +361,9 @@ export const missionScreen: Screen = (game, root) => {
       const [terrain, masks] = await Promise.all([terrainData.loadTerrain(), loadTerrainMasks(tuning)]);
       if (disposed) return;
       ctx = { terrain, masks, sunVisibility: terrainData.sunVisibility };
-      minimap = new Minimap(terrain.fine, masks, terrain.fine.extent - tuning.area.boundaryInsetM, text);
+      minimap = new Minimap(terrain.fine, masks, terrain.fine.extent - tuning.area.boundaryInsetM, text, tuning.minimap);
+      sites = buildSites(masks.info.features, mt, text.survey.shadowedCraterName);
+      leads = buildLeads(sites, tuning.survey);
       hud.root.append(minimap.root);
       const started = await startMoonScene({
         container: view,
@@ -384,6 +400,7 @@ export const missionScreen: Screen = (game, root) => {
       setup,
       state: () => state,
       sample: () => ({ sample: lastSample, slip: lastSlip, sunlight, blockedByShadow, explored: exploredShare(explored), maxImpact }),
+      survey: () => ({ discovered: sites.filter((s) => s.discovered).map((s) => s.name), openLeads: leads.filter((l) => !l.site.discovered).map((l) => l.id) }),
       milestones: () => ({
         earned: tracker?.result() ?? [],
         zones: tracker?.currentZones().map((z) => z.key) ?? [],

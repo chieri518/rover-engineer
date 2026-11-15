@@ -57,6 +57,67 @@
     "heading": "Landing",
     "briefing": "The lander has touched down on the de Gerlache crater rim. The rover is deploying."
   },
+  "survey": {
+    "heading": "Orbital survey leads",
+    "intro": "Orbital data show three areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
+    "lead": "{name}: about {distance} km {direction}. {source}",
+    "leads": {
+      "layers": {
+        "name": "Layered wall exposure",
+        "source": "LOLA topography shows the steep inner wall of de Gerlache crater, where crater walls often expose old rock layers."
+      },
+      "boulders": {
+        "name": "Boulder field",
+        "source": "LROC images show a small fresh crater; fresh craters are ringed by boulders and soft ground."
+      },
+      "shadow": {
+        "name": "Permanent shadow",
+        "source": "LOLA illumination maps show a crater floor that never receives direct sunlight. Cold traps like this may hold water ice."
+      }
+    },
+    "hudHeading": "Survey leads",
+    "hudLead": "{name}: {distance} km {direction}",
+    "found": "Located: {name}. It is now on the map.",
+    "legendLead": "Survey lead",
+    "shadowedCraterName": "Permanently shadowed crater",
+    "loading": "Loading orbital survey data.",
+    "compass": [
+      "north",
+      "north-northeast",
+      "northeast",
+      "east-northeast",
+      "east",
+      "east-southeast",
+      "southeast",
+      "south-southeast",
+      "south",
+      "south-southwest",
+      "southwest",
+      "west-southwest",
+      "west",
+      "west-northwest",
+      "northwest",
+      "north-northwest"
+    ],
+    "compassShort": [
+      "N",
+      "NNE",
+      "NE",
+      "ENE",
+      "E",
+      "ESE",
+      "SE",
+      "SSE",
+      "S",
+      "SSW",
+      "SW",
+      "WSW",
+      "W",
+      "WNW",
+      "NW",
+      "NNW"
+    ]
+  },
   "mission": {
     "heading": "Mission",
     "briefing": "Fourteen days of daylight. The Sun stays low and circles the horizon.",
@@ -278,7 +339,7 @@
           "drill": "Drill: stop the rover, then press F to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
         },
         "body": [
-          "The map shows the lander, viewpoints, craters, permanent shadow and the area explored so far."
+          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing."
         ]
       }
     ]
