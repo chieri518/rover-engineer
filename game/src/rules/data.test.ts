@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import { quoteBuild } from './quote';
 import { cheapestBuild } from './rover';
+import { meetsRequirements, selectedParts } from './rover';
 import type { Build, GameData, Slot } from './types';
+import terrain from '../../public/terrain/terrain.json';
 
 const data: GameData = loadGameData();
 
@@ -66,5 +68,24 @@ describe('game data', () => {
     expect(p.energy).toBeLessThan(p.stuck);
     expect(p.stuck).toBeLessThan(p.froze);
     expect(p.froze).toBeLessThan(p.destroyed);
+  });
+
+  it('speed: a light build can just reach the dark crater in one mission, a heavy build cannot', () => {
+    const craterM = terrain.features.shadowedCrater.entryPoint.driveDistanceFromLanding_m;
+    const seconds = data.tuning.mission.lengthSeconds;
+    const dark = data.milestones.milestones.find((m) => m.id === 'into-the-dark')!;
+    const quotes = allBuilds().map((b) => ({ b, q: quoteBuild(b, data, data.tuning.budget.startingBudget) }));
+    const launchable = quotes.filter(({ q }) => q.canLaunch && q.canAfford);
+    // Fastest build that can buy and is equipped for the dark crater (lights and heater).
+    const crater = launchable.filter(({ b }) => meetsRequirements(selectedParts(b, data.parts), dark));
+    const fastest = Math.max(...crater.map(({ q }) => q.drive.topSpeed));
+    const slowest = Math.min(...launchable.map(({ q }) => q.drive.topSpeed));
+    expect(fastest).toBeGreaterThanOrEqual(10);
+    expect(fastest).toBeLessThanOrEqual(14);
+    expect(slowest).toBeGreaterThanOrEqual(5);
+    expect(slowest).toBeLessThanOrEqual(7.5);
+    // Top speed for the whole mission, with room for slopes, turns and stops.
+    expect(fastest * seconds).toBeGreaterThan(craterM * 1.1);
+    expect(slowest * seconds).toBeLessThan(craterM * 0.75);
   });
 });

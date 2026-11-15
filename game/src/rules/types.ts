@@ -91,8 +91,10 @@ export interface Tuning {
     referenceMass: number;
     speedLossPerKg: number; // share of base speed lost per kg above the reference mass
     minSpeedFactor: number; // a rover never drops below this share of its base speed
-    energyGainPerKg: number;
+    energyGainPerKg: number; // share of energy per meter added per kg above the reference mass
   };
+  /** Driving is compressed like time: game speed = real speed × compression. Part base speeds are real m/s. */
+  speed: { compression: number };
   energy: { slopeEnergyFactor: number };
   damage: { max: number; rockHit: number; steepSlopePerSecond: number; overloadPerSecond: number };
   cold: {

@@ -37,6 +37,7 @@ export const testTuning: Tuning = {
     penaltyMinFraction: 0.25,
   },
   mass: { referenceMass: 60, speedLossPerKg: 0.006, minSpeedFactor: 0.4, energyGainPerKg: 0.01 },
+  speed: { compression: 4 },
   energy: { slopeEnergyFactor: 0.05 },
   damage: { max: 100, rockHit: 8, steepSlopePerSecond: 4, overloadPerSecond: 0.2 },
   cold: { freezeMax: 100, freezeRatePerSecond: 4, heaterReductionPerHeat: 1.5, warmRecoveryPerSecond: 6 },

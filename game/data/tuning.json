@@ -23,9 +23,12 @@
   },
   "mass": {
     "referenceMass": 60,
-    "speedLossPerKg": 0.006,
+    "speedLossPerKg": 0.01,
     "energyGainPerKg": 0.01,
     "minSpeedFactor": 0.4
+  },
+  "speed": {
+    "compression": 4
   },
   "energy": {
     "slopeEnergyFactor": 0.05
