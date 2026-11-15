@@ -1,5 +1,16 @@
 {
   "_about": "Mars overlay, deep-merged over data/text.json (arrays replace). Owners: campaign and screens (M4) everything here except survey, instruments and drill (milestones and survey, M5). Integration (M6) wires the sol, night and storm strings into the HUD; they may use the {placeholders} of missionVars() in src/ui/tutorialText.ts. Every real fact cites its source (historySources, campaign.sources).",
+  "partText": {
+    "_about": "Mars wording for the shared parts (data/parts.json), by part id; names and numbers stay the Moon's. Matches the Mars rules: no driving at night without lights, map-wide night cold, solar income by day only and less in a dust storm, soft ground only in Seitah's sand ripples.",
+    "wheels-solid": { "description": "Cheap and heavy. Lower grip in sand ripples." },
+    "power-fixed-panel": { "description": "A flat panel. Solar income by day, most with the Sun high. Nothing at night, less in a dust storm." },
+    "power-solar-mast": { "description": "Twice the fixed panel's solar income. Nothing at night, less in a dust storm. Light, expensive and bulky." },
+    "lights-none": { "description": "Saves cost, mass, and space. The rover cannot drive at night." },
+    "lights-led": { "description": "Lets the rover keep driving at night, at a high battery cost." },
+    "heater-none": { "description": "Saves cost, mass, and space. The rover freezes in its first night." },
+    "heater-rhu": { "description": "Steady heat from decaying isotopes. Lets the rover survive the night cold." },
+    "instrument-drill": { "description": "Drills rock cores. Heavier and bulkier than the camera." }
+  },
   "landing": {
     "heading": "Landing: Jezero crater",
     "briefing": "The lander has touched down on the floor of Jezero crater on Mars. The crater is about 45 km wide and held a lake, fed by a river that built a delta, about 3.5 billion years ago. The rover is deploying."
@@ -34,7 +45,8 @@
   "mission": {
     "briefing": "Ten sols at Jezero crater. The Sun sets every sol: lights on to keep driving, or sleep until dawn.",
     "controls": "W A S D or arrow keys to drive. Space to brake. P to power down (sleep) or power up.",
-    "loading": "Loading Jezero crater…"
+    "loading": "Loading Jezero crater…",
+    "loadFailed": "Mars failed to load: {error}"
   },
   "hud": {
     "endedSurvived": "The rover completed ten sols at Jezero crater.",
@@ -181,7 +193,9 @@
     },
     "legendRocky": "Boulder field",
     "legendDelta": "Delta front",
-    "legendRegion": "Séítah"
+    "legendRegion": "Séítah",
+    "_siteNames": "Display names for the terrain.json site names, which the pipeline keeps ASCII (shown in the Located notice).",
+    "siteNames": { "Seitah": "Séítah" }
   },
   "instruments": {
     "_owner": "M5: Mars overrides of the shared instrument notices, plus the sunset notices (rules/marsTypes.ts MarsInstrumentText).",

@@ -396,7 +396,7 @@ export const missionScreen: Screen = (game, root) => {
       minimap?.reveal(p.x, p.z, tuning.explore.revealRadiusM);
       for (const site of discover(sites, p, tuning.explore.revealRadiusM)) {
         minimap?.includeSite(site);
-        hud.notify(fill(text.survey.found, { name: site.name }), 'good');
+        hud.notify(fill(text.survey.found, { name: text.survey.siteNames?.[site.name] ?? site.name }), 'good');
       }
     }
     if (minimap && frame++ % MINIMAP_EVERY_FRAMES === 0) {
@@ -457,7 +457,7 @@ export const missionScreen: Screen = (game, root) => {
       announce(tracker.land());
     })
     .catch((err: unknown) => {
-      if (!disposed) status.textContent = `The Moon failed to load: ${String(err)}`;
+      if (!disposed) status.textContent = fill(text.mission.loadFailed, { error: String(err) });
     });
 
   // Development hooks for testing the mission systems (not in production builds).

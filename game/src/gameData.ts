@@ -12,7 +12,7 @@ import marsMilestones from '../data/mars/milestones.json';
 import marsText from '../data/mars/text.json';
 import type { GameData, PartsFile, TiersFile, MilestonesFile, Tuning, EventsFile, TextFile } from './rules/types';
 import { validateGameData } from './rules/validate';
-import { deepMerge } from './rules/merge';
+import { deepMerge, withPartText } from './rules/merge';
 import type { WorldId } from './worlds';
 
 const shared: GameData = {
@@ -24,7 +24,7 @@ const shared: GameData = {
   text: text as TextFile,
 };
 
-/** Per-world overlays. Parts and ticket tiers are shared (the demo reuses the Moon's). */
+/** Per-world overlays. Parts and ticket tiers are shared (the demo reuses the Moon's); text.partText rewords parts per world. */
 const overlays: Record<WorldId, Partial<Record<keyof GameData, unknown>>> = {
   moon: {},
   mars: { tuning: marsTuning, events: marsEvents, milestones: marsMilestones, text: marsText },
@@ -33,13 +33,14 @@ const overlays: Record<WorldId, Partial<Record<keyof GameData, unknown>>> = {
 /** The world's data: shared data with the world's overlay merged over it. */
 export function worldGameData(world: WorldId): GameData {
   const o = overlays[world];
+  const text = deepMerge(shared.text, o.text);
   return {
-    parts: shared.parts,
+    parts: withPartText(shared.parts, text.partText),
     tiers: shared.tiers,
     milestones: deepMerge(shared.milestones, o.milestones),
     tuning: deepMerge(shared.tuning, o.tuning),
     events: deepMerge(shared.events, o.events),
-    text: deepMerge(shared.text, o.text),
+    text,
   };
 }
 

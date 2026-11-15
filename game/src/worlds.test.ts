@@ -60,11 +60,22 @@ describe('world data', () => {
     expect(mars.events.flare).toBeUndefined();
     expect(mars.events.quake).toBeUndefined();
     expect(mars.events.duststorm).toBeDefined();
-    expect(mars.parts).toBe(loadGameData('moon').parts); // the demo reuses the Moon parts and tiers
+    // The demo reuses the Moon parts (same ids and numbers, Mars wording) and tiers.
+    const moonParts = loadGameData('moon').parts;
+    expect(mars.parts.parts.map(({ name: _n, description: _d, ...rest }) => rest)).toEqual(moonParts.parts.map(({ name: _n, description: _d, ...rest }) => rest));
     expect(mars.tiers).toBe(loadGameData('moon').tiers);
     const moonIds = new Set(moonMilestones.milestones.map((m) => m.id));
     expect(mars.milestones.milestones.length).toBeGreaterThan(0);
     for (const m of mars.milestones.milestones) expect(moonIds.has(m.id)).toBe(false);
+  });
+
+  it('Mars parts have Mars wording; the Moon keeps its own', () => {
+    const marsParts = worldGameData('mars').parts.parts;
+    const moonParts = loadGameData('moon').parts.parts;
+    for (const p of marsParts) expect(p.description, p.id).not.toMatch(/permanent shadow|shadowed crater|polar|regolith|ice where/i);
+    expect(marsParts.find((p) => p.id === 'lights-led')!.description).toMatch(/night/);
+    expect(moonParts.find((p) => p.id === 'lights-led')!.description).toMatch(/shadowed craters/);
+    expect(moonParts.find((p) => p.id === 'power-solar-mast')!.description).toMatch(/polar/);
   });
 
   it('every Mars overlay key ends up in the merged data, and no _ note does', () => {

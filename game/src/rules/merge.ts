@@ -3,6 +3,8 @@
 // Rules: objects merge key by key; arrays and plain values in the overlay replace the base;
 // `null` in the overlay removes the key (e.g. "flare": null: no solar flares on Mars);
 // keys starting with "_" in the overlay are comments (placeholder and interface notes) and are dropped.
+// Parts are shared, but a world can reword them through text.partText (withPartText).
+import type { PartsFile } from './types';
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -19,4 +21,16 @@ export function deepMerge<T>(base: T, overlay: unknown): T {
     else out[key] = deepMerge(out[key], value);
   }
   return out as T;
+}
+
+/** The parts with a world's own names and descriptions (text.partText, by part id) put in. Neither input is changed. */
+export function withPartText(parts: PartsFile, partText: Record<string, { name?: string; description?: string }> | undefined): PartsFile {
+  if (!partText) return parts;
+  return {
+    ...parts,
+    parts: parts.parts.map((p) => {
+      const o = partText[p.id];
+      return o ? { ...p, name: o.name ?? p.name, description: o.description ?? p.description } : p;
+    }),
+  };
 }

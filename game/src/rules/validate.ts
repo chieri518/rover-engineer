@@ -14,6 +14,9 @@ export function validateGameData(data: GameData): string[] {
   for (const slot of slots) {
     if (!parts.some((p) => p.slot === slot)) problems.push(`slot ${slot} has no parts`);
   }
+  for (const id of Object.keys(data.text.partText ?? {})) {
+    if (!ids.has(id)) problems.push(`text.partText names unknown part ${id}`);
+  }
   const tiers = data.tiers.tiers;
   if (tiers.length === 0) problems.push('no ticket tiers');
   for (let i = 1; i < tiers.length; i++) {

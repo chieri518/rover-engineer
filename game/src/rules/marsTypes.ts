@@ -134,6 +134,8 @@ export interface MarsSurveyText {
   legendRocky?: string; // replaces the Moon's "Crater" legend for rocky-area rings
   legendDelta?: string;
   legendRegion?: string; // Séítah's outline
+  /** Display names for terrain.json site names (the pipeline keeps them ASCII), e.g. "Seitah" → "Séítah". */
+  siteNames?: Record<string, string>;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -148,6 +150,8 @@ export interface MarsTextSections {
   storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string>;
   /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
   campaign: MarsCampaignText;
+  /** Per-world part wording, by part id: replaces the shared name or description (rules/merge.ts withPartText). */
+  partText?: Record<string, { name?: string; description?: string }>;
 }
 
 export interface MarsCampaignText {

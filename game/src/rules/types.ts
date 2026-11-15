@@ -310,7 +310,7 @@ export interface SharedTextFile {
     compass: string[]; // 16 points from north, full words
     compassShort: string[]; // 16 points from north, abbreviated
   };
-  mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
+  mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading' | 'loadFailed', string>; // loadFailed: {error}
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
     | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief'

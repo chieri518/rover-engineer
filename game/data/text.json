@@ -123,7 +123,8 @@
     "briefing": "Fourteen days of daylight. The Sun stays low and circles the horizon.",
     "controls": "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
     "boundary": "Leaving the planned operating area",
-    "loading": "Loading terrain…"
+    "loading": "Loading terrain…",
+    "loadFailed": "The Moon failed to load: {error}"
   },
   "hud": {
     "energy": "Energy",
