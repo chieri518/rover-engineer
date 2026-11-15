@@ -144,4 +144,19 @@ export interface MarsTextSections {
   sol: Record<'hudSol' | 'lasted', string>;
   night: Record<'sunset' | 'dawn' | 'sleeping' | 'noLights' | 'lightsOn', string>;
   storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string>;
+  /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
+  campaign: MarsCampaignText;
+}
+
+export interface MarsCampaignText {
+  kicker: string; // design screen, above the heading: which mission this is
+  carryOver: string; // {balance}: the balance carried over from the Moon
+  passMark: string; // {minimum}: the next mission's pass mark (Titan)
+  sameParts: string; // parts and ticket tiers are the Moon's for now
+  ticketNote: string; // ticket screen: same tiers as the Moon
+  perseverance: string; // landing: {distance} km {direction} to Perseverance's landing site
+  newHeading: string; // landing: "New on Mars"
+  newOnMars: string[]; // landing: one line per new constraint, {placeholders} from the Mars data
+  sourcesLabel: string; // credits: label for the landing briefing's sources
+  sources: string; // sources for the real facts in the landing briefing
 }

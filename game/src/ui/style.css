@@ -314,6 +314,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .credit-line { font-size: 0.86rem; color: var(--muted); overflow-wrap: anywhere; }
 .credits a { color: var(--accent-soft); overflow-wrap: anywhere; }
 .credits a:hover { color: var(--accent); }
+.credits .credit-world-heading { font-size: 1.05rem; margin: 30px 0 0; padding-top: 14px; border-top: 1px solid var(--line-strong); color: var(--accent); }
 
 /* Title screen: a live 3D cover (titleCover.ts) with the title console over it */
 #app[data-screen='title'] { min-height: 100vh; place-items: center start; padding: 32px clamp(16px, 7vw, 120px); }
@@ -360,3 +361,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   .title-cover-canvas { transition: none; }
 }
+
+/* The campaign moves on to a new world: the note under the design heading, the landing's "new here" list. */
+.desk-head p.world-transition { margin-top: 8px; padding: 8px 12px; max-width: 72ch; border-left: 2px solid var(--info); background: var(--sunk); font-size: 0.9rem; }
+.new-on-world { padding-left: 20px; }
+.new-on-world li { margin-bottom: 6px; }

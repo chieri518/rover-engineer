@@ -71,7 +71,7 @@ describe('world data', () => {
     const mars = worldGameData('mars');
     for (const path of keyPaths(marsTuning)) expect(get(mars.tuning, path), path).toEqual(get(marsTuning, path) === null ? undefined : expect.anything());
     for (const path of keyPaths(marsText)) expect(get(mars.text, path), path).toBeDefined();
-    expect(mars.text.landing.heading).toBe(moonText.landing.heading); // shared text stays
+    expect(mars.text.settings.heading).toBe(moonText.settings.heading); // shared text stays
     expect(JSON.stringify(mars)).not.toMatch(/"_\w+":/);
   });
 });

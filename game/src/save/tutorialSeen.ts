@@ -1,5 +1,9 @@
 // Which tutorials the player has seen, in localStorage, kept apart from the campaign so a new campaign
 // does not show them again. Every access is wrapped: without storage, "seen" lasts for the session.
+// Each world has its own design and drive tutorials (Mars explains the night and the dust storm), so
+// "seen" is kept per world. Stored as { design, drive } for the Moon (the original format) plus
+// { mars: { design, drive } }.
+import type { WorldId } from '../worlds';
 
 export interface TutorialSeen {
   design: boolean;
@@ -7,6 +11,8 @@ export interface TutorialSeen {
 }
 
 export type TutorialId = keyof TutorialSeen;
+
+export type TutorialSeenByWorld = Record<WorldId, TutorialSeen>;
 
 export const TUTORIAL_KEY = 'rover-engineer.tutorial.v1';
 
@@ -20,21 +26,29 @@ function defaultStore(): KeyValueStore | null {
   }
 }
 
-export function loadTutorialSeen(store: KeyValueStore | null = defaultStore()): TutorialSeen {
+const unseen = (): TutorialSeen => ({ design: false, drive: false });
+
+function readSeen(v: unknown): TutorialSeen {
+  const o = (typeof v === 'object' && v !== null ? v : {}) as Partial<TutorialSeen>;
+  return { design: o.design === true, drive: o.drive === true };
+}
+
+export function loadTutorialSeen(store: KeyValueStore | null = defaultStore()): TutorialSeenByWorld {
   try {
     const raw = store?.getItem(TUTORIAL_KEY);
-    if (!raw) return { design: false, drive: false };
-    const v = JSON.parse(raw) as Partial<TutorialSeen> | null;
-    return { design: v?.design === true, drive: v?.drive === true };
+    if (!raw) return { moon: unseen(), mars: unseen() };
+    const v = JSON.parse(raw) as { mars?: unknown } | null;
+    return { moon: readSeen(v), mars: readSeen(v?.mars) };
   } catch {
-    return { design: false, drive: false };
+    return { moon: unseen(), mars: unseen() };
   }
 }
 
-export function saveTutorialSeen(seen: TutorialSeen, store: KeyValueStore | null = defaultStore()): boolean {
+export function saveTutorialSeen(seen: TutorialSeenByWorld, store: KeyValueStore | null = defaultStore()): boolean {
   try {
     if (!store) return false;
-    store.setItem(TUTORIAL_KEY, JSON.stringify({ design: seen.design, drive: seen.drive }));
+    const { moon, mars } = seen;
+    store.setItem(TUTORIAL_KEY, JSON.stringify({ design: moon.design, drive: moon.drive, mars: { design: mars.design, drive: mars.drive } }));
     return true;
   } catch {
     return false;

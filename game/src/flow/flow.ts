@@ -1,6 +1,6 @@
 // Screen flow: title → design → ticket → landing → mission → debrief, then restart the round (back to
 // design, snapshot restored) or continue to the next world's design screen (Moon → Mars), and after the
-// last world the "coming soon" screen (screen id marsSoon; on Mars its text reads "Titan: coming soon").
+// last world the "coming soon" screen (comingSoon: "Titan: coming soon", with the campaign summary).
 import type { DraftBuild, GameData, MissionId } from '../rules/types';
 import {
   buyRover, finishMission, isPlayable, newCampaign, normalizeCampaign, restartRound, startRound,
@@ -12,7 +12,7 @@ import { quoteBuild } from '../rules/quote';
 import { isCompleteBuild } from '../rules/rover';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 import { loadSettings, saveSettings, type Settings } from '../save/settings';
-import { loadTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen } from '../save/tutorialSeen';
+import { loadTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen, type TutorialSeenByWorld } from '../save/tutorialSeen';
 
 /** A photograph taken during the mission, kept in memory for the debrief album. */
 export interface AlbumPhoto {
@@ -20,7 +20,7 @@ export interface AlbumPhoto {
   caption: string;
 }
 
-export type ScreenId = 'title' | 'settings' | 'credits' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'marsSoon';
+export type ScreenId = 'title' | 'settings' | 'credits' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'comingSoon';
 
 /** A screen renders into root and may return a cleanup function. */
 export type Screen = (game: Game, root: HTMLElement) => void | (() => void);
@@ -34,8 +34,8 @@ export class Game {
   /** Photographs from the last mission (not saved: data URLs are too large for localStorage). */
   album: AlbumPhoto[] = [];
   settings: Settings = loadSettings();
-  /** Tutorials already seen; each opens by itself only the first time its screen is reached. */
-  tutorialSeen: TutorialSeen = loadTutorialSeen();
+  /** Tutorials already seen, per world; each opens by itself only the first time its screen is reached. */
+  private seenByWorld: TutorialSeenByWorld = loadTutorialSeen();
   /**
    * The world whose data the screens show: the campaign's mission, except that the debrief keeps the
    * world just played until the player continues (finishMission has already moved the campaign on).
@@ -60,6 +60,16 @@ export class Game {
   /** The current world's game data (shared data with the world's overlay). */
   get data(): GameData {
     return this.dataFor(this.world);
+  }
+
+  /** Any world's game data (the credits and the campaign summary list every world). */
+  dataOf(world: WorldId): GameData {
+    return this.dataFor(world);
+  }
+
+  /** The current world's tutorials already seen (Mars has its own design and drive tutorials). */
+  get tutorialSeen(): TutorialSeen {
+    return this.seenByWorld[this.world];
   }
 
   get screen(): ScreenId {
@@ -103,7 +113,7 @@ export class Game {
     const mission = this.state.mission;
     this.world = worldOfStep(mission);
     this.outcome = null;
-    if (!isPlayable(mission)) return this.go('marsSoon');
+    if (!isPlayable(mission)) return this.go('comingSoon');
     // Any round in progress is rolled back to its snapshot, as on a restart.
     this.setCampaign(startRound(restartRound(this.state)));
     this.go('design');
@@ -139,8 +149,8 @@ export class Game {
   }
 
   markTutorialSeen(id: TutorialId): void {
-    this.tutorialSeen = { ...this.tutorialSeen, [id]: true };
-    saveTutorialSeen(this.tutorialSeen);
+    this.seenByWorld = { ...this.seenByWorld, [this.world]: { ...this.tutorialSeen, [id]: true } };
+    saveTutorialSeen(this.seenByWorld);
   }
 
   endMission(result: MissionResult, album: AlbumPhoto[] = []): void {
