@@ -3,6 +3,7 @@
 import type { Screen } from '../flow/flow';
 import { canStartMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
+import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
 import type { GameData, Part, Tier } from '../rules/types';
 import { el, fill, money } from './dom';
@@ -165,6 +166,7 @@ export const designScreen: Screen = (game, root) => {
       row('Grip', d.grip.toFixed(2)),
       row('Drive energy', `${(d.energyPerMeter * 1000).toFixed(0)} energy/km`),
       row('Battery', `${d.batteryCapacity} energy`),
+      row('Range on battery', `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground`),
       row('Solar income', `${d.energyIncome.toFixed(1)} energy/s in full sun`),
     );
     renderInfo(q);

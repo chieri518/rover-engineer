@@ -31,14 +31,54 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .milestones { padding-left: 18px; }
 .mission-view { position: absolute; inset: 0; }
 .mission-view canvas { width: 100%; height: 100%; display: block; }
-.hud { position: absolute; top: 16px; left: 16px; background: rgba(22, 24, 31, 0.7); padding: 12px 14px; border-radius: 8px; width: min(300px, calc(100% - 32px)); font-size: 0.9rem; }
-.hud h2 { font-size: 1.1rem; margin-bottom: 4px; }
-.hud p { margin: 4px 0; }
-.boundary-notice { position: absolute; top: 18%; left: 50%; transform: translateX(-50%); background: rgba(40, 14, 8, 0.85); color: var(--warn); border: 1px solid var(--warn); padding: 10px 18px; border-radius: 6px; font-weight: 600; letter-spacing: 0.02em; pointer-events: none; text-align: center; max-width: calc(100% - 32px); }
-.boundary-notice[hidden] { display: none; }
-.debug-outcomes { position: absolute; bottom: 16px; right: 16px; background: rgba(22, 24, 31, 0.7); padding: 8px 12px; border-radius: 8px; font-size: 0.8rem; max-width: calc(100% - 32px); }
-.debug-outcomes summary { cursor: pointer; color: var(--muted); }
-.debug-outcomes .actions { margin-top: 8px; }
+.hud-layer { position: absolute; inset: 0; pointer-events: none; }
+.hud-layer button, .hud-layer .mission-end { pointer-events: auto; }
+.hud { position: absolute; top: 16px; left: 16px; background: rgba(22, 24, 31, 0.78); padding: 12px 14px; border-radius: 8px; width: min(260px, calc(100% - 32px)); font-size: 0.85rem; display: grid; gap: 8px; }
+.hud p { margin: 0; }
+.hud-extra { display: grid; gap: 4px; font-size: 0.8rem; }
+.meter-head { display: flex; justify-content: space-between; font-variant-numeric: tabular-nums; }
+.meter-head span:first-child { color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.72rem; font-weight: 600; }
+.meter-track { height: 8px; background: #2a2e38; border-radius: 4px; overflow: hidden; margin-top: 3px; }
+.meter-fill { height: 100%; width: 0; border-radius: 4px; transition: width 0.15s linear; }
+.meter.energy .meter-fill { background: var(--good); }
+.meter.damage .meter-fill { background: var(--warn); }
+.meter.cold .meter-fill { background: #6aa8ff; }
+.meter.alert .meter-value { color: var(--warn); font-weight: 600; }
+.meter.energy.alert .meter-fill { background: var(--warn); }
+.sun-state { font-size: 0.8rem; color: var(--accent); }
+.sun-state.shadow { color: var(--muted); }
+.power-toggle { font-size: 0.85rem; padding: 6px 10px; }
+.power-toggle.active { background: #2b3a55; border-color: #6aa8ff; color: #dbe8ff; }
+.hud-center { position: absolute; top: 14%; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); display: grid; gap: 8px; justify-items: center; }
+.hud-warnings { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; justify-items: center; }
+.hud-warnings li, .hud-notice, .flare-warning { background: rgba(40, 14, 8, 0.85); color: var(--warn); border: 1px solid var(--warn); padding: 8px 16px; border-radius: 6px; font-weight: 600; letter-spacing: 0.01em; text-align: center; }
+.hud-notices { display: grid; gap: 6px; justify-items: center; }
+.hud-notice { animation: notice-fade 4s forwards; }
+.hud-notice.good { background: rgba(10, 34, 14, 0.85); color: var(--good); border-color: var(--good); }
+@keyframes notice-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
+.flare-warning { background: rgba(60, 40, 0, 0.9); color: #ffd36b; border-color: #ffd36b; width: 100%; }
+.flare-warning[hidden] { display: none; }
+.flare-bar { height: 6px; background: rgba(0, 0, 0, 0.5); border-radius: 3px; margin-top: 6px; overflow: hidden; }
+.flare-bar-fill { height: 100%; background: #ffd36b; }
+.flare-flash { position: absolute; inset: 0; background: #fff6d8; opacity: 0; }
+.flare-flash.on { animation: flare-flash 1.2s ease-out; }
+@keyframes flare-flash { 0% { opacity: 0.85; } 100% { opacity: 0; } }
+.mission-end { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 22px 24px; width: min(420px, calc(100% - 32px)); }
+.mission-end h2 { margin-bottom: 8px; }
+.mission-end p { margin: 6px 0; }
+.minimap { position: absolute; top: 16px; right: 16px; background: rgba(22, 24, 31, 0.78); padding: 8px; border-radius: 8px; width: min(216px, 40vw); }
+.minimap-canvas { width: 100%; aspect-ratio: 1; display: block; border-radius: 4px; image-rendering: auto; }
+.minimap-legend { display: flex; flex-wrap: wrap; gap: 2px 10px; font-size: 0.7rem; color: var(--muted); margin-top: 6px; }
+.minimap-legend .lg::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 4px; vertical-align: -1px; }
+.lg.lander::before { background: #e6e6e6; }
+.lg.viewpoint::before { background: var(--accent); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.lg.crater::before { border: 1.5px solid var(--accent); border-radius: 50%; width: 6px; height: 6px; }
+.lg.cold::before { background: rgb(40, 70, 140); border: 1px solid rgba(90, 150, 255, 0.85); width: 6px; height: 6px; }
+@media (max-width: 640px) {
+  .hud { width: calc(60% - 24px); }
+  .minimap { width: calc(40% - 16px); }
+  .hud-center { top: auto; bottom: 16px; }
+}
 .status { font-size: 0.85rem; color: var(--accent); }
 
 /* Design screen: the engineer's desk */

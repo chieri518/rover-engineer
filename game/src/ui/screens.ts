@@ -1,6 +1,7 @@
 // Screens. Title, landing, debrief and "Mars: coming soon" are still placeholders (Phases 5 and 6).
 import type { Screen, ScreenId } from '../flow/flow';
-import { el, money, panel } from './dom';
+import { el, fill, money, panel } from './dom';
+import { gameDaysElapsed } from '../rules/sun';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
 import { ticketScreen } from './ticketScreen';
@@ -42,6 +43,10 @@ const debrief: Screen = (game, root) => {
     panel(
       el('h2', {}, t.heading),
       el('p', {}, lastResult?.survived ? t.survived : `Cause: ${cause ? data.text.causes[cause] : 'unknown'}`),
+      lastResult && el('p', { class: 'muted' }, fill(data.text.hud.lasted, {
+        days: lastResult.survived ? data.tuning.mission.gameDays : gameDaysElapsed(lastResult.secondsLasted, data.tuning.mission).toFixed(1),
+        total: data.tuning.mission.gameDays,
+      })),
       el('ul', { class: 'milestones' },
         ...payout.milestones.map((p) =>
           el('li', {},
