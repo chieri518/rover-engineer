@@ -186,7 +186,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     colliders.update(pos.x, pos.z);
     for (const layer of layers) layer.update(pos.x, pos.z, CHUNK_REBUILDS_PER_FRAME);
 
-    seconds = Math.min(tuning.mission.lengthSeconds, seconds + dt * timeScale);
+    // Mission time follows simulated time, so a slow frame rate cannot cost the rover distance.
+    seconds = Math.min(tuning.mission.lengthSeconds, seconds + steps * PHYSICS_STEP * timeScale);
     const sun = sunNow();
     placeSun(sun);
     masks.updateStep(renderer, sun);
@@ -239,12 +240,21 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       stats() {
         const avg = frameTimes.reduce((a, b) => a + b, 0) / Math.max(frameTimes.length, 1);
         const p = rover.position;
+        const f = rover.forward(new THREE.Vector3());
         return {
           fps: 1000 / avg,
           frameMs: avg,
           seconds,
           sun: sunNow(),
-          rover: { x: p.x, y: p.y, z: p.z, speed: rover.speed, wheelsInContact: rover.wheelsInContact },
+          rover: {
+            x: p.x,
+            y: p.y,
+            z: p.z,
+            speed: rover.speed,
+            topSpeed: opts.rover.topSpeed,
+            forward: { x: f.x, y: f.y, z: f.z },
+            wheelsInContact: rover.wheelsInContact,
+          },
           colliders: colliders.count,
           vertices: layers.map((l) => l.vertexCount),
           drawCalls: renderer.info.render.calls,

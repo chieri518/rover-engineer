@@ -40,7 +40,10 @@ export class RoverVehicle {
     const h = handling;
     const { lengthM: l, widthM: w, heightM: ht } = h.body;
     this.body = world.createRigidBody(
-      rapier.RigidBodyDesc.dynamic().setAngularDamping(h.angularDamping).setCanSleep(false),
+      rapier.RigidBodyDesc.dynamic()
+        .setAngularDamping(h.angularDamping)
+        .setGravityScale(h.gravityScale)
+        .setCanSleep(false),
     );
     const m = params.massKg;
     world.createCollider(
@@ -138,12 +141,16 @@ export class RoverVehicle {
       const target = throttle > 0 ? top * throttle : top * h.reverseSpeedFactor * throttle;
       const err = Math.max(-1, Math.min(1, (target - v) / SPEED_BAND));
       engine = m * h.accelerationMps2 * err;
+      // Downhill the drive motors hold the rover at its top speed instead of letting it run away.
+      const over = Math.abs(v) - Math.abs(target);
+      if (over > 0 && Math.sign(v) === Math.sign(target)) brakeForce = m * h.brakeDecelMps2 * Math.min(1, over / SPEED_BAND);
     } else {
       brakeForce = m * h.brakeDecelMps2; // no input: the drive motors hold the rover
     }
 
-    // Steer toward the input; less lock at speed.
-    const maxSteer = (h.maxSteerDeg * DEG) / (1 + Math.abs(v) / 4);
+    // Steer toward the input. At speed the lock shrinks so a full turn stays within the lateral
+    // acceleration limit (turn radius ≈ wheelbase / tan(steer), lateral acceleration = v² / radius).
+    const maxSteer = Math.min(h.maxSteerDeg * DEG, Math.atan((h.wheelBaseM * h.maxLateralAccelMps2) / Math.max(v * v, 1e-6)));
     const targetSteer = steer * maxSteer;
     const rate = h.steerRateDegPerSecond * DEG * dt;
     this.steer += Math.max(-rate, Math.min(rate, targetSteer - this.steer));

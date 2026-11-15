@@ -58,6 +58,8 @@ export const testTuning: Tuning = {
     gripToFrictionSlip: 1.5,
     sideFrictionStiffness: 1,
     maxSteerDeg: 30,
+    maxLateralAccelMps2: 3,
+    gravityScale: 1,
     steerRateDegPerSecond: 90,
     angularDamping: 1,
   },

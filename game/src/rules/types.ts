@@ -147,7 +147,14 @@ export interface RoverHandling {
   gripToFrictionSlip: number; // wheel grip (0..1) times this = tire friction coefficient
   sideFrictionStiffness: number;
   maxSteerDeg: number;
+  maxLateralAccelMps2: number; // steering lock shrinks with speed so a full turn stays below this
   steerRateDegPerSecond: number;
+  /**
+   * Gravity on the rover body as a multiple of lunar gravity. Driving is compressed ~4× like time;
+   * a true time-lapse would also scale accelerations by 4² = 16. A smaller factor keeps the rover
+   * on the ground at compressed speeds while keeping some lunar float.
+   */
+  gravityScale: number;
   angularDamping: number;
 }
 
