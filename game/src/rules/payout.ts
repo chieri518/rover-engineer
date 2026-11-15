@@ -12,7 +12,7 @@ export interface MissionResult {
   detail?: 'rollover'; // destroyed by rolling over rather than by the damage meter
   secondsLasted: number;
   earned: EarnedMilestone[];
-  relationships?: RelationshipEvent[]; // relationships met, once each (cold and dark once per variant); missing: none
+  relationships?: RelationshipEvent[]; // relationships met, once each, in the order met; missing: none
 }
 
 export interface PaidMilestone {

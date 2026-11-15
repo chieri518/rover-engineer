@@ -137,6 +137,14 @@ describe('seismometer station: the track over a mission (stepSeismometer)', () =
     expect(tr.points.map((p) => p.seconds)).toEqual([20, 35]); // 10 is more than 20 s before 35
   });
 
+  it('trims the record window in place: the same points array from step to step', () => {
+    const first = steps([[10, 0, false, true], [20, 50, true]]).tr;
+    const points = first.points;
+    const later = steps([[35, 200, true], [45, 210, true]], first).tr;
+    expect(later.points).toBe(points);
+    expect(later.points.map((p) => p.seconds)).toEqual([35, 45]);
+  });
+
   it('records the quake once: noisy when the rover drove near in the window, clean when it kept away', () => {
     const noisy = steps([[10, 0, false, true], [95, 100, true], [100, 300, true, false, true]]);
     expect(noisy.outcomes).toEqual([{ kind: 'deployed' }, { kind: 'recorded', record: { quality: 'noisy', closestM: 100 } }]);

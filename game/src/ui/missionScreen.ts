@@ -13,7 +13,7 @@ import {
   type InstrumentLog, type SeismometerOutcome, type TrackPoint,
 } from '../rules/instruments';
 import {
-  lessonFor, meet, onPhoto, onStep as relationshipsOnStep, onUseDone, onUseStart, relationshipEntry, type RelationshipEvent,
+  addToNotebook, lessonFor, meet, metIds, onSeismometer, onShadowStop, onUseDone, onUseStart, relationshipEntry, shortUseLines, type RelationshipEvent,
 } from '../rules/relationships';
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
@@ -34,6 +34,7 @@ import { Hud } from './hud';
 import { Minimap } from './minimap';
 import { causeText, milestoneCard, missedText } from './milestoneText';
 import { openTutorial, type TutorialHandle } from './tutorial';
+import { openNotebook, type NotebookHandle } from './notebook';
 import { tutorialPages } from './tutorialText';
 
 const DEG = 180 / Math.PI;
@@ -44,6 +45,7 @@ const MINIMAP_EVERY_FRAMES = 3;
 const EARTH_CHECK_EVERY_FRAMES = 10;
 const PHOTO_WIDTH_PX = 960;
 const HYDROGEN_EVERY_FRAMES = 12; // the hydrogen meter's live reading is resampled this often
+const NOTEBOOK_KEY = 'KeyN'; // opens the engineering notebook (game-design.md, section 7)
 
 export const missionScreen: Screen = (game, root) => {
   const { data } = game;
@@ -87,8 +89,11 @@ export const missionScreen: Screen = (game, root) => {
   let seismometer = emptySeismometerTrack(); // the station, the rover's track while it records, and its record
   let stationSetDown: { x: number; z: number } | null = null; // a seismometer station set down this step
   let hydrogenCountdown = 0; // frames until the hydrogen meter is resampled (0: sample now)
-  // Relationships met this mission (rules/relationships.ts): each notice shows once (cold and dark once per variant).
+  // Relationships met this mission (rules/relationships.ts): each notice shows once per mission. A new
+  // one enters the in-mission notebook at once; the campaign notebook is saved only at mission end.
   let met: RelationshipEvent[] = [];
+  const notebookAtLaunch = [...game.state.notebook];
+  let unread = false; // a relationship met since the notebook was last opened
   const factsShown = new Set<Instrument>(); // each instrument's history fact shows once per mission
 
   // What the last step measured
@@ -129,8 +134,12 @@ export const missionScreen: Screen = (game, root) => {
     factsShown.add(inst);
     hud.notify(fact, 'good');
   };
-  /** Record relationships that happened; show the notice of each met for the first time. Returns those. */
-  const relate = (events: RelationshipEvent[]): RelationshipEvent[] => {
+  /**
+   * Record relationships that happened; show the notice of each met for the first time (its own HUD
+   * slot) and mark the notebook unread. `vars` fills the notice's placeholders beyond {distance}.
+   * Returns the events met for the first time.
+   */
+  const relate = (events: RelationshipEvent[], vars: Record<string, string | number> = {}): RelationshipEvent[] => {
     if (events.length === 0) return [];
     const r = meet(met, events);
     met = r.met;
@@ -138,7 +147,8 @@ export const missionScreen: Screen = (game, root) => {
       const lesson = lessonFor(data.relationships, e);
       if (!lesson) continue;
       const tone = relationshipEntry(data.relationships, e.id)?.review === 'green' ? 'good' : 'warn';
-      hud.notify(fill(lesson.notice, { distance: tuning.instruments.seismometer.quietDistanceM }), tone, true);
+      hud.lesson(fill(lesson.notice, { distance: tuning.instruments.seismometer.quietDistanceM, ...vars }), tone);
+      if (!notebookAtLaunch.includes(e.id)) setUnread(true);
     }
     return r.fresh;
   };
@@ -146,7 +156,7 @@ export const missionScreen: Screen = (game, root) => {
   // reopens it. The mission is paused while it is open.
   let tutorial: TutorialHandle | null = null;
   const openHelp = () => {
-    if (tutorial || ended) return;
+    if (tutorial || notebook || ended) return;
     const pages = tutorialPages('drive', data, { mission: game.state.mission, instruments });
     tutorial = openTutorial(root, 'drive', pages, text.tutorial, () => {
       tutorial = null;
@@ -162,6 +172,37 @@ export const missionScreen: Screen = (game, root) => {
     title: text.tutorial.helpDrive,
     onclick: openHelp,
   }, text.tutorial.help);
+  // Engineering notebook: a HUD button and the N key open it over the mission, paused like the tutorial.
+  // It holds the campaign notebook plus what this mission has met so far; a dot marks an unread entry.
+  let notebook: NotebookHandle | null = null;
+  const unreadMark = el('span', { class: 'unread-mark', hidden: true }, el('span', { class: 'visually-hidden' }, text.notebook.unread));
+  const notebookButton = el('button', {
+    type: 'button',
+    class: 'help-button notebook-button',
+    id: 'notebook-open-mission',
+    title: text.notebook.openMission,
+    onclick: () => openNotes(),
+  }, text.notebook.open, unreadMark);
+  function setUnread(on: boolean): void {
+    unread = on;
+    unreadMark.hidden = !on;
+    notebookButton.classList.toggle('unread', on);
+  }
+  function openNotes(): void {
+    if (notebook || tutorial || ended) return;
+    const thisMission = metIds(met).filter((id) => !notebookAtLaunch.includes(id));
+    notebook = openNotebook(root, data, {
+      ids: addToNotebook(notebookAtLaunch, thisMission),
+      newIds: thisMission,
+      closeKey: NOTEBOOK_KEY,
+      onClose: () => {
+        notebook = null;
+        scene?.setPaused(false);
+      },
+    });
+    setUnread(false);
+    scene?.setPaused(true);
+  }
   // One HUD button per instrument, in bay order (the same order as the number keys).
   // A switch instrument (one with a standby draw) shows whether it is on.
   const buttonLabels = new Map<Instrument, HTMLSpanElement>(instruments.map((inst) => [inst, el('span', {}, itx[inst].button)]));
@@ -175,7 +216,7 @@ export const missionScreen: Screen = (game, root) => {
     instruments.length > 0 && el('div', { class: 'hud-instruments', role: 'group', 'aria-label': ti.buttonsLabel }, ...instrumentButtons.values()),
     el('p', { class: 'muted' }, controls),
     status,
-    el('div', { class: 'hud-help' }, help),
+    el('div', { class: 'hud-help' }, help, notebookButton),
   ));
 
   const announce = (u: MilestoneUpdate) => {
@@ -247,10 +288,10 @@ export const missionScreen: Screen = (game, root) => {
     }
     state = r.state;
     // The first time in a mission, the relationship's notice explains it; later uses get the short line.
-    const fresh = relate(onUseStart(r)).map((e) => e.id);
+    const lines = shortUseLines(r, relate(onUseStart(r)));
     const said = { name: partOf(inst).name, seconds: Math.round(r.holdSeconds) };
-    if (r.slowedByCold && !fresh.includes('cold-dark')) hud.notify(fill(ti.useSlowCold, said));
-    if (r.fasterInShadow && !fresh.includes('xray-cold')) hud.notify(fill(ti.useFastShadow, said), 'good');
+    if (lines.slowCold) hud.notify(fill(ti.useSlowCold, said));
+    if (lines.fastShadow) hud.notify(fill(ti.useFastShadow, said), 'good');
     return true;
   };
   /** The boulder within the X-ray spectrometer's reach, if any. */
@@ -275,7 +316,6 @@ export const missionScreen: Screen = (game, root) => {
     hud.notify(places.length ? fill(ti.photoTaken, { caption }) : ti.photoNoZone, 'good');
     const blocker = earth ? earthBlocker(roverPos, lit) : null;
     if (blocker) hud.notify(blocker);
-    relate(onPhoto({ inColdZone: lastSample?.inColdZone ?? false, hasLights: setup.hasLights }));
     announce(u);
   };
 
@@ -298,7 +338,7 @@ export const missionScreen: Screen = (game, root) => {
       const result = zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : done;
       hud.notify(result, 'good');
     }
-    relate(onUseDone('drill', site, instruments));
+    relate(onUseDone('drill', site, instruments, zones.includes('ice-spot')));
     announce(u);
   };
 
@@ -351,7 +391,10 @@ export const missionScreen: Screen = (game, root) => {
     const { quality, closestM } = o.record;
     log.quake = quality;
     hud.showQuakeTrace(quality);
-    hud.notify(quality === 'clean' ? ti.quakeClean : fill(ti.quakeNoisy, { distance: Math.round(closestM) }), quality === 'clean' ? 'good' : 'warn');
+    // A noisy record is the seismometer's lesson: the first time, its notice replaces the short line.
+    const fresh = relate(onSeismometer(o), { closest: Math.round(closestM) });
+    if (quality === 'clean') hud.notify(ti.quakeClean, 'good');
+    else if (fresh.length === 0) hud.notify(fill(ti.quakeNoisy, { distance: Math.round(closestM) }));
   };
 
   /** Switch a standby instrument on or off. */
@@ -370,7 +413,7 @@ export const missionScreen: Screen = (game, root) => {
   };
 
   function useInstrument(inst: Instrument): void {
-    if (tutorial || ended) return;
+    if (tutorial || notebook || ended) return;
     // A switch instrument (with a standby draw) is switched on or off; the others are used.
     if (state.deployed.includes(inst)) {
       const msg = refusalText(inst, 'deployed', 0);
@@ -381,7 +424,8 @@ export const missionScreen: Screen = (game, root) => {
   }
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.repeat || tutorial) return;
+    if (e.repeat || tutorial || notebook) return;
+    if (e.code === NOTEBOOK_KEY) return openNotes();
     if (e.code === 'KeyP') togglePower();
     const inst = instrumentForKey(e.code, parts);
     if (inst) useInstrument(inst);
@@ -405,7 +449,7 @@ export const missionScreen: Screen = (game, root) => {
       detail: end.detail,
       secondsLasted: end.seconds,
       earned: tracker?.result() ?? [],
-      relationships: met, // for the debrief and (Phase 5) the engineering notebook
+      relationships: met, // for the debrief and the engineering notebook (added at mission end)
     };
     hud.showEnd(lines, () => game.endMission(result, album, log));
   };
@@ -478,7 +522,6 @@ export const missionScreen: Screen = (game, root) => {
     seismometer = seismic.track;
     stationSetDown = null;
     for (const o of seismic.outcomes) seismometerNotice(o);
-    if (!ended && !state.end) relate(relationshipsOnStep(seismometer, point, tuning.instruments.seismometer));
     if (state.end && !ended) finish(state.end);
 
     // What the rover may do next step.
@@ -499,6 +542,8 @@ export const missionScreen: Screen = (game, root) => {
     }
     blockedByShadow = (throttle > 0 && !allowForward) || (throttle < 0 && !allowReverse);
     const headingIn = (s.speed > 0.2 && !allowForward) || (s.speed < -0.2 && !allowReverse);
+    // The stop at the edge of permanent shadow is the no-lights lesson (once per mission).
+    relate(onShadowStop({ hasLights: setup.hasLights, stopped: blockedByShadow || headingIn }));
     return (limits = { allowForward, allowReverse, speedFactor: Math.max(0.2, 1 - step.slip), hardStop: headingIn });
   };
 
@@ -600,7 +645,7 @@ export const missionScreen: Screen = (game, root) => {
       });
       if (disposed) return started.dispose();
       scene = started;
-      if (tutorial) scene.setPaused(true);
+      if (tutorial || notebook) scene.setPaused(true);
       status.textContent = '';
       const f = masks.info.features;
       zones = buildZones({
@@ -625,6 +670,8 @@ export const missionScreen: Screen = (game, root) => {
       state: () => state,
       instruments: () => ({ log, earthAbove, hydrogen, boulder: currentBoulder(), seismometer }),
       relationships: () => met,
+      notebook: () => ({ open: notebook !== null, unread, atLaunch: notebookAtLaunch }),
+      openNotebook: openNotes,
       sample: () => ({ sample: lastSample, slip: lastSlip, sunlight, blockedByShadow, explored: exploredShare(explored), maxImpact }),
       milestones: () => ({
         earned: tracker?.result() ?? [],
@@ -662,6 +709,7 @@ export const missionScreen: Screen = (game, root) => {
   return () => {
     disposed = true;
     tutorial?.dispose();
+    notebook?.dispose();
     window.removeEventListener('keydown', onKey);
     scene?.dispose();
     if (import.meta.env.DEV) delete (window as unknown as { __mission?: unknown }).__mission;

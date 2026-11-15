@@ -13,6 +13,7 @@ import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
 import { tierWhyText } from './tierText';
 import { openTutorial, type TutorialHandle } from './tutorial';
+import { openNotebook, type NotebookHandle } from './notebook';
 import { tutorialPages } from './tutorialText';
 
 const KMH = 3.6;
@@ -355,7 +356,7 @@ export const designScreen: Screen = (game, root) => {
   // Tutorial: opens by itself on the first visit; the Help button reopens it.
   let tutorial: TutorialHandle | null = null;
   const openHelp = () => {
-    if (tutorial) return;
+    if (tutorial || notebook) return;
     const pages = tutorialPages('design', data, { mission: game.state.mission, instruments: [] });
     tutorial = openTutorial(root, 'design', pages, text.tutorial, () => {
       tutorial = null;
@@ -370,6 +371,18 @@ export const designScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
 
+  // Engineering notebook: what REL has learned in the field, for planning the next rover.
+  let notebook: NotebookHandle | null = null;
+  const notebookButton = el('button', {
+    type: 'button',
+    class: 'help-button',
+    id: 'notebook-open-desk',
+    title: text.notebook.openTitle,
+    onclick: () => {
+      if (!notebook && !tutorial) notebook = openNotebook(root, data, { ids: game.state.notebook, onClose: () => (notebook = null) });
+    },
+  }, text.notebook.open);
+
   const desk = el('section', { class: 'desk' },
     el('header', { class: 'desk-head' },
       el('div', {},
@@ -378,6 +391,7 @@ export const designScreen: Screen = (game, root) => {
       ),
       el('div', { class: 'desk-head-side' },
         help,
+        notebookButton,
         el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
       ),
     ),
@@ -401,5 +415,6 @@ export const designScreen: Screen = (game, root) => {
     preview?.dispose();
     preview = null;
     tutorial?.dispose();
+    notebook?.dispose();
   };
 };

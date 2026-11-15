@@ -1,5 +1,6 @@
 import type { Build, GameData, MissionId, Tuning } from './types';
 import { missionPayout, type MissionResult, type Payout } from './payout';
+import { addToNotebook, metIds } from './relationships';
 
 /** What a restart restores: balance, RP, and records, as they were at the start of the round. */
 export interface CampaignSnapshot {
@@ -16,6 +17,11 @@ export interface CampaignState {
   completed: MissionId[];
   snapshot: CampaignSnapshot | null; // taken at the start of the current round
   lastBuild: Build | null; // convenience: the design screen starts from the last build
+  /**
+   * The engineering notebook: relationship ids discovered, in the order discovered. Not part of the
+   * snapshot, so a restart keeps it: what a failed run taught carries over (game-design.md, section 3).
+   */
+  notebook: string[];
 }
 
 /** Mission order. Mars is not playable yet; it is used only for its minimum budget. */
@@ -34,6 +40,7 @@ export function newCampaign(tuning: Tuning): CampaignState {
     completed: [],
     snapshot: null,
     lastBuild: null,
+    notebook: [],
   };
 }
 
@@ -47,7 +54,7 @@ export function startRound(state: CampaignState): CampaignState {
   return { ...state, snapshot: { balance: state.balance, rp: state.rp, records: [...state.records] } };
 }
 
-/** Restart the round: restore balance, RP, and records from the snapshot. */
+/** Restart the round: restore balance, RP, and records from the snapshot. The notebook is kept. */
 export function restartRound(state: CampaignState): CampaignState {
   if (!state.snapshot) return state;
   const { balance, rp, records } = state.snapshot;
@@ -67,7 +74,7 @@ export interface RoundOutcome {
   failed: boolean;
 }
 
-/** Apply a mission result. The balance carries over even if negative. */
+/** Apply a mission result. The balance carries over even if negative; the relationships met enter the notebook. */
 export function finishMission(state: CampaignState, result: MissionResult, data: GameData): RoundOutcome {
   const payout = missionPayout(result, data.milestones.milestones, data.tuning, state.records);
   const balance = state.balance + payout.money;
@@ -79,6 +86,7 @@ export function finishMission(state: CampaignState, result: MissionResult, data:
     rp: state.rp + payout.rp,
     records: [...state.records, ...payout.newRecords],
     completed: failed ? state.completed : [...state.completed, state.mission],
+    notebook: addToNotebook(state.notebook, metIds(result.relationships ?? [])),
   };
   return { state: newState, payout, failed };
 }

@@ -40,6 +40,20 @@ describe('campaign save', () => {
     expect(() => clearCampaign(throwingStore)).not.toThrow();
   });
 
+  it('keeps the notebook, and loads an older save without one with an empty notebook', () => {
+    const store = memoryStore();
+    const state = { ...startRound(newCampaign(testTuning)), notebook: ['cold-dark', 'xray-cold'] };
+    saveCampaign(state, store);
+    expect(loadCampaign(store)?.notebook).toEqual(['cold-dark', 'xray-cold']);
+    const { notebook: _dropped, ...old } = state;
+    store.setItem('rover-engineer.campaign.v1', JSON.stringify(old));
+    expect(loadCampaign(store)).toEqual({ ...old, notebook: [] });
+    store.setItem('rover-engineer.campaign.v1', JSON.stringify({ ...old, notebook: ['cold-dark', 7, null] }));
+    expect(loadCampaign(store)?.notebook).toEqual(['cold-dark']);
+    store.setItem('rover-engineer.campaign.v1', JSON.stringify({ ...old, notebook: 'cold-dark' }));
+    expect(loadCampaign(store)?.notebook).toEqual([]);
+  });
+
   it('ignores corrupt or foreign data', () => {
     const store = memoryStore();
     store.setItem('rover-engineer.campaign.v1', '{not json');

@@ -296,6 +296,11 @@ export interface TextFile {
     'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
     string
   >;
+  review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'red' | 'hardBlock', string>; // the pre-launch review on the ticket screen
+  notebook: Record<
+    | 'open' | 'openTitle' | 'openMission' | 'unread' | 'heading' | 'count' | 'intro' | 'empty' | 'answers' | 'source' | 'newBadge' | 'close' | 'closeHint',
+    string
+  >; // the engineering notebook
   landing: Record<'heading' | 'briefing', string>;
   mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
   hud: Record<
@@ -394,16 +399,16 @@ export type ReviewColor = 'green' | 'yellow' | 'red';
 
 /** What the player reads when a relationship happens: the mission notice, the debrief's why, the answers. */
 export interface RelationshipLesson {
-  notice: string; // shown in the mission the first time it happens ({distance} etc. filled by the mission screen)
+  notice: string; // shown in the mission the first time it happens (placeholders from FIRED_RELATIONSHIPS, filled by the mission screen)
   debrief: string; // what happened and why, for the debrief and the notebook
   answers: string[]; // at least two ways to solve it
 }
 
 /**
- * One relationship between parts. When it happens is code in rules/relationships.ts, keyed by id;
- * the text and the review color live here. A hard block (`hardBlock`) is never fired in the mission
- * (the mission already stops the rover); the pre-launch review always shows it. An entry with
- * `variants` has one lesson per variant (cold and dark: heater, lights) instead of its own.
+ * One relationship between parts. When it happens, and which builds trigger it, is code in
+ * rules/relationships.ts, keyed by id; the text and the review color live here. A hard block
+ * (`hardBlock`) is red and the pre-launch review always shows it for a build that triggers it, even
+ * before it is discovered. Every relationship the mission fires has a lesson and a real fact.
  */
 export interface Relationship extends Partial<RelationshipLesson> {
   id: string;
@@ -413,9 +418,9 @@ export interface Relationship extends Partial<RelationshipLesson> {
   parts: string[]; // part ids involved (the cause at the desk)
   review: ReviewColor;
   reviewText: string; // the pre-launch review's line (without the color word; the review shows the color)
+  reviewSolved?: string; // the review's line when the build carries the answer (shown green)
   hardBlock?: boolean;
-  variants?: Record<string, RelationshipLesson>;
-  fact?: string; // the real mission behind it (shown with Mission history on)
+  fact?: string; // the real mission behind it (debrief with Mission history on; always in the notebook)
   source?: string;
 }
 

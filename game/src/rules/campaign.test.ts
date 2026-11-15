@@ -74,6 +74,33 @@ describe('campaign', () => {
     expect(second.state.records).toEqual(['touchdown']);
   });
 
+  it('a new campaign starts with an empty notebook', () => {
+    expect(newCampaign(testTuning).notebook).toEqual([]);
+  });
+
+  it('finishing a mission adds the relationships met to the notebook, once each, in the order met', () => {
+    let s = startRound({ ...newCampaign(testTuning), notebook: ['xray-cold'] });
+    s = buyRover(s, build, 545);
+    const out = finishMission(s, {
+      survived: true, secondsLasted: 300, earned: [],
+      relationships: [{ id: 'cold-dark' }, { id: 'xray-cold' }, { id: 'seismometer-quiet' }],
+    }, data);
+    expect(out.state.notebook).toEqual(['xray-cold', 'cold-dark', 'seismometer-quiet']);
+    // A result without relationships leaves the notebook as it was.
+    expect(finishMission(out.state, { survived: true, secondsLasted: 300, earned: [] }, data).state.notebook).toEqual(out.state.notebook);
+  });
+
+  it('a failed round still adds to the notebook, and the restart keeps it (it is not in the snapshot)', () => {
+    let s = startRound(newCampaign(testTuning));
+    expect(s.snapshot).not.toHaveProperty('notebook');
+    s = buyRover(s, build, 700);
+    const out = finishMission(s, { survived: false, cause: 'froze', secondsLasted: 30, earned: [], relationships: [{ id: 'cold-dark' }] }, data);
+    expect(out.failed).toBe(true);
+    const restarted = startRound(restartRound(out.state));
+    expect(restarted.balance).toBe(750);
+    expect(restarted.notebook).toEqual(['cold-dark']);
+  });
+
   it('the snapshot is not changed by later mutations', () => {
     const s = startRound(newCampaign(testTuning));
     s.records.push('x');

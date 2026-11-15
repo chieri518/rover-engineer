@@ -68,6 +68,30 @@
     "sizeOver": "size limit by {n}",
     "and": " and "
   },
+  "review": {
+    "heading": "Pre-launch review",
+    "intro": "Lessons from the engineering notebook that apply to this rover, plus hard blocks. You can launch either way.",
+    "empty": "No lesson in the notebook applies to this rover yet. Lessons are learned on the surface, when parts affect each other in a mission.",
+    "green": "Fine",
+    "yellow": "Risk",
+    "red": "Will not work",
+    "hardBlock": "Always checked"
+  },
+  "notebook": {
+    "open": "Notebook",
+    "openTitle": "Open the engineering notebook",
+    "openMission": "Open the engineering notebook (N). The mission pauses while it is open.",
+    "unread": "new entry",
+    "heading": "Engineering notebook",
+    "count": "{found} of {total} Moon lessons found",
+    "intro": "What REL has learned in the field about how parts affect each other. The notebook is kept across restarts and failed missions.",
+    "empty": "No lessons yet. They are learned on the surface: when parts affect each other in a mission, the lesson is written here.",
+    "answers": "Ways to solve it",
+    "source": "Source: {source}",
+    "newBadge": "New",
+    "close": "Close",
+    "closeHint": "Escape closes the notebook."
+  },
   "landing": {
     "heading": "Landing",
     "briefing": "The lander has touched down on the de Gerlache crater rim. The rover is deploying."
@@ -75,7 +99,7 @@
   "mission": {
     "heading": "Mission",
     "briefing": "Fourteen days of daylight. The Sun stays low and circles the horizon.",
-    "controls": "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
+    "controls": "W A S D or arrow keys to drive. Space to brake. P to power down or power up. N opens the engineering notebook.",
     "boundary": "Leaving the planned operating area",
     "loading": "Loading terrain…"
   },
@@ -146,7 +170,7 @@
     "logReflector": "Laser retroreflector: set down with Earth in view.",
     "logHydrogen": "Neutron spectrometer: highest hydrogen reading {percent}%.",
     "taughtHeading": "What the rover taught us",
-    "taughtNote": "Parts affect each other on the surface. Each lesson below happened on this mission.",
+    "taughtNote": "Parts affect each other on the surface. Each lesson below happened on this mission and is now in the engineering notebook.",
     "taughtAnswers": "Ways to solve it",
     "taughtSource": "Source: {source}"
   },

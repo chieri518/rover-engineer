@@ -56,6 +56,11 @@ export class Hud {
   private readonly power: HTMLButtonElement;
   private readonly warnings = el('ul', { class: 'hud-warnings', 'aria-live': 'polite' });
   private readonly notices = el('div', { class: 'hud-notices', 'aria-live': 'assertive' });
+  // Relationship notices (first-time lessons) have their own slot, apart from the 3-notice limit, and
+  // queue: each stays for its full time, one at a time.
+  private readonly lessons = el('div', { class: 'hud-lessons', 'aria-live': 'assertive' });
+  private readonly lessonQueue: { message: string; tone: 'warn' | 'good' }[] = [];
+  private lessonShowing = false;
   private readonly flare = el('div', { class: 'flare-warning', hidden: true });
   private readonly flareText = el('div', {});
   private readonly flareBar = el('div', { class: 'flare-bar-fill' });
@@ -92,7 +97,7 @@ export class Hud {
         this.power,
         extra,
       ),
-      el('div', { class: 'hud-center' }, this.flare, this.warnings, this.notices, this.hint),
+      el('div', { class: 'hud-center' }, this.flare, this.warnings, this.lessons, this.notices, this.hint),
       this.cards,
       this.flash,
     );
@@ -158,12 +163,33 @@ export class Hud {
     this.warnings.replaceChildren(...lines.map((l) => el('li', {}, l)));
   }
 
-  /** A short notice that fades after a few seconds. */
-  notify(message: string, tone: 'warn' | 'good' = 'warn', long = false): void {
-    const n = el('div', { class: `hud-notice ${tone}${long ? ' long' : ''}` }, message);
+  /** A short notice that fades after a few seconds. At most three show; a fourth pushes out the oldest. */
+  notify(message: string, tone: 'warn' | 'good' = 'warn'): void {
+    const n = el('div', { class: `hud-notice ${tone}` }, message);
     this.notices.append(n);
     while (this.notices.childElementCount > 3) this.notices.firstElementChild?.remove();
-    window.setTimeout(() => n.remove(), (long ? LONG_NOTICE_SECONDS : NOTICE_SECONDS) * 1000);
+    window.setTimeout(() => n.remove(), NOTICE_SECONDS * 1000);
+  }
+
+  /**
+   * A relationship's first-time notice: longer text, in its own slot, never pushed out by other
+   * notices. Lessons that arrive together queue and show one after another, each for its full time.
+   */
+  lesson(message: string, tone: 'warn' | 'good' = 'warn'): void {
+    this.lessonQueue.push({ message, tone });
+    if (!this.lessonShowing) this.nextLesson();
+  }
+
+  private nextLesson(): void {
+    const next = this.lessonQueue.shift();
+    this.lessonShowing = next !== undefined;
+    if (!next) return;
+    const n = el('div', { class: `hud-notice long ${next.tone}`, 'data-lesson': '' }, next.message);
+    this.lessons.replaceChildren(n);
+    window.setTimeout(() => {
+      n.remove();
+      this.nextLesson();
+    }, LONG_NOTICE_SECONDS * 1000);
   }
 
   /** A standing hint (e.g. "Viewpoint: press C"), or null to hide it. */

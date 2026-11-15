@@ -156,6 +156,8 @@ export interface SeismometerStepInput {
  * that finishes setting down in the same step as the quake counts as down in time (as in
  * seismometerRecord, which needs deployedAt.seconds <= quakeAt). A station set down after an
  * earlier quake has missed it. Only the first quake counts: one record per mission.
+ * The track's `points` array is updated in place and shared with the returned track, so keep only the
+ * returned track (the mission screen replaces its track each step).
  */
 export function stepSeismometer(
   tr: SeismometerTrack,
@@ -173,8 +175,12 @@ export function stepSeismometer(
     } else outcomes.push({ kind: 'deployed' });
   }
   if (seismometerRecording(next)) {
+    // Trimmed in place (the points are in time order): no copy of the window every step.
     const from = point.seconds - t.recordWindowSeconds;
-    next.points = [...tr.points.filter((p) => p.seconds >= from), point];
+    let old = 0;
+    while (old < next.points.length && next.points[old]!.seconds < from) old++;
+    if (old > 0) next.points.splice(0, old);
+    next.points.push(point);
   }
   if (input.quake && next.quakeAt === null) {
     next.quakeAt = point.seconds;

@@ -3,7 +3,8 @@
 import { milestoneStages } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
 import type { GameData, HistoryKey, Instrument, TextFile } from '../rules/types';
-import { lessonFor, relationshipEntry, type RelationshipEvent } from '../rules/relationships';
+import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
+import { openNotebook, type NotebookHandle } from './notebook';
 import type { InstrumentLog } from '../rules/instruments';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
@@ -20,6 +21,8 @@ const title: Screen = (game, root) => {
   const cover = el('div', { class: 'title-cover', 'aria-hidden': 'true' });
   let stopCover: (() => void) | null = null;
   let left = false;
+  let notebook: NotebookHandle | null = null;
+  const campaign = game.campaign;
   void import('./titleCover')
     .then(({ mountTitleCover }) => {
       if (!left) stopCover = mountTitleCover(cover, game.data.tuning.rover);
@@ -34,7 +37,14 @@ const title: Screen = (game, root) => {
       el('p', { class: 'title-subtitle' }, t.subtitle),
       el('div', { class: 'actions column' },
         el('button', { class: 'primary', onclick: () => game.newCampaign() }, t.newCampaign),
-        game.campaign && el('button', { onclick: () => game.continueCampaign() }, t.continueCampaign),
+        campaign && el('button', { onclick: () => game.continueCampaign() }, t.continueCampaign),
+        campaign && el('button', {
+          id: 'notebook-open-title',
+          title: game.data.text.notebook.openTitle,
+          onclick: () => {
+            if (!notebook) notebook = openNotebook(root, game.data, { ids: campaign.notebook, onClose: () => (notebook = null) });
+          },
+        }, game.data.text.notebook.open),
         el('button', { onclick: () => game.go('settings') }, game.data.text.settings.open),
         el('button', { id: 'open-credits', onclick: () => game.go('credits') }, game.data.text.credits.open),
       ),
@@ -44,6 +54,7 @@ const title: Screen = (game, root) => {
   return () => {
     left = true;
     stopCover?.();
+    notebook?.dispose();
   };
 };
 
@@ -124,27 +135,19 @@ function instrumentLogLines(log: InstrumentLog | null, text: TextFile): string[]
 
 /**
  * "What the rover taught us": each relationship met this mission, in the order met, with what happened
- * and why, and the ways to solve it; the real mission behind it only with Mission history on. Cold and
- * dark lists each variant met under one heading.
+ * and why, and the ways to solve it; the real mission behind it only with Mission history on
+ * (rules: taughtLessons).
  */
-function taughtItems(met: readonly RelationshipEvent[], data: GameData, history: boolean): HTMLElement[] {
+function taughtItems(met: readonly RelationshipEvent[] | undefined, data: GameData, history: boolean): HTMLElement[] {
   const t = data.text.debrief;
-  const ids = [...new Set(met.map((e) => e.id))];
-  return ids.flatMap((id) => {
-    const entry = relationshipEntry(data.relationships, id);
-    const lessons = met.filter((e) => e.id === id).map((e) => lessonFor(data.relationships, e)).filter((l) => l !== undefined);
-    if (!entry || lessons.length === 0) return [];
-    return [el('li', { 'data-relationship': id },
-      el('strong', {}, entry.name),
-      ...lessons.flatMap((l) => [
-        el('p', {}, l.debrief),
-        el('p', { class: 'sub' }, t.taughtAnswers),
-        el('ul', { class: 'answers' }, ...l.answers.map((a) => el('li', {}, a))),
-      ]),
-      history && entry.fact && el('p', { class: 'sub fact' }, entry.fact),
-      history && entry.source && el('p', { class: 'note' }, fill(t.taughtSource, { source: entry.source })),
-    )];
-  });
+  return taughtLessons(met, data.relationships, history).map((l) => el('li', { 'data-relationship': l.id },
+    el('strong', {}, l.name),
+    el('p', {}, l.debrief),
+    el('p', { class: 'sub' }, t.taughtAnswers),
+    el('ul', { class: 'answers' }, ...l.answers.map((a) => el('li', {}, a))),
+    l.fact && el('p', { class: 'sub fact' }, l.fact),
+    l.source && el('p', { class: 'note' }, fill(t.taughtSource, { source: l.source })),
+  ));
 }
 
 const debrief: Screen = (game, root) => {
@@ -160,7 +163,7 @@ const debrief: Screen = (game, root) => {
   const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
 
   const logLines = instrumentLogLines(game.instrumentLog, text);
-  const taught = taughtItems(result.relationships ?? [], data, history);
+  const taught = taughtItems(result.relationships, data, history);
 
   // Milestones in catalog order; records already held this campaign are listed without a reward.
   const items = data.milestones.milestones.flatMap((m) => {
