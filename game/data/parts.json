@@ -13,11 +13,11 @@
     { "id": "battery-nih2", "slot": "battery", "name": "Nickel-hydrogen battery", "description": "Proven and cheap, but heavy for what it stores.", "cost": 30, "mass": 14, "size": 2, "effects": { "batteryCapacity": 300 } },
     { "id": "battery-li-ion", "slot": "battery", "name": "Lithium-ion battery", "description": "Stores more for less mass.", "cost": 90, "mass": 8, "size": 2, "effects": { "batteryCapacity": 400 } },
 
-    { "id": "lights-halogen", "slot": "lights", "name": "Halogen lamps", "description": "Short range.", "cost": 15, "mass": 4, "size": 1, "effects": { "lightRange": 20 } },
-    { "id": "lights-led", "slot": "lights", "name": "LED floodlights", "description": "Long range and light.", "cost": 45, "mass": 2, "size": 1, "effects": { "lightRange": 45 } },
+    { "id": "lights-none", "slot": "lights", "name": "No lights", "description": "Saves cost, mass, and space. The rover cannot drive into permanent shadow.", "cost": 0, "mass": 0, "size": 0, "effects": {} },
+    { "id": "lights-led", "slot": "lights", "name": "LED floodlights", "description": "Lets the rover see inside shadowed craters.", "cost": 35, "mass": 3, "size": 1, "effects": { "lightRange": 45 } },
 
-    { "id": "heater-electric", "slot": "heater", "name": "Electric heater", "description": "Cheap. Slows freezing a little.", "cost": 20, "mass": 5, "size": 1, "effects": { "heat": 1 } },
-    { "id": "heater-rhu", "slot": "heater", "name": "Radioisotope heater units", "description": "Steady heat from decaying isotopes. Expensive.", "cost": 80, "mass": 3, "size": 1, "effects": { "heat": 2 } },
+    { "id": "heater-none", "slot": "heater", "name": "No heater", "description": "Saves cost, mass, and space. The rover freezes quickly in the cold.", "cost": 0, "mass": 0, "size": 0, "effects": {} },
+    { "id": "heater-rhu", "slot": "heater", "name": "Radioisotope heater units", "description": "Steady heat from decaying isotopes. Slows freezing in the cold.", "cost": 60, "mass": 3, "size": 1, "effects": { "heat": 2 } },
 
     { "id": "instrument-camera", "slot": "instrument", "name": "Science camera", "description": "Photos and imaging science.", "cost": 50, "mass": 3, "size": 1, "effects": { "instrument": "camera" } },
     { "id": "instrument-drill", "slot": "instrument", "name": "Regolith drill", "description": "Samples the soil, and ice where it exists. Heavy and bulky.", "cost": 90, "mass": 12, "size": 5, "effects": { "instrument": "drill" } }

@@ -36,7 +36,7 @@ describe('game data', () => {
   it('a mid build fits the Medium tier and is affordable from the starting budget', () => {
     const mid: Build = {
       chassis: 'chassis-titanium', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
-      lights: 'lights-halogen', heater: 'heater-electric', instrument: 'instrument-camera',
+      lights: 'lights-led', heater: 'heater-rhu', instrument: 'instrument-camera',
     };
     const q = quoteBuild(mid, data, data.tuning.budget.startingBudget);
     expect(q.tier?.id).toBe('medium');
