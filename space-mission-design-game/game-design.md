@@ -2,7 +2,7 @@
 
 The working design for **Rover Engineer**, our entry to the Space Mission Design Game challenge. It is written for our team, not for players.
 
-Last updated November 15, 2026. The official brief is in [challenge brief](challenge-brief.md). The catalog of rover components, instruments, and how they constrain each other is in [rover engineering design](rover-engineering-design.md). Background research is in [landscape research](research/landscape-precedents-and-judging.md), [mission-engineering/](research/mission-engineering/README.md), and [rover-engineering/](research/rover-engineering/README.md).
+Last updated November 15, 2026 (all six phases of the payload bay and relationships plan built). The official brief is in [challenge brief](challenge-brief.md). The catalog of rover components, instruments, and how they constrain each other is in [rover engineering design](rover-engineering-design.md). Background research is in [landscape research](research/landscape-precedents-and-judging.md), [mission-engineering/](research/mission-engineering/README.md), and [rover-engineering/](research/rover-engineering/README.md).
 
 **How to read this doc.** Everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). All open items are collected in [Open questions](#2-open-questions).
 
@@ -38,7 +38,7 @@ The design screen is a **constraint puzzle**. On the Moon it is simply mass vers
 | Ways to die | Out of energy, damage, freezing, getting stuck |
 | Currencies | Research points (RP) unlock parts. Money buys them. |
 | Rewards | Milestones in four categories: capability, scientific, records, pretty pictures |
-| Rover | Seven part slots, each configurable, limited by budget. Moon trade-off: mass versus cost. |
+| Rover | Six part slots and a payload bay for instruments, each configurable, limited by budget. Moon trade-off: mass versus cost. |
 | Launch | REL buys the rover a launch ticket. Heavier or bigger rovers need a pricier tier. |
 | Map | Fixed per destination. The Moon map is real NASA terrain at the de Gerlache crater rim near the south pole, about 8 km × 8 km plus distant terrain, bigger than one mission can cover. |
 | Events | Specific to each world. Moon: solar flares and moonquakes. |
@@ -58,7 +58,7 @@ The design screen is a **constraint puzzle**. On the Moon it is simply mass vers
 
 - **1a Sun window:** start azimuth 75° and subsolar latitude −1.54°, both real geometry. This keeps the route and rim viewpoints lit until about 220 to 250 s and removes the Sun passing behind Earth. The rover starts facing azimuth 0° (toward Earth and the dark crater route), where 99% of the ground ahead is lit at the start. See [Sun and shadows](#sun-and-shadows).
 - **1b Water ice reach:** the smaller drill (size 3, 8 kg, cost 90) stays. The ice is one optional way to pass the Moon, never required; see [Balance: several ways to pass](#balance-several-ways-to-pass).
-- **1c Clue for finding the ice:** the hydrogen signal stays (`milestones.hydrogenSignal`). *Superseded later on November 15 (not built yet):* with the payload bay, the hydrogen clue moves from the drill to a new neutron spectrometer's live meter, and the drill gives no reading; see [rover engineering design](rover-engineering-design.md#7-the-moon-payload).
+- **1c Clue for finding the ice:** the hydrogen signal stays (`milestones.hydrogenSignal`). *Superseded later on November 15 (built in Phase 3):* with the payload bay, the hydrogen clue moves from the drill to a new neutron spectrometer's live meter, and the drill gives no reading; see [rover engineering design](rover-engineering-design.md#7-the-moon-payload).
 
 ### Later: Mars and Titan
 
@@ -276,7 +276,7 @@ The browser runs found one model error, now fixed: the boulder-field crossing po
 
 ### Moon parts
 
-Six slots with two options each, plus the payload bay. For lights and heater, one option is **None**: skipping them saves cost, mass, and size (maybe a cheaper ticket) but closes off the dark crater. All Moon parts are available from the start, so budget, mass, and size are the only limits. Locked parts first appear on Mars, greyed out with "needs X RP".
+The Moon parts table: six slots with two options each, plus the payload bay with six instrument options (built, Phases 1 to 3). The slots are listed in the table below; the instruments, with their costs, masses and sizes, are in the second table. For lights and heater, one option is **None**: skipping them saves cost, mass, and size (maybe a cheaper ticket) but closes off the dark crater. All Moon parts are available from the start, so budget, mass, and size are the only limits. Locked parts first appear on Mars, greyed out with "needs X RP".
 
 **Empty start** *(decided November 15)*. In a new campaign the design screen starts with all slots and the payload bay empty, so there is no default build to copy. The rover can go to the launch ticket only once every slot has a part and the bay is confirmed; "No lights", "No heater" and "No instruments" count as choices. While slots are empty, the specification sheet shows the totals of the parts chosen so far, a dash for driving numbers that need a missing part, and a warning listing the empty slots. A restart keeps the last design, so the player can adjust it.
 
@@ -290,16 +290,28 @@ Six slots with two options each, plus the payload bay. For lights and heater, on
 | Heater | None, or radioisotope heater units. Slows freezing in the cold. |
 | Payload bay | Any mix of the instruments, one of each, or none. Decides which milestones the rover can complete. The chassis sets the bay's mounting points (steel 3, titanium 2), one per instrument. **Built (Phases 1 to 3):** the bay, instrument operating costs, and the six Moon instruments (science camera, regolith drill, neutron spectrometer, X-ray spectrometer, seismometer station, laser retroreflector); see [rover engineering design](rover-engineering-design.md#7-the-moon-payload). The new four earn no milestones yet. |
 
-**Payload bay on the desk** *(decided during implementation, Phase 1)*:
+**Moon instrument options** *(built, Phases 1 to 3)*. The bay takes any mix of these, one of each, up to the chassis's mounting points. Numbers are in `game/data/parts.json`; mission behavior is described below.
+
+| Instrument | Verb | Cost / mass / size | Energy |
+| --- | --- | --- | --- |
+| Science camera | Look | 50 / 3 kg / 1 | None |
+| Regolith drill | Dig | 90 / 8 kg / 3 | 10 per sample |
+| Neutron spectrometer | Sense while driving | 80 / 4 kg / 2 | 0.1 per second while on |
+| X-ray spectrometer | Touch | 60 / 2 kg / 1 | 3 per reading |
+| Seismometer station | Deploy and leave | 70 / 4 kg / 2 | None |
+| Laser retroreflector | Deploy and leave | 30 / 3 kg / 1 | None |
+
+**Payload bay on the desk** *(decided during implementation, Phase 1; built)*:
 
 - The bay's order is the order the player added the instruments; each card shows its mission key ("Key 1"), and the mission uses the same order for keys 1 to 3 and the HUD buttons.
+- **Instrument controls (built, Phase 1):** number keys 1 to 3 in bay order and one HUD button per instrument are the only way to use an instrument. The old fixed keys C (camera) and F (drill) are gone, so every instrument works the same way.
 - A full bay disables the cards not yet in it. Before a chassis is chosen, the bay takes as many instruments as the roomiest chassis.
 - Choosing a chassis with fewer mounting points drops the instruments added last, with a notice under the bay saying which.
 - "No instruments" confirms an empty bay. Taking the last instrument out also leaves a confirmed empty bay *(changed in Phase 2, lead decision)*: the player has touched the bay, so that is a choice. An unconfirmed bay means only that the bay was never touched.
 - A save from before the payload bay keeps its instrument: it becomes the bay's only instrument.
 - A saved design keeps only the parts the catalog still has *(Phase 2)*: a slot whose part was renamed or removed is empty again, and unknown or repeated instruments leave the bay. If that empties a bay that held instruments, the bay is unconfirmed, so the player chooses again.
 
-**Instrument operating costs** *(decided during implementation, Phase 2)*. Each instrument part can have an energy per use, a standby energy, and a time the rover holds still (`energyPerUse`, `standbyEnergy`, `useSeconds` in `parts.json`; rules in `rules/mission.ts`):
+**Instrument operating costs** *(decided during implementation, Phase 2; built)*. Each instrument part can have an energy per use, a standby energy, and a time the rover holds still (`energyPerUse`, `standbyEnergy`, `useSeconds` in `parts.json`; rules in `rules/mission.ts`):
 
 - The drill uses 10 energy per sample and holds the rover still for 3 s; the camera uses no energy and is instant. The neutron spectrometer draws 0.1 energy/s while on; the X-ray spectrometer uses 3 energy and 4 s per reading; the two stations take 3 s to set down and no energy.
 - The energy per use is taken when the use starts. A use is refused, with a notice, if it would empty the battery, so an instrument never ends the mission by itself.
@@ -311,7 +323,7 @@ Six slots with two options each, plus the payload bay. For lights and heater, on
 - Each instrument's mode follows from its part: a standby draw makes a switch, `deploy` makes a station, anything else is a use. A switch cannot also have a use cost, a hold time, or deploy (data validation).
 - The desk shows each instrument's costs on its card, and the specification sheet has an "Instrument energy" line for the bay under the range estimate.
 
-**The four new Moon instruments** *(decided during implementation, Phase 3)*. Rules in `game/src/rules/instruments.ts` and `rules/mission.ts`; numbers in `tuning.json` → `instruments` and in `parts.json`. None earns money or RP yet; the debrief's **Instrument log** lists what they recorded (highest hydrogen reading, rock types read, the moonquake record and its quality, reflector placed).
+**The four new Moon instruments** *(decided during implementation, Phase 3; built)*. Rules in `game/src/rules/instruments.ts` and `rules/mission.ts`; numbers in `tuning.json` → `instruments` and in `parts.json`. None earns money or RP yet; the debrief's **Instrument log** lists what they recorded (highest hydrogen reading, rock types read, the moonquake record and its quality, reflector placed).
 
 - **Keys and buttons stay in bay order.** A deployed station keeps its key and its button, which reads "Deployed" and is disabled; pressing its key says it is already on the ground.
 - **Neutron spectrometer** (switch, 0.1 energy/s). While it is on and the rover is powered up, a Hydrogen meter (0 to 100%) shows under the cold meter; it is hidden and draws nothing while powered down, and stays on through a power-down. The reading:
@@ -338,7 +350,7 @@ Six slots with two options each, plus the payload bay. For lights and heater, on
 
 **Relationships between parts** *(decided November 15; the Moon set built in Phase 4; the notebook and the review built in Phase 5)*. Parts affect each other and the mission beyond mass and cost: some need another part, work only in certain conditions, interfere with each other, or wear out. Players discover these in the mission, which explains each one as it happens; an engineering notebook collects them across the campaign, and a pre-launch review at the desk flags the ones already discovered. Design and the per-world lists are in [rover engineering design](rover-engineering-design.md#10-relationships-and-consequences).
 
-**Relationships in the mission** *(decided during implementation, Phase 4)*. Text and review colors are in `game/data/relationships.json`; when each one happens is code in `game/src/rules/relationships.ts`, keyed by id.
+**Relationships in the mission** *(decided during implementation, Phase 4; built)*. Text and review colors are in `game/data/relationships.json`; when each one happens is code in `game/src/rules/relationships.ts`, keyed by id.
 
 | Relationship | Happens when | Notes |
 | --- | --- | --- |
@@ -354,7 +366,7 @@ Six slots with two options each, plus the payload bay. For lights and heater, on
 - **Real basis used:** VIPER's neutron spectrometer (the drill step of VIPER's plan is not claimed); Chandrayaan-3's ILSA recording its own rover (ISRO); LRO Diviner's shadow temperatures for cold and dark; VIPER as NASA's first rover with headlights, built to explore dark craters (NASA Science VIPER page, checked in Phase 5) for no lights; Curiosity's APXS cooler (without "in daytime", which was not confirmed).
 - **The Diviner fact** *(Phase 5 fact check)*: "as cold as -414 °F (about -248 °C, or 25 K)", from NASA SVS 11230, which gives the Fahrenheit figure; the Celsius and kelvin values are conversions. Paige et al. (2010) is no longer cited for it: its abstract does not give 25 K (it gives about 38 K at the LCROSS site). The "Into the dark" milestone fact uses the same wording and source.
 
-**Engineering notebook and pre-launch review** *(decided during implementation, Phase 5)*. Rules in `game/src/rules/relationships.ts` and `rules/campaign.ts`; text in `text.json` → `notebook` and `review`.
+**Engineering notebook and pre-launch review** *(decided during implementation, Phase 5; built)*. Rules in `game/src/rules/relationships.ts` and `rules/campaign.ts`; text in `text.json` → `notebook` and `review`.
 
 - **The notebook** is the campaign's list of relationship ids discovered, in the order discovered (`CampaignState.notebook`). A mission's relationships enter it when the mission ends, failed or not; a restart keeps it (it is not in the restart snapshot); a new campaign starts it empty. A save from before the notebook loads with an empty one.
 - **Opening it:** a "Notebook" button on the title screen (only when a campaign exists), on the desk next to Help, and on the mission HUD next to Help. In the mission the **N** key opens and closes it too, and Escape closes it. It is an overlay that pauses the mission, as the drive tutorial does.

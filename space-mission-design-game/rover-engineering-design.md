@@ -106,7 +106,7 @@ Instrument ──► mass ──► ticket tier, speed, energy per meter, sinkag
 | Desk display | The bay shows its mounting points as empty sockets. Instruments are cards with cost, mass, size, energy use, and the verb ("Sense while driving", "Touch a rock"). The spec sheet adds the instrument energy use to the range estimate. |
 | Build preview | Each instrument has its own place on the 3D rover (camera on a short post, drill at the front, spectrometer on a small arm under the body, stations on the deck until deployed). |
 | Empty start | The bay starts empty, like the other slots; it counts as chosen once the player has confirmed it (even with no instruments). |
-| Mission controls | Each fitted instrument gets a number key (1, 2, 3) and a HUD button, replacing today's fixed C and F keys. |
+| Mission controls | Each fitted instrument gets a number key (1, 2, 3) and a HUD button, replacing the old fixed C and F keys (built in Phase 1). |
 
 **Why the chassis sets the points.** It gives the two chassis a second difference beyond cost and mass, and it is how real rovers work: the frame and deck decide where instruments can mount. Real examples range from Pragyan (26 kg, two instruments: APXS and LIBS, [ISRO](https://www.isro.gov.in/Chandrayaan3_Details.html)) to Perseverance (seven instruments, 59 kg of payload, [02](research/rover-engineering/02-rover-subsystems.md#instrument-reference-values)).
 

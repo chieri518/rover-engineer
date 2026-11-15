@@ -4,6 +4,8 @@ How we build the rover engineering changes decided on November 15, 2026: the pay
 
 Written November 15, 2026, against branch `v1-moon` (commit `e7f3bcb`). The structure and rules of [the first-version plan](implementation-plan.md) still apply: game numbers in `game/data/*.json`, pure rules in `game/src/rules/` with unit tests, `npm test` and `npm run build` passing before each commit.
 
+**Status (November 15, 2026): all six phases are built.** Phase 1: `c214160`, `cc00194` (design notes `4e42811`). Phase 2: `f6b6a15` (design notes `72d53d7`). Phase 3: `3bcfa66` (design notes `6c1a8e5`). Phase 4: `06f6f56` (design notes `8bc88fd`). Phase 5: `9c1a32f` (design notes `43ea19b`). Phase 6: see the end of its section. Playtest list: [rover-engineering-playtest-checklist.md](rover-engineering-playtest-checklist.md).
+
 Quick navigation: [Scope](#scope) · [Data changes](#data-changes) · [Phases](#phases) · [File map](#file-map) · [Tests](#tests) · [Risks](#risks) · [Decisions](#decisions)
 
 ## Scope
@@ -99,7 +101,7 @@ New keys for the bay, the four instruments (controls, readouts, refusals), the n
 
 Each phase ends with tests and the build passing, a browser check, and a commit. Mechanics settled during a phase go back into game-design.md as "decided during implementation", as in the first version.
 
-### Phase 1: Payload bay with today's instruments
+### Phase 1: Payload bay with today's instruments *(built)*
 
 - Types and data: `BusSlot`, the new `Build` shape, `mountingPoints` on both chassis.
 - Rules (`rules/rover.ts`, new `rules/payload.ts`):
@@ -115,7 +117,7 @@ Each phase ends with tests and the build passing, a browser check, and a commit.
 
 **Done when:** a steel rover can carry the camera and the drill together, take a photo and a sample in the same mission, and both milestones credit; a titanium rover refuses a third instrument.
 
-### Phase 2: Instrument operating costs
+### Phase 2: Instrument operating costs *(built)*
 
 - `rules/mission.ts`:
   - `MissionState` gains `standbyOn: Instrument[]` and the energy step subtracts each switched-on instrument's `standbyEnergy` per second (not while powered down).
@@ -125,7 +127,7 @@ Each phase ends with tests and the build passing, a browser check, and a commit.
 
 **Done when:** a drill sample visibly costs energy, the hold time comes from `parts.json`, and the rules tests cover standby, per-use cost, and refusing a use on too little energy.
 
-### Phase 3: The four new Moon instruments
+### Phase 3: The four new Moon instruments *(built)*
 
 All behavior is pure rules in a new `rules/instruments.ts`; the mission screen only measures and draws.
 
@@ -143,7 +145,7 @@ All behavior is pure rules in a new `rules/instruments.ts`; the mission screen o
 
 **Done when:** each new instrument works in the browser on a rover that carries it, refuses clearly when it cannot be used, and its rules have unit tests; the drill alone gives no hydrogen reading.
 
-### Phase 4: Relationships in the mission and the debrief
+### Phase 4: Relationships in the mission and the debrief *(built)*
 
 - `rules/relationships.ts`: for each Moon relationship, a pure check that turns what happened this step into a `RelationshipEvent { id }`:
 
@@ -159,7 +161,7 @@ All behavior is pure rules in a new `rules/instruments.ts`; the mission screen o
 
 **Done when:** each of the four relationships can be triggered on purpose in the browser, shows its notice once, and appears in the debrief; each check has unit tests.
 
-### Phase 5: Engineering notebook and pre-launch review
+### Phase 5: Engineering notebook and pre-launch review *(built)*
 
 - Campaign rules (`rules/campaign.ts`): `finishMission` adds the mission's relationship ids to `notebook` (the mission screen shows them in its overlay before that); `restartRound` keeps it; tests cover both.
 - Notebook screen: a list of discovered relationships (cause, what happened, answers, real story), opened from the desk, the title screen, and during the mission. Undiscovered entries show as a count only ("3 of 4 Moon lessons found"), with no names.
@@ -170,12 +172,14 @@ All behavior is pure rules in a new `rules/instruments.ts`; the mission screen o
 
 **Built (November 15).** Lead decisions taken with it: the cold-and-dark lights variant removed (unreachable), no lights discovered at the shadow edge as a lesson of its own, the seismometer lesson fired by a noisy record, the neutron lesson not fired by a lucky ice find, relationship notices in their own HUD slot, a build check per relationship for the review (`BUILD_PREDICATES`), and N as the notebook key. Details in game-design.md, section 7.
 
-### Phase 6: Text, tutorial, and playtest
+### Phase 6: Text, tutorial, and playtest *(built)*
 
 - Tutorial pages for the bay (design) and for number-key instrument use (drive); per-instrument lines replace the camera and drill lines.
 - Credits: sources for the new instruments' facts and the relationships.
 - Playtest checklist: an empty bay, a full steel bay, a titanium bay, each new instrument, each relationship, a restart with the notebook kept, an old save without a notebook.
 - Update game-design.md: the Moon parts table, the instrument controls, and the removal of the drill's hydrogen clue, each marked built.
+
+**Built (November 15).** Design tutorial: a payload bay page (mounting points, "No instruments", instrument energy, bay order) and a pre-launch review paragraph on the ticket page. Drive tutorial: one line per instrument (all six) and a notebook paragraph; neither names a lesson. Credits: an "Engineering lessons" section with the relationship sources, without lesson names and without repeating a source already under the instrument facts. Game design: the six-instrument table, built marks, and the leftover "seven slots" line. The playtest checklist is a separate document.
 
 ## File map
 
