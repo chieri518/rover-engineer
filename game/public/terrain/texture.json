@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "generated": "2026-11-15",
+  "generator": "game/tools/build_texture.py",
+  "playArea": {
+    "file": "albedo.jpg",
+    "encoding": "8-bit grayscale JPEG, sRGB-encoded linear albedo",
+    "size_px": [
+      1601,
+      1601
+    ],
+    "pixel_m": 5,
+    "grid": "Same grid as heightmap.png: pixel (col, row) is centered on heightmap vertex (col, row), i.e. x = (col - 800) * 5, z = (row - 800) * 5. Row 0 = -z (grid north), column 0 = -x. The image covers x, z in [-4002.5, 4002.5] m.",
+    "uv": "u = (x + 4002.5) / 8005, v_down = (z + 4002.5) / 8005 (v_down = 0 at the top row). With the default three.js PlaneGeometry spanning -4000..4000 the error is at most half a texel (2.5 m).",
+    "values": "linear_albedo = srgb_to_linear(value / 255). Mean of real pixels and of filled pixels = 0.22 (value 129). Load as a color map with colorSpace = SRGBColorSpace; to use it as a multiplier on another base color, divide the decoded linear value by 0.22.",
+    "filled": "20.0% of pixels (permanent and cast shadows, no data, grazing light) carry texture copied from nearby lit ground (mean = neutral), feathered over ~2 pixels.",
+    "bytes": 736492
+  },
+  "source": {
+    "dataset": "LROC NAC de Gerlache Rim low-Sun controlled mosaic, combined mosaic #1, 5 m/px version (NAC_ROI_DEGERRIMLO1_P885S2933_5M); 144 NAC images from 2009-2013, 3 Sun-azimuth bins",
+    "url": "https://pds.lroc.im-ldi.com/data/LRO-L-LROC-5-RDR-V1.0/LROLRC_2001/DATA/BDR/NAC_ROI/DEGERRIMLO1/NAC_ROI_DEGERRIMLO1_P885S2933_5M.IMG",
+    "page": "https://data.lroc.im-ldi.com/lroc/view_rdr/NAC_ROI_DEGERRIMLO1",
+    "citation": "Henriksen, M.R., Burnette, S.R., Brown, H.M., Wagner, R.V., Robinson, M.S., Collins, W.M., Grieser, S.A., Boyd, A.K. (2023), Optimized Illuminated Terrain Coverage of the Candidate Artemis III Landing Sites with LROC NAC Controlled Mosaics, European Lunar Symposium, pp. 134-135",
+    "positionalAccuracy_m": "5 to 20 (product README)",
+    "credit": "NASA/GSFC/Arizona State University",
+    "license": "PDS archive product, public domain (credit NASA/GSFC/Arizona State University)",
+    "shadingDem": "LOLA Site11 5 m DEM (Barker et al. 2021), same grid as heightmap.png"
+  },
+  "alignment": {
+    "bestShift_px": {
+      "rows": 0,
+      "cols": -1
+    },
+    "corrAtBest": 0.8229,
+    "corrUnshifted": 0.8214
+  },
+  "processing": [
+    "Cropped on the native 5 m grid (it is pixel-aligned with Site11 / heightmap.png; no resampling).",
+    "Alignment check: correlation of the image with the DEM shading model, shifting the DEM by up to 3 pixels; see 'alignment'. A best shift of 0 or 1 pixel (5 m) means the texture lines up with heightmap.png within the source's stated 5-20 m accuracy; no shift is applied.",
+    "Fill: shadows (darker than 25% of the 300 m local mean), no data and pixels where the model predicts under 15% of flat-ground light, dilated by two pixels, are filled by copying real texture from lit ground 185 m to 1.7 km away (fixed offsets, nearest first), so holes are not flat; their mean is still neutral.",
+    "Shading removal: local Lambert fit I ~ g * (n . s) with n from the DEM, solved per pixel by Gaussian-weighted least squares (sigma 150 m), because the mosaic mixes images with three Sun azimuths. Fitted Sun azimuth (from grid north toward +X) p10/p50/p90 = [31.0, 204.0, 222.0] deg; apparent elevation p10/p50/p90 = [6.9, 13.3, 22.8] deg (the images list incidence 86-91 deg, i.e. the Sun -1..4 deg above the mean surface; the fit is only a local shading model, and the 5 m DEM is smoother than the real surface).",
+    "Albedo = image / fitted shading, clipped to 0.25..3.0, i.e. albedo relative to the ~150 m neighbourhood."
+  ],
+  "limits": [
+    "Large-scale (> ~300 m) brightness differences are removed on purpose: in this mosaic they are mostly exposure and Sun-angle differences between images, not albedo.",
+    "Craters and boulders smaller than the DEM resolves (< ~20 m) keep their baked bright/dark crescents from the original Sun direction.",
+    "Shadowed areas (permanent shadows and shadows at imaging time) carry no image data; their texture is copied from nearby lit ground, so it is plausible but not real. ShadowCam mosaics could fill them in a later pass.",
+    "No color: the NAC is a single broadband (panchromatic) channel."
+  ]
+}
