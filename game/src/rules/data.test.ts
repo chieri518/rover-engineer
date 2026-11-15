@@ -4,20 +4,14 @@ import { loadGameData } from '../gameData';
 import { quoteBuild } from './quote';
 import { cheapestBuild } from './rover';
 import { meetsRequirements, selectedParts } from './rover';
-import type { Build, GameData, Slot } from './types';
+import type { Build, GameData } from './types';
 import terrain from '../../public/terrain/terrain.json';
 import { missionSetup, startMission, stepMission, type MissionState } from './mission';
+import { allBuilds as everyBuild, dominatedPairs, evaluateBuild, simulate } from './balance';
 
 const data: GameData = loadGameData();
-
-function allBuilds(): Build[] {
-  let builds: Partial<Build>[] = [{}];
-  for (const slot of data.parts.slots) {
-    const options = data.parts.parts.filter((p) => p.slot === slot);
-    builds = builds.flatMap((b) => options.map((o) => ({ ...b, [slot as Slot]: o.id })));
-  }
-  return builds as Build[];
-}
+const allBuilds = () => everyBuild(data);
+const craterM = terrain.features.shadowedCrater.entryPoint.driveDistanceFromLanding_m;
 
 describe('game data', () => {
   it('passes validation', () => {
@@ -70,13 +64,38 @@ describe('game data', () => {
     expect(quoteBuild(cheapestBuild(data.parts), data, data.tuning.budget.startingBudget).canLaunch).toBe(true);
   });
 
-  it('the default build fits the Medium ticket, is affordable and not overloaded', () => {
+  it('the default build fits exactly the Medium ticket, is affordable and not overloaded', () => {
     const q = quoteBuild(data.parts.defaultBuild, data, data.tuning.budget.startingBudget);
-    const medium = data.tiers.tiers.findIndex((t) => t.id === 'medium');
-    expect(q.tier).not.toBeNull();
-    expect(data.tiers.tiers.indexOf(q.tier!)).toBeLessThanOrEqual(medium);
+    expect(q.tier?.id).toBe('medium');
     expect(q.canAfford).toBe(true);
     expect(q.overloaded).toBe(false);
+  });
+
+  it('cheap parts are heavy, light parts are expensive: in every slot with two real parts, the cheaper one is heavier', () => {
+    for (const slot of ['chassis', 'wheels', 'power', 'battery'] as const) {
+      const [a, b] = data.parts.parts.filter((p) => p.slot === slot).sort((x, y) => x.cost - y.cost);
+      expect(a!.cost, slot).toBeLessThan(b!.cost);
+      expect(a!.mass, slot).toBeGreaterThan(b!.mass);
+    }
+  });
+
+  it('no build dominates another: a better build always costs more (ticket included)', () => {
+    const pairs = dominatedPairs(allBuilds().map((b) => evaluateBuild(b, data)));
+    expect(pairs.map(([a, b]) => `${a.label} (${a.total}) beats ${b.label} (${b.total})`)).toEqual([]);
+  });
+
+  it('tier jumps matter: several sensible builds sit just over a tier limit', () => {
+    // Launchable, affordable, not overloaded, and within 3 kg or 1 size unit of the tier below.
+    const tiers = data.tiers.tiers;
+    const near = allBuilds()
+      .map((b) => evaluateBuild(b, data))
+      .filter((e) => {
+        const i = tiers.findIndex((t) => t.name === e.tier);
+        if (i < 1 || e.total > data.tuning.budget.startingBudget || e.overloadKg > 0) return false;
+        const below = tiers[i - 1]!;
+        return e.mass - below.massLimit <= 3 && e.size - below.sizeLimit <= 1;
+      });
+    expect(near.length).toBeGreaterThanOrEqual(5);
   });
 
   it('death penalties are ordered energy < stuck < froze < destroyed', () => {
@@ -87,7 +106,6 @@ describe('game data', () => {
   });
 
   it('speed: a light build can just reach the dark crater in one mission, a heavy build cannot', () => {
-    const craterM = terrain.features.shadowedCrater.entryPoint.driveDistanceFromLanding_m;
     const seconds = data.tuning.mission.lengthSeconds;
     const dark = data.milestones.milestones.find((m) => m.id === 'into-the-dark')!;
     const quotes = allBuilds().map((b) => ({ b, q: quoteBuild(b, data, data.tuning.budget.startingBudget) }));
@@ -121,13 +139,43 @@ describe('game data', () => {
     return s;
   }
 
-  it('energy: the default build driving nonstop in half sunlight finishes with charge left, in shadow it runs out', () => {
-    const half = nonstop(data.parts.defaultBuild, 0.5);
-    expect(half.end?.survived).toBe(true);
-    expect(half.energy).toBeGreaterThan(0.1 * quoteBuild(data.parts.defaultBuild, data, 0).drive.batteryCapacity);
-    const dark = nonstop(data.parts.defaultBuild, 0);
+  it('energy: driving nonstop in full sun slowly drains the default build; a solar mast about breaks even', () => {
+    const d = data.parts.defaultBuild;
+    const capacity = quoteBuild(d, data, 0).drive.batteryCapacity;
+    const sun = nonstop(d, 1);
+    expect(sun.end?.survived).toBe(true);
+    expect(sun.energy).toBeGreaterThan(0.05 * capacity);
+    expect(sun.energy).toBeLessThan(0.5 * capacity);
+    const mast = evaluateBuild({ ...d, power: 'power-solar-mast' }, data);
+    expect(Math.abs(mast.income - mast.driveDrain)).toBeLessThan(0.3);
+  });
+
+  it('energy: careless play runs out, careful play survives (default build, half sunlight)', () => {
+    const d = data.parts.defaultBuild;
+    const careless = simulate(d, data, { sunlight: 0.5, driveShare: 1 });
+    expect(careless.end.cause).toBe('energy');
+    expect(careless.end.seconds).toBeGreaterThan(200);
+    const careful = simulate(d, data, { sunlight: 0.5, driveShare: 0.7 });
+    expect(careful.end.survived).toBe(true);
+    const dark = nonstop(d, 0);
     expect(dark.end?.cause).toBe('energy');
-    expect(dark.end!.seconds).toBeGreaterThan(200);
+    expect(dark.end!.seconds).toBeLessThan(200);
+  });
+
+  it('energy: the dark crater dash needs a big battery or a solar mast', () => {
+    // Fast crater-equipped builds (entry before ~265 s): drive there in mostly sun, then into the shadow.
+    const dark = data.milestones.milestones.find((m) => m.id === 'into-the-dark')!;
+    const fast = allBuilds()
+      .filter((b) => meetsRequirements(selectedParts(b, data.parts), dark))
+      .map((b) => evaluateBuild(b, data))
+      .filter((e) => e.tier !== null && craterM / e.topSpeed < 265);
+    const dash = (b: Build) => simulate(b, data, { sunlight: (m) => (m < craterM ? 0.8 : 0), driveShare: 1 });
+    const plain = fast.filter((e) => e.build.battery === 'battery-li-ion' && e.build.power === 'power-fixed-panel');
+    const invested = fast.filter((e) => e.build.battery === 'battery-nih2' || e.build.power === 'power-solar-mast');
+    expect(plain.length).toBeGreaterThan(0);
+    expect(invested.length).toBeGreaterThan(0);
+    for (const e of plain) expect(dash(e.build).end.cause).toBe('energy');
+    for (const e of invested) expect(dash(e.build).end.survived).toBe(true);
   });
 
   it('energy: climbing all mission long in little sunlight drains the cheapest build', () => {

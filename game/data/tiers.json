@@ -1,7 +1,7 @@
 {
   "tiers": [
-    { "id": "small", "name": "Small", "massLimit": 60, "sizeLimit": 20, "price": 80 },
-    { "id": "medium", "name": "Medium", "massLimit": 75, "sizeLimit": 23, "price": 160 },
-    { "id": "large", "name": "Large", "massLimit": 95, "sizeLimit": 24, "price": 300 }
+    { "id": "small", "name": "Small", "massLimit": 60, "sizeLimit": 20, "price": 60 },
+    { "id": "medium", "name": "Medium", "massLimit": 75, "sizeLimit": 23, "price": 120 },
+    { "id": "large", "name": "Large", "massLimit": 90, "sizeLimit": 26, "price": 200 }
   ]
 }
