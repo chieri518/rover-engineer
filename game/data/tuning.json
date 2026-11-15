@@ -8,11 +8,11 @@
     "startingBudget": 750,
     "minimumBudget": {
       "moon": 520,
-      "mars": 300
+      "mars": 830
     }
   },
   "payout": {
-    "survivalPayout": 250,
+    "survivalPayout": 100,
     "deathPenalty": {
       "energy": 100,
       "stuck": 200,
@@ -137,6 +137,7 @@
     "albumMax": 12,
     "photoFrameMargin": 0.85,
     "sampleMinDistanceM": 200,
+    "sampleSpacingM": 200,
     "earthPhotoMinLit": 0.25,
     "earthPhotoMinDistanceM": 300,
     "hydrogenSignal": true,

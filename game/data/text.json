@@ -172,6 +172,7 @@
     "drilling": "Drilling. The rover holds still.",
     "drillMoving": "Stop the rover before drilling.",
     "drillDone": "Regolith sample collected.",
+    "drillSameSite": "Sample collected at an earlier sample site. A new site must be at least {distance} m from the others.",
     "drillIce": "Sample collected. The regolith contains water ice.",
     "drillNoIce": "Sample collected. No water ice detected at this site.",
     "drillNearLander": "Sample not counted: the ground within {distance} m of the lander was disturbed by its engine plume. Drill farther away.",
@@ -269,7 +270,7 @@
         "title": "Instrument and map",
         "instrument": {
           "camera": "Camera: C takes a photograph. Photographs count toward milestones at viewpoints, or with Earth above the horizon in view at least {earthMinDistance} m from the lander.",
-          "drill": "Drill: stop the rover, then press F to drill a regolith sample."
+          "drill": "Drill: stop the rover, then press F to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
         },
         "body": [
           "The map shows the lander, viewpoints, craters, permanent shadow and the area explored so far."

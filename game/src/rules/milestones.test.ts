@@ -122,12 +122,19 @@ describe('milestone triggers', () => {
     expect(ids(tr.drill(at(L.x, L.z)))).toEqual([]); // no free sample at the lander
     expect(ids(tr.drill(at(L.x + min - 5, L.z)))).toEqual([]);
     expect(ids(tr.drill(at(L.x + min + 5, L.z)))).toEqual(['regolith-sample']);
+    // Regolith samples are staged by site: a new site must be sampleSpacingM from earlier ones.
+    const spacing = data.tuning.milestones.sampleSpacingM;
+    expect(tr.sampleTooClose(at(L.x + min + 5 + spacing - 1, L.z))).toBe(true);
+    expect(tr.drill(at(L.x + min + 5 + spacing - 1, L.z)).reached).toEqual([]);
+    const second = tr.drill(at(L.x + min + 5 + spacing, L.z)).reached;
+    expect(second.map((r) => [r.milestone.id, r.stage, r.stages])).toEqual([['regolith-sample', 2, 3]]);
     const crater = f.shadowedCrater.centroidLocal;
-    expect(ids(tr.drill(at(crater.x + 300, crater.z - 400)))).toEqual([]);
+    expect(ids(tr.drill(at(crater.x + 300, crater.z - 400)))).toEqual(['regolith-sample']); // third site
     const ice = f.shadowedCrater.iceCandidate.local;
-    expect(ids(tr.drill(at(ice.x + 20, ice.z)))).toEqual(['water-ice']);
+    expect(ids(tr.drill(at(ice.x + 20, ice.z)))).toEqual(['water-ice']); // all three sites already counted
     expect(ids(tracker(drill).drill(at(ice.x, ice.z)))).toEqual(['regolith-sample', 'water-ice']);
     expect(ids(tracker(camera).drill(at(ice.x, ice.z)))).toEqual([]);
+    expect(tr.result().find((e) => e.id === 'regolith-sample')).toEqual({ id: 'regolith-sample', stages: 3 });
   });
 
   it('the ice spot is small and lies just inside the dark crater, on the side facing the landing', () => {

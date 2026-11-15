@@ -158,10 +158,12 @@ export const missionScreen: Screen = (game, root) => {
   const finishDrill = () => {
     if (!tracker || !roverPos) return;
     const zones = tracker.zones.filter((z) => tracker!.currentZones().includes(z)).map((z) => z.id);
+    const repeat = tracker.sampleTooClose(roverPos);
     const u = tracker.drill(roverPos);
     if (zones.includes('near-lander')) hud.notify(fill(ti.drillNearLander, { distance: mt.sampleMinDistanceM }));
     else {
-      const result = zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : ti.drillDone;
+      const done = repeat ? fill(ti.drillSameSite, { distance: mt.sampleSpacingM }) : ti.drillDone;
+      const result = zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : done;
       // In the dark crater each sample also reads the hydrogen signal, a clue to where the ice is.
       const level = hydrogenSignal(roverPos, tracker.zones, mt);
       const levelWord = level === 'strong' ? td.hydrogenStrong : level === 'moderate' ? td.hydrogenModerate : td.hydrogenWeak;

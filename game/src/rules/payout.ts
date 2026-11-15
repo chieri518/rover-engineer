@@ -31,6 +31,14 @@ export interface Payout {
   newRecords: string[];
 }
 
+/** How many stages a milestone has: one per Odometer distance, one per sample site, otherwise 1. */
+export function milestoneStages(m: Milestone): number {
+  const tr = m.trigger;
+  if (tr.type === 'distance') return tr.meters.length;
+  if (tr.type === 'drill') return tr.sites ?? 1;
+  return 1;
+}
+
 /**
  * Death penalty: a base amount by cause (energy < stuck < froze < destroyed), shrinking linearly
  * with how long the rover lasted, down to penaltyMinFraction of the base at the full mission length.
@@ -61,7 +69,7 @@ export function missionPayout(
     const milestone = catalog.find((m) => m.id === earned.id);
     if (!milestone) throw new Error(`unknown milestone ${earned.id}`);
     if (milestone.record && recordsEarned.includes(milestone.id)) continue;
-    const maxStages = milestone.trigger.type === 'distance' ? milestone.trigger.meters.length : 1;
+    const maxStages = milestoneStages(milestone);
     const stages = Math.min(Math.max(earned.stages ?? 1, 0), maxStages);
     if (stages === 0) continue;
     if (milestone.record) newRecords.push(milestone.id);

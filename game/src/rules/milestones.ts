@@ -4,7 +4,7 @@
 // milestones reached. Required parts are enforced here. Pure: no rendering, no DOM.
 import type { Milestone, MilestoneTuning, Part, Slot } from './types';
 import type { DamageCause } from './damage';
-import type { EarnedMilestone } from './payout';
+import { milestoneStages, type EarnedMilestone } from './payout';
 import { meetsRequirements } from './rover';
 
 export interface Point { x: number; z: number }
@@ -161,6 +161,7 @@ export class MilestoneTracker {
   private readonly earned = new Map<string, number>(); // id → stages reached
   private readonly inside = new Map<string, Point | null>(); // zone key → where it was entered
   private readonly missedOnce = new Set<string>();
+  private readonly sampleSites: Point[] = []; // where counted drill samples were taken
   private readonly landing: Point;
 
   constructor(
@@ -179,7 +180,7 @@ export class MilestoneTracker {
   }
 
   private fire(m: Milestone, update: MilestoneUpdate, stagesNow = 1): void {
-    const stages = m.trigger.type === 'distance' ? m.trigger.meters.length : 1;
+    const stages = milestoneStages(m);
     const before = this.earned.get(m.id) ?? 0;
     const target = Math.min(stagesNow, stages);
     if (target <= before) return;
@@ -284,15 +285,28 @@ export class MilestoneTracker {
     return earthInView && earthLit >= this.t.earthPhotoMinLit && !this.earthPhotoTooClose(p);
   }
 
-  /** A completed drill sample at the rover's position. Samples near the lander do not count. */
+  /** Whether a sample here would repeat an earlier sample site (closer than sampleSpacingM). */
+  sampleTooClose(p: Point): boolean {
+    return this.sampleSites.some((s) => Math.hypot(p.x - s.x, p.z - s.z) < this.t.sampleSpacingM);
+  }
+
+  /**
+   * A completed drill sample at the rover's position. Samples near the lander do not count. A staged
+   * sample milestone (sites) counts one stage per new site, at least sampleSpacingM from earlier ones.
+   */
   drill(p: Point3): MilestoneUpdate {
     const u = this.empty();
     const zones = this.zones.filter((z) => zoneContains(z, p, this.inside.has(z.key)));
     if (zones.some((z) => z.id === 'near-lander')) return u;
+    const newSite = !this.sampleTooClose(p);
+    if (newSite) this.sampleSites.push({ x: p.x, z: p.z });
     this.each('drill', (m) => {
       const tr = m.trigger;
       if (tr.type !== 'drill') return;
-      if (!tr.zone || zones.some((z) => z.id === tr.zone)) this.fire(m, u);
+      if (tr.zone && !zones.some((z) => z.id === tr.zone)) return;
+      if (tr.sites) {
+        if (newSite) this.fire(m, u, Math.min(this.sampleSites.length, tr.sites));
+      } else this.fire(m, u);
     });
     return u;
   }

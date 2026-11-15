@@ -79,7 +79,7 @@ export const testTuning: Tuning = {
   milestones: {
     photoZoneRadiusM: 60, iceSpotRadiusM: 50, boulderCrossRadiusFactor: 1.1, boulderCrossMinAngleDeg: 90,
     craterDescentDepthM: 150, craterDescentExitDepthM: 100, drillSeconds: 3, albumMax: 12, photoFrameMargin: 0.85,
-    sampleMinDistanceM: 200, earthPhotoMinLit: 0.25, earthPhotoMinDistanceM: 300, hydrogenSignal: true, hydrogenStrongWithinM: 100, hydrogenModerateWithinM: 250,
+    sampleMinDistanceM: 200, sampleSpacingM: 200, earthPhotoMinLit: 0.25, earthPhotoMinDistanceM: 300, hydrogenSignal: true, hydrogenStrongWithinM: 100, hydrogenModerateWithinM: 250,
   },
 };
 

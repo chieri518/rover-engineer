@@ -1,5 +1,6 @@
 // Screens: title, settings, landing, debrief and "Mars: coming soon". The design, ticket and mission
 // screens have their own files.
+import { milestoneStages } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
 import type { HistoryKey } from '../rules/types';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
@@ -98,7 +99,7 @@ const debrief: Screen = (game, root) => {
     if (!earned) return [];
     const paid = payout.milestones.find((p) => p.milestone.id === m.id);
     const stages = earned.stages ?? 1;
-    const maxStages = m.trigger.type === 'distance' ? m.trigger.meters.length : 1;
+    const maxStages = milestoneStages(m);
     return [el('li', {},
       el('span', {}, el('strong', {}, maxStages > 1 ? `${m.name} ×${stages}` : m.name), ` · ${categoryLabel(m.category, text)}`),
       paid

@@ -52,7 +52,8 @@ export type MilestoneTrigger =
   | { type: 'explore'; share: number }
   | { type: 'zone'; zone: string; mode: 'enter-and-exit' | 'cross' }
   | { type: 'photo'; zone?: string; target?: string }
-  | { type: 'drill'; zone?: string }
+  /** sites: staged, one reward per sample site, up to this many, each at least sampleSpacingM from the others. */
+  | { type: 'drill'; zone?: string; sites?: number }
   | { type: 'event'; event: 'flare' | 'quake'; condition: 'no-damage' }
   /** no-damage: no damage from any cause except those listed (moonquakes cannot be avoided). */
   | { type: 'survive'; condition?: 'no-damage'; except?: DamageCause[] };
@@ -175,6 +176,7 @@ export interface MilestoneTuning {
   albumMax: number; // photos kept per mission
   photoFrameMargin: number; // Earth counts as in view inside this share of the frame (NDC)
   sampleMinDistanceM: number; // drill samples count only this far from the landing point (ground the lander disturbed)
+  sampleSpacingM: number; // a staged sample milestone counts a new site only this far from earlier sites
   earthPhotoMinLit: number; // the Earth photo counts only when at least this share of Earth's disc is lit (its phase)
   earthPhotoMinDistanceM: number; // ...and only this far from the landing point, so it is not free at the start
   hydrogenSignal: boolean; // drill samples in the dark crater report a hydrogen signal that grows nearer the ice (off: no clue)
@@ -286,7 +288,7 @@ export interface TextFile {
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
     | 'cameraControls' | 'drillControls' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
-    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'earthDarkHint' | 'earthTooCloseHint'
+    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint'
     | 'captionEarth' | 'captionDay' | 'captionSurface',
     string
   >;
@@ -338,3 +340,72 @@ export interface GameData {
 export type Build = Record<Slot, string>;
 /** A build on the design screen: a new campaign starts with every slot empty. */
 export type DraftBuild = Partial<Build>;
+
+/**
+ * data/balance.json: the offline win-path analysis (rules/winPaths.ts). Drive legs between milestone
+ * sites, measured once on the real terrain, and route plans that the analysis drives every build along.
+ * Not loaded by the game itself; the balance tests read it.
+ */
+export interface BalanceFile {
+  note: string;
+  site: { latitudeDeg: number; longitudeDeg: number };
+  litStepSeconds: number; // the lit series below are sampled this often from t = 0
+  play: {
+    speedShare: number; // reasonable play: average speed as a share of top speed (turns, slopes, braking)
+    reserveShare: number; // the player leaves a stop only with this share of the battery to spare after the next leg
+    flareSeconds: number[]; // when the two flares strike in the analysis (the middle of their windows)
+    flareStopSeconds: number; // parked and powered down for each flare
+    crossingUphillDeg: number; // grade assumed while crossing a boulder field (soft ground)
+    mistakeMargin: number; // money an archetype keeps above the pass mark, room for one or two mistakes
+    mapperBaseShare: number; // explored share at the landing (the reveal circle)
+    mapperSharePerKm: number; // explored share added per km of new ground (measured in playtests)
+  };
+  nodes: RouteNode[];
+  legs: RouteLeg[];
+  plans: RoutePlan[];
+  archetypes: Archetype[];
+}
+
+export interface RouteNode {
+  id: string;
+  x: number;
+  z: number;
+  fromLandingM: number; // straight-line distance from the landing point
+  belowLandingM: number; // height below the landing point (negative: above)
+  earthVisible: boolean; // Earth's center above the terrain horizon from here
+  deGerlacheSide?: boolean; // on the de Gerlache side of the rim (counts for Crater descent)
+  photoZone?: string; // a viewpoint zone id from milestones.json photo triggers
+  boulderField?: string; // a leg between two nodes of the same field crosses it
+  darkCrater?: boolean; // inside the permanently shadowed crater
+  iceSpot?: boolean;
+  lit: number[]; // sunlit share here, every litStepSeconds
+}
+
+export interface RouteLeg {
+  from: string;
+  to: string;
+  distanceM: number;
+  climbM: number;
+  descentM: number;
+  coldM: number; // meters inside permanent shadow
+  lit: number[]; // sunlit share of the route, every litStepSeconds
+}
+
+export interface PlanStop {
+  node: string;
+  use?: boolean; // use the instrument here: a photo, or a drill sample
+  waitUntil?: number; // wait here (parked) until this mission second before using the instrument
+}
+
+export interface RoutePlan {
+  id: string;
+  name: string;
+  stops: PlanStop[]; // the rover starts at the landing
+  ignoreFlares?: boolean; // keep driving through flare warnings (saves time, risks damage)
+}
+
+export interface Archetype {
+  name: string;
+  build: Build;
+  plan: string;
+}

@@ -28,6 +28,7 @@ export function tutorialPages(
     maxSlope: tuning.ground.maxSlopeDegrees,
     warningSeconds: events.flare.warningSeconds,
     earthMinDistance: tuning.milestones.earthPhotoMinDistanceM,
+    sampleSpacing: tuning.milestones.sampleSpacingM,
     sunlit: text.hud.sunlit,
     shadow: text.hud.shadow,
   };

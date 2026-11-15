@@ -52,7 +52,7 @@ The design screen is a **constraint puzzle**. On the Moon it is simply mass vers
 
 | # | Question | Current proposal |
 | --- | --- | --- |
-| 1 | **Balance numbers.** Money, RP, milestone rewards, death penalties, part costs, masses, and sizes, launch ticket tier prices and limits, minimum budgets, base speed per wheel type and how much mass slows the rover, Odometer distances | Tune in playtests. The 5-minute mission limits how far a rover can drive. |
+| 1 | **Balance numbers.** Money, RP, milestone rewards, death penalties, part costs, masses, and sizes, launch ticket tier prices and limits, minimum budgets, base speed per wheel type and how much mass slows the rover, Odometer distances | The Moon pass rule and money were set in the November 15 balance pass ([Balance: several ways to pass](#balance-several-ways-to-pass)). Keep tuning in playtests. |
 
 **Decided November 15, 2026** (formerly open questions 1a to 1c):
 
@@ -105,7 +105,7 @@ Drive ──► Reach milestones ──► Earn RP and money
 
 - **Driving uses energy.** Heavier rovers use more energy per meter.
 - **Speed depends on the configuration.** The wheels set a base speed, and a heavier rover is slower. A heavy rover reaches fewer places in the mission time.
-- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 12 m/s for a light one, to be tuned). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation). Measured: a light build (12 m/s) reaches the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts.
+- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 13 m/s for a light one on wire-mesh wheels). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation). Measured before the balance pass: a light build (12 m/s) reached the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. *Balance pass (November 15):* wire-mesh wheels now model 3.3 m/s of real driving (11.9 km/h, inside the Apollo LRV's 9 to 13 km/h), so a light build drives 13.2 m/s; this keeps the dark crater reachable with good, not perfect, driving. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts.
 - **Milestones** come from driving and from using equipped instruments. A rover without a drill drives past the ice.
 - **Night (Mars and Titan only).** The player chooses:
   - **Lights on:** keep exploring, but energy drains fast.
@@ -203,6 +203,58 @@ The real NASA milestone types and rewards behind this design are in [rover-engin
 - **Why this split:** a rover built only to drive earns money but almost no RP, so it never unlocks anything. To progress, the player has to spend budget and mass on instruments.
 - **Records** are a pacing lever: we place them where the game should speed up. Each can be earned once per campaign.
 - **Photos:** the map has viewpoint zones. With a camera equipped, the player drives into a zone and presses a key. Photos go into an album shown at the debrief, which also gives us demo video material.
+
+### Balance: several ways to pass
+
+*Decided November 15, 2026 (balance pass).*
+
+**Design rule.** No single right answer. Passing the Moon must need real milestone money that only an intentionally designed rover, driven along a route that suits it, can earn. Several different designs pass, each by doing a different job. Idling, surviving without a plan, or bringing an instrument and not using it fails. The ice is the highest-reward, highest-risk path, never the only one. It is the first level, so a well-planned rover keeps room for one or two mistakes.
+
+**Pass rule (unchanged in shape).** After the Moon mission the balance must reach the Mars minimum budget. Starting budget 750; the parts and the ticket are paid first; then money = survival payout + milestone money − death penalty. Before this pass, the Mars minimum was 300 and the cheapest rover ended at about 730 by doing nothing, so every build passed.
+
+| Number | Before | Now |
+| --- | --- | --- |
+| Mars minimum budget (the pass mark) | 300 | **830** (the Moon must more than pay for itself) |
+| Survival payout | 250 | **100** |
+| Touchdown | 150 | **50** |
+| Odometer (per stage: 500 m, 1 km, 2 km) | 30 | 30 |
+| Mapper | 50 | **60** |
+| Crater descent | 60 | 60 |
+| Boulder field | 50 | **150** |
+| Into the dark | 80 | **150** |
+| Flare survivor | 40 | **20** |
+| Clean run | 60 | **30** |
+| Crater layers | 20 | **100** |
+| Regolith sample (per site, up to 3) | 20 (once) | **120** |
+| Water ice | 200 | **350** |
+| Earth on the horizon | 25 | **80** |
+| Rim panorama | 20 | **70** |
+| Wire-mesh wheels, real speed | 3.0 m/s | **3.3 m/s** (13.2 m/s in game) |
+
+Moon minimum (520), starting budget (750), part costs, ticket tiers, death penalties and RP are unchanged. The restart loop is unchanged: a restart restores the round snapshot (750), which is above the Moon minimum. Instruments now earn real money, so the camera's pictures and the drill's samples pay more than the categories table above suggests ("mainly RP", "a little money"); capability milestones still pay the most per milestone except the ice.
+
+**How it was checked.** `src/rules/winPaths.ts` (pure, unit-tested) drives every build along route plans with the real mission rules: energy, solar income from the real lit share of each leg over time, cold, overload, soft-ground slip at boulder fields, and the two flares (the player powers down for 8 s each). Drive legs between the milestone sites were measured once on the real terrain (least-cost routes on a 10 m grid, slopes up to 18°) and are stored with the plans in `game/data/balance.json`, which the game does not load. "Reasonable play" means driving at 90% of top speed, recharging in sunlight before a leg the battery cannot cover with a 10% reserve, and touching a rock when crossing a boulder field (so no Clean run there). `winPaths.test.ts` holds the targets: idling fails for every build by more than 100; driving around without a plan, or one or two short stops near the lander, fails for every build; at least three archetypes with different parts and routes pass with a margin of at least 50; each archetype fails if it skips its instrument; fewer than 35% of affordable builds can pass even with their best route; the cheapest build fails on every route; more than five builds pass without the ice.
+
+**Archetypes** (estimate; final balance, pass mark 830):
+
+| Archetype | Build | Cost + ticket | Route | Milestones | Final | Without using the instrument |
+| --- | --- | --- | --- | --- | --- | --- |
+| Camera scout | steel, mesh, fixed panel, NiH2, no lights, no heater, camera | 330 + Medium 120 = 450 | Down the de Gerlache wall (photo), back up, across Rocky area 1, Rim viewpoint 1 (photo), wait for Earth (photo after 238 s) | Crater layers, Crater descent, Boulder field, Rim panorama, Earth, Odometer ×3, Flare survivor | 1020 (+190) | 770 (fails) |
+| Drill geologist | steel, mesh, fixed panel, NiH2, no lights, no heater, drill | 370 + Large 200 = 570 (80 kg: the drill tips it over the Medium limit) | Wall (sample), back up, Rocky area 1 (sample), across it, Rim viewpoint 1 (sample) | Regolith ×3, Crater descent, Boulder field, Odometer ×3, Flare survivor | 1010 (+180) | 650 (fails) |
+| Light sampler | titanium, solid, fixed panel, Li-ion, no lights, no heater, drill | 410 + Small 60 = 470 | North only: Rocky area 1 (sample), across it, Rim viewpoint 1 (sample); slow, recharges on the rim | Regolith ×2, Boulder field, Odometer ×2, Flare survivor | 900 (+70) | 660 (fails) |
+| Ice hunter | titanium, mesh, fixed panel, Li-ion, lights, heater, drill | 615 + Medium 120 = 735 | Straight to the dark crater, sample at the edge, find and drill the ice (about 293 s) | Water ice, Regolith ×2, Mapper, Odometer ×3, Clean run, Flare survivor | 955 (+125); 605 if the ice is not found | 365 (fails) |
+
+**Builds without a plan** (best route in the analysis): 37 of 115 affordable builds can pass with their best route (15 of 63 camera builds, 22 of 52 drill builds); none pass by idling or wandering. Examples that fail, and why:
+
+| Build | Cost + ticket | Best final | Why it fails |
+| --- | --- | --- | --- |
+| Cheapest parts (steel, solid, panel, NiH2, none, none, camera) | 220 + Large 200 = 420 | 740 | Heavy on solid wheels: digs in on soft boulder-field ground, too slow for the wall and the rim in one mission; the Large ticket eats the savings |
+| Titanium, solid, panel, Li-ion, lights, heater, camera (the old default build) | 465 + Medium 120 = 585 | 615 | Pays for lights and a heater it cannot use (too slow to reach the dark crater), small battery |
+| Steel, mesh, mast, Li-ion, lights, heater, camera | 575 + Medium 120 = 695 | 775 | Does the full scout route but carries about 250 of parts it does not need (lights, heater, mast, lithium-ion) |
+| Titanium, solid, panel, NiH2, lights, heater, drill | 445 + Large 200 = 645 | 545 | Overloads the titanium frame (damage while driving), slow, Large ticket |
+| Any build that stays at the lander | | at most 550 | Survival, Touchdown, Flare survivor and Clean run are worth 200 together |
+
+**Limits of the estimate.** The ice route needs good driving (about 90% of top speed for 3.3 km) and the hydrogen clue to find the spot; the analysis assumes the spot is found. Boulder-field crossings assume one rock touch. Mapper uses the playtest rate of about 0.77% of the map per km of new ground. The browser playtests are the check; see the status notes below.
 
 ## 7. Rover design
 
@@ -332,7 +384,7 @@ The starting list. Distances and amounts are game values to balance.
 | Flare survivor | Capability: robustness | Get through a solar flare without damage | None |
 | Clean run | Capability: robustness | Finish all 14 days without damage | None |
 | Crater layers | Scientific: historical formation | Image the old layers exposed in a crater wall | Camera |
-| Regolith sample | Scientific: new information | Drill a soil sample at least 200 m from the lander | Drill |
+| Regolith sample | Scientific: new information | Drill soil samples at up to three sites, each at least 200 m from the lander and from each other (one reward per site) | Drill |
 | Water ice | Scientific: new material, and Record: first discovery | Find and drill the small ice spot inside the dark crater (not marked on the map) | Drill, lights, heater |
 | Earth on the horizon | Pretty picture | Photograph a sunlit Earth (at least a quarter lit) from the surface, at least 300 m from the lander. Earth is only visible from the north side of the rim. | Camera |
 | Rim panorama | Pretty picture | Photograph the view from a crater rim | Camera |
@@ -349,7 +401,7 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
 - **Boulder field.** Each rocky area is a circle of 1.1 times its radius (where the boulders lie). Crossing means leaving at least 90° around the center from where the rover entered; turning back out the same side does not count.
 - **Into the dark** counts only for the dark crater (its permanent-shadow outline), not the small cold patch in Rocky area 1.
 - **Camera (C key).** Viewpoint zones are 60 m circles: the two rim viewpoints (Rim panorama) and the de Gerlache wall descent point on the inner wall (Crater layers). The Earth photo has no zone: it counts wherever Earth's center is above the real terrain horizon as seen from the camera and inside the frame, so it works only from the north side of the rim and only facing Earth. Earth must also be at least 25% lit (its phase, from the angle between the Sun and Earth; `earthPhotoMinLit` in tuning). With the decided Sun path (start 75°, subsolar latitude −1.54°), Earth is at least a quarter lit only in the first 26 s, a 37% to 25% crescent, and from about 238 s to the end, up to 55%: about 90 s in all. With the old start (17.4°), the window ran from about 137 s to the end. The photo also counts only at least 300 m from the landing point (`earthPhotoMinDistanceM`, decided November 15), because Earth is in view from the landing at the start and the photo should not be free. It can be earned in the late window at both rim viewpoints and anywhere on the north side 300 m or more from the lander (offline horizon test), so a camera build can plan for it. A photo of a darker Earth, or one taken too close to the lander, goes into the album, with a notice that says why it does not count. A photo is a real capture of the view. Photos can be taken anywhere for the album (up to 12 per mission) but earn milestones only at viewpoints or with Earth in view. The album is shown in the debrief and is not saved between sessions.
-- **Drill (F key).** The rover must be stopped; drilling takes 3 mission seconds, during which it holds still. A sample counts only at least 200 m from the landing point (`sampleMinDistanceM`), where the lander's engine plume did not disturb the ground, so there is no free sample at the start. Any counted sample earns Regolith sample.
+- **Drill (F key).** The rover must be stopped; drilling takes 3 mission seconds, during which it holds still. A sample counts only at least 200 m from the landing point (`sampleMinDistanceM`), where the lander's engine plume did not disturb the ground, so there is no free sample at the start. *Balance pass (November 15):* Regolith sample is staged like the Odometer: one reward per sample site, up to three sites, each at least 200 m from the others (`sampleSpacingM`; `sites` on the trigger in `milestones.json`, 1 restores the single sample). A sample at an earlier site still goes in, with a notice that a new site must be 200 m away. This makes the drill a reason to travel, as the camera's viewpoints are.
 - **Water ice is found by searching** *(team decision, fix pass)*. The minimap marks the dark crater (the permanent-shadow region), not the ice. The ice spot is a 50 m circle (under 1% of the crater) placed by the terrain pipeline about 100 m inside the shadow edge, on the side facing the landing. It is fully permanently shadowed in the LOLA maps and in the game's own shadow test. A sample there earns Water ice. Anywhere else in the crater the drill reports "No water ice detected at this site." Inside the crater, a drill rover sees a hint to test-drill, never the spot itself. Reaching it needs about 3.2 km of driving.
 - **Hydrogen signal** *(decided November 15)*. Each drill sample inside the dark crater adds a reading to its notice:
   - "Hydrogen signal: strong" within 100 m of the ice spot's center, "moderate" within 250 m, "weak" farther away. A rover entering at the near edge reads "moderate".
