@@ -130,6 +130,19 @@ The rover has a damage meter. These all cause damage, and **the amount depends o
 
 How much each cause does is a balance number (open question 1).
 
+#### How the mission systems work *(decided during implementation, Phase 4)*
+
+The rules live in `game/src/rules/` and every number in `game/data/tuning.json` and `events.json`.
+
+- **Energy.** The battery starts full. Driving costs energy per meter (the wheels' rate, raised by mass above the reference), plus 5% per degree of uphill grade; downhill costs the flat rate. Solar income is the power source's full-sun rate times the share of the Sun's disc visible from the rover (the same terrain-shadow test that draws the shadows), so it is zero in shadow. The design screen shows the drive energy per km and the flat range on a full battery. Zero energy ends the mission.
+- **Damage.** A hard impact (a sudden change in the rover's velocity of 3 m/s or more, such as hitting a boulder) does 8 plus 4 per extra m/s. Driving on ground steeper than 20° (`slope.png`) does 4 per second. An overloaded frame does 0.05 per kg over its maximum load per second while driving. Each moonquake does 10; a flare 30 unless the rover is protected. Boulders are scattered in the two rocky areas (small fresh craters).
+- **Rollover** is a tilt beyond 75° held for 0.6 s.
+- **Cold.** Cold zones are the permanent-shadow patches of the dark crater and of the small cold patch in Rocky area 1; other tiny shadowed spots are left out. Inside, the freeze meter rises 4 per second (full after 25 s), slowed by 1.5 per heat unit of the heater (radioisotope units: full after 100 s). Outside it recovers 6 per second.
+- **No lights.** A rover without lights stops automatically at the edge of permanent shadow, with the notice "Permanent shadow ahead. Without lights the rover cannot enter." It can turn or reverse away.
+- **Soft ground and getting stuck.** Ground is soft inside the rocky areas (fresh crater rims), fading out to 1.5 times their radius. Sinkage follows Apollo 15: about 1.5 cm on normal ground and 6 cm on soft rims for a 60 kg rover on solid wheels, scaled up with mass and down with wheel grip. Slip is 3% per cm of sinkage, plus 1% per degree of uphill grade above 10°. Above 20% slip the wheels dig in: pushing the throttle with slip above the limit for 5 s in total leaves the rover stuck for good; easing off recovers. Slip also slows the rover.
+- **Flares.** Two per mission, at random times in set windows, each a real past X-class flare from NASA DONKI named by class and date. The warning shows 6 s ahead. The rover is protected if it is powered down (the HUD toggle or P) or in shadow when the flare hits. Powered down, the rover cannot drive but its panel still charges.
+- **Moonquakes.** One per mission at a random time; the camera shakes. There is no fault location in the terrain data yet, so quakes do the same damage everywhere.
+
 Real causes of rover loss and survival tactics: [rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#hazard-and-anomaly-catalog) and [rover-engineering/06](research/rover-engineering/06-milestones-and-sustainment.md#how-rover-missions-are-sustained).
 
 ## 5. Time on each world
@@ -195,7 +208,7 @@ Seven slots, two options each. For lights and heater, one option is **None**: sk
 | Wheels | Grip, chance of getting stuck, base speed, energy per meter |
 | Power source | Energy income |
 | Battery | Energy storage |
-| Lights | None, or floodlights. Needed to drive into permanent shadow. |
+| Lights | None, or floodlights. Needed to drive into permanent shadow: without them the rover stops at its edge. |
 | Heater | None, or radioisotope heater units. Slows freezing in the cold. |
 | Instrument | Camera or drill. Decides which milestones the rover can complete. |
 
@@ -273,7 +286,7 @@ Very cold zones. Lights and a heater are needed to enter safely, and a drill is 
 
 | Event | What happens | Player response |
 | --- | --- | --- |
-| Solar flare | A radiation burst that threatens the electronics, with a warning a few seconds ahead | Power down or shelter in time. A rover still driving when it hits takes damage. |
+| Solar flare | A radiation burst that threatens the electronics, with a warning a few seconds ahead. Each one is a real past flare from NASA DONKI, named by class and date. | Power down or shelter in shadow in time. A rover that is powered on in sunlight when it hits takes damage. |
 | Moonquake | The ground shakes | The rover takes damage |
 
 ### Moon milestones
