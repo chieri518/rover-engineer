@@ -75,8 +75,7 @@
     "legendCrater": "Crater",
     "legendCold": "Permanent shadow",
     "lasted": "The rover operated for {days} of {total} days.",
-    "toDebrief": "Continue to debrief",
-    "legendIce": "Ice candidate"
+    "toDebrief": "Continue to debrief"
   },
   "warnings": {
     "lowEnergy": "Battery low. Stop in sunlight to recharge.",
@@ -166,12 +165,14 @@
     "noDrill": "This rover carries no drill.",
     "viewpointHint": "Viewpoint: {name}. Press C to take a photograph.",
     "earthHint": "Earth is above the horizon in view. Press C to take a photograph.",
-    "iceHint": "Ice candidate site. Stop and press F to drill.",
+    "iceSearchHint": "Inside permanent shadow. Stop and press F to test-drill for water ice.",
     "drilling": "Drilling. The rover holds still.",
     "drillMoving": "Stop the rover before drilling.",
     "drillDone": "Regolith sample collected.",
     "drillIce": "Sample collected. The regolith contains water ice.",
     "drillNoIce": "Sample collected. No water ice detected at this site.",
+    "drillNearLander": "Sample not counted: the ground within {distance} m of the lander was disturbed by its engine plume. Drill farther away.",
+    "earthDarkHint": "Earth is in view but only {lit}% lit. The photo counts once at least {min}% of Earth is lit.",
     "captionEarth": "Earth above the horizon",
     "captionDay": "{place}, day {day}",
     "captionSurface": "Lunar surface"

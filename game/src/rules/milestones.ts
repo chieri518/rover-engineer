@@ -20,7 +20,7 @@ export interface MilestoneFeatures {
 }
 
 /** Zone ids that milestones.json triggers refer to. */
-export type ZoneId = 'large-crater' | 'boulder-field' | 'shadowed-crater' | 'crater-wall' | 'ice-spot' | 'rim-viewpoint';
+export type ZoneId = 'large-crater' | 'boulder-field' | 'shadowed-crater' | 'crater-wall' | 'ice-spot' | 'rim-viewpoint' | 'near-lander';
 
 export type ZoneShape =
   | { kind: 'circle'; x: number; z: number; r: number }
@@ -53,8 +53,14 @@ export function buildZones(f: MilestoneFeatures, t: MilestoneTuning): Zone[] {
     id: 'shadowed-crater', key: 'shadowed-crater', name: 'Shadowed crater',
     shape: { kind: 'polygon', points: f.shadowedCrater.outlineLocal_xz },
   });
+  // Ground the lander's engine plume disturbed: drill samples here do not count.
+  zones.push({
+    id: 'near-lander', key: 'near-lander', name: 'Lander',
+    shape: { kind: 'circle', x: f.landing.x, z: f.landing.z, r: t.sampleMinDistanceM },
+  });
+  // The ice spot is hidden from the player (no marker); they find it by drilling in the dark crater.
   const ice = f.shadowedCrater.iceCandidate.local;
-  zones.push({ id: 'ice-spot', key: 'ice-spot', name: 'Ice candidate', shape: { kind: 'circle', x: ice.x, z: ice.z, r: t.iceSpotRadiusM } });
+  zones.push({ id: 'ice-spot', key: 'ice-spot', name: 'Ice spot', shape: { kind: 'circle', x: ice.x, z: ice.z, r: t.iceSpotRadiusM } });
   // de Gerlache's inner wall: the side of the rim the viewpoints look toward (the north flank, toward the
   // dark crater, also drops far below the landing point and must not count).
   const toward = f.rimViewpoints[0]?.lookToward ?? { x: 0, z: 1 };
@@ -229,22 +235,31 @@ export class MilestoneTracker {
     return Math.acos(Math.max(-1, Math.min(1, cos))) * (180 / Math.PI) >= this.t.boulderCrossMinAngleDeg;
   }
 
-  /** A photograph from the rover's position. `earthInView`: Earth is above the horizon and in frame. */
-  photo(p: Point3, earthInView: boolean): MilestoneUpdate {
+  /**
+   * A photograph from the rover's position. `earthInView`: Earth is above the horizon and in frame;
+   * `earthLit`: the sunlit share of Earth's disc (rules/sun.ts earthLitShare). The Earth photo needs both.
+   */
+  photo(p: Point3, earthInView: boolean, earthLit: number): MilestoneUpdate {
     const u = this.empty();
     const zones = this.zones.filter((z) => zoneContains(z, p, this.inside.has(z.key)));
     this.each('photo', (m) => {
       const tr = m.trigger;
       if (tr.type !== 'photo') return;
-      if (tr.target === 'earth' ? earthInView : zones.some((z) => z.id === tr.zone)) this.fire(m, u);
+      if (tr.target === 'earth' ? this.earthPhotoCounts(earthInView, earthLit) : zones.some((z) => z.id === tr.zone)) this.fire(m, u);
     });
     return u;
   }
 
-  /** A completed drill sample at the rover's position. */
+  /** Whether an Earth photo counts: Earth in view and lit enough to show (not a dark new Earth). */
+  earthPhotoCounts(earthInView: boolean, earthLit: number): boolean {
+    return earthInView && earthLit >= this.t.earthPhotoMinLit;
+  }
+
+  /** A completed drill sample at the rover's position. Samples near the lander do not count. */
   drill(p: Point3): MilestoneUpdate {
     const u = this.empty();
     const zones = this.zones.filter((z) => zoneContains(z, p, this.inside.has(z.key)));
+    if (zones.some((z) => z.id === 'near-lander')) return u;
     this.each('drill', (m) => {
       const tr = m.trigger;
       if (tr.type !== 'drill') return;

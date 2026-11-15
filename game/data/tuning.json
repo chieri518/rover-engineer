@@ -135,6 +135,8 @@
     "craterDescentExitDepthM": 100,
     "drillSeconds": 3,
     "albumMax": 12,
-    "photoFrameMargin": 0.85
+    "photoFrameMargin": 0.85,
+    "sampleMinDistanceM": 200,
+    "earthPhotoMinLit": 0.25
   }
 }

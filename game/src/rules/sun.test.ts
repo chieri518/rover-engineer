@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { gameDaysElapsed, skyDirection, sunAt, sunSweepDeg } from './sun';
+import { earthLitShare, gameDaysElapsed, skyDirection, sunAt, sunSweepDeg } from './sun';
 import { testTuning } from './testData';
 
 const site = { latitudeDeg: -88.5378, longitudeDeg: -67.6065 };
@@ -39,5 +39,12 @@ describe('sun', () => {
     expect(east.x).toBeCloseTo(1, 9);
     const d = sunAt(123, sun, mission, site);
     expect(Math.hypot(d.x, d.y, d.z)).toBeCloseTo(1, 9);
+  });
+
+  it("Earth's lit share is its phase: new Earth with the Sun behind it, full Earth with the Sun opposite, a quarter at 60°", () => {
+    const earth = skyDirection(0, 0.6);
+    expect(earthLitShare(skyDirection(0, 0.6), earth)).toBeCloseTo(0, 9);
+    expect(earthLitShare(skyDirection(180, -0.6), earth)).toBeCloseTo(1, 9);
+    expect(earthLitShare(skyDirection(60, 0.6), earth)).toBeCloseTo(0.25, 3);
   });
 });

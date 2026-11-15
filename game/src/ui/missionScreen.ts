@@ -6,7 +6,7 @@ import type { MissionResult } from '../rules/payout';
 import { buildZones, MilestoneTracker, type MilestoneUpdate, type Point3 } from '../rules/milestones';
 import { selectedParts } from '../rules/rover';
 import { roverParams } from '../rules/drive';
-import { gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
+import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
 import { scheduleEvents, seededRng } from '../rules/events';
 import { softnessAt } from '../rules/ground';
 import { noLightsLookaheadM } from '../rules/cold';
@@ -60,6 +60,7 @@ export const missionScreen: Screen = (game, root) => {
   // What the last step measured
   let ctx: { terrain: Terrain; masks: TerrainMasks; sunVisibility: typeof import('../world/terrainData').sunVisibility } | null = null;
   let lastPos: { x: number; z: number } | null = null;
+  let sceneSeconds = 0; // mission time of the last step (drives the Sun)
   let sunlight = 1;
   let sunCountdown = 0;
   let lastSample: MissionSample | null = null;
@@ -86,13 +87,21 @@ export const missionScreen: Screen = (game, root) => {
     for (const m of u.missed) hud.notify(missedText(m, text));
   };
   const dayText = () => gameDaysElapsed(state.seconds, tuning.mission).toFixed(1);
+  const sunNow = () => {
+    const se = ctx?.terrain.info.sunAndEarth;
+    return sunAt(sceneSeconds, tuning.sun, tuning.mission, { latitudeDeg: se?.siteLatitude_deg ?? 0, longitudeDeg: se?.siteLongitude_deg ?? 0 });
+  };
+  /** Sunlit share of Earth's disc right now (its phase). */
+  const earthLit = () => earthLitShare(sunNow(), earthDir);
+  const earthDarkText = (lit: number) => fill(ti.earthDarkHint, { lit: Math.round(lit * 100), min: Math.round(mt.earthPhotoMinLit * 100) });
 
   const takePhoto = () => {
     if (ended || !scene || !tracker || !roverPos) return;
     if (instrument !== 'camera') return hud.notify(ti.noCamera);
     if (album.length >= mt.albumMax) return hud.notify(fill(ti.photoAlbumFull, { max: mt.albumMax }));
     const earth = scene.inView(earthDir, mt.photoFrameMargin);
-    const u = tracker.photo(roverPos, earth);
+    const lit = earthLit();
+    const u = tracker.photo(roverPos, earth, lit);
     const places = tracker.zones
       .filter((z) => (z.id === 'rim-viewpoint' || z.id === 'crater-wall') && tracker!.currentZones().includes(z))
       .map((z) => z.name);
@@ -100,6 +109,7 @@ export const missionScreen: Screen = (game, root) => {
     const caption = fill(ti.captionDay, { place: places.length ? places.join(', ') : ti.captionSurface, day: dayText() });
     album.push({ src: scene.capture(PHOTO_WIDTH_PX), caption });
     hud.notify(places.length ? fill(ti.photoTaken, { caption }) : ti.photoNoZone, 'good');
+    if (earth && !tracker.earthPhotoCounts(earth, lit)) hud.notify(earthDarkText(lit));
     announce(u);
   };
 
@@ -115,7 +125,8 @@ export const missionScreen: Screen = (game, root) => {
     if (!tracker || !roverPos) return;
     const zones = tracker.zones.filter((z) => tracker!.currentZones().includes(z)).map((z) => z.id);
     const u = tracker.drill(roverPos);
-    hud.notify(zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : ti.drillDone, 'good');
+    if (zones.includes('near-lander')) hud.notify(fill(ti.drillNearLander, { distance: mt.sampleMinDistanceM }));
+    else hud.notify(zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : ti.drillDone, 'good');
     announce(u);
   };
 
@@ -153,8 +164,11 @@ export const missionScreen: Screen = (game, root) => {
     const { terrain, masks } = ctx;
     const p = s.position;
     let distance = lastPos ? Math.hypot(p.x - lastPos.x, p.z - lastPos.z) : 0;
+    // A teleport or a time jump (development helpers) makes the last sunlight reading stale.
+    if (distance > MAX_STEP_DISTANCE_M || Math.abs(s.seconds - sceneSeconds) > 1) sunCountdown = 0;
     if (distance > MAX_STEP_DISTANCE_M) distance = 0;
     lastPos = { x: p.x, z: p.z };
+    sceneSeconds = s.seconds;
 
     const vh = Math.hypot(s.velocity.x, s.velocity.z);
     let uphillDeg = 0;
@@ -165,8 +179,7 @@ export const missionScreen: Screen = (game, root) => {
     }
     if (--sunCountdown <= 0) {
       sunCountdown = SUN_SAMPLE_STEPS;
-      const site = { latitudeDeg: terrain.info.sunAndEarth.siteLatitude_deg, longitudeDeg: terrain.info.sunAndEarth.siteLongitude_deg };
-      sunlight = ctx.sunVisibility(terrain, p.x, p.z, sunAt(s.seconds, tuning.sun, tuning.mission, site));
+      sunlight = ctx.sunVisibility(terrain, p.x, p.z, sunNow());
     }
     const inColdZone = masks.inColdZone(p.x, p.z);
     const throttle = s.input.throttle;
@@ -243,9 +256,13 @@ export const missionScreen: Screen = (game, root) => {
     if (instrument === 'camera') {
       const view = zones.find((z) => z.id === 'rim-viewpoint' || z.id === 'crater-wall');
       if (view) return fill(ti.viewpointHint, { name: view.name });
-      if (earthInView) return ti.earthHint;
+      if (earthInView) {
+        const lit = earthLit();
+        return lit >= mt.earthPhotoMinLit ? ti.earthHint : earthDarkText(lit);
+      }
     }
-    if (instrument === 'drill' && zones.some((z) => z.id === 'ice-spot')) return ti.iceHint;
+    // The exact ice spot is never revealed: inside the dark crater the hint only invites a test drill.
+    if (instrument === 'drill' && zones.some((z) => z.id === 'shadowed-crater')) return ti.iceSearchHint;
     return null;
   };
 
@@ -322,6 +339,7 @@ export const missionScreen: Screen = (game, root) => {
         earned: tracker?.result() ?? [],
         zones: tracker?.currentZones().map((z) => z.key) ?? [],
         earthInView: scene?.inView(earthDir, mt.photoFrameMargin) ?? false,
+        earthLit: earthLit(),
         album: album.map((a) => a.caption),
         drilling: drillLeft,
       }),

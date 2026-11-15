@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import terrain from '../../public/terrain/terrain.json';
-import { buildZones, MilestoneTracker, type MilestoneFeatures, type Point3 } from './milestones';
+import { buildZones, MilestoneTracker, zoneContains, type MilestoneFeatures, type Point3 } from './milestones';
 import { selectedParts } from './rover';
 import { finishMission, newCampaign, startRound } from './campaign';
 import type { Build } from './types';
@@ -100,26 +100,50 @@ describe('milestone triggers', () => {
     expect(u.missed.map((m) => [m.milestone.id, m.missing])).toEqual([['into-the-dark', ['heater']]]);
   });
 
-  it('Photos: rim panorama and crater layers only in their viewpoint zones; Earth only when in view', () => {
+  it('Photos: rim panorama and crater layers only in their viewpoint zones; Earth only when in view and lit enough', () => {
     const tr = tracker(camera);
-    expect(ids(tr.photo(at(L.x, L.z), false))).toEqual([]);
+    expect(ids(tr.photo(at(L.x, L.z), false, 1))).toEqual([]);
     const v = f.rimViewpoints[1]!.local;
-    expect(ids(tr.photo(at(v.x + 20, v.z), false))).toEqual(['rim-panorama']);
+    expect(ids(tr.photo(at(v.x + 20, v.z), false, 1))).toEqual(['rim-panorama']);
     const d = f.craterDescent.local;
-    expect(ids(tr.photo(at(d.x, d.z), false))).toEqual(['crater-layers']);
-    expect(ids(tr.photo(at(L.x, L.z), true))).toEqual(['earth-on-horizon']);
-    expect(ids(tracker(drill).photo(at(v.x, v.z), true))).toEqual([]);
+    expect(ids(tr.photo(at(d.x, d.z), false, 1))).toEqual(['crater-layers']);
+    // A dark new Earth does not count, even in view.
+    expect(ids(tr.photo(at(L.x, L.z), true, data.tuning.milestones.earthPhotoMinLit - 0.01))).toEqual([]);
+    expect(ids(tr.photo(at(L.x, L.z), true, data.tuning.milestones.earthPhotoMinLit))).toEqual(['earth-on-horizon']);
+    expect(ids(tracker(drill).photo(at(v.x, v.z), true, 1))).toEqual([]);
   });
 
-  it('Drill: regolith anywhere, water ice only at the ice candidate', () => {
+  it('Drill: regolith away from the lander, water ice only at the hidden ice spot', () => {
     const tr = tracker(drill);
-    expect(ids(tr.drill(at(L.x, L.z)))).toEqual(['regolith-sample']);
+    const min = data.tuning.milestones.sampleMinDistanceM;
+    expect(ids(tr.drill(at(L.x, L.z)))).toEqual([]); // no free sample at the lander
+    expect(ids(tr.drill(at(L.x + min - 5, L.z)))).toEqual([]);
+    expect(ids(tr.drill(at(L.x + min + 5, L.z)))).toEqual(['regolith-sample']);
     const crater = f.shadowedCrater.centroidLocal;
     expect(ids(tr.drill(at(crater.x + 300, crater.z - 400)))).toEqual([]);
     const ice = f.shadowedCrater.iceCandidate.local;
     expect(ids(tr.drill(at(ice.x + 20, ice.z)))).toEqual(['water-ice']);
     expect(ids(tracker(drill).drill(at(ice.x, ice.z)))).toEqual(['regolith-sample', 'water-ice']);
     expect(ids(tracker(camera).drill(at(ice.x, ice.z)))).toEqual([]);
+  });
+
+  it('the ice spot is small and lies just inside the dark crater, on the side facing the landing', () => {
+    const sc = f.shadowedCrater;
+    const ice = sc.iceCandidate.local;
+    const r = data.tuning.milestones.iceSpotRadiusM;
+    const zone = zones.find((z) => z.id === 'shadowed-crater')!;
+    // The whole ice zone is inside the permanent-shadow outline.
+    for (let a = 0; a < 360; a += 15) {
+      const p = at(ice.x + r * Math.cos((a * Math.PI) / 180), ice.z + r * Math.sin((a * Math.PI) / 180));
+      expect(zoneContains(zone, p)).toBe(true);
+    }
+    // Most of the crater is dry: the ice zone is under 2% of its area.
+    expect((Math.PI * r * r) / (sc.area_km2 * 1e6)).toBeLessThan(0.02);
+    // Near side: closer to the landing than the crater's centroid, 100-200 m inside the shadow edge.
+    const dist = (p: { x: number; z: number }) => Math.hypot(p.x - L.x, p.z - L.z);
+    expect(dist(ice)).toBeLessThan(dist(sc.centroidLocal));
+    expect(sc.iceCandidate.depthInsideShadow_m).toBeGreaterThanOrEqual(100);
+    expect(sc.iceCandidate.depthInsideShadow_m).toBeLessThanOrEqual(200);
   });
 
   it('Flare survivor on a protected flare; Clean run only when surviving without damage', () => {

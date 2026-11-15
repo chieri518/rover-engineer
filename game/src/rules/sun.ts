@@ -52,6 +52,15 @@ export function sunAt(
   return skyDirection(azimuth, Math.asin(sinEl) / DEG);
 }
 
+/**
+ * Share of Earth's disc that is sunlit as seen from the Moon (its phase): (1 − cos E) / 2, where E is the
+ * angle between the Sun and Earth. 0 = new Earth (Sun behind Earth), 1 = full Earth (Sun behind the viewer).
+ */
+export function earthLitShare(sun: SkyDirection, earth: SkyDirection): number {
+  const cosE = sun.x * earth.x + sun.y * earth.y + sun.z * earth.z;
+  return (1 - Math.min(1, Math.max(-1, cosE))) / 2;
+}
+
 /** Total Sun azimuth swept over a full mission, in degrees. */
 export function sunSweepDeg(sun: SunTuning, mission: Tuning['mission']): number {
   return sun.degreesPerEarthDay * mission.gameDays;

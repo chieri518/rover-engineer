@@ -167,7 +167,7 @@ export interface Tuning {
 /** Zone sizes and actions for the milestones (zones come from terrain.json features). */
 export interface MilestoneTuning {
   photoZoneRadiusM: number; // viewpoint zones: a circle this wide around each terrain.json viewpoint
-  iceSpotRadiusM: number; // drilling within this distance of the ice candidate finds ice
+  iceSpotRadiusM: number; // drilling within this distance of the hidden ice spot finds ice
   boulderCrossRadiusFactor: number; // a rocky area's zone is its radius times this (where the boulders lie)
   boulderCrossMinAngleDeg: number; // "cross": entry and exit points at least this far apart around the center
   craterDescentDepthM: number; // de Gerlache's inner wall: at least this far below the landing point...
@@ -175,6 +175,8 @@ export interface MilestoneTuning {
   drillSeconds: number; // mission seconds the rover stands still while drilling
   albumMax: number; // photos kept per mission
   photoFrameMargin: number; // Earth counts as in view inside this share of the frame (NDC)
+  sampleMinDistanceM: number; // drill samples count only this far from the landing point (ground the lander disturbed)
+  earthPhotoMinLit: number; // the Earth photo counts only when at least this share of Earth's disc is lit (its phase)
 }
 
 /** The Sun's path over the mission. Azimuths follow terrain.json: from local -z, turning toward +x. */
@@ -260,7 +262,7 @@ export interface TextFile {
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
     | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief'
-    | 'legendLander' | 'legendViewpoint' | 'legendCrater' | 'legendCold' | 'legendIce',
+    | 'legendLander' | 'legendViewpoint' | 'legendCrater' | 'legendCold',
     string
   >;
   warnings: Record<
@@ -281,7 +283,7 @@ export interface TextFile {
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
     | 'cameraControls' | 'drillControls' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
-    | 'viewpointHint' | 'earthHint' | 'iceHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce'
+    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'earthDarkHint'
     | 'captionEarth' | 'captionDay' | 'captionSurface',
     string
   >;
