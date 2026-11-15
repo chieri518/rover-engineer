@@ -1,0 +1,1168 @@
+{
+  "version": 1,
+  "generated": "2026-11-14",
+  "generator": "game/tools/build_terrain.py",
+  "site": "de Gerlache crater rim, lunar south pole (NASA PGDA LOLA Site11)",
+  "frame": {
+    "description": "Local right-handed, y-up frame in meters (Three.js convention). Origin = play-area center (a Site11 pixel center). +x = polar-stereographic +X (grid east); +z = polar-stereographic -Y (grid south), so image rows increase with +z and image columns with +x. +y = up (radial).",
+    "originPolarStereo": {
+      "X": -40997.5,
+      "Y": 16892.5
+    },
+    "originLatLon": [
+      -88.537797,
+      -67.60651
+    ],
+    "projection": "South polar stereographic, lat_0=-90, lon_0=0, true scale at the pole, sphere R=1737400 m (scale error < 0.02% inside 8 km, < 0.4% at 200 km; ignored)",
+    "toPolarStereo": "X = originX + x ; Y = originY - z",
+    "fromPolarStereo": "x = X - originX ; z = originY - Y",
+    "heights": "All heightmaps store TANGENT-PLANE heights: LOLA elevation above the 1737.4 km sphere minus the curvature drop r^2 / (2R), r = horizontal distance from the origin. A flat-world renderer then shows the real horizon (about 2.4 km away for a 1.7 m camera on flat ground). To recover LOLA elevation: elevation = height + (x^2 + z^2) / (2 * 1737400).",
+    "towardPole": {
+      "x": 0.9246,
+      "z": 0.381,
+      "distance_km": 44.34,
+      "note": "The south pole (and Shackleton crater) lies this way."
+    },
+    "azimuthConvention": "azimuth_deg is measured from local -z, turning toward +x (clockwise seen from above). Direction vector = (x: sin(az), z: -cos(az)). For a body at infinity (Sun, Earth) the azimuth equals its sub-point longitude (deg east) to within ~0.1 deg here."
+  },
+  "sunAndEarth": {
+    "siteLatitude_deg": -88.5378,
+    "siteLongitude_deg": -67.6065,
+    "elevationFormula": "sin(el) = sin(siteLat) * sin(subLat) + cos(siteLat) * cos(subLat) * cos(subLon - siteLon)",
+    "sun": "Azimuth = subsolar longitude; it decreases about 12.19 deg per Earth day, so the Sun circles counterclockwise seen from above (-z -> -x -> +z -> +x). Subsolar latitude stays within +/-1.54 deg, so the Sun's elevation here is about -subLat + 1.46 * cos(az - (-67.6)) deg: highest when it is opposite the pole direction (az 292), lowest toward the pole.",
+    "earth": {
+      "direction": {
+        "x": 0.0,
+        "z": -1.0
+      },
+      "azimuth_deg": 0.0,
+      "note": "Earth sits near longitude 0, i.e. toward local -z, swinging about +/-8 deg in azimuth (libration). Its elevation is about +0.6 deg +/- 6.7 deg, so it bobs above and below the horizon over a month. Horizon height toward -z from the landing point: -0.57 deg."
+    }
+  },
+  "playArea": {
+    "size_m": 8000,
+    "pixel_m": 5,
+    "samples": 1601,
+    "boundsLocal": {
+      "xMin": -4000,
+      "xMax": 4000,
+      "zMin": -4000,
+      "zMax": 4000
+    },
+    "boundsPolarStereo": {
+      "Xmin": -44997.5,
+      "Xmax": -36997.5,
+      "Ymin": 12892.5,
+      "Ymax": 20892.5
+    },
+    "pixelToLocal": "sample (col, row) -> x = (col - 800) * 5, z = (row - 800) * 5 (vertex-centered grid)",
+    "files": {
+      "heightmap": {
+        "file": "heightmap.png",
+        "encoding": "uint16 grayscale PNG",
+        "min_m": 86,
+        "max_m": 1812,
+        "formula": "height_m = min_m + value / 65535 * (max_m - min_m)"
+      },
+      "slope": {
+        "file": "slope.png",
+        "encoding": "uint8 grayscale PNG",
+        "formula": "slope_deg = value / 4",
+        "source": "PGDA Site11 slope product (5 m)"
+      },
+      "coldMask": {
+        "file": "cold-mask.png",
+        "encoding": "uint8 grayscale PNG",
+        "formula": "psr_fraction = value / 255; value >= 128 means permanently shadowed",
+        "source": "LOLA permanent-shadow map LPSR_85S_060M (60 m), bilinear to 5 m"
+      },
+      "illumination": {
+        "file": "illumination.png",
+        "encoding": "uint8 grayscale PNG",
+        "formula": "fraction_of_time_sunlit = value / 255 (average over 18.6 years)",
+        "source": "LOLA average illumination AVGVISIB_85S_060M (60 m), bilinear to 5 m"
+      },
+      "earthVisibility": {
+        "file": "earth-visibility.png",
+        "encoding": "uint8 grayscale PNG",
+        "formula": "fraction_of_time_Earth_visible = value / 255",
+        "source": "LOLA average Earth visibility AVGVISIB_85S_060M_EARTH (60 m)"
+      }
+    },
+    "elevationRange_m": [
+      96.2,
+      1816.0
+    ]
+  },
+  "distantTerrain": [
+    {
+      "name": "near ring",
+      "file": "distant-near.png",
+      "encoding": "uint16 grayscale PNG",
+      "min_m": -2492,
+      "max_m": 1810,
+      "formula": "height_m = min_m + value / 65535 * (max_m - min_m)",
+      "size_m": 50000,
+      "pixel_m": 50,
+      "samples": 1001,
+      "boundsLocal": {
+        "xMin": -25000,
+        "xMax": 25000,
+        "zMin": -25000,
+        "zMax": 25000
+      },
+      "pixelToLocal": "x = (col - 500) * 50, z = (row - 500) * 50",
+      "hole": "Covers the play area too; skip or sink the part inside playArea.boundsLocal.",
+      "source": "LOLA 20 m polar DEM (LDEM_80S_20MPP_ADJ), area-averaged to 50 m",
+      "datumOffsetApplied_m": 0.09
+    },
+    {
+      "name": "far ring",
+      "file": "distant-far.png",
+      "encoding": "uint16 grayscale PNG",
+      "min_m": -26296,
+      "max_m": 1801,
+      "formula": "height_m = min_m + value / 65535 * (max_m - min_m)",
+      "size_m": 400000,
+      "pixel_m": 400,
+      "samples": 1001,
+      "boundsLocal": {
+        "xMin": -200000,
+        "xMax": 200000,
+        "zMin": -200000,
+        "zMax": 200000
+      },
+      "pixelToLocal": "x = (col - 500) * 400, z = (row - 500) * 400",
+      "hole": "Covers the near ring too; skip or sink the part inside the near ring's bounds.",
+      "source": "LOLA 80 m polar DEM (LDEM_80S_80MPP_ADJ), area-averaged to 400 m",
+      "datumOffsetApplied_m": 0.09
+    }
+  ],
+  "landing": {
+    "name": "Landing",
+    "local": {
+      "x": -735,
+      "z": 0,
+      "y": 1537.04
+    },
+    "polarStereo": {
+      "X": -41732.5,
+      "Y": 16892.5
+    },
+    "latLon": [
+      -88.51536,
+      -67.96286
+    ],
+    "elevation_m": 1537.2,
+    "slope_deg": 0.3,
+    "avgIllumination": 0.663,
+    "earthVisibility": 0.602,
+    "distanceToNearestPSR_m": 2783,
+    "slope_deg_75m_mean": 2.38
+  },
+  "features": {
+    "rimViewpoints": [
+      {
+        "name": "Rim viewpoint 1",
+        "local": {
+          "x": -970,
+          "z": -430,
+          "y": 1504.81
+        },
+        "polarStereo": {
+          "X": -41967.5,
+          "Y": 17322.5
+        },
+        "latLon": [
+          -88.50282,
+          -67.5711
+        ],
+        "elevation_m": 1505.1,
+        "distanceFromLanding_m": 490,
+        "driveDistanceFromLanding_m": 539,
+        "slope_deg": 8.6,
+        "avgIllumination": 0.456,
+        "earthVisibility": 0.612,
+        "relief1km_m": 419,
+        "lookToward": {
+          "x": -0.291,
+          "z": 0.957,
+          "note": "toward the de Gerlache crater interior"
+        }
+      },
+      {
+        "name": "Rim viewpoint 2",
+        "local": {
+          "x": -1910,
+          "z": -850,
+          "y": 1551.02
+        },
+        "polarStereo": {
+          "X": -42907.5,
+          "Y": 17742.5
+        },
+        "latLon": [
+          -88.46889,
+          -67.5346
+        ],
+        "elevation_m": 1552.3,
+        "distanceFromLanding_m": 1450,
+        "driveDistanceFromLanding_m": 1618,
+        "slope_deg": 9.8,
+        "avgIllumination": 0.417,
+        "earthVisibility": 0.616,
+        "relief1km_m": 397,
+        "lookToward": {
+          "x": -0.291,
+          "z": 0.957,
+          "note": "toward the de Gerlache crater interior"
+        }
+      }
+    ],
+    "rockyAreas": [
+      {
+        "name": "Rocky area 1",
+        "local": {
+          "x": -1170,
+          "z": -230,
+          "y": 1452.62
+        },
+        "polarStereo": {
+          "X": -42167.5,
+          "Y": 17122.5
+        },
+        "latLon": [
+          -88.49922,
+          -67.8999
+        ],
+        "elevation_m": 1453.0,
+        "distanceFromLanding_m": 492,
+        "driveDistanceFromLanding_m": 341,
+        "slope_deg": 18.7,
+        "avgIllumination": 0.0,
+        "earthVisibility": 0.028,
+        "radius_m": 200,
+        "slopeExcess_deg": 9.0,
+        "description": "Small fresh crater; scatter boulders on its rim and out to about one crater radius. Its inner wall may be too steep to drive."
+      },
+      {
+        "name": "Rocky area 2",
+        "local": {
+          "x": -430,
+          "z": 1290,
+          "y": 1361.17
+        },
+        "polarStereo": {
+          "X": -41427.5,
+          "Y": 15602.5
+        },
+        "latLon": [
+          -88.54021,
+          -69.3625
+        ],
+        "elevation_m": 1361.7,
+        "distanceFromLanding_m": 1326,
+        "driveDistanceFromLanding_m": 1223,
+        "slope_deg": 28.3,
+        "avgIllumination": 0.397,
+        "earthVisibility": 0.0,
+        "radius_m": 200,
+        "slopeExcess_deg": 4.8,
+        "description": "Small fresh crater; scatter boulders on its rim and out to about one crater radius. Its inner wall may be too steep to drive."
+      }
+    ],
+    "shadowedCrater": {
+      "description": "Permanently shadowed region (LOLA PSR map, Mazarico et al. 2011) in an unnamed, degraded crater on the outer (northern) flank of the de Gerlache rim",
+      "area_km2": 0.87,
+      "centroidLocal": {
+        "x": -163,
+        "z": -3350
+      },
+      "outlineLocal_xz": [
+        [
+          -190,
+          -2729
+        ],
+        [
+          -225,
+          -2762
+        ],
+        [
+          -270,
+          -2788
+        ],
+        [
+          -330,
+          -2800
+        ],
+        [
+          -360,
+          -2840
+        ],
+        [
+          -420,
+          -2848
+        ],
+        [
+          -461,
+          -2875
+        ],
+        [
+          -500,
+          -2908
+        ],
+        [
+          -565,
+          -2915
+        ],
+        [
+          -583,
+          -2965
+        ],
+        [
+          -600,
+          -3020
+        ],
+        [
+          -638,
+          -3050
+        ],
+        [
+          -670,
+          -3086
+        ],
+        [
+          -703,
+          -3125
+        ],
+        [
+          -703,
+          -3195
+        ],
+        [
+          -703,
+          -3265
+        ],
+        [
+          -703,
+          -3335
+        ],
+        [
+          -680,
+          -3383
+        ],
+        [
+          -644,
+          -3415
+        ],
+        [
+          -643,
+          -3485
+        ],
+        [
+          -635,
+          -3549
+        ],
+        [
+          -595,
+          -3580
+        ],
+        [
+          -565,
+          -3620
+        ],
+        [
+          -527,
+          -3650
+        ],
+        [
+          -523,
+          -3715
+        ],
+        [
+          -485,
+          -3748
+        ],
+        [
+          -415,
+          -3748
+        ],
+        [
+          -355,
+          -3760
+        ],
+        [
+          -325,
+          -3800
+        ],
+        [
+          -265,
+          -3808
+        ],
+        [
+          -195,
+          -3808
+        ],
+        [
+          -160,
+          -3842
+        ],
+        [
+          -121,
+          -3860
+        ],
+        [
+          -90,
+          -3820
+        ],
+        [
+          -35,
+          -3808
+        ],
+        [
+          35,
+          -3808
+        ],
+        [
+          105,
+          -3808
+        ],
+        [
+          140,
+          -3842
+        ],
+        [
+          185,
+          -3868
+        ],
+        [
+          255,
+          -3868
+        ],
+        [
+          325,
+          -3868
+        ],
+        [
+          373,
+          -3845
+        ],
+        [
+          377,
+          -3780
+        ],
+        [
+          412,
+          -3745
+        ],
+        [
+          437,
+          -3700
+        ],
+        [
+          425,
+          -3640
+        ],
+        [
+          385,
+          -3610
+        ],
+        [
+          355,
+          -3572
+        ],
+        [
+          319,
+          -3540
+        ],
+        [
+          317,
+          -3470
+        ],
+        [
+          310,
+          -3406
+        ],
+        [
+          270,
+          -3375
+        ],
+        [
+          257,
+          -3320
+        ],
+        [
+          257,
+          -3250
+        ],
+        [
+          230,
+          -3209
+        ],
+        [
+          197,
+          -3170
+        ],
+        [
+          197,
+          -3100
+        ],
+        [
+          185,
+          -3040
+        ],
+        [
+          145,
+          -3010
+        ],
+        [
+          115,
+          -2972
+        ],
+        [
+          79,
+          -2940
+        ],
+        [
+          43,
+          -2905
+        ],
+        [
+          10,
+          -2866
+        ],
+        [
+          -30,
+          -2835
+        ],
+        [
+          -60,
+          -2795
+        ],
+        [
+          -120,
+          -2788
+        ],
+        [
+          -161,
+          -2760
+        ]
+      ],
+      "entryPoint": {
+        "name": "Shadowed crater entry",
+        "local": {
+          "x": -190,
+          "z": -2690,
+          "y": 874.49
+        },
+        "polarStereo": {
+          "X": -41187.5,
+          "Y": 19582.5
+        },
+        "latLon": [
+          -88.49611,
+          -64.5714
+        ],
+        "elevation_m": 876.6,
+        "distanceFromLanding_m": 2745,
+        "driveDistanceFromLanding_m": 2924,
+        "slope_deg": 11.2,
+        "avgIllumination": 0.021,
+        "earthVisibility": 0.39
+      },
+      "iceCandidate": {
+        "name": "Ice candidate",
+        "local": {
+          "x": -210,
+          "z": -3330,
+          "y": 848.36
+        },
+        "polarStereo": {
+          "X": -41207.5,
+          "Y": 20222.5
+        },
+        "latLon": [
+          -88.48633,
+          -63.8606
+        ],
+        "elevation_m": 851.6,
+        "distanceFromLanding_m": 3371,
+        "driveDistanceFromLanding_m": 3572,
+        "slope_deg": 2.7,
+        "avgIllumination": 0.0,
+        "earthVisibility": 0.212
+      }
+    },
+    "craterDescent": {
+      "name": "de Gerlache wall descent",
+      "local": {
+        "x": -1110,
+        "z": 710,
+        "y": 1385.31
+      },
+      "polarStereo": {
+        "X": -42107.5,
+        "Y": 16182.5
+      },
+      "latLon": [
+        -88.51245,
+        -68.9775
+      ],
+      "elevation_m": 1385.8,
+      "distanceFromLanding_m": 803,
+      "driveDistanceFromLanding_m": 857,
+      "slope_deg": 13.5,
+      "avgIllumination": 0.371,
+      "earthVisibility": 0.0,
+      "triggerBelowElevation_m": 1387
+    },
+    "deGerlacheFloorPSR": {
+      "area_km2": 241.3,
+      "nearestPointPolarStereo": {
+        "X": -48570,
+        "Y": 10050
+      },
+      "nearestPointLocal": {
+        "x": -7572,
+        "z": 6842
+      },
+      "distanceFromLanding_m": 9673,
+      "insidePlayArea": false,
+      "note": "Largest LOLA permanent-shadow region within 25 km of the de Gerlache crater center (the crater floor). Visible from the rim but outside the play area."
+    },
+    "notes": [
+      "Drive distances are least-cost routes on a 20 m grid avoiding slopes over 20 deg; straight-line distances are also given.",
+      "Rocky areas are small fresh craters (compact steep patches against the regional slope); driveDistance is to the nearest drivable point within ~150 m. Place boulders densest there.",
+      "Small PSRs (< 0.1 km^2, mostly inside fresh craters) are also in cold-mask.png; one sits in Rocky area 1 if that crater is close to the landing point. Drop them from the cold zone if the freeze mechanic should only apply in the big shadowed crater.",
+      "On the de Gerlache side of the play area 43% of the ground is steeper than 20 deg at 20 m scale, but routes exist: the lowest drivable point on that side is at 165 m (landing is 1537 m).",
+      "The de Gerlache crater floor PSR is NOT inside the play area: its nearest point is 9.7 km from the landing point. The shadowed crater used here is a smaller real PSR on the rim's outer flank."
+    ]
+  },
+  "horizonFromLanding": {
+    "eyeHeight_m": 1.7,
+    "elevation_deg_by_azimuth": [
+      -0.57,
+      -0.69,
+      -0.84,
+      -0.89,
+      -0.91,
+      -0.94,
+      -0.99,
+      -1.04,
+      -1.07,
+      -1.11,
+      -1.17,
+      -1.11,
+      -1.0,
+      -0.86,
+      -0.59,
+      -0.48,
+      -0.35,
+      -0.17,
+      -0.07,
+      -0.07,
+      -0.1,
+      -0.18,
+      -0.18,
+      -0.12,
+      -0.07,
+      -0.09,
+      -0.17,
+      -0.41,
+      -0.7,
+      -1.05,
+      -1.36,
+      -1.49,
+      -1.63,
+      -1.81,
+      -1.73,
+      -1.65,
+      -1.63,
+      -1.58,
+      -1.54,
+      -1.51,
+      -1.46,
+      -1.43,
+      -1.31,
+      -1.07,
+      -0.94,
+      -0.88,
+      -0.76,
+      -0.69,
+      -0.68,
+      -0.69,
+      -0.78,
+      -0.92,
+      -0.8,
+      -0.79,
+      -0.81,
+      -0.93,
+      -1.13,
+      -1.21,
+      -1.17,
+      -1.17,
+      -1.22,
+      -1.33,
+      -1.63,
+      -1.78,
+      -1.8,
+      -1.82,
+      -1.78,
+      -1.72,
+      -1.74,
+      -1.8,
+      -1.92,
+      -2.06,
+      -2.17,
+      -2.21,
+      -2.07,
+      -1.99,
+      -1.93,
+      -1.83,
+      -1.47,
+      -1.19,
+      -0.87,
+      -0.53,
+      -0.18,
+      0.16,
+      0.51,
+      0.82,
+      1.13,
+      1.43,
+      1.75,
+      2.06,
+      2.35,
+      2.74,
+      3.11,
+      3.4,
+      3.67,
+      3.86,
+      4.05,
+      4.26,
+      4.51,
+      4.73,
+      5.01,
+      5.23,
+      5.41,
+      5.54,
+      5.68,
+      5.86,
+      6.05,
+      6.15,
+      6.3,
+      6.39,
+      6.48,
+      6.44,
+      6.47,
+      6.4,
+      6.27,
+      6.17,
+      6.14,
+      6.07,
+      6.08,
+      6.06,
+      6.01,
+      5.86,
+      5.78,
+      5.71,
+      5.62,
+      5.51,
+      5.53,
+      5.23,
+      4.98,
+      4.84,
+      4.65,
+      4.48,
+      4.32,
+      4.29,
+      4.03,
+      3.82,
+      3.66,
+      3.41,
+      3.18,
+      2.98,
+      2.82,
+      2.55,
+      2.39,
+      2.18,
+      2.04,
+      1.93,
+      1.72,
+      1.59,
+      1.59,
+      1.32,
+      1.06,
+      0.89,
+      0.78,
+      0.72,
+      0.64,
+      0.51,
+      0.39,
+      0.21,
+      -0.05,
+      -0.29,
+      -0.4,
+      -0.53,
+      -0.66,
+      -0.78,
+      -0.91,
+      -1.04,
+      -1.18,
+      -1.27,
+      -1.33,
+      -1.37,
+      -1.38,
+      -1.38,
+      -1.37,
+      -1.37,
+      -1.4,
+      -1.43,
+      -1.6,
+      -1.77,
+      -1.93,
+      -2.06,
+      -2.17,
+      -2.31,
+      -2.43,
+      -2.54,
+      -2.64,
+      -2.72,
+      -2.8,
+      -2.85,
+      -2.82,
+      -2.88,
+      -2.91,
+      -3.05,
+      -3.0,
+      -2.94,
+      -2.94,
+      -3.0,
+      -3.02,
+      -3.01,
+      -3.0,
+      -2.99,
+      -3.0,
+      -3.04,
+      -3.08,
+      -3.11,
+      -3.06,
+      -3.04,
+      -3.06,
+      -3.1,
+      -3.06,
+      -3.03,
+      -2.98,
+      -2.92,
+      -2.88,
+      -2.72,
+      -2.48,
+      -2.2,
+      -2.01,
+      -1.74,
+      -1.5,
+      -1.31,
+      -1.25,
+      -1.29,
+      -1.28,
+      -1.31,
+      -1.12,
+      -1.03,
+      -1.22,
+      -1.12,
+      -1.03,
+      -1.11,
+      -1.28,
+      -1.68,
+      -2.12,
+      -2.16,
+      -2.2,
+      -2.2,
+      -2.2,
+      -2.13,
+      -2.2,
+      -2.31,
+      -2.38,
+      -2.49,
+      -2.63,
+      -2.84,
+      -3.1,
+      -3.15,
+      -3.18,
+      -3.23,
+      -3.26,
+      -3.32,
+      -3.41,
+      -3.41,
+      -3.44,
+      -3.42,
+      -3.33,
+      -3.23,
+      -3.13,
+      -3.11,
+      -3.1,
+      -3.01,
+      -2.86,
+      -2.78,
+      -2.69,
+      -2.57,
+      -2.49,
+      -2.42,
+      -2.35,
+      -2.23,
+      -2.12,
+      -1.98,
+      -2.01,
+      -1.79,
+      -1.56,
+      -1.3,
+      -1.07,
+      -0.89,
+      -0.75,
+      -0.67,
+      -0.55,
+      -0.49,
+      -0.47,
+      -0.46,
+      -0.33,
+      -0.12,
+      0.04,
+      0.24,
+      0.39,
+      0.56,
+      0.67,
+      0.79,
+      0.91,
+      1.02,
+      1.11,
+      1.22,
+      1.32,
+      1.32,
+      1.3,
+      1.27,
+      1.23,
+      1.22,
+      1.2,
+      1.12,
+      1.0,
+      0.89,
+      0.77,
+      0.71,
+      0.55,
+      0.34,
+      0.15,
+      -0.06,
+      -0.29,
+      -0.48,
+      -0.68,
+      -0.9,
+      -1.1,
+      -1.24,
+      -1.48,
+      -1.71,
+      -1.91,
+      -2.14,
+      -2.39,
+      -2.47,
+      -2.58,
+      -2.61,
+      -2.64,
+      -2.62,
+      -2.38,
+      -2.04,
+      -1.75,
+      -1.53,
+      -1.43,
+      -1.33,
+      -1.21,
+      -1.09,
+      -1.17,
+      -1.13,
+      -1.26,
+      -1.52,
+      -1.69,
+      -1.73,
+      -2.0,
+      -2.31,
+      -2.28,
+      -2.16,
+      -2.06,
+      -1.94,
+      -1.83,
+      -1.71,
+      -1.68,
+      -1.68,
+      -1.74,
+      -1.86,
+      -1.82,
+      -1.8,
+      -1.82,
+      -1.63,
+      -1.3,
+      -0.94,
+      -0.63,
+      -0.52
+    ],
+    "note": "Index = azimuth in degrees (see frame.azimuthConvention). Includes curvature; compare with the Sun/Earth elevation to know if they are above the local horizon."
+  },
+  "distantPeaks": [
+    {
+      "local": {
+        "x": 126800,
+        "z": -96800
+      },
+      "polarStereo": {
+        "X": 85802,
+        "Y": 113692
+      },
+      "latLon": [
+        -85.305,
+        37.041
+      ],
+      "elevation_m": 6742,
+      "distanceFromLanding_km": 160.1,
+      "azimuth_deg": 52.8,
+      "elevationAngleFromLanding_deg": -0.76,
+      "visibleFromLanding": true,
+      "likelyName": "Mons Mouton (Leibnitz Beta plateau)"
+    },
+    {
+      "local": {
+        "x": 112000,
+        "z": -100400
+      },
+      "polarStereo": {
+        "X": 71002,
+        "Y": 117292
+      },
+      "latLon": [
+        -85.481,
+        31.188
+      ],
+      "elevation_m": 6284,
+      "distanceFromLanding_km": 151.0,
+      "azimuth_deg": 48.3,
+      "elevationAngleFromLanding_deg": -0.67,
+      "visibleFromLanding": true,
+      "likelyName": "Mons Mouton (Leibnitz Beta plateau)"
+    },
+    {
+      "local": {
+        "x": 123200,
+        "z": -90000
+      },
+      "polarStereo": {
+        "X": 82202,
+        "Y": 106892
+      },
+      "latLon": [
+        -85.555,
+        37.561
+      ],
+      "elevation_m": 6086,
+      "distanceFromLanding_km": 153.2,
+      "azimuth_deg": 54.0,
+      "elevationAngleFromLanding_deg": -0.8,
+      "visibleFromLanding": true,
+      "likelyName": "Mons Mouton (Leibnitz Beta plateau)"
+    },
+    {
+      "local": {
+        "x": -71200,
+        "z": -138400
+      },
+      "polarStereo": {
+        "X": -112198,
+        "Y": 155292
+      },
+      "latLon": [
+        -83.688,
+        -35.848
+      ],
+      "elevation_m": 5554,
+      "distanceFromLanding_km": 155.3,
+      "azimuth_deg": 333.0,
+      "elevationAngleFromLanding_deg": -1.09,
+      "visibleFromLanding": true
+    },
+    {
+      "local": {
+        "x": 45200,
+        "z": -104400
+      },
+      "polarStereo": {
+        "X": 4202,
+        "Y": 121292
+      },
+      "latLon": [
+        -85.999,
+        1.984
+      ],
+      "elevation_m": 5147,
+      "distanceFromLanding_km": 114.1,
+      "azimuth_deg": 23.7,
+      "elevationAngleFromLanding_deg": -0.06,
+      "visibleFromLanding": true,
+      "likelyName": "Malapert massif"
+    },
+    {
+      "local": {
+        "x": 33600,
+        "z": -105600
+      },
+      "polarStereo": {
+        "X": -7398,
+        "Y": 122492
+      },
+      "latLon": [
+        -85.955,
+        -3.456
+      ],
+      "elevation_m": 4946,
+      "distanceFromLanding_km": 111.0,
+      "azimuth_deg": 18.0,
+      "elevationAngleFromLanding_deg": -0.07,
+      "visibleFromLanding": true,
+      "likelyName": "Malapert massif"
+    }
+  ],
+  "files_bytes": {
+    "cold-mask.png": 11418,
+    "distant-far.png": 1381847,
+    "distant-near.png": 1340819,
+    "earth-visibility.png": 101891,
+    "heightmap.png": 2584499,
+    "illumination.png": 305924,
+    "slope.png": 1183598
+  },
+  "sources": [
+    {
+      "dataset": "LOLA 5 m/px site DEM and slope, Site11 (de Gerlache rim)",
+      "url": "https://pgda.gsfc.nasa.gov/data/LOLA_5mpp/Site11/Site11_final_adj_5mpp_surf.tif",
+      "citation": "Barker, M.K., et al. (2021), Improved LOLA elevation maps for south pole landing sites: Error estimates and their impact on illumination conditions, Planetary and Space Science, 203, 105119, doi:10.1016/j.pss.2020.105119",
+      "provider": "NASA Goddard PGDA (pgda.gsfc.nasa.gov/products/78)"
+    },
+    {
+      "dataset": "LOLA south polar DEMs at 20 m and 80 m/px",
+      "url": [
+        "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_20MPP_ADJ.TIF",
+        "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_80MPP_ADJ.TIF"
+      ],
+      "citation": "Barker, M.K., et al. (2023), Improved LOLA elevation maps for south pole landing sites, Planetary and Space Science (PGDA product 90)",
+      "provider": "NASA Goddard PGDA (pgda.gsfc.nasa.gov/products/90)"
+    },
+    {
+      "dataset": "LOLA polar illumination, permanent shadow and Earth visibility maps (85S, 60 m/px)",
+      "url": [
+        "https://pgda.gsfc.nasa.gov/data/MoonIllumination/LPSR_85S_060M_201608.TIF",
+        "https://pgda.gsfc.nasa.gov/data/MoonIllumination/AVGVISIB_85S_060M_201608.TIF",
+        "https://pgda.gsfc.nasa.gov/data/MoonIllumination/AVGVISIB_85S_060M_201608_EARTH.TIF"
+      ],
+      "citation": "Mazarico, E., et al. (2011), Illumination conditions of the lunar polar regions using LOLA topography, Icarus, 211, 1066-1081, doi:10.1016/j.icarus.2010.10.030",
+      "provider": "NASA Goddard PGDA (pgda.gsfc.nasa.gov/products/69) / PDS LOLA"
+    }
+  ],
+  "credits": [
+    "Terrain: NASA LRO Lunar Orbiter Laser Altimeter (LOLA) elevation models, NASA Goddard PGDA; Barker et al. 2021, 2023.",
+    "Sunlight, permanent shadow and Earth visibility: NASA LRO LOLA polar illumination maps; Mazarico et al. 2011."
+  ]
+}
