@@ -1,150 +1,110 @@
 {
-  "_about": "Mars overlay: replaces the Moon's milestone list (arrays replace). Ids are prefixed or distinct from the Moon's, because records are kept per campaign.",
-  "_interface": "money and rp are placeholders set with Owner A.",
-  "_placeholder": "Milestones and survey track (M5): triggers, zones, summaries and fact-checked facts.",
+  "_about": "Mars overlay: replaces the Moon's milestone list (arrays replace). Ids are prefixed or distinct from the Moon's, because records are kept per campaign. Rules in rules/milestones.ts; zone sizes and the sunset band in data/mars/tuning.json milestones. Facts fact-checked November 15, 2026 (M5).",
+  "_interface": "money and rp are placeholders set with Owner A. Sized so a run that drives, photographs or drills earns several times what a rover idling at the lander earns (Touchdown, perhaps Storm survivor).",
   "milestones": [
     {
       "id": "mars-touchdown",
       "name": "Touchdown",
       "category": "record",
       "record": true,
-      "trigger": {
-        "type": "landing"
-      },
+      "trigger": { "type": "landing" },
       "requires": {},
-      "money": 50,
-      "rp": 5,
-      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
-      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
-      "source": "[placeholder]"
+      "money": 80,
+      "rp": 8,
+      "summary": "The rover has landed on the floor of Jezero crater and deployed from the lander.",
+      "fact": "The Soviet Mars 3 lander made the first soft landing on Mars on December 2, 1971, but stopped transmitting within seconds; NASA's Viking 1 made the first lasting, successful landing on July 20, 1976.",
+      "source": "NASA JPL, \"NASA Mars Orbiter Images May Show 1971 Soviet Lander\" (jpl.nasa.gov/news/nasa-mars-orbiter-images-may-show-1971-soviet-lander/); NASA Science, \"Viking 1\" (science.nasa.gov/mission/viking-1/)"
     },
     {
       "id": "mars-odometer",
       "name": "Odometer",
       "category": "capability",
       "record": false,
-      "trigger": {
-        "type": "distance",
-        "meters": [
-          500,
-          1000,
-          2000
-        ]
-      },
+      "trigger": { "type": "distance", "meters": [500, 1500, 3000] },
       "requires": {},
-      "money": 20,
+      "money": 30,
       "rp": 2,
-      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
-      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
-      "source": "[placeholder]"
+      "summary": "Total distance driven: {meters} m.",
+      "fact": "Opportunity drove 45.16 km on Mars between 2004 and 2018, a record for another world until Perseverance passed it in October 2026.",
+      "source": "NASA Science, \"NASA's Perseverance Sets Off-World Record for Total Distance Driven\" (science.nasa.gov/blogs/perseverance-mars-rover/2026/10/12/nasas-perseverance-sets-off-world-record-for-total-distance-driven/)"
     },
     {
       "id": "mars-mapper",
       "name": "Mapper",
       "category": "capability",
       "record": false,
-      "trigger": {
-        "type": "explore",
-        "share": 0.018
-      },
+      "trigger": { "type": "explore", "share": 0.025 },
       "requires": {},
-      "money": 40,
-      "rp": 4,
-      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
-      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
-      "source": "[placeholder]"
+      "money": 60,
+      "rp": 3,
+      "summary": "The rover has surveyed {share}% of the map.",
+      "fact": "During its 2021 landing, Perseverance's Terrain-Relative Navigation matched descent-camera images to an onboard map made from Mars Reconnaissance Orbiter images, then steered toward a safe spot in Jezero.",
+      "source": "USGS, \"Mars 2020 Mission to be Guided by USGS Astrogeology Maps\" (usgs.gov/news/mars-2020-mission-be-guided-usgs-astrogeology-maps)"
     },
     {
       "id": "night-drive",
       "name": "Night drive",
       "category": "capability",
       "record": false,
-      "trigger": {
-        "type": "night-distance",
-        "meters": [
-          200
-        ]
-      },
-      "requires": {
-        "slots": [
-          "lights",
-          "heater"
-        ]
-      },
-      "money": 60,
-      "rp": 6,
-      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
-      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
-      "source": "[placeholder]"
+      "trigger": { "type": "night-distance", "meters": [100, 300] },
+      "requires": { "slots": ["lights", "heater"] },
+      "money": 50,
+      "rp": 3,
+      "summary": "Distance driven after dark, by the rover's own lights: {meters} m.",
+      "fact": "Martian nights are brutally cold: Perseverance's weather station recorded lows near -83 °C at Jezero, so the rover keeps its electronics warm with heat from its nuclear power source and electric heaters.",
+      "source": "NASA, \"NASA's First Weather Report from Jezero Crater on Mars\" (nasa.gov/feature/nasa-s-first-weather-report-from-jezero-crater-on-mars); NASA JPL, Mars 2020 press kit, \"Power\" (jpl.nasa.gov/news/press_kits/mars_2020/launch/mission/spacecraft/power/)"
     },
     {
       "id": "storm-survivor",
       "name": "Storm survivor",
       "category": "capability",
       "record": false,
-      "trigger": {
-        "type": "storm-survive"
-      },
+      "trigger": { "type": "storm-survive" },
       "requires": {},
       "money": 60,
-      "rp": 6,
-      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
-      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
-      "source": "[placeholder]"
+      "rp": 3,
+      "summary": "The dust storm has cleared and the rover is still operating.",
+      "fact": "A 2018 planet-wide dust storm blocked sunlight to Opportunity, which last contacted Earth on June 10; NASA ended its mission on February 13, 2019. Nuclear-powered Curiosity kept working.",
+      "source": "NASA JPL, \"NASA's Opportunity Rover Mission on Mars Comes to End\" (jpl.nasa.gov/news/nasas-opportunity-rover-mission-on-mars-comes-to-end/)"
     },
     {
       "id": "delta-layers",
       "name": "Delta layers",
       "category": "scientific",
       "record": false,
-      "trigger": {
-        "type": "photo",
-        "zone": "delta-layers"
-      },
-      "requires": {
-        "instrument": "camera"
-      },
-      "money": 80,
-      "rp": 20,
-      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
-      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
-      "source": "[placeholder]"
+      "trigger": { "type": "photo", "zone": "delta-layers" },
+      "requires": { "instrument": "camera" },
+      "money": 100,
+      "rp": 25,
+      "summary": "The camera imaged the layered front of Jezero's ancient river delta.",
+      "fact": "Perseverance's 2021 images of the 'Kodiak' butte showed delta layers laid down by a river flowing into a lake, confirming that Jezero once held a lake.",
+      "source": "Mangold et al., Science 374 (2021), \"Perseverance rover reveals an ancient delta-lake system and flood deposits at Jezero crater, Mars\" (doi.org/10.1126/science.abl4051)"
     },
     {
-      "id": "lake-sediment-sample",
-      "name": "Lake sediment sample",
+      "id": "core-sample",
+      "name": "Core sample",
       "category": "scientific",
       "record": false,
-      "trigger": {
-        "type": "drill",
-        "sites": 3
-      },
-      "requires": {
-        "instrument": "drill"
-      },
-      "money": 40,
-      "rp": 10,
-      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
-      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
-      "source": "[placeholder]"
+      "trigger": { "type": "drill", "sites": 3 },
+      "requires": { "instrument": "drill" },
+      "money": 60,
+      "rp": 12,
+      "summary": "The drill collected a rock core, away from the ground the lander disturbed.",
+      "fact": "Jezero's crater floor turned out to be volcanic rock; the lake's mud is in the delta, where in July 2022 Perseverance cored 'Wildcat Ridge' and SHERLOC detected the mission's most abundant organic molecules.",
+      "source": "NASA JPL, \"NASA's Perseverance Rover Investigates Geologically Rich Mars Terrain\" (jpl.nasa.gov/news/nasas-perseverance-rover-investigates-geologically-rich-mars-terrain/)"
     },
     {
       "id": "blue-sunset",
       "name": "Blue sunset",
       "category": "picture",
       "record": false,
-      "trigger": {
-        "type": "photo",
-        "target": "sunset"
-      },
-      "requires": {
-        "instrument": "camera"
-      },
-      "money": 40,
-      "rp": 4,
-      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
-      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
-      "source": "[placeholder]"
+      "trigger": { "type": "photo", "target": "sunset" },
+      "requires": { "instrument": "camera" },
+      "money": 70,
+      "rp": 3,
+      "summary": "The camera photographed the Sun setting over Jezero crater.",
+      "fact": "Curiosity photographed a blue sunset in Gale crater on April 15, 2015 (sol 956): fine dust in Mars' air lets blue light pass through more efficiently, so blue stays closer to the Sun.",
+      "source": "NASA JPL, \"Sunset in Mars' Gale Crater\" (science.nasa.gov/photojournal/sunset-in-mars-gale-crater)"
     }
   ]
 }
