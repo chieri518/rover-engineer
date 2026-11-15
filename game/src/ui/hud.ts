@@ -14,6 +14,18 @@ export interface HudMeters {
 }
 
 const NOTICE_SECONDS = 4;
+const MILESTONE_SECONDS = 6;
+const MILESTONE_FACT_SECONDS = 10; // longer when the history fact is shown, so it can be read
+
+/** A milestone pop-up, already worded. */
+export interface MilestoneCard {
+  label: string; // "Milestone reached · Capability"
+  title: string;
+  body: string;
+  reward: string | null; // null when nothing is paid (a record already held)
+  note?: string;
+  fact?: string; // only when the Mission history setting is on
+}
 
 function meter(label: string, cls: string) {
   const fillEl = el('div', { class: 'meter-fill' });
@@ -45,6 +57,8 @@ export class Hud {
   private readonly flareText = el('div', {});
   private readonly flareBar = el('div', { class: 'flare-bar-fill' });
   private readonly flash = el('div', { class: 'flare-flash' });
+  private readonly hint = el('div', { class: 'hud-hint', hidden: true });
+  private readonly cards = el('div', { class: 'milestone-cards', 'aria-live': 'polite' });
   private lastWarnings = '';
 
   constructor(
@@ -67,7 +81,8 @@ export class Hud {
         this.power,
         extra,
       ),
-      el('div', { class: 'hud-center' }, this.flare, this.warnings, this.notices),
+      el('div', { class: 'hud-center' }, this.flare, this.warnings, this.notices, this.hint),
+      this.cards,
       this.flash,
     );
   }
@@ -99,6 +114,27 @@ export class Hud {
     window.setTimeout(() => n.remove(), NOTICE_SECONDS * 1000);
   }
 
+  /** A standing hint (e.g. "Viewpoint: press C"), or null to hide it. */
+  setHint(message: string | null): void {
+    this.hint.hidden = message === null;
+    if (message !== null && this.hint.textContent !== message) this.hint.textContent = message;
+  }
+
+  /** A milestone pop-up in the corner; it fades after a few seconds. */
+  milestone(card: MilestoneCard): void {
+    const node = el('div', { class: 'milestone-card', role: 'status' },
+      el('div', { class: 'milestone-label' }, card.label),
+      el('div', { class: 'milestone-title' }, card.title),
+      el('p', {}, card.body),
+      card.reward && el('div', { class: 'milestone-reward' }, card.reward),
+      card.note && el('p', { class: 'muted' }, card.note),
+      card.fact && el('p', { class: 'fact' }, card.fact),
+    );
+    this.cards.append(node);
+    while (this.cards.childElementCount > 3) this.cards.firstElementChild?.remove();
+    window.setTimeout(() => node.remove(), (card.fact ? MILESTONE_FACT_SECONDS : MILESTONE_SECONDS) * 1000);
+  }
+
   /** The flare warning: share of the warning time left (1 → 0), or null to hide it. */
   setFlareWarning(message: string | null, remaining: number): void {
     this.flare.hidden = message === null;
@@ -125,6 +161,7 @@ export class Hud {
       ),
     );
     this.setWarnings([]);
+    this.setHint(null);
     this.setFlareWarning(null, 0);
     this.power.disabled = true;
     button.focus();

@@ -8,8 +8,15 @@ import {
 import type { MissionResult } from '../rules/payout';
 import { quoteBuild } from '../rules/quote';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
+import { loadSettings, saveSettings, type Settings } from '../save/settings';
 
-export type ScreenId = 'title' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'marsSoon';
+/** A photograph taken during the mission, kept in memory for the debrief album. */
+export interface AlbumPhoto {
+  src: string; // JPEG data URL
+  caption: string;
+}
+
+export type ScreenId = 'title' | 'settings' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'marsSoon';
 
 /** A screen renders into root and may return a cleanup function. */
 export type Screen = (game: Game, root: HTMLElement) => void | (() => void);
@@ -19,6 +26,9 @@ export class Game {
   build: Build;
   outcome: RoundOutcome | null = null;
   lastResult: MissionResult | null = null;
+  /** Photographs from the last mission (not saved: data URLs are too large for localStorage). */
+  album: AlbumPhoto[] = [];
+  settings: Settings = loadSettings();
   private current: ScreenId = 'title';
   private cleanup: (() => void) | null = null;
 
@@ -78,8 +88,14 @@ export class Game {
     this.go('landing');
   }
 
-  endMission(result: MissionResult): void {
+  setSettings(patch: Partial<Settings>): void {
+    this.settings = { ...this.settings, ...patch };
+    saveSettings(this.settings);
+  }
+
+  endMission(result: MissionResult, album: AlbumPhoto[] = []): void {
     this.lastResult = result;
+    this.album = album;
     this.outcome = finishMission(this.state, result, this.data);
     this.setCampaign(this.outcome.state);
     this.go('debrief');

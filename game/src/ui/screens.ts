@@ -1,5 +1,8 @@
-// Screens. Title, landing, debrief and "Mars: coming soon" are still placeholders (Phases 5 and 6).
-import type { Screen, ScreenId } from '../flow/flow';
+// Screens: title, settings, landing, debrief and "Mars: coming soon". The design, ticket and mission
+// screens have their own files.
+import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
+import type { HistoryKey } from '../rules/types';
+import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
 import { designScreen } from './designScreen';
@@ -15,6 +18,7 @@ const title: Screen = (game, root) => {
       el('div', { class: 'actions' },
         el('button', { class: 'primary', onclick: () => game.newCampaign() }, t.newCampaign),
         game.campaign && el('button', { onclick: () => game.continueCampaign() }, t.continueCampaign),
+        el('button', { onclick: () => game.go('settings') }, game.data.text.settings.open),
       ),
     ),
   );
@@ -31,44 +35,113 @@ const landing: Screen = (game, root) => {
   );
 };
 
-const debrief: Screen = (game, root) => {
-  const { data } = game;
-  const t = data.text.debrief;
-  const outcome = game.outcome;
-  if (!outcome) return void game.go('title');
-  const { payout, failed, state } = outcome;
-  const lastResult = game.lastResult;
-  const cause = lastResult?.cause;
+const settings: Screen = (game, root) => {
+  const t = game.data.text.settings;
+  const box = el('input', {
+    type: 'checkbox',
+    id: 'setting-history',
+    checked: game.settings.missionHistory,
+    onchange: () => game.setSettings({ missionHistory: box.checked }),
+  });
   root.append(
     panel(
       el('h2', {}, t.heading),
-      el('p', {}, lastResult?.survived ? t.survived : `Cause: ${cause ? data.text.causes[cause] : 'unknown'}`),
-      lastResult && el('p', { class: 'muted' }, fill(data.text.hud.lasted, {
-        days: lastResult.survived ? data.tuning.mission.gameDays : gameDaysElapsed(lastResult.secondsLasted, data.tuning.mission).toFixed(1),
-        total: data.tuning.mission.gameDays,
-      })),
-      el('ul', { class: 'milestones' },
-        ...payout.milestones.map((p) =>
-          el('li', {},
-            `${p.milestone.name}${p.stages > 1 ? ` ×${p.stages}` : ''}: ${money(p.money, data.text)}, ${p.rp} RP`,
-            el('div', { class: 'fact' }, p.milestone.fact),
-          ),
-        ),
+      el('div', { class: 'setting' },
+        box,
+        el('label', { for: 'setting-history' }, t.history),
+        el('p', { class: 'muted' }, t.historyHelp),
       ),
-      el('div', { class: 'readout' },
-        el('div', {}, `Survival payout: ${money(payout.survivalPayout, data.text)}`),
-        el('div', {}, `Milestones: ${money(payout.milestoneMoney, data.text)}`),
-        el('div', {}, `Penalty: ${money(-payout.penalty, data.text)}`),
-        el('div', {}, `Net: ${money(payout.money, data.text)}`),
-        el('div', {}, `RP earned: ${payout.rp}`),
-        el('div', {}, `Balance: ${money(state.balance, data.text)}`),
+      el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => game.go('title') }, t.back)),
+    ),
+  );
+};
+
+function row(label: string, value: string, cls = ''): HTMLElement {
+  return el('div', { class: `row ${cls}` }, el('span', { class: 'label' }, label), el('span', { class: 'value' }, value));
+}
+
+/** Click a photo to see it full size; click again to close. */
+function albumView(photos: AlbumPhoto[]): HTMLElement {
+  return el('div', { class: 'album' },
+    ...photos.map((p) => el('figure', {},
+      el('img', {
+        src: p.src,
+        alt: p.caption,
+        onclick: () => {
+          const view = el('figure', { class: 'album-view', onclick: () => view.remove() },
+            el('div', {}, el('img', { src: p.src, alt: p.caption }), el('figcaption', {}, p.caption)));
+          document.body.append(view);
+        },
+      }),
+      el('figcaption', {}, p.caption),
+    )),
+  );
+}
+
+const debrief: Screen = (game, root) => {
+  const { data } = game;
+  const { text } = data;
+  const t = text.debrief;
+  const outcome = game.outcome;
+  const result = game.lastResult;
+  if (!outcome || !result) return void game.go('title');
+  const { payout, failed, state } = outcome;
+  const history = game.settings.missionHistory;
+  const historyKey: HistoryKey = result.survived ? 'survived' : result.detail === 'rollover' ? 'rollover' : (result.cause ?? 'energy');
+  const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
+
+  // Milestones in catalog order; records already held this campaign are listed without a reward.
+  const items = data.milestones.milestones.flatMap((m) => {
+    const earned = result.earned.find((e) => e.id === m.id);
+    if (!earned) return [];
+    const paid = payout.milestones.find((p) => p.milestone.id === m.id);
+    const stages = earned.stages ?? 1;
+    const maxStages = m.trigger.type === 'distance' ? m.trigger.meters.length : 1;
+    return [el('li', {},
+      el('span', {}, el('strong', {}, maxStages > 1 ? `${m.name} ×${stages}` : m.name), ` · ${categoryLabel(m.category, text)}`),
+      paid
+        ? el('span', { class: 'reward' }, fill(text.milestone.reward, { money: money(paid.money, text), rp: paid.rp }))
+        : el('span', { class: 'reward none' }, t.recordHeld),
+      el('span', { class: 'sub' }, milestoneSummary(m, stages)),
+      history && el('span', { class: 'sub fact' }, m.fact),
+    )];
+  });
+
+  root.append(
+    el('section', { class: 'panel debrief' },
+      el('h2', {}, t.heading),
+      el('p', { class: `outcome${result.survived ? '' : ' failed'}` },
+        result.survived ? t.survived : fill(t.cause, { cause: causeText(result, text) })),
+      el('p', { class: 'muted' }, fill(text.hud.lasted, { days, total: data.tuning.mission.gameDays })),
+
+      el('h3', {}, t.milestonesHeading),
+      items.length ? el('ul', { class: 'debrief-milestones' }, ...items) : el('p', { class: 'muted' }, t.noMilestones),
+
+      el('h3', {}, t.payoutHeading),
+      el('div', { class: 'ledger' },
+        row(t.survivalPayout, money(payout.survivalPayout, text)),
+        row(t.milestoneMoney, money(payout.milestoneMoney, text)),
+        row(result.survived ? t.penalty : `${t.penalty} (${causeText(result, text)})`, money(-payout.penalty, text), payout.penalty > 0 ? 'bad' : ''),
+        row(t.net, money(payout.money, text), 'total'),
+        row(t.rpEarned, String(payout.rp)),
+        row(t.balance, money(state.balance, text), 'total'),
       ),
-      el('p', { class: 'fact' }, data.text.history[lastResult?.survived ? 'survived' : (cause ?? 'energy')]),
-      el('p', {}, failed ? t.failedRound : t.passedRound),
+      el('p', { class: 'note' }, text.moneyNote),
+
+      el('h3', {}, t.albumHeading),
+      game.album.length ? albumView(game.album) : el('p', { class: 'muted' }, t.noPhotos),
+
+      history && el('h3', {}, t.historyHeading),
+      history && el('div', { class: 'history' },
+        el('p', {}, text.history[historyKey]),
+        el('p', { class: 'note' }, `Source: ${text.historySources[historyKey]}`),
+      ),
+
+      el('p', { class: failed ? 'outcome failed' : 'outcome' }, failed ? t.failedRound : t.passedRound),
       el('div', { class: 'actions' },
         failed
-          ? el('button', { class: 'primary', onclick: () => game.restartRound() }, 'Restart round')
-          : el('button', { class: 'primary', onclick: () => game.go('marsSoon') }, 'Continue'),
+          ? el('button', { class: 'primary', onclick: () => game.restartRound() }, t.restart)
+          : el('button', { class: 'primary', onclick: () => game.go('marsSoon') }, t.continue),
       ),
     ),
   );
@@ -76,16 +149,17 @@ const debrief: Screen = (game, root) => {
 
 const marsSoon: Screen = (game, root) => {
   const { data } = game;
+  const t = data.text.marsSoon;
   root.append(
     panel(
-      el('h2', {}, data.text.marsSoon.heading),
-      el('p', {}, data.text.marsSoon.body),
+      el('h2', {}, t.heading),
+      el('p', {}, t.body),
       el('div', { class: 'readout' },
-        el('div', { class: 'big' }, `Research points banked: ${game.state.rp}`),
-        el('div', {}, `Balance: ${money(game.state.balance, data.text)}`),
+        el('div', { class: 'big' }, fill(t.rpBanked, { rp: game.state.rp })),
+        el('div', {}, fill(t.balance, { balance: money(game.state.balance, data.text) })),
       ),
       el('div', { class: 'actions' },
-        el('button', { onclick: () => game.go('title') }, 'Back to title'),
+        el('button', { onclick: () => game.go('title') }, t.backToTitle),
         el('button', { class: 'primary', onclick: () => game.newCampaign() }, data.text.title.newCampaign),
       ),
     ),
@@ -94,6 +168,7 @@ const marsSoon: Screen = (game, root) => {
 
 export const screens: Record<ScreenId, Screen> = {
   title,
+  settings,
   design: designScreen,
   ticket: ticketScreen,
   landing,
