@@ -2,7 +2,7 @@
 
 The working design for **Rover Engineer**, our entry to the Space Mission Design Game challenge. It is written for our team, not for players.
 
-Last updated November 14, 2026. The official brief is in [challenge brief](challenge-brief.md). Background research is in [landscape research](research/landscape-precedents-and-judging.md), [mission-engineering/](research/mission-engineering/README.md), and [rover-engineering/](research/rover-engineering/README.md).
+Last updated November 15, 2026. The official brief is in [challenge brief](challenge-brief.md). The catalog of rover components, instruments, and how they constrain each other is in [rover engineering design](rover-engineering-design.md). Background research is in [landscape research](research/landscape-precedents-and-judging.md), [mission-engineering/](research/mission-engineering/README.md), and [rover-engineering/](research/rover-engineering/README.md).
 
 **How to read this doc.** Everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). All open items are collected in [Open questions](#2-open-questions).
 
@@ -58,7 +58,7 @@ The design screen is a **constraint puzzle**. On the Moon it is simply mass vers
 
 - **1a Sun window:** start azimuth 75° and subsolar latitude −1.54°, both real geometry. This keeps the route and rim viewpoints lit until about 220 to 250 s and removes the Sun passing behind Earth. The rover starts facing azimuth 0° (toward Earth and the dark crater route), where 99% of the ground ahead is lit at the start. See [Sun and shadows](#sun-and-shadows).
 - **1b Water ice reach:** the smaller drill (size 3, 8 kg, cost 90) stays. The ice is one optional way to pass the Moon, never required; see [Balance: several ways to pass](#balance-several-ways-to-pass).
-- **1c Clue for finding the ice:** the hydrogen signal stays (`milestones.hydrogenSignal`).
+- **1c Clue for finding the ice:** the hydrogen signal stays (`milestones.hydrogenSignal`). *Superseded later on November 15 (not built yet):* with the payload bay, the hydrogen clue moves from the drill to a new neutron spectrometer's live meter, and the drill gives no reading; see [rover engineering design](rover-engineering-design.md#7-the-moon-payload).
 
 ### Later: Mars and Titan
 
@@ -288,7 +288,7 @@ Seven slots, two options each. For lights and heater, one option is **None**: sk
 | Battery | Energy storage |
 | Lights | None, or floodlights. Needed to drive into permanent shadow: without them the rover stops at its edge. |
 | Heater | None, or radioisotope heater units. Slows freezing in the cold. |
-| Instrument | Camera or drill. Decides which milestones the rover can complete. |
+| Instrument | Camera or drill. Decides which milestones the rover can complete. **Changing (decided November 15, not built yet):** this slot becomes a payload bay that holds several instruments. Its rules (mounting points set by the chassis: steel 3, titanium 2; instrument energy use) and the Moon payload of six instruments are decided and described in [rover engineering design](rover-engineering-design.md#4-the-payload-bay). |
 
 ### Mass versus cost
 
@@ -405,7 +405,7 @@ The starting list. Distances and amounts are game values to balance.
 | Earth on the horizon | Pretty picture | Photograph a sunlit Earth (at least a quarter lit) from the surface, at least 300 m from the lander. Earth is only visible from the north side of the rim. | Camera |
 | Rim panorama | Pretty picture | Photograph the view from a crater rim | Camera |
 
-- The Moon has one instrument slot, so **camera or drill** is the Moon's science choice. The camera earns pictures and imaging science; the drill earns samples and the water ice.
+- The Moon has one instrument slot, so **camera or drill** is the Moon's science choice. The camera earns pictures and imaging science; the drill earns samples and the water ice. *(Changing: the slot becomes a payload bay, decided November 15; see [rover engineering design](rover-engineering-design.md#7-the-moon-payload). Milestones for the new instruments come after that design is settled.)*
 - The Moon has almost no atmosphere, so air samples start on Mars and Titan.
 
 #### How the milestones work *(decided during implementation, Phase 5)*
@@ -419,7 +419,7 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
 - **Camera (C key).** Viewpoint zones are 60 m circles: the two rim viewpoints (Rim panorama) and the de Gerlache wall descent point on the inner wall (Crater layers). The Earth photo has no zone: it counts wherever Earth's center is above the real terrain horizon as seen from the camera and inside the frame, so it works only from the north side of the rim and only facing Earth. Earth must also be at least 25% lit (its phase, from the angle between the Sun and Earth; `earthPhotoMinLit` in tuning). With the decided Sun path (start 75°, subsolar latitude −1.54°), Earth is at least a quarter lit only in the first 26 s, a 37% to 25% crescent, and from about 238 s to the end, up to 55%: about 90 s in all. With the old start (17.4°), the window ran from about 137 s to the end. The photo also counts only at least 300 m from the landing point (`earthPhotoMinDistanceM`, decided November 15), because Earth is in view from the landing at the start and the photo should not be free. It can be earned in the late window at both rim viewpoints and anywhere on the north side 300 m or more from the lander (offline horizon test), so a camera build can plan for it. A photo of a darker Earth, or one taken too close to the lander, goes into the album, with a notice that says why it does not count. A photo is a real capture of the view. Photos can be taken anywhere for the album (up to 12 per mission) but earn milestones only at viewpoints or with Earth in view. The album is shown in the debrief and is not saved between sessions.
 - **Drill (F key).** The rover must be stopped; drilling takes 3 mission seconds, during which it holds still. A sample counts only at least 200 m from the landing point (`sampleMinDistanceM`), where the lander's engine plume did not disturb the ground, so there is no free sample at the start. *Balance pass (November 15):* Regolith sample is staged like the Odometer: one reward per sample site, up to three sites, each at least 200 m from the others (`sampleSpacingM`; `sites` on the trigger in `milestones.json`, 1 restores the single sample). A sample at an earlier site still goes in, with a notice that a new site must be 200 m away. This makes the drill a reason to travel, as the camera's viewpoints are.
 - **Water ice is found by searching** *(team decision, fix pass)*. The minimap marks the dark crater (the permanent-shadow region), not the ice. The ice spot is a 50 m circle (under 1% of the crater) placed by the terrain pipeline about 100 m inside the shadow edge, on the side facing the landing. It is fully permanently shadowed in the LOLA maps and in the game's own shadow test. A sample there earns Water ice. Anywhere else in the crater the drill reports "No water ice detected at this site." Inside the crater, a drill rover sees a hint to test-drill, never the spot itself. Reaching it needs about 3.2 km of driving.
-- **Hydrogen signal** *(decided November 15)*. Each drill sample inside the dark crater adds a reading to its notice:
+- **Hydrogen signal** *(decided November 15; superseded by the payload bay, not built yet: the clue becomes the neutron spectrometer's live meter and the drill gives no reading, see [rover engineering design](rover-engineering-design.md#7-the-moon-payload))*. As built today, each drill sample inside the dark crater adds a reading to its notice:
   - "Hydrogen signal: strong" within 100 m of the ice spot's center, "moderate" within 250 m, "weak" farther away. A rover entering at the near edge reads "moderate".
   - Samples outside the crater give no reading. The numbers are `hydrogenStrongWithinM` and `hydrogenModerateWithinM` in tuning, and `hydrogenSignal: false` turns the clue off.
   - With Mission history on, the first reading of a mission adds one real fact (`text.json` → `drill`): LRO's LEND neutron detector maps polar hydrogen from orbit the same way.
