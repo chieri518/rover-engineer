@@ -17,7 +17,7 @@
     "airGravityScale": 16
   },
   "sun": {
-    "_placeholder": "Stand-in for code that still reads the lunar model (the mission screen until Integration M6 switches to rules/marsSun.ts marsSunAt on the sol clock): the lunar model with the Sun fixed near noon at Ls 200 (subsolar longitude = site longitude, solar declination -8.4 deg), so the placeholder world stays lit.",
+    "_note": "Fallback only: the Mars mission screen and scene use the real Sun (rules/marsSun.ts marsSunAt on the sol clock). Code that still reads the lunar model sees the Sun fixed near noon at Ls 200 (subsolar longitude = site longitude, solar declination -8.4 deg).",
     "startAzimuthDeg": 77.45,
     "degreesPerEarthDay": 0,
     "subsolarLatitudeDeg": -8.4
@@ -37,9 +37,9 @@
   "milestones": {
     "_note": "M5. Mars zones: the delta front (deltaFront.zoneRadius_m from terrain.json), Seitah's outline, and photoZoneRadiusM circles around the deltaLayers and sunset viewpoints. Samples: the Moon's 200 m from the lander and from each other. No hydrogen signal (no ice on Mars).",
     "hydrogenSignal": false,
-    "_sunset": "Blue sunset: the setting Sun's center between sunsetMinElevationDeg and sunsetMaxElevationDeg, in frame and not hidden by terrain, at least sunsetPhotoMinDistanceM from the lander (the Sun sets in view of the lander every sol). With the rules track's eased Sun near the horizon (about 1.5 deg/s), 0 to 10 deg lasts about 6 s per dusk; widen the band here if playtests find it too tight.",
+    "_sunset": "Blue sunset: the setting Sun's center between sunsetMinElevationDeg and sunsetMaxElevationDeg, in frame and not hidden by terrain, at least sunsetPhotoMinDistanceM from the lander (the Sun sets in view of the lander every sol). Widened from 10 to 15 deg at integration (M6): from the landing the crater rim is about 4.9 deg high at the sunset azimuth, so with 10 deg the Sun was in the band and above the rim only about 2.2 s per dusk; with 15 deg about 4 s.",
     "sunsetMinElevationDeg": 0,
-    "sunsetMaxElevationDeg": 10,
+    "sunsetMaxElevationDeg": 15,
     "sunsetPhotoMinDistanceM": 300
   },
   "sol": {
