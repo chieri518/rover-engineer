@@ -9,7 +9,7 @@ export interface CampaignSnapshot {
 }
 
 export interface CampaignState {
-  mission: CampaignStep; // the mission this round is for ('titan': the campaign is over, "Titan: coming soon")
+  mission: CampaignStep; // the mission this round is for ('complete': the campaign is over)
   balance: number;
   rp: number;
   records: string[]; // record milestone ids, earned once per campaign
@@ -30,8 +30,8 @@ export interface MissionLogEntry {
   milestones: number; // milestones reached (records already held included)
 }
 
-/** Campaign order. Titan is the end marker: it is not playable yet ("Titan: coming soon"). */
-export const MISSION_ORDER: readonly CampaignStep[] = ['moon', 'mars', 'titan'];
+/** Campaign order. 'complete' is the end marker after the last mission (the campaign is over). */
+export const MISSION_ORDER: readonly CampaignStep[] = ['moon', 'mars', 'titan', 'complete'];
 
 export function isCampaignStep(v: unknown): v is CampaignStep {
   return typeof v === 'string' && (MISSION_ORDER as string[]).includes(v);
@@ -41,19 +41,22 @@ export function nextMission(mission: CampaignStep): CampaignStep | null {
   return MISSION_ORDER[MISSION_ORDER.indexOf(mission) + 1] ?? null;
 }
 
-/** A step that can be played (titan is the end marker). */
+/** A step that can be played ('complete' is the end marker). */
 export function isPlayable(step: CampaignStep): step is MissionId {
-  return step !== 'titan';
+  return step !== 'complete';
 }
 
 /**
  * Saves from before the campaign advanced on its own kept mission 'moon' after the Moon was completed:
  * move such a campaign on to the first mission it has not completed, with a fresh round snapshot.
+ * Saves from before Titan was playable ended at the old 'titan' end marker: that is now the Titan round
+ * (the Titan design screen); a playable round without a snapshot gets one.
  */
 export function normalizeCampaign(state: CampaignState): CampaignState {
   let mission = state.mission;
   for (let next = nextMission(mission); state.completed.includes(mission) && next; next = nextMission(mission)) mission = next;
-  return mission === state.mission ? state : startRound({ ...state, mission });
+  if (mission !== state.mission || (isPlayable(mission) && !state.snapshot)) return startRound({ ...state, mission });
+  return state;
 }
 
 export function newCampaign(tuning: Tuning): CampaignState {

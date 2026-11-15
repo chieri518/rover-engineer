@@ -123,7 +123,7 @@ const HARD_STOP_KEEP = 0.9; // share of horizontal velocity kept per physics ste
 export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene> {
   const { container, data } = opts;
   const tuning = data.tuning;
-  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(opts.world), initRapier(), loadAlbedo(opts.world, WORLDS[opts.world].sky === 'mars')]);
+  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(opts.world), initRapier(), loadAlbedo(opts.world, WORLDS[opts.world].sky !== 'moon')]);
   const { fine, near, far, info } = terrain;
   const site = { latitudeDeg: info.sunAndEarth.siteLatitude_deg, longitudeDeg: info.sunAndEarth.siteLongitude_deg };
 
@@ -138,7 +138,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400_000);
-  const mars = WORLDS[opts.world].sky === 'mars';
+  // Titan falls back to the Mars look until the Titan sky and light (T2) are wired in.
+  const mars = WORLDS[opts.world].sky !== 'moon';
   const marsSky = mars ? new MarsSky() : null;
   const sky = marsSky ?? new Sky(skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg));
   const photometry: Photometry = mars ? 'mars' : true;

@@ -1,0 +1,76 @@
+{
+  "_about": "Titan overlay, deep-merged over data/tuning.json (src/gameData.ts, rules/merge.ts). Keys starting with _ are notes and are dropped; null removes a shared key. Sections not listed here are the Moon's. Types: rules/types.ts Tuning, rules/titanTypes.ts, rules/marsTypes.ts (sol, night).",
+  "_placeholder": "Values in a section with a _placeholder note are stubs for the track named there. Values under _interface are set with Owner A. Titan reuses the Moon parts and ticket tiers (no Titan parts).",
+  "mission": {
+    "_note": "Decided: one Titan day in 15 minutes (sol.sols x sol.secondsPerSol = lengthSeconds). gameDays counts Titan days. gravity: Titan surface gravity, m/s^2 (to fact-check, R).",
+    "lengthSeconds": 900,
+    "gameDays": 1,
+    "gravity": 1.35
+  },
+  "payout": {
+    "_interface": "survivalPayout: Titan survival payout, Owner A sets it (placeholder: the Moon value). The Titan final mark is budget.minimumBudget.complete in data/tuning.json (placeholder 0: a Titan round fails only if the balance goes negative; T4 and Owner A decide the final mark).",
+    "survivalPayout": 50
+  },
+  "rover": {
+    "_placeholder": "Integration (T6) tunes on the real terrain. gravityScale keeps the ground gravity the Moon's handling was tuned for (1.35 x 4.8 = 6.48 m/s^2, the Moon's 1.62 x 4); airGravityScale stays the time-lapse value (16 x the world's gravity).",
+    "gravityScale": 4.8,
+    "airGravityScale": 16
+  },
+  "sun": {
+    "_placeholder": "Fallback only, until rules (T3) give the real Titan Sun and integration (T6) wires it: the lunar Sun model fixed near noon at the placeholder site (subsolar longitude = site longitude).",
+    "startAzimuthDeg": 160,
+    "degreesPerEarthDay": 0,
+    "subsolarLatitudeDeg": -10
+  },
+  "cold": {
+    "_note": "No cold zones on Titan: the cold is map-wide and always on (titanCold, rules track T3).",
+    "zones": []
+  },
+  "sol": {
+    "_placeholder": "Rules (T3) decide whether Titan reuses the sol clock (rules/sol.ts). Decided design: one day of 900 s, 450 s day then 450 s night, the mission starts 150 s after sunrise and ends 150 s after the next dawn. solarLongitudeDeg: Saturn's season at the site in 2034 (northern winter, to fact-check, R).",
+    "sols": 1,
+    "secondsPerSol": 900,
+    "daySeconds": 450,
+    "nightSeconds": 450,
+    "solarLongitudeDeg": 300,
+    "solarLongitudeDegPerSol": 0,
+    "horizonRateShare": 1,
+    "startSecondsIntoDay": 150
+  },
+  "night": {
+    "_placeholder": "Rules (T3) tune against the Moon batteries (400, 600) in titanEnergy.test.ts. The Mars night rules: lights on to drive, awake without lights, or sleep. freezeRatePerSecond and warmRecoveryPerSecond are unused on Titan (the cold is titanCold).",
+    "lightsDrainPerSecond": 1,
+    "awakeDrainPerSecond": 0.5,
+    "sleepDrainPerSecond": 0.15,
+    "driveWithoutLights": false,
+    "freezeRatePerSecond": 0,
+    "warmRecoveryPerSecond": 0,
+    "fullSunElevationDeg": 0
+  },
+  "sleep": {
+    "_placeholder": "Rules (T3). Proposed design: asleep at night, the clock runs 4x faster.",
+    "nightClockRate": 4
+  },
+  "titanPower": {
+    "_placeholder": "Rules (T3). Solar income = the Moon panel rate x solarFactor by day (effectively zero).",
+    "solarFactor": 0.001
+  },
+  "titanCold": {
+    "_placeholder": "Rules (T3). Always-on cold: base freeze rate everywhere; the heater (tuning.cold.heaterReductionPerHeat x heat) and the electronics while awake (awakeHeat, plus drivingHeat while driving) slow it; asleep only the heater does.",
+    "freezeRatePerSecond": 0.2,
+    "awakeHeat": 0.05,
+    "drivingHeat": 0.03
+  },
+  "look": {
+    "_placeholder": "Sky and light (T2): colors as hex strings, fog densities, light intensities, shadow softness, rain fog. Types: rules/titanTypes.ts TitanLookTuning."
+  },
+  "survey": {
+    "_placeholder": "Milestones and survey (T5). Orbital survey leads: the Selk ejecta field (rockyAreas.0). Text in data/titan/text.json survey.leads. Rounding is the Moon's.",
+    "leads": [
+      { "id": "ejecta", "site": "rockyAreas.0" }
+    ]
+  },
+  "milestones": {
+    "_placeholder": "Milestones and survey (T5): Titan zone sizes and actions (rules/titanTypes.ts TitanMilestoneTuning)."
+  }
+}

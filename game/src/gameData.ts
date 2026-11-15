@@ -10,6 +10,10 @@ import marsTuning from '../data/mars/tuning.json';
 import marsEvents from '../data/mars/events.json';
 import marsMilestones from '../data/mars/milestones.json';
 import marsText from '../data/mars/text.json';
+import titanTuning from '../data/titan/tuning.json';
+import titanEvents from '../data/titan/events.json';
+import titanMilestones from '../data/titan/milestones.json';
+import titanText from '../data/titan/text.json';
 import type { GameData, PartsFile, TiersFile, MilestonesFile, Tuning, EventsFile, TextFile } from './rules/types';
 import { validateGameData } from './rules/validate';
 import { deepMerge, withPartText } from './rules/merge';
@@ -28,6 +32,7 @@ const shared: GameData = {
 const overlays: Record<WorldId, Partial<Record<keyof GameData, unknown>>> = {
   moon: {},
   mars: { tuning: marsTuning, events: marsEvents, milestones: marsMilestones, text: marsText },
+  titan: { tuning: titanTuning, events: titanEvents, milestones: titanMilestones, text: titanText },
 };
 
 /** The world's data: shared data with the world's overlay merged over it. */

@@ -2,7 +2,7 @@
 // does not show them again. Every access is wrapped: without storage, "seen" lasts for the session.
 // Each world has its own design and drive tutorials (Mars explains the night and the dust storm), so
 // "seen" is kept per world. Stored as { design, drive } for the Moon (the original format) plus
-// { mars: { design, drive } }.
+// { mars: { design, drive }, titan: { design, drive } }.
 import type { WorldId } from '../worlds';
 
 export interface TutorialSeen {
@@ -36,19 +36,21 @@ function readSeen(v: unknown): TutorialSeen {
 export function loadTutorialSeen(store: KeyValueStore | null = defaultStore()): TutorialSeenByWorld {
   try {
     const raw = store?.getItem(TUTORIAL_KEY);
-    if (!raw) return { moon: unseen(), mars: unseen() };
-    const v = JSON.parse(raw) as { mars?: unknown } | null;
-    return { moon: readSeen(v), mars: readSeen(v?.mars) };
+    if (!raw) return { moon: unseen(), mars: unseen(), titan: unseen() };
+    const v = JSON.parse(raw) as { mars?: unknown; titan?: unknown } | null;
+    return { moon: readSeen(v), mars: readSeen(v?.mars), titan: readSeen(v?.titan) };
   } catch {
-    return { moon: unseen(), mars: unseen() };
+    return { moon: unseen(), mars: unseen(), titan: unseen() };
   }
 }
 
 export function saveTutorialSeen(seen: TutorialSeenByWorld, store: KeyValueStore | null = defaultStore()): boolean {
   try {
     if (!store) return false;
-    const { moon, mars } = seen;
-    store.setItem(TUTORIAL_KEY, JSON.stringify({ design: moon.design, drive: moon.drive, mars: { design: mars.design, drive: mars.drive } }));
+    const { moon, mars, titan } = seen;
+    store.setItem(TUTORIAL_KEY, JSON.stringify({
+      design: moon.design, drive: moon.drive, mars: { design: mars.design, drive: mars.drive }, titan: { design: titan.design, drive: titan.drive },
+    }));
     return true;
   } catch {
     return false;

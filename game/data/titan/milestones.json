@@ -1,0 +1,197 @@
+{
+  "_about": "Titan overlay: replaces the Moon's milestone list (arrays replace). Ids are distinct from the Moon's and Mars's, because records are kept per campaign. Rules in rules/milestones.ts (T5 adds the Titan triggers: rules/titanTypes.ts TitanMilestoneTrigger, TitanZoneId).",
+  "_placeholder": "Milestones and survey (T5): triggers, zones, summaries and facts; every fact is fact-checked by research (R) before it ships. dune-crossing and dawn triggers and the dune-crest-viewpoint and ejecta-field zones are not built yet (unknown triggers and zones are never reached).",
+  "_interface": "money and rp are placeholders set with Owner A (copied from the Mars scale).",
+  "milestones": [
+    {
+      "id": "titan-touchdown",
+      "name": "Touchdown",
+      "category": "record",
+      "record": true,
+      "trigger": {
+        "type": "landing"
+      },
+      "requires": {},
+      "money": 80,
+      "rp": 8,
+      "summary": "The rover has landed in an interdune corridor of the Shangri-La dune field on Titan and deployed from the lander.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "titan-odometer",
+      "name": "Odometer",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "distance",
+        "meters": [
+          500,
+          1500,
+          3000
+        ]
+      },
+      "requires": {},
+      "money": 30,
+      "rp": 2,
+      "summary": "Total distance driven: {meters} m.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "titan-mapper",
+      "name": "Mapper",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "explore",
+        "share": 0.025
+      },
+      "requires": {},
+      "money": 60,
+      "rp": 3,
+      "summary": "The rover has surveyed {share}% of the map.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "dune-crossing",
+      "name": "Dune crossing",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "dune-crossing"
+      },
+      "requires": {},
+      "money": 80,
+      "rp": 5,
+      "summary": "The rover has crossed a dune from one interdune corridor to the next.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "titan-night-drive",
+      "name": "Night drive",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "night-distance",
+        "meters": [
+          100,
+          300
+        ]
+      },
+      "requires": {
+        "slots": [
+          "lights",
+          "heater"
+        ]
+      },
+      "money": 50,
+      "rp": 3,
+      "summary": "Distance driven during the long Titan night: {meters} m.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "titan-dawn",
+      "name": "Dawn",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "dawn"
+      },
+      "requires": {},
+      "money": 80,
+      "rp": 5,
+      "summary": "The rover is still running as the Sun rises again over the dunes.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "titan-storm-survivor",
+      "name": "Storm survivor",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "storm-survive"
+      },
+      "requires": {},
+      "money": 60,
+      "rp": 3,
+      "summary": "The rover is still running after the methane rain has cleared.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "dune-sea",
+      "name": "Dune sea",
+      "category": "picture",
+      "record": false,
+      "trigger": {
+        "type": "photo",
+        "zone": "dune-crest-viewpoint"
+      },
+      "requires": {
+        "instrument": "camera"
+      },
+      "money": 70,
+      "rp": 3,
+      "summary": "The rover has photographed the dune field from a dune crest.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "organic-sands",
+      "name": "Organic sands sample",
+      "category": "scientific",
+      "record": false,
+      "trigger": {
+        "type": "drill",
+        "sites": 3
+      },
+      "requires": {
+        "instrument": "drill"
+      },
+      "money": 60,
+      "rp": 12,
+      "summary": "The rover has drilled a sample of the dune field's organic sands.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "crater-ejecta",
+      "name": "Crater ejecta",
+      "category": "record",
+      "record": true,
+      "trigger": {
+        "type": "drill",
+        "zone": "ejecta-field"
+      },
+      "requires": {
+        "instrument": "drill"
+      },
+      "money": 120,
+      "rp": 25,
+      "summary": "The rover has drilled into the ejecta blocks of Selk crater.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    },
+    {
+      "id": "titan-clean-run",
+      "name": "Clean run",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "survive",
+        "condition": "no-damage"
+      },
+      "requires": {},
+      "money": 40,
+      "rp": 3,
+      "summary": "The mission has ended without any damage to the rover.",
+      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
+      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+    }
+  ]
+}

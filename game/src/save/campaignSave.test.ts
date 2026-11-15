@@ -74,10 +74,10 @@ describe('campaign save across worlds', () => {
     expect(restartRound(loaded).balance).toBe(900);
   });
 
-  it('round-trips a finished campaign at the Titan marker, log included', () => {
+  it('round-trips a finished campaign at the end marker, log included', () => {
     const store = memoryStore();
     const done = {
-      ...newCampaign(testTuning), mission: 'titan' as const, completed: ['moon' as const, 'mars' as const],
+      ...newCampaign(testTuning), mission: 'complete' as const, completed: ['moon' as const, 'mars' as const, 'titan' as const],
       log: [{ mission: 'moon' as const, outcome: 'survived' as const, secondsLasted: 300, money: 400, rp: 30, milestones: 4 }],
     };
     saveCampaign(done, store);
@@ -85,6 +85,16 @@ describe('campaign save across worlds', () => {
     expect(loaded).toEqual(done);
     expect(normalizeCampaign(loaded)).toBe(loaded);
     expect(isPlayable(loaded.mission)).toBe(false);
+  });
+
+  it('a save at the old Titan end marker loads as the playable Titan round', () => {
+    const store = memoryStore();
+    const old = startRound({ ...newCampaign(testTuning), mission: 'titan' as const, completed: ['moon' as const, 'mars' as const], balance: 950 });
+    saveCampaign(old, store);
+    const loaded = normalizeCampaign(loadCampaign(store)!);
+    expect(loaded).toEqual(old);
+    expect(isPlayable(loaded.mission)).toBe(true);
+    expect(restartRound(loaded).balance).toBe(950);
   });
 
   it('rejects unknown missions', () => {
@@ -97,7 +107,7 @@ describe('campaign save across worlds', () => {
 
   it('a new campaign replaces a finished one', () => {
     const store = memoryStore();
-    saveCampaign({ ...newCampaign(testTuning), mission: 'titan', completed: ['moon', 'mars'] }, store);
+    saveCampaign({ ...newCampaign(testTuning), mission: 'complete', completed: ['moon', 'mars', 'titan'] }, store);
     clearCampaign(store);
     saveCampaign(startRound(newCampaign(testTuning)), store);
     expect(loadCampaign(store)).toMatchObject({ mission: 'moon', completed: [], log: [] });

@@ -1,6 +1,10 @@
 // Types for the JSON files in game/data/. These are the data contract.
 import type { DamageCause } from './damage';
 import type { DustStormSpec, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
+import type {
+  RainstormSpec, TitanColdTuning, TitanLookTuning, TitanMilestoneTrigger, TitanMilestoneTuning, TitanPowerTuning, TitanSleepTuning,
+  TitanTextSections,
+} from './titanTypes';
 
 export type Slot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater' | 'instrument';
 export type Instrument = 'camera' | 'drill';
@@ -58,7 +62,8 @@ export type MilestoneTrigger =
   | { type: 'event'; event: 'flare' | 'quake'; condition: 'no-damage' }
   /** no-damage: no damage from any cause except those listed (moonquakes cannot be avoided). */
   | { type: 'survive'; condition?: 'no-damage'; except?: DamageCause[] }
-  | MarsMilestoneTrigger;
+  | MarsMilestoneTrigger
+  | TitanMilestoneTrigger;
 
 export interface MilestoneRequirements {
   slots?: Slot[]; // the part in each slot must have a non-zero capability effect
@@ -87,16 +92,16 @@ export type DeathCause = 'energy' | 'stuck' | 'froze' | 'destroyed';
 /** Debrief real-rover comparisons: one per ending; a rollover is 'destroyed' with its own comparison. */
 export type HistoryKey = DeathCause | 'survived' | 'rollover';
 /** A playable world, and the mission played on it. See src/worlds.ts. */
-export type MissionId = 'moon' | 'mars';
-/** A step of the campaign: a playable mission, or the end marker after the last one ("Titan: coming soon"). */
-export type CampaignStep = MissionId | 'titan';
+export type MissionId = 'moon' | 'mars' | 'titan';
+/** A step of the campaign: a playable mission, or the end marker after the last one ('complete': the campaign is over). */
+export type CampaignStep = MissionId | 'complete';
 
 export interface Tuning {
   /** gravity: the world's surface gravity in m/s² (Mars sets its own in data/mars/tuning.json). */
   mission: { lengthSeconds: number; gameDays: number; gravity: number };
     budget: {
     startingBudget: number;
-    /** A step's minimum is the pass mark of the mission before it (titan: the Mars pass mark). */
+    /** A step's minimum is the pass mark of the mission before it (titan: the Mars pass mark; complete: the Titan final mark). */
     minimumBudget: Record<CampaignStep, number>;
   };
   payout: {
@@ -174,10 +179,15 @@ export interface Tuning {
     boundaryInsetM: number; // the operating boundary sits this far inside the 8 km play area
     warningDistanceM: number; // the "leaving the area" notice shows this close to the boundary
   };
-  milestones: MilestoneTuning & Partial<MarsMilestoneTuning>; // Mars fields: rules/marsTypes.ts
-  /** Mars only (data/mars/tuning.json): the sol clock and the night. See rules/marsTypes.ts. */
+  milestones: MilestoneTuning & Partial<MarsMilestoneTuning> & Partial<TitanMilestoneTuning>; // rules/marsTypes.ts, rules/titanTypes.ts
+  /** Mars and Titan (data/<world>/tuning.json): the sol clock (Titan: one sol of 900 s) and the night. See rules/marsTypes.ts. */
   sol?: SolTuning;
   night?: NightTuning;
+  /** Titan only (data/titan/tuning.json). See rules/titanTypes.ts. */
+  sleep?: TitanSleepTuning;
+  titanPower?: TitanPowerTuning;
+  titanCold?: TitanColdTuning;
+  look?: TitanLookTuning;
 }
 
 /** Zone sizes and actions for the milestones (zones come from terrain.json features). */
@@ -278,11 +288,12 @@ export interface QuakeSpec extends EventSpec {
   shakeSeconds: number;
 }
 
-/** Each world has its own events: the Moon has flares and quakes, Mars a dust storm (data/mars/events.json). */
+/** Each world has its own events: the Moon has flares and quakes, Mars a dust storm, Titan a methane rainstorm. */
 export interface EventsFile {
   flare?: FlareSpec;
   quake?: QuakeSpec;
   duststorm?: DustStormSpec;
+  rainstorm?: RainstormSpec; // Titan
 }
 
 export interface SharedTextFile {
@@ -333,7 +344,7 @@ export interface SharedTextFile {
   historySources: Record<HistoryKey, string>;
   /** Each world's name, for the credits and the campaign summary. */
   worlds: Record<MissionId, string>;
-  /** After the last playable mission ("Titan: coming soon"): banked RP and the campaign summary. */
+  /** After the last playable mission (the 'complete' end marker): banked RP and the campaign summary. */
   comingSoon: Record<
     | 'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle' | 'summaryHeading' | 'colMission' | 'colOutcome'
     | 'colNet' | 'colRp' | 'colMilestones' | 'completed' | 'records' | 'noLog',
@@ -366,8 +377,8 @@ export interface SharedTextFile {
   > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
 }
 
-/** text.json, with the Mars-only sections that data/mars/text.json adds. */
-export type TextFile = SharedTextFile & Partial<MarsTextSections>;
+/** text.json, with the Mars-only and Titan-only sections that data/mars/text.json and data/titan/text.json add. */
+export type TextFile = SharedTextFile & Partial<MarsTextSections> & Partial<TitanTextSections>;
 
 /** One page of a tutorial. {name} placeholders are filled from the game data. */
 export interface TutorialPage {

@@ -15,8 +15,9 @@ const root = document.querySelector<HTMLElement>('#app');
 if (!root) throw new Error('missing #app');
 
 loadGameData('mars'); // check every world's data at startup, not when the campaign reaches it
+loadGameData('titan');
 const game = new Game(loadGameData, root, screens);
-// Debug start: ?world=mars begins a throwaway campaign on Mars (not saved).
+// Debug start: ?world=mars or ?world=titan begins a throwaway campaign on that world (not saved).
 const debugWorld = worldFromQuery(location.search);
 if (debugWorld && debugWorld !== 'moon') game.debugStart(debugWorld);
 else game.go('title');

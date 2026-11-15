@@ -30,7 +30,7 @@ export const testTiers: Tier[] = [
 
 export const testTuning: Tuning = {
   mission: { lengthSeconds: 300, gameDays: 14, gravity: 1.62 },
-  budget: { startingBudget: 750, minimumBudget: { moon: 450, mars: 300, titan: 200 } },
+  budget: { startingBudget: 750, minimumBudget: { moon: 450, mars: 300, titan: 200, complete: 0 } },
   payout: {
     survivalPayout: 250,
     deathPenalty: { energy: 100, stuck: 200, froze: 300, destroyed: 400 },

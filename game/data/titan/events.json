@@ -1,0 +1,16 @@
+{
+  "_about": "Titan overlay, deep-merged over data/events.json. Solar flares and moonquakes stay on the Moon (null removes them). Types: rules/types.ts EventsFile, rules/titanTypes.ts RainstormSpec.",
+  "flare": null,
+  "quake": null,
+  "rainstorm": {
+    "_placeholder": "Rules (T3), proposed design: one methane rainstorm per mission, forecast 60 s ahead by the lander's weather station, about 60 s long. Visibility closes in, photos do not count, the cold rises faster. Window, ramp and factors are stubs; the source is to fact-check (R).",
+    "windowsSeconds": [[240, 600]],
+    "warningSeconds": 60,
+    "durationSeconds": 60,
+    "rampSeconds": 10,
+    "freezeFactor": 1.5,
+    "visibilityFactor": 0.3,
+    "blocksPhotos": true,
+    "source": "[to fact-check] Cassini saw large equatorial storms darken the surface with rain in 2010 (Turtle et al., Science 331, 2011)."
+  }
+}

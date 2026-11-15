@@ -1,0 +1,148 @@
+{
+  "_about": "Titan overlay, deep-merged over data/text.json (arrays replace). A minimal Titan wording so screens do not show Moon or Mars text. Owners: campaign and screens (T4) everything here except survey and instruments (milestones and survey, T5) and day, rain and cold (integration, T6). Titan sections: rules/titanTypes.ts TitanTextSections; the campaign section reuses the Mars shape (rules/marsTypes.ts MarsCampaignText).",
+  "_placeholder": "Every string here is a spine (T0) stub for the owning track to rewrite; real facts are fact-checked by research (R) before they ship.",
+  "partText": {
+    "_placeholder": "T4: Titan wording for the shared parts, by part id; numbers stay the Moon's.",
+    "power-fixed-panel": {
+      "description": "A flat panel. Almost no power at Titan: the thick haze lets through very little sunlight."
+    },
+    "power-solar-mast": {
+      "description": "Twice the fixed panel's solar income, which is still almost nothing at Titan. Light, expensive and bulky."
+    },
+    "lights-none": {
+      "description": "Saves cost, mass, and space. The rover cannot drive at night."
+    },
+    "lights-led": {
+      "description": "Lets the rover keep driving through the long night, at a high battery cost."
+    },
+    "heater-none": {
+      "description": "Saves cost, mass, and space. The rover freezes in Titan's constant cold."
+    },
+    "heater-rhu": {
+      "description": "Steady heat from decaying isotopes. Slows freezing in Titan's constant cold."
+    }
+  },
+  "landing": {
+    "heading": "Landing: Shangri-La dunes",
+    "briefing": "The lander has touched down in an interdune corridor of the Shangri-La dune field on Titan, Saturn's largest moon. The rover is deploying."
+  },
+  "ticket": {
+    "briefing": "REL secures a spot for the rover on the next launch to Titan. The lander will set it down between the dunes of Shangri-La."
+  },
+  "campaign": {
+    "_placeholder": "T4: the Mars to Titan transition on the design, ticket and landing screens.",
+    "kicker": "Mission 3 · Titan, Shangri-La dunes",
+    "carryOver": "Balance carried over from Mars: {balance}.",
+    "passMark": "This is the last mission of the campaign.",
+    "sameParts": "Parts and launch ticket tiers are the same as on the Moon in this version. Solar panels: almost no power at Titan.",
+    "ticketNote": "The launch ticket tiers are the same as for the Moon in this version.",
+    "perseverance": "",
+    "newHeading": "New on Titan",
+    "newOnMars": [
+      "One long Titan day: about 5 minutes of daylight, a long night, then dawn.",
+      "Solar panels give almost no power: the battery is the energy budget.",
+      "Always cold: the rover's electronics and the heater keep it warm; sleeping lets it cool.",
+      "A methane rainstorm, forecast a minute ahead."
+    ],
+    "sourcesLabel": "Landing briefing",
+    "sources": "[placeholder: T4 adds the sources, R fact-checks them]"
+  },
+  "mission": {
+    "briefing": "One Titan day in the Shangri-La dunes. The battery is the energy budget, and the cold never lets up.",
+    "loading": "Loading the Shangri-La dunes…",
+    "loadFailed": "Titan failed to load: {error}"
+  },
+  "hud": {
+    "endedSurvived": "The rover lasted through the Titan night to see the dawn.",
+    "lasted": "The rover operated for {days} of {total} Titan days."
+  },
+  "warnings": {
+    "lowEnergy": "Battery low. Power down with P to save energy.",
+    "cold": "The rover is freezing in the Titan cold."
+  },
+  "debrief": {
+    "passedRound": "The Titan mission is complete. This was the last mission of the campaign.",
+    "failedRound": "The balance is below the final mark ({minimum}). The round must be restarted. Balance, research points and records return to their values at the start of the round.",
+    "continue": "Finish the campaign"
+  },
+  "comingSoon": {
+    "_placeholder": "T4 turns this screen into Campaign complete.",
+    "heading": "Campaign complete",
+    "body": "The Titan mission is complete, and with it the campaign. Research points and the balance are banked."
+  },
+  "tutorial": {
+    "_placeholder": "T4 writes the Titan design and drive tutorials.",
+    "designHeading": "Rover design for Titan",
+    "driveHeading": "First drive on Titan",
+    "design": [
+      {
+        "title": "Mission 3: Titan",
+        "body": [
+          "The campaign continues on Titan, in the Shangri-La dune field. The balance carries over from Mars, and the parts and ticket tiers are the Moon's.",
+          "Solar panels give almost no power at Titan, so the battery is the energy budget. Titan is always cold: a heater helps the rover survive."
+        ]
+      }
+    ],
+    "drive": [
+      {
+        "title": "One Titan day",
+        "body": [
+          "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
+          "The mission covers one Titan day: about {minutes} minutes in all, with a long night. Dark dune sand is soft; the bright interdune corridors are firm."
+        ]
+      }
+    ]
+  },
+  "credits": {
+    "terrainFallback": [
+      "Terrain: placeholder, modeled on Cassini data (to be replaced by the Titan terrain pipeline)."
+    ],
+    "imageryFallback": "Ground texture: generated, modeled on Cassini radar and infrared images.",
+    "spaceWeather": "Methane rainstorm"
+  },
+  "survey": {
+    "_placeholder": "T5. Lead ids match data/titan/tuning.json survey.leads.",
+    "intro": "Cassini radar maps show an area of interest near the landing site. Directions and distances are measured from the lander and are approximate.",
+    "leads": {
+      "ejecta": {
+        "name": "Selk ejecta field",
+        "source": "[placeholder: T5, R fact-checks] Cassini radar shows Selk crater near the dune field; blocks thrown out by the impact lie near its rim."
+      }
+    },
+    "legendRocky": "Ejecta field"
+  },
+  "instruments": {
+    "_placeholder": "T5: Titan instrument notices.",
+    "captionDay": "{place}, Titan day {day}",
+    "captionSurface": "Shangri-La dunes"
+  },
+  "day": {
+    "_placeholder": "T6.",
+    "sunset": "[placeholder] Sunset. The long Titan night begins: lights on to keep driving, or sleep until dawn.",
+    "dawn": "[placeholder] Dawn over the dunes.",
+    "sleepFastForward": "[placeholder] Asleep. Time passes faster until dawn."
+  },
+  "rain": {
+    "_placeholder": "T6.",
+    "forecast": "[placeholder] Weather station: methane rain in about a minute.",
+    "started": "[placeholder] Methane rain. Visibility is down and the cold bites harder.",
+    "cleared": "[placeholder] The methane rain has cleared.",
+    "photoBlocked": "[placeholder] Photographs do not count in the rain.",
+    "credit": "[placeholder: T4]"
+  },
+  "cold": {
+    "_placeholder": "T6.",
+    "warning": "[placeholder] The rover is freezing in the Titan cold.",
+    "sleepCools": "[placeholder] Asleep, only the heater keeps the rover warm."
+  },
+  "titanCampaign": {
+    "_placeholder": "T4.",
+    "newHeading": "New on Titan",
+    "newOnTitan": [
+      "[placeholder]"
+    ],
+    "solarNote": "Solar panels: almost no power at Titan.",
+    "dragonfly": "[placeholder: T4 writes the Dragonfly comparison]",
+    "dragonflySource": "[placeholder]"
+  }
+}

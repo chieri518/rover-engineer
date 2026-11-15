@@ -199,7 +199,8 @@
   },
   "worlds": {
     "moon": "The Moon: de Gerlache crater rim, lunar south pole",
-    "mars": "Mars: Jezero crater"
+    "mars": "Mars: Jezero crater",
+    "titan": "Titan: Shangri-La dunes"
   },
   "comingSoon": {
     "heading": "Next mission: coming soon",

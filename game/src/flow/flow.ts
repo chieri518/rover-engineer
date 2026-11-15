@@ -1,9 +1,9 @@
 // Screen flow: title → design → ticket → landing → mission → debrief, then restart the round (back to
-// design, snapshot restored) or continue to the next world's design screen (Moon → Mars), and after the
-// last world the "coming soon" screen (comingSoon: "Titan: coming soon", with the campaign summary).
+// design, snapshot restored) or continue to the next world's design screen (Moon → Mars → Titan), and after the
+// last world the end screen (comingSoon, with the campaign summary; T4 turns it into "Campaign complete").
 import type { DraftBuild, GameData, MissionId } from '../rules/types';
 import {
-  buyRover, finishMission, isPlayable, newCampaign, normalizeCampaign, restartRound, startRound,
+  buyRover, finishMission, isPlayable, MISSION_ORDER, newCampaign, normalizeCampaign, restartRound, startRound,
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
 import { worldOfStep, type WorldId } from '../worlds';
@@ -43,7 +43,7 @@ export class Game {
   world: WorldId;
   private current: ScreenId = 'title';
   private cleanup: (() => void) | null = null;
-  /** false for a debug start (?world=mars): the throwaway campaign does not overwrite the save. */
+  /** false for a debug start (?world=mars, ?world=titan): the throwaway campaign does not overwrite the save. */
   private persist = true;
 
   constructor(
@@ -126,7 +126,7 @@ export class Game {
   debugStart(world: MissionId): void {
     this.persist = false;
     this.world = world;
-    const order: MissionId[] = ['moon', 'mars'];
+    const order = MISSION_ORDER;
     const fresh = newCampaign(this.data.tuning);
     // A debug start skips the earlier missions, so it starts with at least this mission's minimum budget.
     const balance = Math.max(fresh.balance, this.data.tuning.budget.minimumBudget[world] ?? 0);
