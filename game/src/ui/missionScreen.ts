@@ -342,7 +342,10 @@ export const missionScreen: Screen = (game, root) => {
     const p = f.position;
     if (reveal(explored, p.x, p.z, tuning.explore.revealRadiusM) > 0) {
       minimap?.reveal(p.x, p.z, tuning.explore.revealRadiusM);
-      for (const site of discover(sites, p, tuning.explore.revealRadiusM)) hud.notify(fill(text.survey.found, { name: site.name }), 'good');
+      for (const site of discover(sites, p, tuning.explore.revealRadiusM)) {
+        minimap?.includeSite(site);
+        hud.notify(fill(text.survey.found, { name: site.name }), 'good');
+      }
     }
     if (minimap && frame++ % MINIMAP_EVERY_FRAMES === 0) {
       const open = leads.map((l, i) => ({ l, i })).filter(({ l }) => !l.site.discovered);

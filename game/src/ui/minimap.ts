@@ -120,6 +120,13 @@ export class Minimap {
     f.restore();
   }
 
+  /** Widen the map to show a newly discovered site whole (the dark crater is larger than the reveal circle). */
+  includeSite(site: Site): void {
+    const a = site.area;
+    const pts: [number, number][] = a.kind === 'polygon' ? a.points : [[a.x - a.r, a.z - a.r], [a.x + a.r, a.z + a.r]];
+    for (const [x, z] of pts) this.bounds = growBounds(this.bounds, { x, z }, 0);
+  }
+
   /** The list of undiscovered leads under the map (already worded, numbered like the arrows). */
   setLeads(lines: string[]): void {
     const key = lines.join('\n');
