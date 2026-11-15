@@ -1,6 +1,7 @@
 // Cold: the freeze meter rises inside cold zones (permanent shadow), slowed by the heater, and
 // recovers outside. Pure.
 import type { Tuning } from './types';
+import type { NightTuning } from './marsTypes';
 
 /** Freeze meter change per second: positive inside a cold zone, negative (recovery) outside. */
 export function freezeRate(inColdZone: boolean, heat: number, cold: Tuning['cold']): number {
@@ -25,4 +26,20 @@ export function secondsToFreeze(heat: number, cold: Tuning['cold']): number {
 export function noLightsLookaheadM(speedMps: number, brakeDecelMps2: number, cold: Tuning['cold']): number {
   const v = Math.abs(speedMps);
   return cold.noLightsMarginM + (v * v) / (2 * Math.max(brakeDecelMps2, 0.1));
+}
+
+// ---------------------------------------------------------------------------------------------------
+// Mars: the night cold is map-wide (data/mars/tuning.json `night`). The heater's reduction per heat unit
+// is the Moon's (tuning.cold). A dust storm keeps nights milder (stormFactor < 1, rules/storm.ts).
+
+/** Freeze meter change per second on Mars: rising everywhere at night, recovering by day. */
+export function marsFreezeRate(isNight: boolean, heat: number, stormFactor: number, cold: Tuning['cold'], night: NightTuning): number {
+  if (!isNight) return -night.warmRecoveryPerSecond;
+  return Math.max(0, night.freezeRatePerSecond - cold.heaterReductionPerHeat * heat) * stormFactor;
+}
+
+/** Seconds of clear-sky night a rover lasts from a warm start before it freezes (Infinity if it never does). */
+export function marsSecondsToFreeze(heat: number, cold: Tuning['cold'], night: NightTuning): number {
+  const rate = marsFreezeRate(true, heat, 1, cold, night);
+  return rate > 0 ? cold.freezeMax / rate : Infinity;
 }

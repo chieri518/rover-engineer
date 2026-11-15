@@ -4,11 +4,28 @@
 import type { DeathCause, EventsFile, Part, RealFlare, Tuning } from './types';
 import { driveStats, type DriveStats } from './drive';
 import { roverTotals } from './rover';
-import { driveEnergy, solarIncome } from './energy';
+import { canDriveMars, driveEnergy, lowSunFactor, nightDrainPerSecond, solarIncome } from './energy';
 import { impactDamage, overloadDamage, steepSlopeDamage, tiltDeg, type DamageCause } from './damage';
-import { stepFreeze } from './cold';
+import { marsFreezeRate, stepFreeze } from './cold';
 import { stepDig, wheelSlip } from './ground';
-import { flareDamage, flareProtected, type MissionEvent } from './events';
+import { flareDamage, flareProtected, type MissionEvent, type Rng } from './events';
+import type { DustStormSpec } from './marsTypes';
+import { solClock, solEdge, type SolState } from './sol';
+import { marsSunAt } from './marsSun';
+import { scheduleDustStorm, stormEdge, stormFreezeFactor, stormIntensity, stormPhase, stormSolarFactor, type DustStorm, type StormEdge, type StormPhase } from './storm';
+import type { SkyDirection } from './sun';
+
+/** Mars only: what the day-and-night rules need beyond the parts. */
+export interface MarsSetup {
+  site: { latitudeDeg: number; longitudeDeg: number }; // terrain.json sunAndEarth
+  storm: DustStorm | null; // rules/storm.ts scheduleDustStorm
+  stormSpec?: DustStormSpec; // events.duststorm
+}
+
+/** The Mars setup for a mission: the site and the mission's dust storm, drawn from the events' random generator. */
+export function marsSetup(site: MarsSetup['site'], events: EventsFile, rng: Rng): MarsSetup {
+  return { site, storm: scheduleDustStorm(events, rng), ...(events.duststorm ? { stormSpec: events.duststorm } : {}) };
+}
 
 /** What the parts mean for the mission systems. */
 export interface MissionSetup {
@@ -17,9 +34,10 @@ export interface MissionSetup {
   hasLights: boolean;
   overloadKg: number; // total mass above the chassis maximum load
   events: MissionEvent[];
+  mars?: MarsSetup; // present on Mars: the sol clock, night, map-wide cold and the dust storm apply
 }
 
-export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent[]): MissionSetup {
+export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent[], mars?: MarsSetup): MissionSetup {
   const { mass } = roverTotals(parts);
   const maxLoad = parts.find((p) => p.slot === 'chassis')?.effects.maxLoad;
   return {
@@ -28,6 +46,7 @@ export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent
     hasLights: parts.some((p) => (p.effects.lightRange ?? 0) > 0),
     overloadKg: maxLoad === undefined ? 0 : Math.max(0, mass - maxLoad),
     events,
+    ...(mars ? { mars } : {}),
   };
 }
 
@@ -78,10 +97,14 @@ export type MissionNotice =
   | { kind: 'quake'; damage: number }
   | { kind: 'impact'; damage: number };
 
+/** Mars notices: sunset, dawn (the rover wakes if it was asleep) and the dust storm's forecast, start and end. */
+export type MarsNotice = { kind: 'dusk' } | { kind: 'dawn'; woke: boolean } | { kind: 'storm'; edge: StormEdge };
+
 export interface MissionStep {
   state: MissionState;
   slip: number; // current wheel slip, 0..1
   notices: MissionNotice[];
+  marsNotices: MarsNotice[]; // always empty on the Moon
 }
 
 export function startMission(setup: MissionSetup): MissionState {
@@ -107,7 +130,7 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   const stats = setup.stats;
   const driving = !prev.poweredDown && s.speedMps > t.ground.movingSpeedMps;
   const slip = s.throttling ? wheelSlip(s.softness, stats.massKg, stats.grip, s.uphillDeg, t) : 0;
-  if (prev.end) return { state: prev, slip, notices: [] };
+  if (prev.end) return { state: prev, slip, notices: [], marsNotices: [] };
 
   const state: MissionState = { ...prev, damageBy: { ...prev.damageBy } };
   const notices: MissionNotice[] = [];
@@ -119,9 +142,14 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
 
   state.seconds = Math.min(t.mission.lengthSeconds, prev.seconds + s.dt);
 
-  // Energy
+  const mars = marsConditions(prev, setup, t);
+  const marsNotices: MarsNotice[] = [];
+
+  // Energy (Mars: low Sun and the dust storm cut solar income; none at night; a night drain while awake or asleep)
   const used = prev.poweredDown ? 0 : driveEnergy(s.distanceM, s.uphillDeg, stats.energyPerMeter, t.energy);
-  state.energy = Math.min(stats.batteryCapacity, prev.energy - used + solarIncome(stats.energyIncome, s.sunlight, s.dt));
+  const sunlight = mars ? s.sunlight * mars.solarFactor : s.sunlight;
+  const drain = mars ? mars.drainPerSecond * s.dt : 0;
+  state.energy = Math.min(stats.batteryCapacity, prev.energy - used - drain + solarIncome(stats.energyIncome, sunlight, s.dt));
   state.distanceM = prev.distanceM + Math.max(0, s.distanceM);
 
   // Damage
@@ -137,7 +165,9 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   state.tiltSeconds = tiltDeg(s.upY) > t.damage.rolloverTiltDeg ? prev.tiltSeconds + s.dt : 0;
 
   // Cold and soft ground
-  state.freeze = stepFreeze(prev.freeze, s.inColdZone, setup.heat, s.dt, t.cold);
+  state.freeze = mars
+    ? Math.min(t.cold.freezeMax, Math.max(0, prev.freeze + mars.freezeRate * s.dt))
+    : stepFreeze(prev.freeze, s.inColdZone, setup.heat, s.dt, t.cold);
   state.dig = stepDig(prev.dig, slip, s.throttling, s.dt, t.ground);
 
   // Events
@@ -168,7 +198,59 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   state.energy = Math.max(0, state.energy);
 
   state.end = missionEnd(state, t);
-  return { state, slip, notices };
+
+  // Mars: sunset and dawn (sleep ends at dawn by itself), the dust storm's forecast, start and end
+  if (mars && t.sol && !state.end) {
+    const edge = solEdge(prev.seconds, state.seconds, t.sol);
+    if (edge === 'dusk') marsNotices.push({ kind: 'dusk' });
+    if (edge === 'dawn') {
+      marsNotices.push({ kind: 'dawn', woke: state.poweredDown });
+      state.poweredDown = false;
+    }
+    const storm = stormEdge(prev.seconds, state.seconds, setup.mars!.storm);
+    if (storm) marsNotices.push({ kind: 'storm', edge: storm });
+  }
+  return { state, slip, notices, marsNotices };
+}
+
+/** Everything the Mars rules say about one moment, for the HUD, the scene and the milestones. */
+export interface MarsStatus {
+  clock: SolState; // sol number, isNight, local solar time, sunSetting
+  sun: SkyDirection; // the real Sun at the site (elevation < 0 at night)
+  stormPhase: StormPhase;
+  stormIntensity: number; // 0..1, for the renderer
+  solarFactor: number; // multiplies the measured sunlight: low Sun × storm, 0 at night
+  drainPerSecond: number; // night drain apart from driving
+  freezeRate: number; // freeze meter change per second (negative = recovering)
+  canDrive: boolean; // false asleep, and at night without lights
+  lightsOn: boolean; // awake at night with lights: the floodlights are on and the lights drain applies
+}
+
+/** The Mars conditions at the state's time, or null on the Moon (no `setup.mars` or no sol/night tuning). */
+export function marsStatus(state: MissionState, setup: MissionSetup, t: Tuning): MarsStatus | null {
+  return marsConditions(state, setup, t);
+}
+
+function marsConditions(state: MissionState, setup: MissionSetup, t: Tuning): MarsStatus | null {
+  const m = setup.mars;
+  if (!m || !t.sol || !t.night) return null;
+  const at = state.seconds;
+  const clock = solClock(at, t.sol, m.site.latitudeDeg);
+  const sun = marsSunAt(at, t.sol, m.site);
+  const spec = m.stormSpec;
+  const intensity = stormIntensity(at, m.storm, spec);
+  const night = clock.isNight;
+  return {
+    clock,
+    sun,
+    stormPhase: stormPhase(at, m.storm),
+    stormIntensity: intensity,
+    solarFactor: night ? 0 : lowSunFactor(sun.elevationDeg, t.night) * stormSolarFactor(intensity, spec),
+    drainPerSecond: nightDrainPerSecond(night, state.poweredDown, setup.hasLights, t.night),
+    freezeRate: marsFreezeRate(night, setup.heat, stormFreezeFactor(intensity, spec), t.cold, t.night),
+    canDrive: canDriveMars(night, state.poweredDown, setup.hasLights, t.night),
+    lightsOn: night && setup.hasLights && !state.poweredDown,
+  };
 }
 
 /** The end conditions, most severe first. Null while the mission goes on. */
@@ -205,7 +287,8 @@ export function missionWarnings(
 ): WarningId[] {
   const w: WarningId[] = [];
   if (blockedByShadow) w.push('noLights');
-  if (sample.inColdZone && s.freeze > 0) w.push('cold');
+  const marsNight = !!(setup.mars && t.sol && solClock(s.seconds, t.sol, setup.mars.site.latitudeDeg).isNight);
+  if ((sample.inColdZone || marsNight) && s.freeze > 0) w.push('cold');
   if (slip > t.ground.slipLimit) w.push('slip');
   if (sample.slopeDeg >= t.ground.slopeWarningDegrees && sample.speedMps > t.ground.movingSpeedMps) w.push('steepSlope');
   if (s.energy < setup.stats.batteryCapacity * t.energy.lowWarningShare) w.push('lowEnergy');

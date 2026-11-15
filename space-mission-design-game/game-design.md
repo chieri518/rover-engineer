@@ -591,6 +591,41 @@ All *Proposed*. Solar flares and moonquakes stay on the Moon.
 | Dust devil | A random devil sweeps past and cleans the panels | A free power boost; a camera can photograph it | Spirit's power jumped about 50% in one day in 2005 |
 | Marsquake (optional) | The Moon's quake rule reused | As on the Moon | InSight recorded marsquakes, including a magnitude 4.7 in 2022 |
 
+#### How the Mars rules work *(decided during implementation, M3)*
+
+The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the Mars parts of `energy.ts`, `cold.ts`, `mission.ts`). The numbers are in `game/data/mars/tuning.json` (`sol`, `night`) and `events.json` (`duststorm`). All numbers are placeholders, tuned against the Moon parts.
+
+- **Sol clock and Sun.** The mission starts at sunrise on sol 1. The Sun follows real local solar time at Jezero:
+  - Solar declination is sin δ = sin 25.19° × sin Ls (Mars24). It is −8.4° at Ls 200, and the season moves on 0.6° of Ls per sol.
+  - The Sun rises at azimuth about 99°, is due south at 63° elevation at noon, and sets at about 261°.
+  - Within each day and each night, the clock eases the Sun's speed: about a quarter of its mean day speed at the horizon, faster at noon and midnight. So 0 to 10° of elevation lasts about 5.5 s at sunset, and twilight (0 to −8°) about 3.5 s. This gives the blue sunset look and photo time. Day stays 45 s and night 15 s.
+- **Solar income on Mars:**
+  - The Moon's shadow test (sunlight).
+  - Times a low-Sun factor: full rate with the Sun at 15° or higher, sin(el) / sin 15° below that. A fixed panel earns about 36 per clear sol.
+  - Times the storm factor.
+  - Nothing at night.
+- **Night energy.** Battery drain per second of night, on top of driving:
+  - 4 awake with lights on (lights and electronics). A parked night costs 60.
+  - 1 awake without lights (electronics only; the rover cannot drive).
+  - 0.2 asleep: P powers down, as on the Moon.
+  - Sleep ends at dawn by itself. An empty battery ends the mission as out of energy. The radioisotope heater draws no power. An electric heater that draws power at night would come with Owner A's Mars parts.
+- **No lights, no night driving.** A rover without lights cannot drive at night (`night.driveWithoutLights` false).
+- **Night cold:**
+  - The freeze meter rises 8 per second everywhere at night. Without a heater, the rover freezes 12.5 s into its first 15 s night, even asleep.
+  - The radioisotope heater takes off 1.5 per heat unit (the Moon value), so it rises 5 per second and reaches 75 of 100 by dawn.
+  - It recovers 6 per second by day.
+  - During the storm, freezing is multiplied by down to 0.5.
+- **Dust storm:**
+  - It starts at a random time in sols 4 to 7 (180 to 360 s), is forecast 60 s (one sol) ahead and lasts 120 s (two sols).
+  - It builds up and dies down over 10 s.
+  - At full strength, solar income is ×0.33 and night freezing ×0.5.
+  - Real basis: in the 2018 global storm, Opportunity's power fell from about 645 to 22 Wh per sol, and the dust absorbed heat and narrowed its temperature swings (Planetary Society, JPL).
+- **Night-energy check** (`marsNight.test.ts`, stands in for a Mars `winPaths`). Over 8 storm seeds:
+  - A cheap build (fixed panel, small battery) survives all 10 sols when it sleeps at night and drives by day above a 30% reserve, covering about 2 km. A big-battery build also survives, and so does a light build (mast, mesh wheels), at about 5 km.
+  - The cheap build runs out by sol 4 if it drives with lights every night, and by sol 6 if it only parks with lights on.
+  - One night of driving with lights is affordable.
+  - With the Moon parts, the heater is effectively required. The heater choice becomes real only with Owner A's Mars catalog.
+
 #### Mars milestones
 
 All *Proposed*. Rewards are interface numbers. Every real fact gets fact-checked before it goes into `text.json`.

@@ -70,16 +70,22 @@ export interface SolTuning {
   secondsPerSol: number;
   daySeconds: number; // dawn to dusk
   nightSeconds: number; // dusk to dawn, time-lapsed faster than the day
-  solarLongitudeDeg: number; // season (Ls); sets the solar declination for the Sun path
+  solarLongitudeDeg: number; // season (Ls) at the start; sets the solar declination for the Sun path
+  solarLongitudeDegPerSol?: number; // how fast the season advances (about 0.6 deg per sol near Ls 200)
+  /** The Sun's speed at sunrise and sunset as a share of its mean day speed (1 = uniform; lower = longer low-Sun light). */
+  horizonRateShare?: number;
 }
 
 /** Night: lights on or sleep, and the map-wide night cold. Owner: rules (M3). */
 export interface NightTuning {
-  lightsDrainPerSecond: number; // lights on at night: battery drain on top of driving
+  lightsDrainPerSecond: number; // awake at night with lights on (lights, electronics): battery drain on top of driving
+  awakeDrainPerSecond: number; // awake at night without lights (electronics only): the rover cannot drive
   sleepDrainPerSecond: number; // powered down (P) at night
   driveWithoutLights: boolean; // design: false, a rover without lights cannot drive at night
   freezeRatePerSecond: number; // night-wide freezing without a heater (heaterReductionPerHeat from tuning.cold applies)
   warmRecoveryPerSecond: number; // freeze meter recovery by day
+  /** Solar panels give their full rate with the Sun at or above this elevation, less below (sin el / sin this). 0 = off. */
+  fullSunElevationDeg: number;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -90,6 +96,7 @@ export interface DustStormSpec {
   windowsSeconds: [number, number][]; // the storm starts at a random time inside each window
   warningSeconds: number; // forecast lead time (one sol)
   durationSeconds: number;
+  rampSeconds: number; // the storm builds up over this long after it starts and dies down over this long before it ends
   solarFactor: number; // solar income multiplier during the storm
   freezeFactor: number; // night freezing multiplier during the storm (milder nights)
   source: string;
