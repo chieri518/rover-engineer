@@ -510,7 +510,7 @@ The stack can be revisited later; a strong design doc keeps that possible.
 | --- | --- |
 | Spacecraft and mission design | The rover design screen, within the budget and the launch ticket tiers |
 | Launch vehicle | The launch ticket: a heavier or bigger rover needs a more expensive tier, and the top tier is the lander's limit. This makes mass and size a launch cost, as for real payloads. |
-| Use of NASA data | Real LRO terrain, LROC and ShadowCam imagery, Apollo soil data, and more; see [NASA data](#9-nasa-data) |
+| Use of NASA data | Real LOLA terrain and sunlight maps, LROC imagery, Apollo 15 soil data, DONKI solar flares, and more; see [NASA data](#9-nasa-data) |
 | Educational value | Mechanics built on real science (day lengths, low polar Sun, rare ice, soil limits), plus optional real-history facts such as Pragyan's one-day mission and VIPER and the ice |
 
 How this maps to the judging criteria: [landscape research](research/landscape-precedents-and-judging.md#applying-the-judging-criteria).
