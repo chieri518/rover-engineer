@@ -7,6 +7,8 @@
 //   shimmers. See public/terrain/texture.json for the albedo map's grid and values.
 // - Mars ('mars' photometry): near-Lambert with a mild backscatter, and the grayscale HiRISE image
 //   used as relative brightness (contrast-limited) on the Mars ground color, darker areas greyer.
+// - Titan ('titan' photometry): plain Lambert (the light is nearly all diffuse), the grayscale albedo map
+//   as relative brightness on the Titan ground color, the dark dune sand tinted (moonDarkTint/moonDarkTone).
 import * as THREE from 'three';
 import type { HeightGrid } from './terrainData';
 
@@ -23,10 +25,13 @@ export interface MoonLightUniforms {
   moonAlbedoRect: THREE.IUniform<THREE.Vector4>;
   /** Albedo map tone: x = its mean linear value (maps to the material color), y = contrast (1 = as is). */
   moonAlbedoTone: THREE.IUniform<THREE.Vector2>;
+  /** Titan: color multiplier for dark ground (dune sand), and the tone range over which it fades out (x..y). */
+  moonDarkTint: THREE.IUniform<THREE.Color>;
+  moonDarkTone: THREE.IUniform<THREE.Vector2>;
 }
 
-/** How a patched material scatters sunlight: lunar regolith, Mars ground, or plain Lambert (false). */
-export type Photometry = boolean | 'mars';
+/** How a patched material scatters sunlight: lunar regolith, Mars ground, Titan ground, or plain Lambert (false). */
+export type Photometry = boolean | 'mars' | 'titan';
 
 export function createMoonLightUniforms(fine: HeightGrid, near: HeightGrid, far: HeightGrid): MoonLightUniforms {
   return {
@@ -38,6 +43,8 @@ export function createMoonLightUniforms(fine: HeightGrid, near: HeightGrid, far:
     moonAlbedo: { value: null },
     moonAlbedoRect: { value: new THREE.Vector4(0, 0, 1, 1) },
     moonAlbedoTone: { value: new THREE.Vector2(ALBEDO_MEAN, 1) },
+    moonDarkTint: { value: new THREE.Color(1, 1, 1) },
+    moonDarkTone: { value: new THREE.Vector2(0, 1) },
   };
 }
 
@@ -76,6 +83,8 @@ const GROUND_PARS = /* glsl */ `
 uniform sampler2D moonAlbedo;
 uniform vec4 moonAlbedoRect;
 uniform vec2 moonAlbedoTone;
+uniform vec3 moonDarkTint;
+uniform vec2 moonDarkTone;
 
 // Gradient noise with its analytic derivative (returns value, d/dx, d/dy), range about -0.7..0.7.
 // Lattice cells wrap every 289 so the hash stays exact in 32-bit floats far from the origin.
@@ -152,6 +161,10 @@ ${OCTAVES.map(([w, h, a], i) => `  {
     // Dark basaltic sand is greyer than the bright red dust.
     diffuseColor.rgb = mix( vec3( dot( diffuseColor.rgb, vec3( 0.2126, 0.7152, 0.0722 ) ) ), diffuseColor.rgb, 0.55 + 0.45 * smoothstep( 0.5, 1.1, tone ) );
   #endif
+  #ifdef MOON_TITAN
+    // Dark dune sand takes its own tint; the bright interdune ground keeps the ground color.
+    diffuseColor.rgb *= mix( moonDarkTint, vec3( 1.0 ), smoothstep( moonDarkTone.x, moonDarkTone.y, tone ) );
+  #endif
 }
 `;
 
@@ -212,6 +225,7 @@ export function patchMoonLighting(
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     if (lunar === 'mars') shader.defines = { ...shader.defines, MOON_MARS: '' };
+    else if (lunar === 'titan') shader.defines = { ...shader.defines, MOON_TITAN: '' };
     else if (lunar) shader.defines = { ...shader.defines, MOON_LUNAR: '' };
     let fragment = shader.fragmentShader;
     if (ground) {
@@ -238,7 +252,7 @@ export function patchMoonLighting(
         ),
       );
   };
-  const mode = lunar === 'mars' ? 'mars' : lunar ? 'lunar' : 'lambert';
+  const mode = lunar === 'mars' || lunar === 'titan' ? lunar : lunar ? 'lunar' : 'lambert';
   material.customProgramCacheKey = () => (ground ? `moon-ground-${mode}` : `moon-${mode}`);
   return material;
 }
