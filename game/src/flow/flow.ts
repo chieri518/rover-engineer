@@ -44,7 +44,7 @@ export class Game {
     private readonly screens: Record<ScreenId, Screen>,
   ) {
     this.campaign = loadCampaign();
-    this.build = upgradeSavedBuild(this.campaign?.lastBuild); // saves from before the payload bay move their instrument into it
+    this.build = upgradeSavedBuild(this.campaign?.lastBuild, data.parts); // drops part ids the catalog no longer has; old saves move their instrument into the bay
   }
 
   get screen(): ScreenId {

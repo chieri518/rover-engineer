@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { testEvents, testParts, testTuning as t } from './testData';
 import { selectedParts } from './rover';
-import { missionSetup, missionWarnings, startMission, stepMission, type MissionSample, type MissionSetup, type MissionState } from './mission';
+import {
+  isSwitchInstrument, missionSetup, missionWarnings, setStandby, standbyDraw, startInstrumentUse, startMission, stepMission,
+  type MissionSample, type MissionSetup, type MissionState,
+} from './mission';
 import type { MissionEvent } from './events';
 import type { Build } from './types';
 
@@ -145,3 +148,92 @@ describe('mission step', () => {
     expect(missionWarnings(startMission(setup), idle, 0, false, setup, t)).toEqual([]);
   });
 });
+
+describe('instruments in a mission', () => {
+  // A drill (10 energy per use, 3 s hold) and a camera (free, instant), plus a test spectrometer
+  // with a standby draw of 0.5 energy per second.
+  const sensor = { ...testParts.parts.find((p) => p.id === 'camera')!, id: 'sensor', effects: { instrument: 'drill' as const, standbyEnergy: 0.5 } };
+  const drillParts = selectedParts({ ...build, payload: ['drill', 'camera'] }, testParts).map((p) => parts.find((q) => q.id === p.id) ?? p);
+  const setup = missionSetup(drillParts, t, []);
+  const switchSetup = missionSetup([...parts, sensor], t, []);
+  const still = { speedMps: 0, inColdZone: false };
+
+  it('setup lists each instrument with its costs, in bay order', () => {
+    expect(setup.instruments.map((c) => [c.instrument, c.energyPerUse, c.useSeconds])).toEqual([['drill', 10, 3], ['camera', 0, 0]]);
+  });
+
+  it('a drill sample charges its energy at once and holds the rover for the part\'s useSeconds', () => {
+    const use = startInstrumentUse(startMission(setup), 'drill', still, setup, t);
+    expect(use).toMatchObject({ ok: true, holdSeconds: 3, slowedByCold: false, cost: 10 });
+    if (!use.ok) return;
+    expect(use.state.energy).toBe(90);
+    expect(use.state.using).toEqual({ instrument: 'drill', secondsLeft: 3 });
+  });
+
+  it('a held use counts down and finishes with a notice, once', () => {
+    const use = startInstrumentUse(startMission(setup), 'drill', still, setup, t);
+    if (!use.ok) throw new Error('refused');
+    const step = (s: MissionState) => stepMission(s, { ...idle, dt: 1, sunlight: 0 }, setup, t, testEvents);
+    const a = step(use.state);
+    const b = step(a.state);
+    const c = step(b.state);
+    expect([a, b].flatMap((x) => x.notices)).toEqual([]);
+    expect(c.notices).toEqual([{ kind: 'instrument-done', instrument: 'drill' }]);
+    expect(c.state.using).toBeNull();
+    expect(step(c.state).notices).toEqual([]);
+  });
+
+  it('the camera is free and instant', () => {
+    const s0 = startMission(setup);
+    const use = startInstrumentUse(s0, 'camera', { speedMps: 3, inColdZone: true }, setup, t);
+    expect(use).toMatchObject({ ok: true, holdSeconds: 0, cost: 0 });
+    if (use.ok) expect(use.state).toEqual(s0);
+  });
+
+  it('refuses a use on too little energy: a use never empties the battery', () => {
+    expect(startInstrumentUse({ ...startMission(setup), energy: 10 }, 'drill', still, setup, t)).toEqual({ ok: false, reason: 'energy', cost: 10 });
+    expect(startInstrumentUse({ ...startMission(setup), energy: 10.5 }, 'drill', still, setup, t).ok).toBe(true);
+    expect(startInstrumentUse({ ...startMission(setup), energy: 0.1 }, 'camera', still, setup, t).ok).toBe(true);
+  });
+
+  it('refuses while powered down, while moving (held uses only), while another hold runs, and after the end', () => {
+    const s0 = startMission(setup);
+    expect(startInstrumentUse({ ...s0, poweredDown: true }, 'drill', still, setup, t)).toMatchObject({ ok: false, reason: 'powered-down' });
+    expect(startInstrumentUse({ ...s0, poweredDown: true }, 'camera', still, setup, t)).toMatchObject({ ok: false, reason: 'powered-down' });
+    expect(startInstrumentUse(s0, 'drill', { speedMps: 1, inColdZone: false }, setup, t)).toMatchObject({ ok: false, reason: 'moving' });
+    const busy = { ...s0, using: { instrument: 'drill' as const, secondsLeft: 1 } };
+    expect(startInstrumentUse(busy, 'drill', still, setup, t)).toMatchObject({ ok: false, reason: 'busy' });
+    expect(startInstrumentUse(busy, 'camera', still, setup, t).ok).toBe(true); // a photo while drilling
+    expect(startInstrumentUse({ ...s0, end: { survived: true, seconds: 300 } }, 'drill', still, setup, t)).toMatchObject({ ok: false, reason: 'ended' });
+    expect(startInstrumentUse(startMission(missionSetup(parts, t, [])), 'drill', still, missionSetup(parts, t, []), t))
+      .toMatchObject({ ok: false, reason: 'not-carried' });
+  });
+
+  it('a held use is slower in a cold zone on a rover without a heater', () => {
+    const cold = { speedMps: 0, inColdZone: true };
+    expect(startInstrumentUse(startMission(setup), 'drill', cold, setup, t)).toMatchObject({ ok: true, holdSeconds: 3, slowedByCold: false });
+    const bare = missionSetup(drillParts.filter((p) => p.slot !== 'heater'), t, []);
+    expect(startInstrumentUse(startMission(bare), 'drill', cold, bare, t)).toMatchObject({ ok: true, holdSeconds: 3 * t.instruments.coldSlowdown, slowedByCold: true });
+    expect(startInstrumentUse(startMission(bare), 'drill', still, bare, t)).toMatchObject({ holdSeconds: 3, slowedByCold: false });
+  });
+
+  it('only an instrument with a standby draw is a switch; it starts off', () => {
+    expect(isSwitchInstrument('drill', switchSetup)).toBe(true);
+    expect(isSwitchInstrument('camera', switchSetup)).toBe(false);
+    const s0 = startMission(switchSetup);
+    expect(s0.standbyOn).toEqual([]);
+    expect(setStandby(s0, 'camera', true, switchSetup)).toBe(s0);
+    expect(setStandby(s0, 'drill', true, switchSetup).standbyOn).toEqual(['drill']);
+    expect(setStandby(setStandby(s0, 'drill', true, switchSetup), 'drill', false, switchSetup).standbyOn).toEqual([]);
+  });
+
+  it('a switched-on instrument draws its standby energy each second, but not while powered down or switched off', () => {
+    const on = setStandby(startMission(switchSetup), 'drill', true, switchSetup);
+    expect(standbyDraw(on, switchSetup)).toBe(0.5);
+    const dark = { sunlight: 0 };
+    expect(run(switchSetup, dark, 10, on).state.energy).toBeCloseTo(95);
+    expect(run(switchSetup, dark, 10, { ...on, poweredDown: true }).state.energy).toBe(100);
+    expect(run(switchSetup, dark, 10, startMission(switchSetup)).state.energy).toBe(100);
+  });
+});
+

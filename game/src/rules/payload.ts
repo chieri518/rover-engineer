@@ -18,6 +18,40 @@ export function instrumentsOf(parts: Part[]): Instrument[] {
   return parts.flatMap((p) => (p.effects.instrument ? [p.effects.instrument] : []));
 }
 
+/** An instrument's operating costs in a mission, from its part. */
+export interface InstrumentCosts {
+  instrument: Instrument;
+  energyPerUse: number; // energy each use costs
+  standbyEnergy: number; // energy per second while switched on (0: no standby; such an instrument is used, not switched)
+  useSeconds: number; // mission seconds the rover holds still for each use (0: instant)
+}
+
+/** The operating costs of each instrument the parts provide, in part (bay) order. */
+export function instrumentCosts(parts: Part[]): InstrumentCosts[] {
+  return parts.flatMap((p) => {
+    const e = p.effects;
+    if (!e.instrument) return [];
+    return [{ instrument: e.instrument, energyPerUse: e.energyPerUse ?? 0, standbyEnergy: e.standbyEnergy ?? 0, useSeconds: e.useSeconds ?? 0 }];
+  });
+}
+
+/** Number keys 1 to 9 use the instruments in bay order; a bay never holds more than this. */
+export const INSTRUMENT_KEYS = 9;
+
+/** The mission key of each instrument the parts provide: 1 for the first in bay order, then 2, 3... (up to 9). */
+export function instrumentKeys(parts: Part[]): Map<Instrument, number> {
+  return new Map(instrumentsOf(parts).slice(0, INSTRUMENT_KEYS).map((inst, i) => [inst, i + 1]));
+}
+
+/** The instrument a key press uses: KeyboardEvent.code Digit1 to Digit9 or Numpad1 to Numpad9, in bay order. */
+export function instrumentForKey(code: string, parts: Part[]): Instrument | undefined {
+  const digit = /^(?:Digit|Numpad)([1-9])$/.exec(code);
+  if (!digit) return undefined;
+  const n = Number(digit[1]);
+  for (const [inst, key] of instrumentKeys(parts)) if (key === n) return inst;
+  return undefined;
+}
+
 /**
  * What is wrong with the build's payload. Capacity is checked only once a chassis is chosen (a draft
  * without one has no mounting points yet). An unconfirmed bay has no problems.
@@ -65,14 +99,33 @@ export function fitPayload(payload: string[], points: number): { kept: string[];
 }
 
 /**
- * A build read back from a save, in the current shape. Saves from before the payload bay have an
- * `instrument` slot: its part becomes the bay's only instrument.
+ * A build read back from a save, in the current shape, keeping only what the catalog still has, so a
+ * save with a renamed or removed part cannot break the desk:
+ * - a bus slot whose part id is unknown (or names a part of another slot) is left empty;
+ * - payload ids that are unknown, not instruments, or repeat an instrument already in the bay are
+ *   dropped; if that empties a bay that held something, the bay is left unconfirmed so the player
+ *   chooses again. More instruments than mounting points are kept (the desk reports it).
+ * Saves from before the payload bay have an `instrument` slot: its part becomes the bay's only instrument.
  */
-export function upgradeSavedBuild(saved: unknown): DraftBuild {
+export function upgradeSavedBuild(saved: unknown, catalog: PartsFile): DraftBuild {
   if (typeof saved !== 'object' || saved === null) return {};
-  const { instrument, payload, ...bus } = saved as Record<string, unknown>;
-  const draft: Record<string, unknown> = Object.fromEntries(Object.entries(bus).filter(([, v]) => typeof v === 'string'));
-  if (Array.isArray(payload)) draft.payload = payload.filter((x): x is string => typeof x === 'string');
-  else if (typeof instrument === 'string') draft.payload = [instrument];
-  return draft as DraftBuild;
+  const record = saved as Record<string, unknown>;
+  const draft: DraftBuild = {};
+  for (const slot of catalog.slots) {
+    const id = record[slot];
+    if (typeof id === 'string' && catalog.parts.some((p) => p.id === id && p.slot === slot)) draft[slot] = id;
+  }
+  const savedBay = Array.isArray(record.payload) ? record.payload : typeof record.instrument === 'string' ? [record.instrument] : undefined;
+  if (savedBay) {
+    const bay: string[] = [];
+    const seen = new Set<Instrument>();
+    for (const id of savedBay) {
+      const inst = catalog.parts.find((p) => p.id === id && p.slot === 'instrument')?.effects.instrument;
+      if (typeof id !== 'string' || !inst || seen.has(inst)) continue;
+      seen.add(inst);
+      bay.push(id);
+    }
+    if (bay.length > 0 || savedBay.length === 0) draft.payload = bay;
+  }
+  return draft;
 }

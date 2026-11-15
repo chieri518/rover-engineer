@@ -8,7 +8,7 @@ import type { BalanceFile, Build, GameData, Instrument, Milestone, Part, RouteLe
 import { quoteBuild } from './quote';
 import { meetsRequirements, selectedParts } from './rover';
 import { instrumentsOf } from './payload';
-import { missionSetup, startMission, stepMission, type MissionEnd, type MissionState } from './mission';
+import { missionSetup, startInstrumentUse, startMission, stepMission, type MissionEnd, type MissionState } from './mission';
 import { wheelSlip } from './ground';
 import { earthLitShare, skyDirection, sunAt } from './sun';
 import { missionPayout, type EarnedMilestone, type Payout } from './payout';
@@ -122,6 +122,14 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
 
   const useInstrument = (instrument: Instrument) => {
     if (!carried.includes(instrument)) return;
+    // The real rules: power, speed, energy per use, and the hold time (slower in the cold without heat).
+    const use = startInstrumentUse(s, instrument, { speedMps: 0, inColdZone: Boolean(at.darkCrater) }, setup, t);
+    if (!use.ok) {
+      log.push(`${Math.round(s.seconds)}s ${instrument} refused at ${at.id} (${use.reason})`);
+      return;
+    }
+    s = use.state;
+    busyUntil = Math.max(busyUntil, s.seconds + use.holdSeconds);
     if (instrument === 'camera') {
       for (const m of byTrigger((m) => m.trigger.type === 'photo' && m.trigger.zone !== undefined && m.trigger.zone === at.photoZone)) credit(m);
       const sun = sunAt(s.seconds, t.sun, t.mission, routes.site);
@@ -131,7 +139,6 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
       }
       log.push(`${Math.round(s.seconds)}s photo at ${at.id}`);
     } else if (instrument === 'drill') {
-      busyUntil = Math.max(busyUntil, s.seconds + mt.drillSeconds);
       if (at.fromLandingM >= mt.sampleMinDistanceM) {
         const here = at;
         const newSite = sites.every((n) => Math.hypot(n.x - here.x, n.z - here.z) >= mt.sampleSpacingM);

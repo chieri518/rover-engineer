@@ -18,7 +18,7 @@ export const testParts: PartsFile = {
     part('no-lights', 'lights', 0, 0, 0, { lightRange: 0 }),
     part('heater', 'heater', 20, 5, 1, { heat: 1 }),
     part('camera', 'instrument', 50, 5, 1, { instrument: 'camera' }),
-    part('drill', 'instrument', 90, 10, 5, { instrument: 'drill' }),
+    part('drill', 'instrument', 90, 10, 5, { instrument: 'drill', energyPerUse: 10, useSeconds: 3 }),
   ],
 };
 
@@ -78,9 +78,10 @@ export const testTuning: Tuning = {
   area: { boundaryInsetM: 100, warningDistanceM: 60 },
   milestones: {
     photoZoneRadiusM: 60, iceSpotRadiusM: 50, boulderCrossRadiusFactor: 1.1, boulderCrossMinAngleDeg: 90, partialCrossingHint: true,
-    craterDescentDepthM: 150, craterDescentExitDepthM: 100, drillSeconds: 3, albumMax: 12, photoFrameMargin: 0.85,
+    craterDescentDepthM: 150, craterDescentExitDepthM: 100, albumMax: 12, photoFrameMargin: 0.85,
     sampleMinDistanceM: 200, sampleSpacingM: 200, earthPhotoMinLit: 0.25, earthPhotoMinDistanceM: 300, hydrogenSignal: true, hydrogenStrongWithinM: 100, hydrogenModerateWithinM: 250,
   },
+  instruments: { coldSlowdown: 2 },
 };
 
 const milestone = (id: string, money: number, rp: number, extra: Partial<Milestone> = {}): Milestone => ({

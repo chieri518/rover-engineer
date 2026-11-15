@@ -21,5 +21,7 @@ export function noticeText(notice: MissionNotice, text: TextFile): { message: st
       return { message: w.quake, tone: 'warn' };
     case 'impact':
       return { message: w.impact, tone: 'warn' };
+    case 'instrument-done':
+      return null; // the mission screen reports what the instrument found
   }
 }

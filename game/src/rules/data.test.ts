@@ -39,6 +39,23 @@ describe('game data', () => {
     ]);
   });
 
+  it('validation catches negative instrument costs and a cold slowdown below 1', () => {
+    const parts = data.parts.parts.map((p) => (p.id === 'instrument-drill' ? { ...p, effects: { ...p.effects, energyPerUse: -1 } } : p));
+    const tuning = { ...data.tuning, instruments: { coldSlowdown: 0.5 } };
+    expect(validateGameData({ ...data, parts: { ...data.parts, parts }, tuning })).toEqual([
+      'instrument part instrument-drill has a negative energyPerUse',
+      'tuning.instruments.coldSlowdown must be at least 1 (the cold never speeds an instrument up)',
+    ]);
+  });
+
+  it('instrument operating costs: the drill uses 10 energy per sample and holds 3 s; the camera is free and instant', () => {
+    const effects = (id: string) => data.parts.parts.find((p) => p.id === id)!.effects;
+    expect(effects('instrument-drill')).toMatchObject({ energyPerUse: 10, useSeconds: 3 });
+    expect(effects('instrument-camera').energyPerUse ?? 0).toBe(0);
+    expect(effects('instrument-camera').useSeconds ?? 0).toBe(0);
+    expect(data.parts.parts.every((p) => (p.effects.standbyEnergy ?? 0) === 0)).toBe(true); // the neutron spectrometer brings the first
+  });
+
   it('has 6 bus slots with 2 options each, 3 tiers and 13 milestones', () => {
     expect(data.parts.slots).toEqual(['chassis', 'wheels', 'power', 'battery', 'lights', 'heater']);
     for (const slot of data.parts.slots) expect(data.parts.parts.filter((p) => p.slot === slot)).toHaveLength(2);

@@ -18,6 +18,9 @@ export interface PartEffects {
   lightRange?: number; // lights: meters
   heat?: number; // heater: heat units, slows freezing
   instrument?: Instrument; // instrument parts (payload bay)
+  energyPerUse?: number; // instrument: energy each use costs (absent: none)
+  standbyEnergy?: number; // instrument: energy per second while switched on, not while powered down (absent: no standby; the instrument is a switch when it has one)
+  useSeconds?: number; // instrument: mission seconds the rover holds still for each use (absent: instant)
 }
 
 export interface Part {
@@ -166,6 +169,9 @@ export interface Tuning {
     warningDistanceM: number; // the "leaving the area" notice shows this close to the boundary
   };
   milestones: MilestoneTuning;
+  instruments: {
+    coldSlowdown: number; // an instrument's hold time is multiplied by this in a cold zone on a rover without a heater
+  };
 }
 
 /** Zone sizes and actions for the milestones (zones come from terrain.json features). */
@@ -177,7 +183,6 @@ export interface MilestoneTuning {
   partialCrossingHint: boolean; // leaving a boulder field short of a crossing shows a notice, once per field (off: silent)
   craterDescentDepthM: number; // de Gerlache's inner wall: at least this far below the landing point...
   craterDescentExitDepthM: number; // ...and back out: climb back above this depth below landing
-  drillSeconds: number; // mission seconds the rover stands still while drilling
   albumMax: number; // photos kept per mission
   photoFrameMargin: number; // Earth counts as in view inside this share of the frame (NDC)
   sampleMinDistanceM: number; // drill samples count only this far from the landing point (ground the lander disturbed)
@@ -262,7 +267,8 @@ export interface TextFile {
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
-    | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity', // the payload bay
+    | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
+    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
     string
   > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
   ticket: Record<
@@ -295,8 +301,9 @@ export interface TextFile {
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
     | 'cameraControls' | 'drillControls' | 'buttonCamera' | 'buttonDrill' | 'buttonsLabel' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
-    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'
-    | 'captionEarth' | 'captionDay' | 'captionSurface',
+    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'
+    | 'captionEarth' | 'captionDay' | 'captionSurface'
+    | 'holding' | 'useMoving' | 'usePoweredDown' | 'useBusy' | 'useNoEnergy' | 'useSlowCold',
     string
   >;
   settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'back', string>;

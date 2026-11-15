@@ -11,6 +11,10 @@ export function validateGameData(data: GameData): string[] {
     ids.add(part.id);
     if (part.slot === 'instrument') {
       if (!part.effects.instrument) problems.push(`instrument part ${part.id} has no instrument effect`);
+      for (const key of ['energyPerUse', 'standbyEnergy', 'useSeconds'] as const) {
+        const v = part.effects[key];
+        if (v !== undefined && !(v >= 0)) problems.push(`instrument part ${part.id} has a negative ${key}`);
+      }
     } else if (!slots.includes(part.slot)) problems.push(`part ${part.id} has unknown slot ${part.slot}`);
     if (part.slot === 'chassis') {
       const points = part.effects.mountingPoints;
@@ -45,6 +49,7 @@ export function validateGameData(data: GameData): string[] {
     const zone = tr.type === 'zone' || tr.type === 'photo' || tr.type === 'drill' ? tr.zone : undefined;
     if (zone !== undefined && !(ZONE_IDS as readonly string[]).includes(zone)) problems.push(`milestone ${m.id} names unknown zone ${zone}`);
   }
+  if (!(data.tuning.instruments.coldSlowdown >= 1)) problems.push('tuning.instruments.coldSlowdown must be at least 1 (the cold never speeds an instrument up)');
   if (data.events.flare.realFlares.length < data.events.flare.windowsSeconds.length) {
     problems.push('events.json needs at least one real flare per flare window');
   }

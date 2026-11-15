@@ -1,7 +1,7 @@
 // The mission loop's rules: one step combines energy, damage, cold, soft ground, events and the end
 // conditions. The mission screen measures the rover (MissionSample), calls stepMission, and draws
 // the result. Pure: no rendering, no physics.
-import type { DeathCause, EventsFile, Part, RealFlare, Tuning } from './types';
+import type { DeathCause, EventsFile, Instrument, Part, RealFlare, Tuning } from './types';
 import { driveStats, type DriveStats } from './drive';
 import { roverTotals } from './rover';
 import { driveEnergy, solarIncome } from './energy';
@@ -9,6 +9,7 @@ import { impactDamage, overloadDamage, steepSlopeDamage, tiltDeg, type DamageCau
 import { stepFreeze } from './cold';
 import { stepDig, wheelSlip } from './ground';
 import { flareDamage, flareProtected, type MissionEvent } from './events';
+import { instrumentCosts, type InstrumentCosts } from './payload';
 
 /** What the parts mean for the mission systems. */
 export interface MissionSetup {
@@ -16,6 +17,7 @@ export interface MissionSetup {
   heat: number;
   hasLights: boolean;
   overloadKg: number; // total mass above the chassis maximum load
+  instruments: InstrumentCosts[]; // the payload, in bay order
   events: MissionEvent[];
 }
 
@@ -27,6 +29,7 @@ export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent
     heat: parts.reduce((s, p) => s + (p.effects.heat ?? 0), 0),
     hasLights: parts.some((p) => (p.effects.lightRange ?? 0) > 0),
     overloadKg: maxLoad === undefined ? 0 : Math.max(0, mass - maxLoad),
+    instruments: instrumentCosts(parts),
     events,
   };
 }
@@ -48,6 +51,8 @@ export interface MissionState {
   dig: number; // 0..1, full = stuck for good
   distanceM: number;
   poweredDown: boolean;
+  standbyOn: Instrument[]; // instruments switched on (each draws its standby energy while the rover is powered up)
+  using: { instrument: Instrument; secondsLeft: number } | null; // an instrument use the rover holds still for
   impactCooldown: number;
   tiltSeconds: number; // how long the rover has been tilted past the rollover limit
   damageBy: Record<DamageCause, number>;
@@ -76,7 +81,8 @@ export type MissionNotice =
   | { kind: 'flare-warning'; flare: RealFlare; at: number }
   | { kind: 'flare-hit'; flare: RealFlare; protected: boolean; damage: number }
   | { kind: 'quake'; damage: number }
-  | { kind: 'impact'; damage: number };
+  | { kind: 'impact'; damage: number }
+  | { kind: 'instrument-done'; instrument: Instrument }; // a held instrument use finished
 
 export interface MissionStep {
   state: MissionState;
@@ -93,6 +99,8 @@ export function startMission(setup: MissionSetup): MissionState {
     dig: 0,
     distanceM: 0,
     poweredDown: false,
+    standbyOn: [],
+    using: null,
     impactCooldown: 0,
     tiltSeconds: 0,
     damageBy: { impact: 0, slope: 0, overload: 0, flare: 0, quake: 0 },
@@ -119,8 +127,8 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
 
   state.seconds = Math.min(t.mission.lengthSeconds, prev.seconds + s.dt);
 
-  // Energy
-  const used = prev.poweredDown ? 0 : driveEnergy(s.distanceM, s.uphillDeg, stats.energyPerMeter, t.energy);
+  // Energy: driving and instruments on standby (nothing while powered down), against solar income.
+  const used = prev.poweredDown ? 0 : driveEnergy(s.distanceM, s.uphillDeg, stats.energyPerMeter, t.energy) + standbyDraw(prev, setup) * s.dt;
   state.energy = Math.min(stats.batteryCapacity, prev.energy - used + solarIncome(stats.energyIncome, s.sunlight, s.dt));
   state.distanceM = prev.distanceM + Math.max(0, s.distanceM);
 
@@ -167,7 +175,72 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   state.energy = Math.max(0, state.energy);
 
   state.end = missionEnd(state, t);
+
+  // A held instrument use counts down; it finishes only if the mission goes on.
+  if (prev.using) {
+    const secondsLeft = prev.using.secondsLeft - s.dt;
+    state.using = secondsLeft > 1e-9 ? { ...prev.using, secondsLeft } : null;
+    if (!state.using && !state.end) notices.push({ kind: 'instrument-done', instrument: prev.using.instrument });
+  }
   return { state, slip, notices };
+}
+
+/** Energy per second the switched-on instruments draw while the rover is powered up. */
+export function standbyDraw(s: MissionState, setup: MissionSetup): number {
+  return setup.instruments.reduce((sum, c) => sum + (s.standbyOn.includes(c.instrument) ? c.standbyEnergy : 0), 0);
+}
+
+/** True for an instrument that is switched on and off (it has a standby draw) rather than used. */
+export function isSwitchInstrument(instrument: Instrument, setup: MissionSetup): boolean {
+  return (setup.instruments.find((c) => c.instrument === instrument)?.standbyEnergy ?? 0) > 0;
+}
+
+/** Switch a standby instrument on or off. Instruments without a standby draw, or not carried, are unchanged. */
+export function setStandby(s: MissionState, instrument: Instrument, on: boolean, setup: MissionSetup): MissionState {
+  if (s.end || !isSwitchInstrument(instrument, setup) || s.standbyOn.includes(instrument) === on) return s;
+  return { ...s, standbyOn: on ? [...s.standbyOn, instrument] : s.standbyOn.filter((i) => i !== instrument) };
+}
+
+export type InstrumentRefusal =
+  | 'ended'
+  | 'not-carried'
+  | 'busy' // another held use is still going
+  | 'powered-down'
+  | 'moving' // a held use needs the rover stopped
+  | 'energy'; // the use would empty the battery
+
+export type InstrumentStart =
+  | { ok: true; state: MissionState; holdSeconds: number; slowedByCold: boolean; cost: number }
+  | { ok: false; reason: InstrumentRefusal; cost: number };
+
+/**
+ * Start using an instrument: checks power, speed and energy, charges the energy per use at once, and
+ * returns how long the rover holds still (its useSeconds, times tuning.instruments.coldSlowdown in a
+ * cold zone on a rover without a heater; 0 for an instant use). A held use is tracked in state.using
+ * and finishes with an 'instrument-done' notice from stepMission. A use is refused when its energy
+ * would empty the battery, so an instrument never ends the mission by itself.
+ */
+export function startInstrumentUse(
+  s: MissionState,
+  instrument: Instrument,
+  sample: Pick<MissionSample, 'speedMps' | 'inColdZone'>,
+  setup: MissionSetup,
+  t: Tuning,
+): InstrumentStart {
+  const c = setup.instruments.find((x) => x.instrument === instrument);
+  const cost = c?.energyPerUse ?? 0;
+  const refuse = (reason: InstrumentRefusal): InstrumentStart => ({ ok: false, reason, cost });
+  if (s.end) return refuse('ended');
+  if (!c) return refuse('not-carried');
+  const held = c.useSeconds > 0;
+  if (held && s.using) return refuse('busy');
+  if (s.poweredDown) return refuse('powered-down');
+  if (held && sample.speedMps > t.ground.movingSpeedMps) return refuse('moving');
+  if (cost > 0 && s.energy <= cost) return refuse('energy');
+  const slowedByCold = held && sample.inColdZone && setup.heat <= 0;
+  const holdSeconds = held ? c.useSeconds * (slowedByCold ? t.instruments.coldSlowdown : 1) : 0;
+  const state: MissionState = { ...s, energy: s.energy - cost, using: held ? { instrument, secondsLeft: holdSeconds } : s.using };
+  return { ok: true, state, holdSeconds, slowedByCold, cost };
 }
 
 /** The end conditions, most severe first. Null while the mission goes on. */

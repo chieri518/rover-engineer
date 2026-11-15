@@ -20,6 +20,6 @@
     { "id": "heater-rhu", "slot": "heater", "name": "Radioisotope heater units", "description": "Steady heat from decaying isotopes. Slows freezing in the cold.", "cost": 60, "mass": 3, "size": 1, "effects": { "heat": 2 } },
 
     { "id": "instrument-camera", "slot": "instrument", "name": "Science camera", "description": "Photos and imaging science.", "cost": 50, "mass": 3, "size": 1, "effects": { "instrument": "camera" } },
-    { "id": "instrument-drill", "slot": "instrument", "name": "Regolith drill", "description": "Samples the soil, and ice where it exists. Heavier and bulkier than the camera.", "cost": 90, "mass": 8, "size": 3, "effects": { "instrument": "drill" } }
+    { "id": "instrument-drill", "slot": "instrument", "name": "Regolith drill", "description": "Samples the soil, and ice where it exists. Heavier and bulkier than the camera.", "cost": 90, "mass": 8, "size": 3, "effects": { "instrument": "drill", "energyPerUse": 10, "useSeconds": 3 } }
   ]
 }

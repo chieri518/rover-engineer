@@ -134,7 +134,6 @@
     "partialCrossingHint": true,
     "craterDescentDepthM": 150,
     "craterDescentExitDepthM": 100,
-    "drillSeconds": 3,
     "albumMax": 12,
     "photoFrameMargin": 0.85,
     "sampleMinDistanceM": 200,
@@ -144,5 +143,8 @@
     "hydrogenSignal": true,
     "hydrogenStrongWithinM": 100,
     "hydrogenModerateWithinM": 250
+  },
+  "instruments": {
+    "coldSlowdown": 2
   }
 }

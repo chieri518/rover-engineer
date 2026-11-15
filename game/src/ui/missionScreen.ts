@@ -5,7 +5,7 @@ import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
 import { buildZones, hydrogenSignal, MilestoneTracker, type MilestoneUpdate, type Point3 } from '../rules/milestones';
 import { isCompleteBuild, selectedParts } from '../rules/rover';
-import { instrumentsOf } from '../rules/payload';
+import { instrumentForKey, instrumentKeys, instrumentsOf } from '../rules/payload';
 import type { Instrument } from '../rules/types';
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
@@ -14,8 +14,8 @@ import { softnessAt } from '../rules/ground';
 import { noLightsLookaheadM } from '../rules/cold';
 import { createExplored, exploredShare, reveal } from '../rules/explore';
 import {
-  activeFlareWarning, missionSetup, missionWarnings, startMission, stepMission,
-  type MissionEnd, type MissionSample, type MissionState, type WarningId,
+  activeFlareWarning, isSwitchInstrument, missionSetup, missionWarnings, setStandby, startInstrumentUse, startMission, stepMission,
+  type InstrumentRefusal, type MissionEnd, type MissionSample, type MissionState, type WarningId,
 } from '../rules/mission';
 import type { MoonDriveLimits, MoonScene, MoonStepSample } from '../world/moonScene';
 import type { Terrain } from '../world/terrainData';
@@ -55,13 +55,15 @@ export const missionScreen: Screen = (game, root) => {
   const mt = tuning.milestones;
   // The payload bay, in bay order: instrument i is used with number key i + 1 or its HUD button.
   const instruments = instrumentsOf(parts);
+  const keys = instrumentKeys(parts);
   const carries = (i: Instrument) => instruments.includes(i);
-  const keyOf = (i: Instrument) => instruments.indexOf(i) + 1;
+  const keyOf = (i: Instrument) => keys.get(i) ?? 0;
+  const partOf = (i: Instrument) => parts.find((p) => p.effects.instrument === i)!;
+  const costOf = (i: Instrument) => setup.instruments.find((c) => c.instrument === i);
   const recordsHeld = [...game.state.records];
   const earthDir = skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg);
   let tracker: MilestoneTracker | null = null;
   const album: AlbumPhoto[] = [];
-  let drillLeft = 0; // mission seconds of drilling left (0 = not drilling)
   let earthInView = false;
   let roverPos: Point3 | null = null; // ground point under the rover after the last step
 
@@ -85,7 +87,10 @@ export const missionScreen: Screen = (game, root) => {
   const ti = text.instruments;
   const td = text.drill;
   let hydrogenFactShown = false; // the real-world note on the hydrogen signal shows once per mission
-  const controls = [text.mission.controls, ...instruments.map((i) => fill(i === 'camera' ? ti.cameraControls : ti.drillControls, { key: keyOf(i) }))]
+  const controls = [text.mission.controls, ...instruments.map((i) => fill(i === 'camera' ? ti.cameraControls : ti.drillControls, {
+    key: keyOf(i),
+    energy: costOf(i)?.energyPerUse ?? 0,
+  }))]
     .join(' ');
   // Drive tutorial: opens by itself on the first mission (the scene loads meanwhile); the Help button
   // reopens it. The mission is paused while it is open.
@@ -108,11 +113,13 @@ export const missionScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
   // One HUD button per instrument, in bay order (the same order as the number keys).
-  const instrumentButtons = new Map<Instrument, HTMLButtonElement>(instruments.map((inst, i) => [inst, el('button', {
+  // A switch instrument (one with a standby draw) shows whether it is on.
+  const instrumentButtons = new Map<Instrument, HTMLButtonElement>(instruments.map((inst) => [inst, el('button', {
     type: 'button',
     class: 'instrument-button',
     onclick: () => useInstrument(inst),
-  }, el('span', { class: 'instrument-key' }, String(i + 1)), inst === 'camera' ? ti.buttonCamera : ti.buttonDrill)]));
+    ...(isSwitchInstrument(inst, setup) ? { 'aria-pressed': 'false' } : {}),
+  }, el('span', { class: 'instrument-key' }, String(keyOf(inst))), inst === 'camera' ? ti.buttonCamera : ti.buttonDrill)]));
   const hud = new Hud(text, togglePower, el('div', { class: 'hud-extra' },
     instruments.length > 0 && el('div', { class: 'hud-instruments', role: 'group', 'aria-label': ti.buttonsLabel }, ...instrumentButtons.values()),
     el('p', { class: 'muted' }, controls),
@@ -141,10 +148,46 @@ export const missionScreen: Screen = (game, root) => {
   const earthBlocker = (p: { x: number; z: number }, lit: number): string | null =>
     lit < mt.earthPhotoMinLit ? earthDarkText(lit) : tracker?.earthPhotoTooClose(p) ? earthTooCloseText(p) : null;
 
+  /** The notice for a refused instrument use. */
+  const refusalText = (inst: Instrument, reason: InstrumentRefusal, cost: number): string | null => {
+    const name = partOf(inst)?.name ?? inst;
+    switch (reason) {
+      case 'ended':
+        return null;
+      case 'not-carried':
+        return inst === 'camera' ? ti.noCamera : ti.noDrill;
+      case 'busy':
+        return ti.useBusy;
+      case 'powered-down':
+        return fill(ti.usePoweredDown, { name });
+      case 'moving':
+        return fill(ti.useMoving, { name });
+      case 'energy':
+        return fill(ti.useNoEnergy, { name, cost, energy: Math.floor(state.energy) });
+    }
+  };
+  /** Run the rules for a use; on success the state is updated (energy charged, hold started). */
+  const tryUse = (inst: Instrument): boolean => {
+    if (!carries(inst)) {
+      hud.notify(inst === 'camera' ? ti.noCamera : ti.noDrill);
+      return false;
+    }
+    const r = startInstrumentUse(state, inst, { speedMps: lastSample?.speedMps ?? 0, inColdZone: lastSample?.inColdZone ?? false }, setup, tuning);
+    if (!r.ok) {
+      const msg = refusalText(inst, r.reason, r.cost);
+      if (msg) hud.notify(msg);
+      return false;
+    }
+    state = r.state;
+    if (r.slowedByCold) hud.notify(fill(ti.useSlowCold, { name: partOf(inst).name, seconds: Math.round(r.holdSeconds) }));
+    return true;
+  };
+
   const takePhoto = () => {
     if (ended || !scene || !tracker || !roverPos) return;
     if (!carries('camera')) return hud.notify(ti.noCamera);
     if (album.length >= mt.albumMax) return hud.notify(fill(ti.photoAlbumFull, { max: mt.albumMax }));
+    if (!tryUse('camera')) return;
     const earth = scene.inView(earthDir, mt.photoFrameMargin);
     const lit = earthLit();
     const u = tracker.photo(roverPos, earth, lit);
@@ -160,12 +203,11 @@ export const missionScreen: Screen = (game, root) => {
     announce(u);
   };
 
+  // The drill holds the rover still for its useSeconds (rules: startInstrumentUse); stepMission
+  // reports when it is done, and finishDrill reads the sample.
   const startDrill = () => {
-    if (ended || drillLeft > 0) return;
-    if (!carries('drill')) return hud.notify(ti.noDrill);
-    if (state.poweredDown) return hud.notify(text.warnings.poweredDown);
-    if ((lastSample?.speedMps ?? 0) > tuning.ground.movingSpeedMps) return hud.notify(ti.drillMoving);
-    drillLeft = mt.drillSeconds;
+    if (ended) return;
+    tryUse('drill');
   };
 
   const finishDrill = () => {
@@ -189,24 +231,29 @@ export const missionScreen: Screen = (game, root) => {
     announce(u);
   };
 
+  /** A held use finished (an 'instrument-done' notice): report what the instrument found. */
+  const finishUse = (inst: Instrument) => {
+    if (inst === 'drill') finishDrill();
+  };
+
   function useInstrument(inst: Instrument): void {
-    if (tutorial) return;
-    if (inst === 'camera') takePhoto();
+    if (tutorial || ended) return;
+    // A switch instrument (with a standby draw) is switched on or off; the others are used.
+    if (isSwitchInstrument(inst, setup)) state = setStandby(state, inst, !state.standbyOn.includes(inst), setup);
+    else if (inst === 'camera') takePhoto();
     else startDrill();
   }
 
   const onKey = (e: KeyboardEvent) => {
     if (e.repeat || tutorial) return;
     if (e.code === 'KeyP') togglePower();
-    const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
-    const inst = digit ? instruments[Number(digit[1]) - 1] : undefined;
+    const inst = instrumentForKey(e.code, parts);
     if (inst) useInstrument(inst);
   };
   window.addEventListener('keydown', onKey);
 
   const finish = (end: MissionEnd) => {
     ended = end;
-    drillLeft = 0;
     for (const button of instrumentButtons.values()) button.disabled = true;
     scene?.stopClock();
     if (tracker) announce(tracker.finish(end.survived, state.damageBy));
@@ -283,17 +330,15 @@ export const missionScreen: Screen = (game, root) => {
         exploredShare: exploredShare(explored),
         flareSurvived: step.notices.some((n) => n.kind === 'flare-hit' && n.protected),
       }));
-      if (drillLeft > 0) {
-        drillLeft = Math.max(0, drillLeft - s.dt);
-        if (drillLeft === 0 && !state.end) finishDrill();
-      }
+      for (const n of step.notices) if (n.kind === 'instrument-done') finishUse(n.instrument);
     }
     if (state.end && !ended) finish(state.end);
 
     // What the rover may do next step.
-    if (ended || state.poweredDown || drillLeft > 0) {
+    const holding = state.using !== null;
+    if (ended || state.poweredDown || holding) {
       blockedByShadow = false;
-      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: drillLeft > 0 });
+      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: holding });
     }
     // Without lights the rover stops at the edge of permanent shadow.
     let allowForward = true;
@@ -318,7 +363,7 @@ export const missionScreen: Screen = (game, root) => {
   };
 
   const hintText = (): string | null => {
-    if (drillLeft > 0) return ti.drilling;
+    if (state.using) return state.using.instrument === 'drill' ? ti.drilling : fill(ti.holding, { name: partOf(state.using.instrument).name });
     const zones = tracker?.currentZones() ?? [];
     if (carries('camera')) {
       const key = keyOf('camera');
@@ -349,7 +394,11 @@ export const missionScreen: Screen = (game, root) => {
       poweredDown: state.poweredDown,
     });
     scene?.setFloodlights(!ended && !state.poweredDown && sunlight < 0.5);
-    instrumentButtons.get('drill')?.classList.toggle('active', drillLeft > 0);
+    for (const [inst, button] of instrumentButtons) {
+      const on = !ended && state.standbyOn.includes(inst);
+      button.classList.toggle('active', !ended && (state.using?.instrument === inst || on));
+      if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', String(on));
+    }
     if (ended) return;
     const flare = activeFlareWarning(state, setup);
     hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / data.events.flare.warningSeconds : 0);
@@ -414,10 +463,11 @@ export const missionScreen: Screen = (game, root) => {
         earthInView: scene?.inView(earthDir, mt.photoFrameMargin) ?? false,
         earthLit: earthLit(),
         album: album.map((a) => a.caption),
-        drilling: drillLeft,
+        drilling: state.using?.instrument === 'drill' ? state.using.secondsLeft : 0,
       }),
       photo: takePhoto,
       drill: startDrill,
+      use: useInstrument,
       resetMaxImpact() {
         maxImpact = 0;
       },

@@ -6,7 +6,7 @@ import { canStartMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
-import { fitPayload, togglePayload } from '../rules/payload';
+import { fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
 import { chosenParts } from '../rules/rover';
 import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
@@ -16,6 +16,17 @@ import { openTutorial, type TutorialHandle } from './tutorial';
 import { tutorialPages } from './tutorialText';
 
 const KMH = 3.6;
+
+/** An instrument's operating costs as text ("10 energy per use, holds the rover 3 s"), or null when it has none. */
+function costsText(c: InstrumentCosts, data: GameData, withHold: boolean): string | null {
+  const t = data.text.design;
+  const items = [
+    c.energyPerUse > 0 && fill(t.energyPerUse, { energy: c.energyPerUse }),
+    c.standbyEnergy > 0 && fill(t.energyStandby, { energy: c.standbyEnergy }),
+    withHold && c.useSeconds > 0 && fill(t.useHold, { seconds: c.useSeconds }),
+  ].filter((x): x is string => Boolean(x));
+  return items.length ? items.join(', ') : null;
+}
 
 /** The one number that matters most for each part, shown on its card. */
 function keyEffect(part: Part, data: GameData): string | null {
@@ -35,8 +46,11 @@ function keyEffect(part: Part, data: GameData): string | null {
       return e.lightRange ? `Light range ${e.lightRange} m` : null;
     case 'heater':
       return e.heat ? `Heat output ${e.heat}` : null;
-    case 'instrument':
-      return null; // the description already says what the instrument does
+    case 'instrument': {
+      // The description says what the instrument does; the card adds what it costs to run.
+      const c = instrumentCosts([part])[0];
+      return c ? costsText(c, data, true) : null;
+    }
   }
 }
 
@@ -150,8 +164,8 @@ export const designScreen: Screen = (game, root) => {
             value: part.id,
             onchange: () => {
               const payload = togglePayload(game.build.payload, part.id, chassisPoints(game.build) ?? maxPoints);
-              // Taking out the last instrument leaves the bay unconfirmed: "No instruments" confirms an empty bay.
-              setBuild({ ...game.build, payload: payload.length ? payload : undefined });
+              // Taking out the last instrument leaves a confirmed empty bay: the player has decided on the bay.
+              setBuild({ ...game.build, payload });
             },
           });
           bayInputs.set(part.id, input);
@@ -172,6 +186,9 @@ export const designScreen: Screen = (game, root) => {
     const used = payload?.length ?? 0;
     const points = chassisPoints(game.build);
     const full = used >= (points ?? maxPoints);
+    // The same mission keys as in the mission (rules/payload instrumentKeys), from the bay's parts in bay order.
+    const bayParts = (payload ?? []).flatMap((id) => partById(id) ?? []);
+    const keys = instrumentKeys(bayParts);
     bayCounter.textContent = points === null ? t.bayNoChassis : fill(t.bayPoints, { used, points });
     baySockets.replaceChildren(...Array.from({ length: points ?? 0 }, (_, i) => el('span', { class: `socket${i < used ? ' filled' : ''}` })));
     for (const [id, input] of bayInputs) {
@@ -181,7 +198,9 @@ export const designScreen: Screen = (game, root) => {
       const node = cards.get(id)!;
       node.classList.toggle('disabled', input.disabled);
       node.title = input.disabled ? t.bayFull : '';
-      bayKeys.get(id)!.textContent = at >= 0 ? `Key ${at + 1}` : '';
+      const inst = partById(id)?.effects.instrument;
+      const key = at >= 0 && inst ? keys.get(inst) : undefined;
+      bayKeys.get(id)!.textContent = key ? fill(t.bayKey, { key }) : '';
     }
     const confirmedEmpty = payload !== undefined && payload.length === 0;
     noneButton.textContent = confirmedEmpty ? t.bayNoneChosen : t.bayNone;
@@ -227,6 +246,19 @@ export const designScreen: Screen = (game, root) => {
         fill(t.speedInfoBuild, { game: q.drive.topSpeed.toFixed(1), real: (q.drive.realTopSpeed * KMH).toFixed(1) })),
       el('p', { class: 'note' }, t.speedInfoSources),
     );
+  }
+
+  /** The bay's instrument energy for the spec sheet: per use and standby, per instrument that has any. */
+  function instrumentEnergyText(): string {
+    const payload = game.build.payload;
+    if (payload === undefined) return '—';
+    const bayParts = payload.flatMap((id) => partById(id) ?? []);
+    const items = bayParts.flatMap((part) => {
+      const c = instrumentCosts([part])[0];
+      const costs = c && costsText(c, data, false);
+      return costs ? [fill(t.instrumentEnergyItem, { name: part.name, costs })] : [];
+    });
+    return items.length ? items.join('; ') : t.instrumentEnergyNone;
   }
 
   // Live 3D preview of the rover as built so far (loaded on demand, with three.js). Without WebGL the
@@ -300,6 +332,7 @@ export const designScreen: Screen = (game, root) => {
       row('Drive energy', has('wheels') ? `${(d.energyPerMeter * 1000).toFixed(0)} energy/km` : dash),
       row('Battery', has('battery') ? `${d.batteryCapacity} energy` : dash),
       row('Range on battery', has('wheels') && has('battery') ? `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground` : dash),
+      row(t.instrumentEnergy, instrumentEnergyText()),
       row('Solar income', has('power') ? `${d.energyIncome.toFixed(1)} energy/s in full sun` : dash),
     );
     renderInfo(q);
