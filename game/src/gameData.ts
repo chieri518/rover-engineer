@@ -5,7 +5,8 @@ import milestones from '../data/milestones.json';
 import tuning from '../data/tuning.json';
 import events from '../data/events.json';
 import text from '../data/text.json';
-import type { GameData, PartsFile, TiersFile, MilestonesFile, Tuning, EventsFile, TextFile } from './rules/types';
+import relationships from '../data/relationships.json';
+import type { GameData, PartsFile, TiersFile, MilestonesFile, Tuning, EventsFile, TextFile, RelationshipsFile } from './rules/types';
 import { validateGameData } from './rules/validate';
 
 export function loadGameData(): GameData {
@@ -16,6 +17,7 @@ export function loadGameData(): GameData {
     tuning: tuning as Tuning,
     events: events as unknown as EventsFile,
     text: text as TextFile,
+    relationships: relationships as RelationshipsFile,
   };
   const problems = validateGameData(data);
   if (problems.length > 0) throw new Error(`Invalid game data:\n${problems.join('\n')}`);

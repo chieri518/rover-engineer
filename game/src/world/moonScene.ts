@@ -86,8 +86,8 @@ export interface MoonScene {
   /** Pause or resume physics and mission time (e.g. while the tutorial is open). The view keeps drawing. */
   setPaused(paused: boolean): void;
   /**
-   * Set a seismometer station or a laser retroreflector down on the ground beside the rover (about
-   * 1.6 m to its left, level with the body), drop its part from the rover's model, and drive on with
+   * Set a seismometer station or a laser retroreflector down on the ground beside the rover
+   * (tuning.instruments.stationOffsetM to its left, level with the body), drop its part from the rover's model, and drive on with
    * the new build's mass and speed. Returns the station's ground position (terrain coordinates).
    */
   deploy(instrument: 'seismometer' | 'reflector', params: RoverParams, parts: Part[]): { x: number; z: number };
@@ -460,8 +460,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       const left = new THREE.Vector3(0, 0, -1).applyQuaternion(rover.object.quaternion);
       left.y = 0;
       left.normalize();
-      const x = rover.position.x + left.x * 1.6;
-      const z = rover.position.z + left.z * 1.6;
+      const x = rover.position.x + left.x * tuning.instruments.stationOffsetM;
+      const z = rover.position.z + left.z * tuning.instruments.stationOffsetM;
       const station = createStationMesh(instrument);
       station.position.set(x, fine.sample(x, z), z);
       // Facing +x locally: the reflector toward Earth, the seismometer (round) like the rover.

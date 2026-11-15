@@ -88,6 +88,7 @@ export const testTuning: Tuning = {
   instruments: {
     coldSlowdown: 2,
     shadowSunlight: 0.5,
+    stationOffsetM: 1.6,
     neutron: { iceRangeM: 300, coldBackground: 0.2, noiseFloor: 0.05, jitter: 0.03 },
     xray: { reachM: 3, rocks: [{ id: 'common', weight: 3 }, { id: 'rare', weight: 1 }] },
     seismometer: { recordWindowSeconds: 20, quietDistanceM: 150 },

@@ -169,7 +169,7 @@ describe('instruments in a mission', () => {
     expect(use).toMatchObject({ ok: true, holdSeconds: 3, slowedByCold: false, fasterInShadow: false, cost: 10 });
     if (!use.ok) return;
     expect(use.state.energy).toBe(90);
-    expect(use.state.using).toEqual({ instrument: 'drill', secondsLeft: 3 });
+    expect(use.state.using).toEqual({ instrument: 'drill', secondsLeft: 3, site: { boulder: null, inDarkCrater: false, slowedByCold: false, fasterInShadow: false } });
   });
 
   it('a held use counts down and finishes with a notice, once', () => {
@@ -180,7 +180,7 @@ describe('instruments in a mission', () => {
     const b = step(a.state);
     const c = step(b.state);
     expect([a, b].flatMap((x) => x.notices)).toEqual([]);
-    expect(c.notices).toEqual([{ kind: 'instrument-done', instrument: 'drill', deployed: false }]);
+    expect(c.notices).toEqual([{ kind: 'instrument-done', instrument: 'drill', deployed: false, site: { boulder: null, inDarkCrater: false, slowedByCold: false, fasterInShadow: false } }]);
     expect(c.state.using).toBeNull();
     expect(step(c.state).notices).toEqual([]);
   });
@@ -189,11 +189,11 @@ describe('instruments in a mission', () => {
     const use = startInstrumentUse(startMission(setup), 'drill', still, setup, t);
     if (!use.ok) throw new Error('refused');
     const down = run(setup, {}, 10, { ...use.state, poweredDown: true });
-    expect(down.state.using).toEqual({ instrument: 'drill', secondsLeft: 3 });
+    expect(down.state.using).toMatchObject({ instrument: 'drill', secondsLeft: 3 });
     expect(down.notices).toEqual([]);
     const up = run(setup, {}, 3, { ...down.state, poweredDown: false });
     expect(up.state.using).toBeNull();
-    expect(up.notices).toEqual([{ kind: 'instrument-done', instrument: 'drill', deployed: false }]);
+    expect(up.notices).toMatchObject([{ kind: 'instrument-done', instrument: 'drill', deployed: false }]);
   });
 
   it('the camera is free and instant', () => {
@@ -214,7 +214,7 @@ describe('instruments in a mission', () => {
     expect(startInstrumentUse({ ...s0, poweredDown: true }, 'drill', still, setup, t)).toMatchObject({ ok: false, reason: 'powered-down' });
     expect(startInstrumentUse({ ...s0, poweredDown: true }, 'camera', still, setup, t)).toMatchObject({ ok: false, reason: 'powered-down' });
     expect(startInstrumentUse(s0, 'drill', { ...still, speedMps: 1 }, setup, t)).toMatchObject({ ok: false, reason: 'moving' });
-    const busy = { ...s0, using: { instrument: 'drill' as const, secondsLeft: 1 } };
+    const busy = { ...s0, using: { instrument: 'drill' as const, secondsLeft: 1, site: { boulder: null, inDarkCrater: false, slowedByCold: false, fasterInShadow: false } } };
     expect(startInstrumentUse(busy, 'drill', still, setup, t)).toMatchObject({ ok: false, reason: 'busy' });
     expect(startInstrumentUse(busy, 'camera', still, setup, t).ok).toBe(true); // a photo while drilling
     expect(startInstrumentUse({ ...s0, end: { survived: true, seconds: 300 } }, 'drill', still, setup, t)).toMatchObject({ ok: false, reason: 'ended' });
@@ -306,6 +306,15 @@ describe('the new Moon instruments in a mission', () => {
     expect(startInstrumentUse(startMission(bare), 'seismometer', crater, bare, t)).toMatchObject({ ok: true, holdSeconds: 3 * t.instruments.coldSlowdown, slowedByCold: true, fasterInShadow: false });
   });
 
+  it('a held use keeps where it started (boulder, dark crater, cold, shadow) and reports it when done', () => {
+    const shade = { ...still, sunlight: 0, boulder: 7, inDarkCrater: true };
+    const use = startInstrumentUse(startMission(setup), 'xray', shade, setup, t);
+    if (!use.ok) throw new Error(use.reason);
+    const site = { boulder: 7, inDarkCrater: true, slowedByCold: false, fasterInShadow: true };
+    expect(use.state.using?.site).toEqual(site);
+    expect(run(setup, {}, 2, use.state).notices).toEqual([{ kind: 'instrument-done', instrument: 'xray', deployed: false, site }]);
+  });
+
   it('the reflector can be set down only with Earth in view', () => {
     expect(startInstrumentUse(startMission(setup), 'reflector', { ...still, earthInView: false }, setup, t)).toMatchObject({ ok: false, reason: 'no-earth' });
     expect(startInstrumentUse(startMission(setup), 'reflector', still, setup, t)).toMatchObject({ ok: true, holdSeconds: 3, cost: 0 });
@@ -315,7 +324,7 @@ describe('the new Moon instruments in a mission', () => {
     const use = startInstrumentUse(startMission(setup), 'seismometer', still, setup, t);
     if (!use.ok) throw new Error(use.reason);
     const { state, notices } = run(setup, {}, 3, use.state);
-    expect(notices).toEqual([{ kind: 'instrument-done', instrument: 'seismometer', deployed: true }]);
+    expect(notices).toMatchObject([{ kind: 'instrument-done', instrument: 'seismometer', deployed: true }]);
     expect(state.deployed).toEqual(['seismometer']);
     const after = deployPart(setup, bay, state.deployed, t);
     expect(after.stats.massKg).toBe(setup.stats.massKg - 4);

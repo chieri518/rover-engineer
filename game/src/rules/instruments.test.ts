@@ -2,7 +2,10 @@ import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import terrain from '../../public/terrain/terrain.json';
 import { buildZones, zoneContains, type MilestoneFeatures } from './milestones';
-import { hydrogenReading, rockTypeFor, seismometerRecord, xrayTarget, type TrackPoint } from './instruments';
+import {
+  emptySeismometerTrack, hydrogenReading, rockTypeFor, seismometerRecord, seismometerRecording, stepSeismometer, xrayTarget,
+  type SeismometerTrack, type TrackPoint,
+} from './instruments';
 import { scatterBoulders, type Boulder } from './boulders';
 import { testTuning } from './testData';
 
@@ -108,5 +111,53 @@ describe('seismometer station: the moonquake record', () => {
 
   it('the window starts no earlier than the station was set down', () => {
     expect(seismometerRecord({ ...at, seconds: 95 }, track([[90, 5, true], [96, 400, true]]), 100, s)?.quality).toBe('clean');
+  });
+});
+
+describe('seismometer station: the track over a mission (stepSeismometer)', () => {
+  const s = testTuning.instruments.seismometer; // 20 s window, 150 m quiet distance
+  const pt = (seconds: number, x: number, moving = true): TrackPoint => ({ seconds, x, z: 0, moving });
+  /** Run steps of [seconds, rover x, moving, deployed here?, quake?]. */
+  const steps = (list: [number, number, boolean, boolean?, boolean?][], start: SeismometerTrack = emptySeismometerTrack()) => {
+    let tr = start;
+    const outcomes = [];
+    for (const [seconds, x, moving, deployed, quake] of list) {
+      const r = stepSeismometer(tr, { point: pt(seconds, x, moving), deployed: deployed ? { x: 0, z: 0 } : null, quake: Boolean(quake) }, s);
+      tr = r.track;
+      outcomes.push(...r.outcomes);
+    }
+    return { tr, outcomes };
+  };
+
+  it('keeps no track before a station is down, and keeps only the record window while it records', () => {
+    expect(steps([[1, 0, true], [2, 5, true]]).tr.points).toEqual([]);
+    const { tr, outcomes } = steps([[10, 0, false, true], [20, 50, true], [35, 200, true]]);
+    expect(outcomes).toEqual([{ kind: 'deployed' }]);
+    expect(seismometerRecording(tr)).toBe(true);
+    expect(tr.points.map((p) => p.seconds)).toEqual([20, 35]); // 10 is more than 20 s before 35
+  });
+
+  it('records the quake once: noisy when the rover drove near in the window, clean when it kept away', () => {
+    const noisy = steps([[10, 0, false, true], [95, 100, true], [100, 300, true, false, true]]);
+    expect(noisy.outcomes).toEqual([{ kind: 'deployed' }, { kind: 'recorded', record: { quality: 'noisy', closestM: 100 } }]);
+    expect(noisy.tr.result).toBe('noisy');
+    expect(seismometerRecording(noisy.tr)).toBe(false);
+    const clean = steps([[10, 0, false, true], [40, 20, true], [95, 300, true], [100, 300, true, false, true]]);
+    expect(clean.outcomes.at(-1)).toEqual({ kind: 'recorded', record: { quality: 'clean', closestM: 300 } });
+    // A second quake (development tool) changes nothing.
+    expect(steps([[110, 0, true, false, true]], clean.tr).outcomes).toEqual([]);
+  });
+
+  it('deployed after the quake: missed', () => {
+    const { tr, outcomes } = steps([[100, 0, false, false, true], [120, 0, false, true]]);
+    expect(outcomes).toEqual([{ kind: 'missed' }]);
+    expect(tr.result).toBe('missed');
+    expect(seismometerRecording(tr)).toBe(false);
+  });
+
+  it('a station that finishes setting down in the same step as the quake counts as down in time', () => {
+    const { tr, outcomes } = steps([[100, 0, false, true, true]]);
+    expect(outcomes).toEqual([{ kind: 'deployed' }, { kind: 'recorded', record: { quality: 'clean', closestM: Infinity } }]);
+    expect(tr.result).toBe('clean');
   });
 });

@@ -2,7 +2,8 @@
 // screens have their own files.
 import { milestoneStages } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
-import type { HistoryKey, Instrument, TextFile } from '../rules/types';
+import type { GameData, HistoryKey, Instrument, TextFile } from '../rules/types';
+import { lessonFor, relationshipEntry, type RelationshipEvent } from '../rules/relationships';
 import type { InstrumentLog } from '../rules/instruments';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
@@ -121,6 +122,31 @@ function instrumentLogLines(log: InstrumentLog | null, text: TextFile): string[]
   return lines;
 }
 
+/**
+ * "What the rover taught us": each relationship met this mission, in the order met, with what happened
+ * and why, and the ways to solve it; the real mission behind it only with Mission history on. Cold and
+ * dark lists each variant met under one heading.
+ */
+function taughtItems(met: readonly RelationshipEvent[], data: GameData, history: boolean): HTMLElement[] {
+  const t = data.text.debrief;
+  const ids = [...new Set(met.map((e) => e.id))];
+  return ids.flatMap((id) => {
+    const entry = relationshipEntry(data.relationships, id);
+    const lessons = met.filter((e) => e.id === id).map((e) => lessonFor(data.relationships, e)).filter((l) => l !== undefined);
+    if (!entry || lessons.length === 0) return [];
+    return [el('li', { 'data-relationship': id },
+      el('strong', {}, entry.name),
+      ...lessons.flatMap((l) => [
+        el('p', {}, l.debrief),
+        el('p', { class: 'sub' }, t.taughtAnswers),
+        el('ul', { class: 'answers' }, ...l.answers.map((a) => el('li', {}, a))),
+      ]),
+      history && entry.fact && el('p', { class: 'sub fact' }, entry.fact),
+      history && entry.source && el('p', { class: 'note' }, fill(t.taughtSource, { source: entry.source })),
+    )];
+  });
+}
+
 const debrief: Screen = (game, root) => {
   const { data } = game;
   const { text } = data;
@@ -134,6 +160,7 @@ const debrief: Screen = (game, root) => {
   const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
 
   const logLines = instrumentLogLines(game.instrumentLog, text);
+  const taught = taughtItems(result.relationships ?? [], data, history);
 
   // Milestones in catalog order; records already held this campaign are listed without a reward.
   const items = data.milestones.milestones.flatMap((m) => {
@@ -176,6 +203,10 @@ const debrief: Screen = (game, root) => {
       logLines.length > 0 && el('h3', {}, t.logHeading),
       logLines.length > 0 && el('ul', { class: 'debrief-log' }, ...logLines.map((l) => el('li', {}, l))),
       logLines.length > 0 && el('p', { class: 'note' }, t.logNote),
+
+      taught.length > 0 && el('h3', {}, t.taughtHeading),
+      taught.length > 0 && el('p', { class: 'muted' }, t.taughtNote),
+      taught.length > 0 && el('ul', { class: 'debrief-taught' }, ...taught),
 
       el('h3', {}, t.albumHeading),
       game.album.length ? albumView(game.album) : el('p', { class: 'muted' }, t.noPhotos),

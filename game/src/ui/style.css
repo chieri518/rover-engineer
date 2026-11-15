@@ -111,6 +111,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .hud-notices { display: grid; gap: 6px; justify-items: center; }
 .hud-notice { animation: notice-fade 4s forwards; }
 .hud-notice.good { background: rgba(10, 34, 14, 0.85); color: var(--good); border-color: var(--good); }
+.hud-notice.long { animation-duration: 9s; max-width: 46ch; font-weight: 500; }
 @keyframes notice-fade { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }
 .flare-warning { background: rgba(60, 40, 0, 0.9); color: var(--flare); border-color: var(--flare); width: 100%; }
 .flare-warning[hidden] { display: none; }
@@ -281,6 +282,11 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .debrief-milestones .reward { font-family: var(--font-mono); font-size: 0.95em; color: var(--good); text-align: right; }
 .debrief-milestones .reward.none { color: var(--muted); }
 .debrief-milestones .sub { grid-column: 1 / -1; font-size: 0.85rem; color: var(--muted); }
+.debrief-taught { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.debrief-taught > li { padding: 6px 0; border-bottom: 1px solid var(--line); }
+.debrief-taught p { margin: 4px 0; }
+.debrief-taught .sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 0; }
+.debrief-taught .answers { margin: 2px 0 4px; padding-left: 1.2em; }
 .ledger { max-width: 420px; }
 .album { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .album figure { margin: 0; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }

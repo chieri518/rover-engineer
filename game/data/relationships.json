@@ -1,0 +1,99 @@
+{
+  "relationships": [
+    {
+      "id": "neutron-drill",
+      "world": "moon",
+      "kind": "needs",
+      "name": "The neutron spectrometer finds the ice, the drill confirms it",
+      "parts": ["instrument-neutron", "instrument-drill"],
+      "review": "yellow",
+      "notice": "The drill tests only the ground under it: it cannot tell where the ice is. A neutron spectrometer senses buried hydrogen as the rover drives, so it shows where to drill.",
+      "reviewText": "Needs: the drill confirms ice but cannot find it. The neutron spectrometer senses buried hydrogen while the rover drives. Bring both, or earn points elsewhere.",
+      "debrief": "The drill only tests the ground it stands on, so in the dark crater it could not tell how close the ice was. A neutron spectrometer senses hydrogen under the surface as the rover drives, which shows where to dig.",
+      "answers": [
+        "Add a neutron spectrometer and drill where its hydrogen meter rises.",
+        "Skip the ice and earn points with other instruments."
+      ],
+      "fact": "NASA's VIPER rover carries a Neutron Spectrometer System that senses hidden water up to about 1 m (3 feet) below the surface while it drives.",
+      "source": "NASA Science, VIPER rover and instruments (science.nasa.gov/mission/viper/rover-and-instruments)"
+    },
+    {
+      "id": "seismometer-quiet",
+      "world": "moon",
+      "kind": "conditions",
+      "name": "The seismometer needs quiet ground",
+      "parts": ["instrument-seismometer"],
+      "review": "yellow",
+      "notice": "Seismometer trace noisy: the rover is driving within {distance} m of the station. Drive farther away, or stop, for a clean moonquake record.",
+      "reviewText": "Conditions: the rover's own driving shakes the ground near a deployed seismometer and adds noise. Deploy the station, then drive away before the moonquake, or place it off the return route.",
+      "debrief": "The rover's own driving shook the ground near the station, and a seismometer records that shaking as noise. The moonquake record is clean only if the rover is far away, or parked, while the station listens before the quake.",
+      "answers": [
+        "Set the station down early, then drive away.",
+        "Set it down where the route does not come back.",
+        "Near the station, stop instead of driving: a parked rover is quiet."
+      ],
+      "fact": "Chandrayaan-3's ILSA seismometer recorded vibrations from its rover's movements on August 25, 2023.",
+      "source": "ISRO, ILSA listens to the movements around the landing site (isro.gov.in/Ch3_ILSA_Listens_Landing_Site.html)"
+    },
+    {
+      "id": "cold-dark",
+      "world": "moon",
+      "kind": "needs",
+      "name": "Cold and dark: instruments need the heater, the camera needs lights",
+      "parts": ["heater-rhu", "lights-led"],
+      "review": "yellow",
+      "reviewText": "Needs: in permanent shadow, instruments work slowly without a heater, and photos come out black without lights. Bring a heater and lights, or keep science in sunlight.",
+      "variants": {
+        "heater": {
+          "notice": "The cold is slowing the instrument: without a heater, instruments work slowly in permanent shadow.",
+          "debrief": "Permanent shadow stays very cold, and the instrument slowed as it chilled. A heater keeps instruments warm enough to work at full speed.",
+          "answers": [
+            "Fit a heater to work in permanent shadow.",
+            "Keep instrument work in sunlight."
+          ]
+        },
+        "lights": {
+          "notice": "The photo is black: permanent shadow gets no sunlight. Lights would light the scene.",
+          "debrief": "Permanent shadow gets no direct sunlight, so the camera had nothing to record. Lights give the camera the light it needs.",
+          "answers": [
+            "Add lights to the rover.",
+            "Take the picture from sunlit ground."
+          ]
+        }
+      },
+      "fact": "NASA's LRO Diviner instrument has measured temperatures near 25 K (about -248 °C) in permanently shadowed polar craters.",
+      "source": "NASA SVS 11230, Diviner temperatures of the lunar poles (svs.gsfc.nasa.gov/11230); Paige et al. (2010), Science 330:479, doi:10.1126/science.1187726"
+    },
+    {
+      "id": "xray-cold",
+      "world": "moon",
+      "kind": "conditions",
+      "name": "A colder X-ray detector gives sharper readings",
+      "parts": ["instrument-xray"],
+      "review": "green",
+      "notice": "X-ray reading sharper and faster here: the shade keeps the detector cold. In sunlight the reading takes longer.",
+      "reviewText": "Conditions: the X-ray spectrometer's detector gives sharper readings when it is colder, so readings in shade finish sooner. Read in shade where you can, or accept slower readings in sunlight.",
+      "debrief": "A colder X-ray detector picks out each element's X-rays more sharply, so a clear reading takes less time. The rover was in shade, where the detector stays colder, so the reading finished sooner.",
+      "answers": [
+        "Take readings in shade when the route allows.",
+        "Accept slower readings in sunlight."
+      ],
+      "fact": "Curiosity's X-ray tool gets sharper readings when its detector is colder, so it can switch on a small cooler to chill the detector.",
+      "source": "Mars Science Laboratory APXS documentation, Alpha Particle X-ray Spectrometer (an.rsl.wustl.edu/help/Content/About%20the%20mission/MSL/Instruments/APXS%20Alpha%20Particle%20X-ray%20Spectrometer.htm): best resolution below about -15 °C"
+    },
+    {
+      "id": "no-lights",
+      "world": "moon",
+      "kind": "needs",
+      "name": "No lights, no permanent shadow",
+      "parts": ["lights-none"],
+      "review": "red",
+      "hardBlock": true,
+      "reviewText": "No lights: the rover cannot enter permanent shadow. Fit lights to enter the dark crater.",
+      "answers": [
+        "Fit floodlights.",
+        "Plan the mission on sunlit ground, away from the dark crater."
+      ]
+    }
+  ]
+}

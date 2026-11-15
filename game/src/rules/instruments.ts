@@ -117,6 +117,79 @@ export function seismometerRecord(
   return { quality: closestM < t.quietDistanceM ? 'noisy' : 'clean', closestM };
 }
 
+/**
+ * The seismometer station over one mission: where it stands, the rover's recent track while it
+ * records, the first moonquake, and the station's one record. stepSeismometer moves it on each step.
+ */
+export interface SeismometerTrack {
+  deployedAt: Deployment | null;
+  points: TrackPoint[]; // the rover's track while the station records, trimmed to the record window
+  quakeAt: number | null; // mission seconds of the step the first moonquake struck in
+  result: 'clean' | 'noisy' | 'missed' | null; // the one record per mission (missed: set down after the quake)
+}
+
+export function emptySeismometerTrack(): SeismometerTrack {
+  return { deployedAt: null, points: [], quakeAt: null, result: null };
+}
+
+/** True while a station on the ground is waiting for the moonquake (it listens for the rover's driving). */
+export function seismometerRecording(tr: SeismometerTrack): boolean {
+  return tr.deployedAt !== null && tr.result === null;
+}
+
+/** What one step meant for the station, for the mission screen's notices and HUD trace. */
+export type SeismometerOutcome =
+  | { kind: 'deployed' }
+  | { kind: 'missed' } // set down after the moonquake: nothing to record
+  | { kind: 'recorded'; record: SeismometerRecord };
+
+/** What happened to the station in one step. */
+export interface SeismometerStepInput {
+  point: TrackPoint; // the rover at the end of the step (point.seconds = mission time)
+  deployed?: { x: number; z: number } | null; // the station was set down this step, here
+  quake: boolean; // the moonquake struck this step
+}
+
+/**
+ * One mission step for the seismometer station, in this order: a station set down this step, the
+ * rover's position, then a moonquake this step. The quake counts at the step's time, so a station
+ * that finishes setting down in the same step as the quake counts as down in time (as in
+ * seismometerRecord, which needs deployedAt.seconds <= quakeAt). A station set down after an
+ * earlier quake has missed it. Only the first quake counts: one record per mission.
+ */
+export function stepSeismometer(
+  tr: SeismometerTrack,
+  input: SeismometerStepInput,
+  t: InstrumentTuning['seismometer'],
+): { track: SeismometerTrack; outcomes: SeismometerOutcome[] } {
+  const { point } = input;
+  const next: SeismometerTrack = { ...tr };
+  const outcomes: SeismometerOutcome[] = [];
+  if (input.deployed && !tr.deployedAt) {
+    next.deployedAt = { seconds: point.seconds, x: input.deployed.x, z: input.deployed.z };
+    if (tr.quakeAt !== null && tr.quakeAt < point.seconds) {
+      next.result = 'missed';
+      outcomes.push({ kind: 'missed' });
+    } else outcomes.push({ kind: 'deployed' });
+  }
+  if (seismometerRecording(next)) {
+    const from = point.seconds - t.recordWindowSeconds;
+    next.points = [...tr.points.filter((p) => p.seconds >= from), point];
+  }
+  if (input.quake && next.quakeAt === null) {
+    next.quakeAt = point.seconds;
+    if (seismometerRecording(next)) {
+      const record = seismometerRecord(next.deployedAt, next.points, point.seconds, t);
+      if (record) {
+        next.result = record.quality;
+        next.points = [];
+        outcomes.push({ kind: 'recorded', record });
+      }
+    }
+  }
+  return { track: next, outcomes };
+}
+
 /** What the new instruments recorded in one mission, for the debrief's instrument log. Earns nothing yet. */
 export interface InstrumentLog {
   carried: Instrument[]; // the payload at launch, in bay order

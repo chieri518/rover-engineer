@@ -144,7 +144,11 @@
     "logQuakeMissed": "Seismometer station: set down after the moonquake, so there was nothing to record.",
     "logQuakeNone": "Seismometer station: no moonquake recorded.",
     "logReflector": "Laser retroreflector: set down with Earth in view.",
-    "logHydrogen": "Neutron spectrometer: highest hydrogen reading {percent}%."
+    "logHydrogen": "Neutron spectrometer: highest hydrogen reading {percent}%.",
+    "taughtHeading": "What the rover taught us",
+    "taughtNote": "Parts affect each other on the surface. Each lesson below happened on this mission.",
+    "taughtAnswers": "Ways to solve it",
+    "taughtSource": "Source: {source}"
   },
   "causes": {
     "energy": "Out of energy",
@@ -227,7 +231,8 @@
     "earthHidden": "Earth hidden",
     "xrayResult": "X-ray reading: {rock}. {elements}.",
     "xrayAgain": "X-ray reading: {rock}, the same as the last reading of this boulder.",
-    "seismometerDeployed": "Seismometer station set down. It will record the moonquake. Driving within {distance} m of it adds noise.",
+    "xrayNoTarget": "X-ray reading lost: no boulder was in reach when it started.",
+    "seismometerDeployed": "Seismometer station set down. It will record the moonquake.",
     "reflectorDeployed": "Laser retroreflector set down with Earth in view. Observatories on Earth can now range it.",
     "quakeClean": "The seismometer station recorded the moonquake: a clean trace.",
     "quakeNoisy": "The seismometer station recorded the moonquake, but the trace is noisy: the rover drove {distance} m from it.",
@@ -268,7 +273,7 @@
       "controls": "{key} to set down the seismometer station (stop first).",
       "notCarried": "This rover carries no seismometer station.",
       "holding": "Setting down the seismometer station. The rover holds still.",
-      "fact": "Four Apollo seismometers on the Moon recorded about 11,800 seismic events during their years of operation.",
+      "fact": "Four Apollo seismometers on the Moon recorded more than 11,000 seismic events during their years of operation.",
       "source": "NASA NTRS, Apollo Passive Seismic Experiment final report (1979), ntrs.nasa.gov/citations/19790013804"
     },
     "reflector": {
@@ -384,7 +389,7 @@
           "drill": "Drill: stop the rover, then press {key} (or its button) to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other.",
           "neutron": "Neutron spectrometer: {key} (or its button) switches it on or off. While on, a hydrogen meter beside the meters reads the ground as the rover drives, and it draws a little energy.",
           "xray": "X-ray spectrometer: stop beside a boulder, then press {key} (or its button) to read the rock's main elements.",
-          "seismometer": "Seismometer station: stop and press {key} (or its button) to set it down before the moonquake, then drive away so the rover's driving does not add noise.",
+          "seismometer": "Seismometer station: stop and press {key} (or its button) to set it down before the moonquake.",
           "reflector": "Laser retroreflector: stop where Earth is in view (the Earth light beside the meters) and press {key} (or its button) to set it down."
         },
         "body": [

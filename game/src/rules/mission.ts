@@ -43,6 +43,17 @@ export interface MissionEnd {
 
 export type EventStage = 'pending' | 'warned' | 'done';
 
+/**
+ * Where and how a held use started. The rover holds still, so this is also where it finishes: the
+ * result and the relationships read it from the 'instrument-done' notice, not from the screen.
+ */
+export interface UseSite {
+  boulder: number | null; // the boulder an X-ray reading targets (index in the boulder list), locked at the start
+  inDarkCrater: boolean; // inside the dark crater (the shadowed-crater zone)
+  slowedByCold: boolean; // the hold was lengthened by the cold (no heater)
+  fasterInShadow: boolean; // the hold was shortened by shadow (shadowHoldFactor)
+}
+
 export interface MissionState {
   seconds: number;
   energy: number;
@@ -52,7 +63,7 @@ export interface MissionState {
   distanceM: number;
   poweredDown: boolean;
   standbyOn: Instrument[]; // instruments switched on (each draws its standby energy while the rover is powered up)
-  using: { instrument: Instrument; secondsLeft: number } | null; // an instrument use the rover holds still for (paused while powered down)
+  using: { instrument: Instrument; secondsLeft: number; site: UseSite } | null; // an instrument use the rover holds still for (paused while powered down)
   deployed: Instrument[]; // stations set down on the ground, in the order deployed (they left the rover)
   impactCooldown: number;
   tiltSeconds: number; // how long the rover has been tilted past the rollover limit
@@ -83,7 +94,7 @@ export type MissionNotice =
   | { kind: 'flare-hit'; flare: RealFlare; protected: boolean; damage: number }
   | { kind: 'quake'; damage: number }
   | { kind: 'impact'; damage: number }
-  | { kind: 'instrument-done'; instrument: Instrument; deployed: boolean } // a held instrument use finished (deployed: a station was set down)
+  | { kind: 'instrument-done'; instrument: Instrument; deployed: boolean; site: UseSite } // a held instrument use finished (deployed: a station was set down)
   | { kind: 'standby-off'; instruments: Instrument[] }; // the battery fell to the low-energy warning: switched-on instruments were switched off
 
 export interface MissionStep {
@@ -200,7 +211,7 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
       const inst = prev.using.instrument;
       const deploy = setup.instruments.find((c) => c.instrument === inst)?.mode === 'deploy';
       if (deploy) state.deployed = [...prev.deployed, inst];
-      notices.push({ kind: 'instrument-done', instrument: inst, deployed: deploy });
+      notices.push({ kind: 'instrument-done', instrument: inst, deployed: deploy, site: prev.using.site });
     }
   }
   return { state, slip, notices };
@@ -276,6 +287,8 @@ export interface UseConditions {
   sunlight: number; // 0..1 at the rover
   earthInView?: boolean; // Earth above the terrain horizon from the rover (needsEarth instruments)
   boulderInReach?: boolean; // a boulder within tuning.instruments.xray.reachM (needsBoulder instruments)
+  boulder?: number | null; // which boulder that is (index in the boulder list): a held use keeps it in its site
+  inDarkCrater?: boolean; // inside the dark crater (the shadowed-crater zone)
 }
 
 export type InstrumentStart =
@@ -314,7 +327,8 @@ export function startInstrumentUse(
   const slowedByCold = held && sample.inColdZone && setup.heat <= 0 && !c.coldTolerant;
   const fasterInShadow = held && c.shadowHoldFactor !== 1 && sample.sunlight < t.instruments.shadowSunlight;
   const holdSeconds = held ? c.useSeconds * (slowedByCold ? t.instruments.coldSlowdown : 1) * (fasterInShadow ? c.shadowHoldFactor : 1) : 0;
-  const state: MissionState = { ...s, energy: s.energy - cost, using: held ? { instrument, secondsLeft: holdSeconds } : s.using };
+  const site: UseSite = { boulder: sample.boulder ?? null, inDarkCrater: sample.inDarkCrater ?? false, slowedByCold, fasterInShadow };
+  const state: MissionState = { ...s, energy: s.energy - cost, using: held ? { instrument, secondsLeft: holdSeconds, site } : s.using };
   return { ok: true, state, holdSeconds, slowedByCold, fasterInShadow, cost };
 }
 

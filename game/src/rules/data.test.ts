@@ -67,6 +67,19 @@ describe('game data', () => {
     ]);
   });
 
+  it('validation: deploy and the boulder and Earth checks need a held use (useSeconds above 0)', () => {
+    const parts = data.parts.parts.map((p) =>
+      p.id === 'instrument-seismometer' ? { ...p, effects: { ...p.effects, useSeconds: 0 } }
+      : p.id === 'instrument-xray' ? { ...p, effects: { ...p.effects, useSeconds: undefined } }
+      : p.id === 'instrument-camera' ? { ...p, effects: { ...p.effects, needsEarth: true } }
+      : p);
+    expect(validateGameData({ ...data, parts: { ...data.parts, parts } })).toEqual([
+      'instrument part instrument-camera has needsEarth, so it needs useSeconds above 0',
+      'instrument part instrument-xray has needsBoulder, so it needs useSeconds above 0',
+      'instrument part instrument-seismometer has deploy, so it needs useSeconds above 0',
+    ]);
+  });
+
   it('instrument operating costs: the drill uses 10 energy per sample and holds 3 s; the camera is free and instant', () => {
     const effects = (id: string) => data.parts.parts.find((p) => p.id === id)!.effects;
     expect(effects('instrument-drill')).toMatchObject({ energyPerUse: 10, useSeconds: 3 });

@@ -16,6 +16,7 @@ export interface HudMeters {
 }
 
 const NOTICE_SECONDS = 4;
+const LONG_NOTICE_SECONDS = 9; // a relationship's notice: longer text, read once per mission
 const MILESTONE_SECONDS = 6;
 const MILESTONE_FACT_SECONDS = 10; // longer when the history fact is shown, so it can be read
 
@@ -158,11 +159,11 @@ export class Hud {
   }
 
   /** A short notice that fades after a few seconds. */
-  notify(message: string, tone: 'warn' | 'good' = 'warn'): void {
-    const n = el('div', { class: `hud-notice ${tone}` }, message);
+  notify(message: string, tone: 'warn' | 'good' = 'warn', long = false): void {
+    const n = el('div', { class: `hud-notice ${tone}${long ? ' long' : ''}` }, message);
     this.notices.append(n);
     while (this.notices.childElementCount > 3) this.notices.firstElementChild?.remove();
-    window.setTimeout(() => n.remove(), NOTICE_SECONDS * 1000);
+    window.setTimeout(() => n.remove(), (long ? LONG_NOTICE_SECONDS : NOTICE_SECONDS) * 1000);
   }
 
   /** A standing hint (e.g. "Viewpoint: press C"), or null to hide it. */

@@ -1,5 +1,6 @@
 import type { GameData } from './types';
 import { ZONE_IDS } from './milestones';
+import { relationshipProblems } from './relationships';
 
 /** Checks the data files for broken references and missing entries. Returns a list of problems. */
 export function validateGameData(data: GameData): string[] {
@@ -17,6 +18,12 @@ export function validateGameData(data: GameData): string[] {
       if ((e.standbyEnergy ?? 0) > 0) {
         for (const key of ['energyPerUse', 'useSeconds', 'deploy', 'shadowHoldFactor', 'needsEarth', 'needsBoulder'] as const) {
           if (e[key]) problems.push(`instrument part ${part.id} has a standby draw, so it cannot also have ${key}`);
+        }
+      }
+      // Setting a station down, and the boulder and Earth checks, belong to a held use (the rover stops for them).
+      if (!((e.standbyEnergy ?? 0) > 0) && !((e.useSeconds ?? 0) > 0)) {
+        for (const key of ['deploy', 'needsEarth', 'needsBoulder'] as const) {
+          if (e[key]) problems.push(`instrument part ${part.id} has ${key}, so it needs useSeconds above 0`);
         }
       }
       if (e.shadowHoldFactor !== undefined && !(e.shadowHoldFactor > 0 && e.shadowHoldFactor <= 1)) {
@@ -68,6 +75,7 @@ export function validateGameData(data: GameData): string[] {
     if (zone !== undefined && !(ZONE_IDS as readonly string[]).includes(zone)) problems.push(`milestone ${m.id} names unknown zone ${zone}`);
   }
   problems.push(...instrumentTuningProblems(data));
+  problems.push(...relationshipProblems(data.relationships, ids));
   if (data.events.flare.realFlares.length < data.events.flare.windowsSeconds.length) {
     problems.push('events.json needs at least one real flare per flare window');
   }
@@ -84,6 +92,7 @@ function instrumentTuningProblems(data: GameData): string[] {
   if (!(it.coldSlowdown >= 1)) problems.push('tuning.instruments.coldSlowdown must be at least 1 (the cold never speeds an instrument up)');
   const numbers: [string, number][] = [
     ['shadowSunlight', it.shadowSunlight],
+    ['stationOffsetM', it.stationOffsetM],
     ...Object.entries(it.neutron).map(([k, v]) => [`neutron.${k}`, v] as [string, number]),
     ['xray.reachM', it.xray.reachM],
     ...Object.entries(it.seismometer).map(([k, v]) => [`seismometer.${k}`, v] as [string, number]),

@@ -181,6 +181,7 @@ export interface Tuning {
 export interface InstrumentTuning {
   coldSlowdown: number; // an instrument's hold time is multiplied by this in a cold zone on a rover without a heater (cold-tolerant parts excepted)
   shadowSunlight: number; // the rover counts as in shadow below this sunlight share (shadowHoldFactor)
+  stationOffsetM: number; // a deployed station is set down this far to the rover's left (from its center)
   neutron: {
     iceRangeM: number; // in permanent shadow, the hydrogen signal falls from 1 at the ice spot's center to 0 at this distance
     coldBackground: number; // the reading anywhere in permanent shadow (0..1): a little hydrogen in every cold trap
@@ -312,7 +313,8 @@ export interface TextFile {
     | 'heading' | 'survived' | 'failedRound' | 'passedRound' | 'cause' | 'rollover' | 'milestonesHeading' | 'noMilestones'
     | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
     | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue'
-    | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logReflector' | 'logHydrogen',
+    | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logReflector' | 'logHydrogen'
+    | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource', // "What the rover taught us": the relationships met
     string
   >;
   causes: Record<DeathCause, string>;
@@ -326,7 +328,7 @@ export interface TextFile {
     | 'captionEarth' | 'captionDay' | 'captionSurface'
     | 'holding' | 'useMoving' | 'usePoweredDown' | 'useBusy' | 'useNoEnergy' | 'useSlowCold' | 'useFastShadow' | 'useDeployed'
     | 'useNoEarth' | 'useNoBoulder' | 'standbyLowEnergy' | 'standbyOff' | 'standbyOn' | 'standbyAutoOff' | 'deployedButton'
-    | 'hydrogenMeter' | 'earthLight' | 'earthInView' | 'earthHidden' | 'xrayResult' | 'xrayAgain' | 'seismometerDeployed' | 'reflectorDeployed'
+    | 'hydrogenMeter' | 'earthLight' | 'earthInView' | 'earthHidden' | 'xrayResult' | 'xrayAgain' | 'xrayNoTarget' | 'seismometerDeployed' | 'reflectorDeployed'
     | 'quakeClean' | 'quakeNoisy' | 'quakeMissed' | 'quakeTrace' | 'boulderHint' | 'neutronHint',
     string
   >;
@@ -381,6 +383,45 @@ export interface GameData {
   tuning: Tuning;
   events: EventsFile;
   text: TextFile;
+  relationships: RelationshipsFile;
+}
+
+/** The kinds of relationship between parts (rover-engineering-design.md, section 10). */
+export type RelationshipKind = 'needs' | 'conditions' | 'conflicts' | 'shares' | 'wear';
+
+/** The pre-launch review's status colors: fine, a risk to plan around, something will not work. */
+export type ReviewColor = 'green' | 'yellow' | 'red';
+
+/** What the player reads when a relationship happens: the mission notice, the debrief's why, the answers. */
+export interface RelationshipLesson {
+  notice: string; // shown in the mission the first time it happens ({distance} etc. filled by the mission screen)
+  debrief: string; // what happened and why, for the debrief and the notebook
+  answers: string[]; // at least two ways to solve it
+}
+
+/**
+ * One relationship between parts. When it happens is code in rules/relationships.ts, keyed by id;
+ * the text and the review color live here. A hard block (`hardBlock`) is never fired in the mission
+ * (the mission already stops the rover); the pre-launch review always shows it. An entry with
+ * `variants` has one lesson per variant (cold and dark: heater, lights) instead of its own.
+ */
+export interface Relationship extends Partial<RelationshipLesson> {
+  id: string;
+  world: 'moon';
+  kind: RelationshipKind;
+  name: string; // a short title, for the debrief, the notebook and the review
+  parts: string[]; // part ids involved (the cause at the desk)
+  review: ReviewColor;
+  reviewText: string; // the pre-launch review's line (without the color word; the review shows the color)
+  hardBlock?: boolean;
+  variants?: Record<string, RelationshipLesson>;
+  fact?: string; // the real mission behind it (shown with Mission history on)
+  source?: string;
+}
+
+/** data/relationships.json */
+export interface RelationshipsFile {
+  relationships: Relationship[];
 }
 
 /** A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order). */
