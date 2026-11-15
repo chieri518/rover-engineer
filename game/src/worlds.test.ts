@@ -8,7 +8,7 @@ import moonMilestones from '../data/milestones.json';
 import moonText from '../data/text.json';
 import marsTuning from '../data/mars/tuning.json';
 import marsText from '../data/mars/text.json';
-import placeholder from '../public/terrain/mars-placeholder/terrain.json';
+import jezero from '../public/terrain/mars/terrain.json';
 
 /** Paths of every key (objects only) that does not start with _, e.g. "mission.gravity". */
 function keyPaths(o: unknown, prefix = ''): string[] {
@@ -76,9 +76,9 @@ describe('world data', () => {
   });
 });
 
-describe('Mars placeholder terrain', () => {
+describe('Mars terrain (Jezero)', () => {
   it('has the agreed terrain.json feature schema', () => {
-    const f: MarsTerrainFeatures = placeholder.features as unknown as MarsTerrainFeatures;
+    const f: MarsTerrainFeatures = jezero.features as unknown as MarsTerrainFeatures;
     expect(f.deltaFront.scarpLocal_xz.length).toBeGreaterThan(1);
     expect(f.deltaFront.samplePoint.driveDistanceFromLanding_m).toBeGreaterThan(0);
     expect(f.seitah.outlineLocal_xz.length).toBeGreaterThan(2);
@@ -87,8 +87,8 @@ describe('Mars placeholder terrain', () => {
     expect(f.rockyAreas).toHaveLength(2);
     expect(f.viewpoints.map((v) => v.kind).sort()).toEqual(['deltaLayers', 'sunset']);
     expect(f.perseveranceLanding.name).toBeTruthy();
-    expect(placeholder.playArea.samples).toBe(1601);
-    expect(placeholder.distantTerrain).toHaveLength(2);
-    expect('coldMask' in placeholder.playArea.files).toBe(false);
+    expect(jezero.playArea.samples).toBe(1601);
+    expect(jezero.distantTerrain).toHaveLength(2);
+    expect('coldMask' in jezero.playArea.files).toBe(false);
   });
 });

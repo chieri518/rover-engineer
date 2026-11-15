@@ -1,9 +1,9 @@
 // Mars milestones and survey (Phase M5): zones from the Mars terrain features, night driving, the dust
 // storm, the sunset photo, staged samples, the survey leads, and the Moon-only behaviors staying off.
-// Runs against the placeholder terrain (same schema as the real Jezero terrain).
+// Runs against the real Jezero terrain (public/terrain/mars/).
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
-import placeholder from '../../public/terrain/mars-placeholder/terrain.json';
+import jezero from '../../public/terrain/mars/terrain.json';
 import { buildZones, distanceToPath, hydrogenSignal, MilestoneTracker, PHOTO_ZONE_IDS, zoneContains, type MilestoneFeatures, type Point3, type SunPhoto } from './milestones';
 import { buildLeads, buildSites, discover, distanceToArea, leadBearing, nearestOnPath, type SurveyFeatures } from './survey';
 import { selectedParts } from './rover';
@@ -13,8 +13,8 @@ import type { Build } from './types';
 
 const data = loadGameData('mars');
 const t = data.tuning.milestones;
-const f = placeholder.features as unknown as MarsTerrainFeatures;
-const L = placeholder.landing.local;
+const f = jezero.features as unknown as MarsTerrainFeatures;
+const L = jezero.landing.local;
 const features: MilestoneFeatures = {
   landing: L,
   rockyAreas: f.rockyAreas,

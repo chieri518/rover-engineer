@@ -16,10 +16,10 @@ export interface WorldDef {
 }
 
 /**
- * Where the Mars terrain is loaded from. INTEGRATION (M6): switch to 'terrain/mars/' once the real
- * Jezero terrain from the pipeline lands. The placeholder has the same file names and terrain.json shape.
+ * Where the Mars terrain is loaded from: the real Jezero terrain from the pipeline (tools/build_terrain_mars.py).
+ * The flat placeholder in terrain/mars-placeholder/ has the same file names and terrain.json shape.
  */
-export const MARS_TERRAIN_BASE = 'terrain/mars-placeholder/';
+export const MARS_TERRAIN_BASE = 'terrain/mars/';
 
 export const WORLDS: Record<WorldId, WorldDef> = {
   moon: { id: 'moon', terrainBase: 'terrain/', sky: 'moon', earthInSky: true },
