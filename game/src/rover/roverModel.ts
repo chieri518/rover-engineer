@@ -2,29 +2,34 @@
 // steel frame, solid or wire-mesh wheels, a flat solar panel or a vertical solar mast, the battery
 // pack, floodlights, the heater's gold thermal blanket, and a camera mast or a regolith drill.
 // Visual only: the physics body stays the box and four ray-cast wheels in vehicle.ts.
+// A draft build (design screen preview) shows only the parts chosen so far.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import type { Part, RoverHandling } from '../rules/types';
+import type { Part, RoverHandling, Slot } from '../rules/types';
 
-/** What the model shows, read from the selected parts. */
+/** What the model shows, read from the selected parts. `null` / `false`: nothing drawn for that slot. */
 export interface RoverLook {
-  frame: 'titanium' | 'steel';
-  wheels: 'solid' | 'mesh';
-  power: 'panel' | 'mast';
-  battery: 'cylinders' | 'pack';
+  frame: 'titanium' | 'steel' | null; // null: no chassis chosen (deck, frame, electronics box and antenna)
+  wheels: 'solid' | 'mesh' | null; // null: no wheels, struts or drive motors
+  power: 'panel' | 'mast' | null;
+  battery: 'cylinders' | 'pack' | null;
   lights: boolean;
   heater: boolean;
   instrument: 'camera' | 'drill' | null;
 }
 
+/** The look for the chosen parts; a slot with no part shows nothing. A complete build fills every field. */
 export function roverLook(parts: Part[]): RoverLook {
   const bySlot = (slot: Part['slot']) => parts.find((p) => p.slot === slot);
-  const id = (slot: Part['slot']) => bySlot(slot)?.id ?? '';
+  const pick = <T>(slot: Part['slot'], choose: (id: string) => T): T | null => {
+    const part = bySlot(slot);
+    return part ? choose(part.id) : null;
+  };
   return {
-    frame: id('chassis').includes('steel') ? 'steel' : 'titanium',
-    wheels: id('wheels').includes('mesh') ? 'mesh' : 'solid',
-    power: id('power').includes('mast') ? 'mast' : 'panel',
-    battery: id('battery').includes('nih2') ? 'cylinders' : 'pack',
+    frame: pick('chassis', (id) => (id.includes('steel') ? 'steel' : 'titanium')),
+    wheels: pick('wheels', (id) => (id.includes('mesh') ? 'mesh' : 'solid')),
+    power: pick('power', (id) => (id.includes('mast') ? 'mast' : 'panel')),
+    battery: pick('battery', (id) => (id.includes('nih2') ? 'cylinders' : 'pack')),
     lights: (bySlot('lights')?.effects.lightRange ?? 0) > 0,
     heater: (bySlot('heater')?.effects.heat ?? 0) > 0,
     instrument: bySlot('instrument')?.effects.instrument ?? null,
@@ -36,6 +41,16 @@ export interface RoverModel {
   body: THREE.Group;
   /** One per wheel, in the vehicle's wheel order: `wheel` follows suspension and steering, `spin` rolls. */
   wheels: { wheel: THREE.Object3D; spin: THREE.Object3D }[];
+  /**
+   * With `bySlot`: the static parts of each slot as its own group (the children of `body`), so a
+   * preview can animate one part. The wheels belong to the wheels slot. Empty without `bySlot`.
+   */
+  slots: Partial<Record<Slot, THREE.Group>>;
+}
+
+export interface RoverModelOptions {
+  /** Keep each slot's static parts in a separate group (a few more draw calls). Default: one mesh per material. */
+  bySlot?: boolean;
 }
 
 const COLORS = {
@@ -96,7 +111,7 @@ function meshTexture(): THREE.Texture | null {
   }, [26, 2]);
 }
 
-export function buildRoverModel(handling: RoverHandling, connectY: number, look: RoverLook): RoverModel {
+export function buildRoverModel(handling: RoverHandling, connectY: number, look: RoverLook, options: RoverModelOptions = {}): RoverModel {
   const { lengthM: l, widthM: w, heightM: ht } = handling.body;
   const r = handling.wheelRadiusM;
   const body = new THREE.Group();
@@ -106,10 +121,12 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     if (!m) mats.set(key, (m = new THREE.MeshLambertMaterial(params)));
     return m;
   };
+  let slot: Slot = 'chassis'; // the slot the static parts added next belong to
   const add = (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, y: number, z: number, parent: THREE.Object3D = body) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
     mesh.castShadow = true;
+    mesh.userData.slot = slot;
     parent.add(mesh);
     return mesh;
   };
@@ -124,24 +141,29 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   const top = ht / 2;
 
   // Frame: a deck plate; the steel frame adds heavy side beams and cross members.
-  add(box(l, 0.06, w), frame, 0, -top + 0.05, 0);
-  if (look.frame === 'steel') {
-    const beam = mat('beam', { color: COLORS.steelBeam });
-    for (const z of [-1, 1]) add(box(l + 0.12, 0.12, 0.09), beam, 0, -top + 0.06, z * (w / 2 - 0.02));
-    for (const x of [-1, 0, 1]) add(box(0.08, 0.1, w - 0.1), beam, x * (l / 2 - 0.12), -top + 0.04, 0);
-  } else {
-    for (const z of [-1, 1]) {
-      const tube = add(rod(0.03, l + 0.06), frame, 0, -top + 0.09, z * (w / 2 - 0.03));
-      tube.rotation.z = Math.PI / 2;
+  if (look.frame) {
+    slot = 'chassis';
+    add(box(l, 0.06, w), frame, 0, -top + 0.05, 0);
+    if (look.frame === 'steel') {
+      const beam = mat('beam', { color: COLORS.steelBeam });
+      for (const z of [-1, 1]) add(box(l + 0.12, 0.12, 0.09), beam, 0, -top + 0.06, z * (w / 2 - 0.02));
+      for (const x of [-1, 0, 1]) add(box(0.08, 0.1, w - 0.1), beam, x * (l / 2 - 0.12), -top + 0.04, 0);
+    } else {
+      for (const z of [-1, 1]) {
+        const tube = add(rod(0.03, l + 0.06), frame, 0, -top + 0.09, z * (w / 2 - 0.03));
+        tube.rotation.z = Math.PI / 2;
+      }
     }
   }
 
-  // Warm electronics box: white radiator panels, wrapped in gold thermal blanket when the heater is fitted.
+  // Warm electronics box: white radiator panels (chassis), wrapped in gold thermal blanket when the
+  // heater is fitted (the blanket and fins belong to the heater, so they show even before a chassis).
   const boxL = l * 0.74;
   const boxH = ht * 0.78;
   const boxW = w * 0.8;
   const boxY = -top + 0.08 + boxH / 2;
-  add(box(boxL, boxH, boxW), look.heater ? foil : radiator, -0.04, boxY, 0);
+  slot = look.heater ? 'heater' : 'chassis';
+  if (look.frame || look.heater) add(box(boxL, boxH, boxW), look.heater ? foil : radiator, -0.04, boxY, 0);
   if (look.heater) {
     // Radiator fins on the sides: the heater's warmth has to be managed too.
     for (const z of [-1, 1]) for (let k = 0; k < 4; k++) {
@@ -155,11 +177,12 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     const map = cellTexture(repeat);
     return mat(key, { color: map ? 0xffffff : COLORS.cell, map });
   };
+  slot = 'power';
   if (look.power === 'panel') {
     add(box(l * 0.98, 0.025, w * 1.02), mat('cellFrame', { color: COLORS.cellFrame }), -0.02, deckY + 0.05, 0);
     add(box(l * 0.95, 0.03, w * 0.98), cells([10, 7], 'cells'), -0.02, deckY + 0.055, 0);
     for (const x of [-1, 1]) for (const z of [-1, 1]) add(rod(0.015, 0.05), frame, x * l * 0.35, deckY + 0.025, z * w * 0.35);
-  } else {
+  } else if (look.power === 'mast') {
     const mx = -l * 0.3;
     const poleH = 0.45;
     const panelH = 1.1;
@@ -177,6 +200,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   }
 
   // Battery: nickel-hydrogen cells are cylindrical pressure vessels; lithium-ion is a compact pack.
+  slot = 'battery';
   if (look.battery === 'cylinders') {
     const cell = mat('nih2', { color: 0xa7abb1 });
     for (let k = 0; k < 4; k++) {
@@ -184,19 +208,23 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
       c.rotation.x = Math.PI / 2;
       c.scale.y = 0.55;
     }
-  } else {
+  } else if (look.battery === 'pack') {
     add(box(0.1, 0.16, w * 0.45), dark, -l / 2 + 0.02, -top + 0.18, 0);
   }
 
-  // High-gain antenna at the back, for the link to Earth.
-  const antX = -l * 0.36;
-  const antZ = look.power === 'mast' ? -w * 0.36 : -w * 0.32;
-  const antY = look.power === 'mast' ? deckY : deckY + 0.08;
-  add(rod(0.02, 0.35), frame, antX, antY + 0.175, antZ);
-  const dish = add(new THREE.CylinderGeometry(0.17, 0.03, 0.07, 16, 1, true), mat('dish', { color: COLORS.radiator, side: THREE.DoubleSide }), antX + 0.03, antY + 0.4, antZ);
-  dish.rotation.z = -1.0;
+  // High-gain antenna at the back, for the link to Earth (part of the chassis).
+  if (look.frame) {
+    slot = 'chassis';
+    const antX = -l * 0.36;
+    const antZ = look.power === 'mast' ? -w * 0.36 : -w * 0.32;
+    const antY = look.power === 'mast' ? deckY : deckY + 0.08;
+    add(rod(0.02, 0.35), frame, antX, antY + 0.175, antZ);
+    const dish = add(new THREE.CylinderGeometry(0.17, 0.03, 0.07, 16, 1, true), mat('dish', { color: COLORS.radiator, side: THREE.DoubleSide }), antX + 0.03, antY + 0.4, antZ);
+    dish.rotation.z = -1.0;
+  }
 
   // Floodlights: a light bar on each front corner.
+  slot = 'lights';
   if (look.lights) {
     const lamp = mat('lamp', { color: COLORS.lamp, emissive: 0x9a937e });
     for (const z of [-1, 1]) {
@@ -214,6 +242,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
       lens.rotation.z = Math.PI / 2;
     }
   };
+  slot = 'instrument';
   if (look.instrument === 'drill') {
     const drill = mat('drill', { color: COLORS.drill });
     const dx = l / 2 + 0.08;
@@ -229,12 +258,14 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     const bit = add(new THREE.ConeGeometry(0.04, 0.08, 10), dark, dx + 0.1, groundY + 0.08, 0);
     bit.rotation.z = Math.PI;
     cameraHead(l * 0.3, 0.45, w * 0.3);
-  } else {
+  } else if (look.instrument === 'camera') {
     cameraHead(l * 0.32, 1.0, w * 0.28);
   }
 
   // Wheels with their suspension struts.
   const wheels: RoverModel['wheels'] = [];
+  if (!look.wheels) return { ...mergeByMaterial(body, options.bySlot ?? false), wheels };
+  slot = 'wheels';
   const wheelW = 0.22;
   const tireMat = look.wheels === 'mesh'
     ? mat('tireMesh', { color: COLORS.wheelMesh, map: meshTexture(), alphaTest: 0.4, side: THREE.DoubleSide })
@@ -286,28 +317,45 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     add(box(0.12, 0.12, 0.08), dark, 0, 0, inner, wheel);
     wheels.push({ wheel, spin });
   }
-  return { body: mergeByMaterial(body), wheels };
+  return { ...mergeByMaterial(body, options.bySlot ?? false), wheels };
 }
 
-/** One mesh per material for the static parts: a few draw calls instead of dozens (twice, with the shadow pass). */
-function mergeByMaterial(group: THREE.Group): THREE.Group {
-  const byMaterial = new Map<THREE.Material, THREE.BufferGeometry[]>();
+/**
+ * One mesh per material for the static parts: a few draw calls instead of dozens (twice, with the
+ * shadow pass). With `bySlot`, one mesh per material within each slot's own group.
+ */
+function mergeByMaterial(group: THREE.Group, bySlot: boolean): Pick<RoverModel, 'body' | 'slots'> {
+  const byKey = new Map<string, { slot: Slot; material: THREE.Material; geometries: THREE.BufferGeometry[] }>();
   for (const child of group.children) {
     if (!(child instanceof THREE.Mesh)) continue;
     child.updateMatrix();
     const g = (child.geometry as THREE.BufferGeometry).clone().applyMatrix4(child.matrix);
     child.geometry.dispose();
-    const list = byMaterial.get(child.material as THREE.Material) ?? [];
-    list.push(g);
-    byMaterial.set(child.material as THREE.Material, list);
+    const material = child.material as THREE.Material;
+    const slot = child.userData.slot as Slot;
+    const key = bySlot ? `${slot}:${material.uuid}` : material.uuid;
+    const entry = byKey.get(key) ?? { slot, material, geometries: [] };
+    entry.geometries.push(g);
+    byKey.set(key, entry);
   }
   const merged = new THREE.Group();
-  for (const [material, geometries] of byMaterial) {
+  const slots: RoverModel['slots'] = {};
+  for (const { slot, material, geometries } of byKey.values()) {
     const geometry = mergeGeometries(geometries);
     geometries.forEach((g) => g.dispose());
     const mesh = new THREE.Mesh(geometry, material);
     mesh.castShadow = true;
-    merged.add(mesh);
+    let parent: THREE.Group = merged;
+    if (bySlot) {
+      let own = slots[slot];
+      if (!own) {
+        own = slots[slot] = new THREE.Group();
+        own.name = slot;
+        merged.add(own);
+      }
+      parent = own;
+    }
+    parent.add(mesh);
   }
-  return merged;
+  return { body: merged, slots };
 }

@@ -5,7 +5,9 @@ import { canStartMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
+import { chosenParts } from '../rules/rover';
 import type { GameData, Part, Tier } from '../rules/types';
+import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
 import { tierWhyText } from './tierText';
 import { openTutorial, type TutorialHandle } from './tutorial';
@@ -136,7 +138,31 @@ export const designScreen: Screen = (game, root) => {
     );
   }
 
+  // Live 3D preview of the rover as built so far (loaded on demand, with three.js). Without WebGL the
+  // viewport is hidden and the desk falls back to parts and sheet only.
+  const previewHint = el('p', { class: 'preview-hint' }, t.previewEmpty);
+  const viewport = el('div', { class: 'preview', role: 'img', 'aria-label': t.previewLabel }, previewHint);
+  let preview: BuildPreview | null = null;
+  let left = false;
+  const hidePreview = () => {
+    viewport.hidden = true;
+    desk.classList.add('no-preview');
+  };
+  void import('./buildPreview')
+    .then(({ mountBuildPreview }) => {
+      if (left) return;
+      preview = mountBuildPreview(viewport, data.tuning.rover, hidePreview);
+      preview.show(chosenParts(game.build, data.parts));
+    })
+    .catch((err) => {
+      console.warn('Build preview unavailable:', err);
+      hidePreview();
+    });
+
   function update(): void {
+    const chosen = chosenParts(game.build, data.parts);
+    preview?.show(chosen);
+    previewHint.hidden = chosen.length > 0;
     for (const [id, card] of cards) card.classList.toggle('selected', Object.values(game.build).includes(id));
     for (const [slot, fieldset] of fieldsets) fieldset.classList.toggle('empty', !game.build[slot as keyof typeof game.build]);
     const q = quoteBuild(game.build, data, game.state.balance);
@@ -212,31 +238,36 @@ export const designScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
 
-  root.append(
-    el('section', { class: 'desk' },
-      el('header', { class: 'desk-head' },
-        el('div', {},
-          el('h2', {}, t.heading),
-          el('p', { class: 'muted' }, t.tutorial),
-        ),
-        el('div', { class: 'desk-head-side' },
-          help,
-          el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
-        ),
+  const desk = el('section', { class: 'desk' },
+    el('header', { class: 'desk-head' },
+      el('div', {},
+        el('h2', {}, t.heading),
+        el('p', { class: 'muted' }, t.tutorial),
       ),
-      el('div', { class: 'desk-grid' },
-        el('div', { class: 'slots' }, ...slots),
-        el('aside', { class: 'sheet' },
-          el('h2', {}, 'Specification'),
-          sheet,
-          warnings,
-          el('div', { class: 'actions' }, next),
-          el('p', { class: 'note' }, text.moneyNote),
-        ),
+      el('div', { class: 'desk-head-side' },
+        help,
+        el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
+      ),
+    ),
+    el('div', { class: 'desk-grid' },
+      el('div', { class: 'slots' }, ...slots),
+      viewport,
+      el('aside', { class: 'sheet' },
+        el('h2', {}, 'Specification'),
+        sheet,
+        warnings,
+        el('div', { class: 'actions' }, next),
+        el('p', { class: 'note' }, text.moneyNote),
       ),
     ),
   );
+  root.append(desk);
   update();
   if (!game.tutorialSeen.design) openHelp();
-  return () => tutorial?.dispose();
+  return () => {
+    left = true;
+    preview?.dispose();
+    preview = null;
+    tutorial?.dispose();
+  };
 };

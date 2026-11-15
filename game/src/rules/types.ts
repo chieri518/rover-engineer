@@ -256,7 +256,8 @@ export interface TextFile {
   slots: Record<Slot, string>;
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
-    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar',
+    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
+    | 'previewLabel' | 'previewEmpty', // the live 3D build preview (aria label, empty-state hint)
     string
   > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
   ticket: Record<
