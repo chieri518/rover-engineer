@@ -33,3 +33,8 @@ export function money(amount: number, text: TextFile): string {
 export function panel(...children: Child[]): HTMLElement {
   return el('section', { class: 'panel' }, ...children);
 }
+
+/** Fill {name} placeholders in a text.json template. */
+export function fill(template: string, vars: Record<string, string | number>): string {
+  return template.replace(/\{(\w+)\}/g, (match, key: string) => (key in vars ? String(vars[key]) : match));
+}

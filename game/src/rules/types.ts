@@ -174,8 +174,16 @@ export interface TextFile {
   moneySuffix: string;
   moneyNote: string;
   title: Record<'heading' | 'subtitle' | 'newCampaign' | 'continueCampaign', string>;
-  design: Record<'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum', string>;
-  ticket: Record<'heading' | 'briefing', string>;
+  slots: Record<Slot, string>;
+  design: Record<
+    | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
+    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources',
+    string
+  > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
+  ticket: Record<
+    'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
+    string
+  >;
   landing: Record<'heading' | 'briefing', string>;
   mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
   debrief: Record<'heading' | 'survived' | 'failedRound' | 'passedRound', string>;

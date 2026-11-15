@@ -8,17 +8,43 @@
     "newCampaign": "Start new campaign",
     "continueCampaign": "Continue campaign"
   },
+  "slots": {
+    "chassis": "Chassis",
+    "wheels": "Wheels",
+    "power": "Power source",
+    "battery": "Battery",
+    "lights": "Lights",
+    "heater": "Heater",
+    "instrument": "Instrument"
+  },
   "design": {
     "heading": "Rover design",
     "tutorial": "Select one part for each slot. Mass and size set the launch ticket tier. Light parts cost more.",
     "overTopTier": "Exceeds the Large ticket limits. The rover cannot launch.",
     "overBudget": "Total cost exceeds the available budget.",
     "chassisOverloaded": "Total mass exceeds the chassis maximum load. The frame will take damage during the mission.",
-    "belowMinimum": "The balance is below the minimum budget for this mission. The mission cannot start."
+    "belowMinimum": "The balance is below the minimum budget for this mission. The mission cannot start.",
+    "tierSaving": "Trimming to the {tier} tier would save {saving}.",
+    "speedInfoButton": "About drive speeds",
+    "speedInfoTitle": "Drive speeds",
+    "speedInfo": [
+      "The mission compresses 14 days of lunar daylight into 5 minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
+      "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
+      "Robotic rovers drive far slower. NASA's Curiosity and Perseverance rovers on Mars have a top speed of about 4 cm/s (0.15 km/h) on flat ground."
+    ],
+    "speedInfoBuild": "This build: {game} m/s in the mission, modeled on {real} km/h of real driving.",
+    "speedInfoSources": "Sources: NASA TR R-401, Mobility Performance of the Lunar Roving Vehicle (1972); NASA/JPL Mars Science Laboratory and Mars 2020 press kits."
   },
   "ticket": {
     "heading": "Launch ticket",
-    "briefing": "REL secures a spot for the rover on the next commercial launch to the lunar south pole."
+    "briefing": "REL secures a spot for the rover on the next commercial launch to the lunar south pole.",
+    "tierRule": "The ticket tier is the smallest one that fits both the rover's mass and its size.",
+    "whySmallest": "The rover fits the {tier} tier, the smallest available.",
+    "whyPushed": "The rover exceeds the {lower} tier's {reasons}, so {tier} is the smallest tier that fits.",
+    "whyNone": "The rover exceeds the {tier} tier's {reasons}. No tier can carry it.",
+    "massOver": "mass limit by {n} kg",
+    "sizeOver": "size limit by {n}",
+    "and": " and "
   },
   "landing": {
     "heading": "Landing",
