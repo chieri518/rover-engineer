@@ -21,6 +21,10 @@ const DELTA = '#e8a06a'; // the delta front's scarp
 const REGION = 'rgba(240, 200, 120, 0.85)'; // Séítah's outline
 const ZOOM_RATE = 2.5; // per second: the view eases toward the explored area, so the map widens smoothly
 const REVEAL_SOFT_EDGE = 0.8; // the fog fades out over the outer 20% of each reveal circle
+/** Relief tint per world (multiplies the grey shade): the Moon grey, Mars a dusty red-brown. */
+export type ReliefTone = [number, number, number];
+const GREY: ReliefTone = [1, 1, 1];
+export const MARS_RELIEF: ReliefTone = [1.08, 0.78, 0.58];
 
 /** An undiscovered lead, as the map draws it. */
 export interface LeadArrow {
@@ -50,6 +54,7 @@ export class Minimap {
     private readonly boundaryM: number,
     text: TextFile,
     private readonly tuning: Tuning['minimap'],
+    private readonly tone: ReliefTone = GREY,
   ) {
     this.sizeM = grid.extent * 2;
     this.basePx = grid.n - 1;
@@ -98,9 +103,10 @@ export class Minimap {
         const i = (r * n + c) * 4;
         const isCold = cold[Math.min(r, mn - 1) * mn + Math.min(c, mn - 1)] === 1;
         const g = 70 + shade * 170;
-        img.data[i] = isCold ? 50 : g;
-        img.data[i + 1] = isCold ? 95 : g;
-        img.data[i + 2] = isCold ? 200 : g;
+        const t = this.tone;
+        img.data[i] = isCold ? 50 : Math.min(255, g * t[0]);
+        img.data[i + 1] = isCold ? 95 : g * t[1];
+        img.data[i + 2] = isCold ? 200 : g * t[2];
         img.data[i + 3] = 255;
       }
     }

@@ -24,7 +24,7 @@ import type { TerrainMasks } from '../world/terrainMasks';
 import { flareWarningText, noticeText } from '../events';
 import { el, fill } from './dom';
 import { Hud } from './hud';
-import { Minimap } from './minimap';
+import { MARS_RELIEF, Minimap } from './minimap';
 import { hudLeadLine } from './surveyText';
 import { causeText, milestoneCard, missedText } from './milestoneText';
 import { openTutorial, type TutorialHandle } from './tutorial';
@@ -423,7 +423,7 @@ export const missionScreen: Screen = (game, root) => {
         setup = missionSetup(parts, tuning, setup.events, mars.setup(rng));
         marsNow = mars.status(state, setup);
       }
-      minimap = new Minimap(terrain.fine, masks, terrain.fine.extent - tuning.area.boundaryInsetM, text, tuning.minimap);
+      minimap = new Minimap(terrain.fine, masks, terrain.fine.extent - tuning.area.boundaryInsetM, text, tuning.minimap, mars ? MARS_RELIEF : undefined);
       sites = buildSites(masks.info.features, mt, text.survey.shadowedCraterName);
       leads = buildLeads(sites, tuning.survey);
       hud.root.append(minimap.root);
