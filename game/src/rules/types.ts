@@ -296,6 +296,33 @@ export interface TextFile {
     | 'hydrogenHistory' | 'hydrogenSource',
     string
   >;
+  tutorial: Record<
+    | 'label' | 'designHeading' | 'driveHeading' | 'help' | 'helpDesign' | 'helpDrive'
+    | 'next' | 'back' | 'skip' | 'done' | 'step' | 'reopen' | 'tierItem' | 'tierJoin',
+    string
+  > & { design: TutorialPage[]; drive: TutorialPage[] };
+  credits: Record<
+    | 'open' | 'heading' | 'intro' | 'disclaimer'
+    | 'terrain' | 'imagery' | 'spaceWeather' | 'soil' | 'milestones' | 'debrief' | 'generatedHeading' | 'generated'
+    | 'loading' | 'loadFailed' | 'imageryFallback' | 'provider' | 'imageCredit' | 'license' | 'productPage'
+    | 'flaresUsed' | 'speedLabel' | 'survivedLabel' | 'back',
+    string
+  > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
+}
+
+/** One page of a tutorial. {name} placeholders are filled from the game data. */
+export interface TutorialPage {
+  title: string;
+  body: string[]; // one paragraph per entry
+  instrument?: Partial<Record<Instrument, string>>; // shown only for the equipped instrument
+}
+
+/** A hand-written credits entry, for sources with no metadata in the data files. */
+export interface CreditEntry {
+  label: string;
+  text?: string;
+  citation?: string;
+  url?: string;
 }
 
 export interface GameData {
