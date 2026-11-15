@@ -6,6 +6,7 @@ import type { RoverParams } from '../rules/drive';
 import { skyDirection, sunAt, type SkyDirection } from '../rules/sun';
 import { horizonMarginTan, loadTerrain, type Terrain } from './terrainData';
 import { Boulders } from './boulders';
+import { Lander } from './lander';
 import type { SoftArea } from '../rules/ground';
 import { ChunkLayer } from './terrainChunks';
 import { SunMasks } from './sunMask';
@@ -182,12 +183,15 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     z: landing.z,
     headingDeg: tuning.rover.startHeadingDeg,
   }, opts.parts ?? []);
-  rover.object.traverse((obj) => {
-    if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshLambertMaterial) {
-      patchMoonLighting(obj.material, lightUniforms, false);
-    }
-  });
-  scene.add(rover.object);
+  const lander = new Lander(world, rapier, { x: landing.x, z: landing.z, headingDeg: tuning.rover.startHeadingDeg }, (x, z) => fine.sample(x, z));
+  for (const object of [rover.object, lander.object]) {
+    object.traverse((obj) => {
+      if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshLambertMaterial) {
+        patchMoonLighting(obj.material, lightUniforms, false);
+      }
+    });
+  }
+  scene.add(rover.object, lander.object);
   let lamp: THREE.SpotLight | null = null;
   if (opts.lightRangeM) {
     // Floodlights: what lets the rover see inside permanent shadow. Off until it is dark.
@@ -441,6 +445,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       input.dispose();
       boulders.dispose();
       rover.dispose();
+      lander.dispose();
       world.free();
       for (const layer of layers) layer.dispose();
       terrainMaterial.dispose();
