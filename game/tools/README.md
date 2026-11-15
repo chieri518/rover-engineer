@@ -50,6 +50,41 @@ meters); `--out DIR` changes the output folder.
 | `distant-near.png` | 1001², 16-bit | 50 km square at 50 m (from the 20 m DEM) |
 | `distant-far.png` | 1001², 16-bit | 400 km square at 400 m (from the 80 m DEM) |
 | `terrain.json` | | Frame, decoding, landing, features, horizon, sources |
+| `albedo.jpg` | 1601², 8-bit JPEG | Ground albedo from LROC NAC (from `build_texture.py`) |
+| `texture.json` | | Albedo grid, decoding, source and credit |
+
+## Ground texture (`build_texture.py`)
+
+```sh
+.venv/bin/python build_texture.py --preview /tmp/texture-preview.png
+```
+
+Run after `build_terrain.py` (it reads the play-area window from `terrain.json`
+and the Site11 DEM from `raw/`; it never edits `terrain.json`). The first run
+downloads the 176 MB LROC NAC 5 m mosaic of the de Gerlache rim
+(`NAC_ROI_DEGERRIMLO1_P885S2933_5M.IMG`, PDS archive) into `raw/`; later runs
+take about 20 seconds. No extra packages.
+
+1. **Crop.** The 5 m mosaic is pixel-aligned with Site11, so the play area is a
+   plain crop: pixel (col, row) sits on heightmap vertex (col, row). The script
+   checks this against `heightmap.png` and reports the DEM-to-image shift that
+   best explains the image shading (0 to 1 pixel here).
+2. **Remove baked shading.** The mosaic mixes images with three Sun azimuths,
+   all with the Sun 1 to 4° high. Around every pixel (150 m Gaussian) it fits a
+   Lambert model, image ≈ gain × (DEM normal · Sun), by least squares, and
+   divides it out. The result is albedo relative to the ~150 m neighbourhood.
+3. **Fill.** Shadows (no signal in the image), no-data and grazing-light pixels
+   get texture copied from nearby lit ground, so holes are not flat paint.
+4. **Encode.** Linear albedo = 0.22 × ratio, stored as sRGB 8-bit grayscale
+   JPEG (`albedo.jpg`, about 0.75 MB). `texture.json` has the grid, UVs, value
+   decoding, source, credit and the method's limits.
+
+Limits: brightness differences over more than ~300 m are flattened (in this
+mosaic they are mostly exposure differences); craters smaller than ~20 m keep
+their baked bright/dark crescents; filled areas (about 20%, including every
+permanently shadowed floor) are plausible, not real. The 1 m version of the
+mosaic (1.5 GB, row-interleaved, not cloud-optimized) is not used: an 8 km
+texture at 1 m would be far over a web budget.
 
 ## Conventions
 

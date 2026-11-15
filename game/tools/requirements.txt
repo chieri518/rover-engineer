@@ -4,4 +4,4 @@ rasterio>=1.5   # bundles GDAL; used for local GeoTIFFs and /vsicurl/ windowed r
 scipy>=1.16
 scikit-image>=0.26
 pillow>=12
-matplotlib>=3.10  # only for --preview
+matplotlib>=3.10  # only for --preview (build_terrain.py and build_texture.py)
