@@ -85,7 +85,7 @@
     "revealRadiusM": 250
   },
   "sun": {
-    "startAzimuthDeg": 17.4,
+    "startAzimuthDeg": 75,
     "degreesPerEarthDay": 12.19,
     "subsolarLatitudeDeg": -0.52
   },
