@@ -88,6 +88,36 @@ describe('milestone triggers', () => {
     expect(ids(step(tr, at(a.local.x + 2 * r, a.local.z)))).toEqual(['boulder-field']);
   });
 
+  it('Leaving a boulder field without crossing it gives one partial-crossing hint per field, until Boulder field is earned', () => {
+    const a = f.rockyAreas[0]!;
+    const r = a.radius_m;
+    const tr = tracker(camera);
+    step(tr, at(a.local.x - r, a.local.z));
+    const first = step(tr, at(a.local.x - 2 * r, a.local.z)); // back out the same side
+    expect(first.partialCrossings.map((z) => z.id)).toEqual(['boulder-field']);
+    step(tr, at(a.local.x - r, a.local.z));
+    expect(step(tr, at(a.local.x - 2 * r, a.local.z)).partialCrossings).toEqual([]); // once per field
+    // a real crossing counts and gives no hint
+    step(tr, at(a.local.x - r, a.local.z));
+    const done = step(tr, at(a.local.x + 2 * r, a.local.z));
+    expect(ids(done)).toEqual(['boulder-field']);
+    expect(done.partialCrossings).toEqual([]);
+    // once earned, a later partial pass in another field stays silent
+    if (f.rockyAreas[1]) {
+      const b = f.rockyAreas[1];
+      step(tr, at(b.local.x - b.radius_m, b.local.z));
+      expect(step(tr, at(b.local.x - 2 * b.radius_m, b.local.z)).partialCrossings).toEqual([]);
+    }
+  });
+
+  it('The partial-crossing hint can be switched off in tuning', () => {
+    const off = { ...t, partialCrossingHint: false };
+    const a = f.rockyAreas[0]!;
+    const tr = new MilestoneTracker(data.milestones.milestones, selectedParts(camera, data.parts), zones, off);
+    step(tr, at(a.local.x - a.radius_m, a.local.z));
+    expect(step(tr, at(a.local.x - 2 * a.radius_m, a.local.z)).partialCrossings).toEqual([]);
+  });
+
   it('Into the dark needs lights and a heater; without them it is reported as not credited', () => {
     const c = f.shadowedCrater.iceCandidate.local;
     const tr = tracker(camera);

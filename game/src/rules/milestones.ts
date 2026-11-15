@@ -105,6 +105,12 @@ function zoneCenter(zone: Zone): Point | null {
   return zone.shape.kind === 'circle' ? { x: zone.shape.x, z: zone.shape.z } : null;
 }
 
+/** The angle in degrees, around a center, between two points given relative to it. */
+function aroundDeg(a: Point, b: Point): number {
+  const cos = (a.x * b.x + a.z * b.z) / (Math.hypot(a.x, a.z) * Math.hypot(b.x, b.z) || 1);
+  return Math.acos(Math.max(-1, Math.min(1, cos))) * (180 / Math.PI);
+}
+
 export type HydrogenLevel = 'weak' | 'moderate' | 'strong';
 
 /**
@@ -138,6 +144,8 @@ export interface Missed {
 export interface MilestoneUpdate {
   reached: Reached[];
   missed: Missed[];
+  /** Zones left without counting as a crossing (a hint, once per zone): the rover turned back instead of crossing. */
+  partialCrossings: Zone[];
 }
 
 export interface StepInput {
@@ -161,6 +169,7 @@ export class MilestoneTracker {
   private readonly earned = new Map<string, number>(); // id → stages reached
   private readonly inside = new Map<string, Point | null>(); // zone key → where it was entered
   private readonly missedOnce = new Set<string>();
+  private readonly partialHinted = new Set<string>(); // zone keys already reported as a partial crossing
   private readonly sampleSites: Point[] = []; // where counted drill samples were taken
   private readonly landing: Point;
 
@@ -200,7 +209,7 @@ export class MilestoneTracker {
   }
 
   private empty(): MilestoneUpdate {
-    return { reached: [], missed: [] };
+    return { reached: [], missed: [], partialCrossings: [] };
   }
 
   /** The rover has landed. */
@@ -240,6 +249,10 @@ export class MilestoneTracker {
         for (const { zone, entry } of exited) {
           if (zone.id !== tr.zone) continue;
           if (tr.mode === 'enter-and-exit' || this.crossed(zone, entry, p)) this.fire(m, u);
+          else if (this.t.partialCrossingHint && !this.earned.has(m.id) && !this.partialHinted.has(zone.key)) {
+            this.partialHinted.add(zone.key);
+            u.partialCrossings.push(zone);
+          }
         }
       } else if (tr.type === 'event') {
         if (tr.event === 'flare' && input.flareSurvived) this.fire(m, u);
@@ -252,9 +265,7 @@ export class MilestoneTracker {
   private crossed(zone: Zone, entry: Point | null, p: Point3): boolean {
     const c = zoneCenter(zone);
     if (!c || !entry) return true;
-    const exit = { x: p.x - c.x, z: p.z - c.z };
-    const cos = (entry.x * exit.x + entry.z * exit.z) / (Math.hypot(entry.x, entry.z) * Math.hypot(exit.x, exit.z) || 1);
-    return Math.acos(Math.max(-1, Math.min(1, cos))) * (180 / Math.PI) >= this.t.boulderCrossMinAngleDeg;
+    return aroundDeg(entry, { x: p.x - c.x, z: p.z - c.z }) >= this.t.boulderCrossMinAngleDeg;
   }
 
   /**

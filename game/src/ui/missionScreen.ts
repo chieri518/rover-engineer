@@ -111,6 +111,7 @@ export const missionScreen: Screen = (game, root) => {
   const announce = (u: MilestoneUpdate) => {
     for (const r of u.reached) hud.milestone(milestoneCard(r, data, game.settings.missionHistory, recordsHeld));
     for (const m of u.missed) hud.notify(missedText(m, text));
+    if (u.partialCrossings.length) hud.notify(fill(ti.partialCrossingHint, { angle: mt.boulderCrossMinAngleDeg }));
   };
   const dayText = () => gameDaysElapsed(state.seconds, tuning.mission).toFixed(1);
   const sunNow = () => {

@@ -131,6 +131,7 @@
     "iceSpotRadiusM": 50,
     "boulderCrossRadiusFactor": 1.1,
     "boulderCrossMinAngleDeg": 90,
+    "partialCrossingHint": true,
     "craterDescentDepthM": 150,
     "craterDescentExitDepthM": 100,
     "drillSeconds": 3,

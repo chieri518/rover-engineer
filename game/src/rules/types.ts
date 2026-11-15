@@ -170,6 +170,7 @@ export interface MilestoneTuning {
   iceSpotRadiusM: number; // drilling within this distance of the hidden ice spot finds ice
   boulderCrossRadiusFactor: number; // a rocky area's zone is its radius times this (where the boulders lie)
   boulderCrossMinAngleDeg: number; // "cross": entry and exit points at least this far apart around the center
+  partialCrossingHint: boolean; // leaving a boulder field short of a crossing shows a notice, once per field (off: silent)
   craterDescentDepthM: number; // de Gerlache's inner wall: at least this far below the landing point...
   craterDescentExitDepthM: number; // ...and back out: climb back above this depth below landing
   drillSeconds: number; // mission seconds the rover stands still while drilling
@@ -288,7 +289,7 @@ export interface TextFile {
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
     | 'cameraControls' | 'drillControls' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
-    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint'
+    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'
     | 'captionEarth' | 'captionDay' | 'captionSurface',
     string
   >;

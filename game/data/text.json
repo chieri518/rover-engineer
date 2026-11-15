@@ -178,6 +178,7 @@
     "drillNearLander": "Sample not counted: the ground within {distance} m of the lander was disturbed by its engine plume. Drill farther away.",
     "earthDarkHint": "Earth is in view but only {lit}% lit. The photo counts once at least {min}% of Earth is lit.",
     "earthTooCloseHint": "Earth is in view, but the rover is only {distance} m from the lander. The Earth photo counts at least {min} m away.",
+    "partialCrossingHint": "Partial crossing: the rover left the boulder field less than {angle}° around from where it entered. Drive across the field to its far side to record a crossing.",
     "captionEarth": "Earth above the horizon",
     "captionDay": "{place}, day {day}",
     "captionSurface": "Lunar surface"
