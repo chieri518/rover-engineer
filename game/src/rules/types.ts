@@ -87,7 +87,12 @@ export interface Tuning {
     deathPenalty: Record<DeathCause, number>;
     penaltyMinFraction: number; // share of the base penalty left if the rover lasted the full mission
   };
-  mass: { referenceMass: number; speedLossPerKg: number; energyGainPerKg: number };
+  mass: {
+    referenceMass: number;
+    speedLossPerKg: number; // share of base speed lost per kg above the reference mass
+    minSpeedFactor: number; // a rover never drops below this share of its base speed
+    energyGainPerKg: number;
+  };
   energy: { slopeEnergyFactor: number };
   damage: { max: number; rockHit: number; steepSlopePerSecond: number; overloadPerSecond: number };
   cold: {
@@ -103,6 +108,45 @@ export interface Tuning {
     normalSinkageCm: [number, number];
     softRimSinkageCm: [number, number];
   };
+  sun: SunTuning;
+  earth: { azimuthDeg: number; elevationDeg: number };
+  rover: RoverHandling;
+  area: {
+    boundaryInsetM: number; // the operating boundary sits this far inside the 8 km play area
+    warningDistanceM: number; // the "leaving the area" notice shows this close to the boundary
+  };
+}
+
+/** The Sun's path over the mission. Azimuths follow terrain.json: from local -z, turning toward +x. */
+export interface SunTuning {
+  startAzimuthDeg: number; // subsolar longitude at mission start
+  degreesPerEarthDay: number; // the azimuth decreases this much per Earth day (360 / 29.53)
+  subsolarLatitudeDeg: number; // constant over one mission; sets the mean Sun elevation
+}
+
+/** Vehicle handling shared by every build. Part effects (mass, speed, grip) come on top. */
+export interface RoverHandling {
+  startHeadingDeg: number; // azimuth the rover faces at landing
+  body: { lengthM: number; widthM: number; heightM: number };
+  wheelRadiusM: number;
+  wheelTrackM: number; // left-right distance between wheel centers
+  wheelBaseM: number; // front-back distance between wheel centers
+  centerOfMassDropM: number; // center of mass below the body center: keeps the rover planted in low gravity
+  suspension: {
+    restLengthM: number;
+    maxTravelM: number;
+    stiffness: number; // per unit of rover mass, so heavier rovers sag the same
+    compression: number; // damping while compressing
+    relaxation: number; // damping while extending
+  };
+  accelerationMps2: number;
+  brakeDecelMps2: number;
+  reverseSpeedFactor: number; // reverse top speed as a share of forward top speed
+  gripToFrictionSlip: number; // wheel grip (0..1) times this = tire friction coefficient
+  sideFrictionStiffness: number;
+  maxSteerDeg: number;
+  steerRateDegPerSecond: number;
+  angularDamping: number;
 }
 
 export interface EventSpec {
@@ -124,7 +168,7 @@ export interface TextFile {
   design: Record<'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum', string>;
   ticket: Record<'heading' | 'briefing', string>;
   landing: Record<'heading' | 'briefing', string>;
-  mission: Record<'heading' | 'briefing', string>;
+  mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
   debrief: Record<'heading' | 'survived' | 'failedRound' | 'passedRound', string>;
   causes: Record<DeathCause, string>;
   history: Record<DeathCause | 'survived', string>;

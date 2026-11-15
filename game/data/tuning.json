@@ -24,7 +24,8 @@
   "mass": {
     "referenceMass": 60,
     "speedLossPerKg": 0.006,
-    "energyGainPerKg": 0.01
+    "energyGainPerKg": 0.01,
+    "minSpeedFactor": 0.4
   },
   "energy": {
     "slopeEnergyFactor": 0.05
@@ -53,5 +54,45 @@
       5,
       7
     ]
+  },
+  "sun": {
+    "startAzimuthDeg": 17.4,
+    "degreesPerEarthDay": 12.19,
+    "subsolarLatitudeDeg": -0.52
+  },
+  "earth": {
+    "azimuthDeg": 0,
+    "elevationDeg": 0.6
+  },
+  "rover": {
+    "startHeadingDeg": 197,
+    "body": {
+      "lengthM": 1.8,
+      "widthM": 1.3,
+      "heightM": 0.45
+    },
+    "wheelRadiusM": 0.3,
+    "wheelTrackM": 1.5,
+    "wheelBaseM": 1.4,
+    "centerOfMassDropM": 0.35,
+    "suspension": {
+      "restLengthM": 0.35,
+      "maxTravelM": 0.3,
+      "stiffness": 7,
+      "compression": 1.6,
+      "relaxation": 3.5
+    },
+    "accelerationMps2": 0.9,
+    "brakeDecelMps2": 2.5,
+    "reverseSpeedFactor": 0.5,
+    "gripToFrictionSlip": 1.2,
+    "sideFrictionStiffness": 1.0,
+    "maxSteerDeg": 28,
+    "steerRateDegPerSecond": 90,
+    "angularDamping": 1.0
+  },
+  "area": {
+    "boundaryInsetM": 100,
+    "warningDistanceM": 60
   }
 }
