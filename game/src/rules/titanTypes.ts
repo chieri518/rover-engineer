@@ -147,8 +147,73 @@ export interface TitanMilestoneTuning {
 // ---------------------------------------------------------------------------------------------------
 // Sky and light (data/titan/tuning.json `look`). Owner: sky and light (T2).
 
+/** Colors are sRGB hex strings "#rrggbb". Rendering values (world/titanLook.ts, titanSky.ts, moonScene.ts), not game rules. */
 export interface TitanLookTuning {
-  [key: string]: unknown; // T2 fills: colors as hex strings, fog densities, light intensities, rain fog
+  /** Top-of-atmosphere sunlight in scene intensity units (tuned with screenshots against the Moon and Mars). */
+  sunIntensity: number;
+  /** Sun elevation the eye adaptation and sky brightness are referenced to (about the site's noon Sun). */
+  referenceElevationDeg: number;
+  /** Titan's radius over the haze scale height, for the airmass. */
+  radiusOverScaleHeight: number;
+  /** Effective optical depth of the direct (shadow-casting) beam, its relative depth per channel, and its gain. */
+  directDepth: number;
+  directReddening: [number, number, number];
+  directGain: number;
+  /** Diffuse sky light: gain, power of sin(elevation), twilight share at sunset and its fall (per degree below). */
+  diffuseGain: number;
+  diffuseSunPower: number;
+  twilightShare: number;
+  twilightScaleDeg: number;
+  /** Sky hue moves from the dusk colors to the day colors between these Sun elevations. */
+  duskLowDeg: number;
+  duskHighDeg: number;
+  /** Displayed sky brightness ~ (sky light)^skyGamma, adapted while the Sun is up (at most skyAdaptMax). */
+  skyGamma: number;
+  skyAdaptK: number;
+  skyAdaptMax: number;
+  /** Eye adaptation of the scene light: × (reference / now)^adaptK, at most adaptMax. */
+  adaptK: number;
+  adaptMax: number;
+  /** Ambient floor at night (near black: the floodlights matter), ground bounce share, sky light saturation. */
+  nightLight: number;
+  groundBounce: number;
+  skyLightSaturation: number;
+  colors: {
+    sun: string;
+    dayHorizon: string;
+    dayZenith: string;
+    duskHorizon: string;
+    duskZenith: string;
+    rainHorizon: string;
+    rainZenith: string;
+    night: string;
+    glow: string;
+    duskGlow: string;
+  };
+  glow: { dayStrength: number; duskStrength: number; widthDeg: number; duskWidthDeg: number; highDeg: number; twilightScaleDeg: number };
+  /** The faint Sun disc: opacity with the Sun high, reached at fullDeg elevation; size in degrees (radius). */
+  sunDisc: { opacity: number; fullDeg: number; radiusDeg: number };
+  /** exp² fog density per meter: clear and at peak rain; fog follows rain^rainEase on a log scale. */
+  fog: { clearDensity: number; rainDensity: number; rainEase: number };
+  rain: {
+    /** Share of the eye adaptation lost at peak rain (the scene darkens), extra direct depth, sky light dimming. */
+    gloom: number;
+    directDepth: number;
+    skyDim: number;
+    /** Rain streaks (optional visual): opacity at peak, count, box around the camera, fall speed, streak length, color. */
+    streakOpacity: number;
+    streakCount: number;
+    streakBoxM: number;
+    fallMps: number;
+    streakLengthM: number;
+    color: string;
+  };
+  /** Ground: mean color (tints the grayscale albedo map), albedo contrast, and a tint for the dark dune sand. */
+  ground: { color: string; albedoContrast: number; darkSandTint: string; darkToneLow: number; darkToneHigh: number };
+  floodlight: { color: string; intensity: number; angle: number; penumbra: number; decay: number; targetDrop: number };
+  /** Rover shadow blur (shadow map radius) and Sun-mask refresh bands; masks pause below minElevationDeg. */
+  shadowRadius: number;
+  sunMask: { bands: [number, number, number]; minElevationDeg: number };
 }
 
 // ---------------------------------------------------------------------------------------------------

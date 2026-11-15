@@ -62,7 +62,88 @@
     "drivingHeat": 0.03
   },
   "look": {
-    "_placeholder": "Sky and light (T2): colors as hex strings, fog densities, light intensities, shadow softness, rain fog. Types: rules/titanTypes.ts TitanLookTuning."
+    "_note": "T2 sky and light (rendering: world/titanLook.ts, world/titanSky.ts). Presentation values, not game rules; tuned with screenshots. Readability over realism: real Titan daylight is about a thousandth of Earth's, so a capped eye adaptation keeps the day a dim but legible orange; night is near black and the floodlights light the ground. Light is mostly diffuse (weak, soft rover shadows); the haze limits visibility (fog); rain (scene.setStorm) thickens it and darkens the scene.",
+    "sunIntensity": 4,
+    "referenceElevationDeg": 65,
+    "radiusOverScaleHeight": 64,
+    "directDepth": 0.5,
+    "directReddening": [0.8, 1.0, 1.35],
+    "directGain": 0.5,
+    "diffuseGain": 0.7,
+    "diffuseSunPower": 0.6,
+    "twilightShare": 0.08,
+    "twilightScaleDeg": 4,
+    "duskLowDeg": -4,
+    "duskHighDeg": 12,
+    "skyGamma": 0.55,
+    "skyAdaptK": 0.35,
+    "skyAdaptMax": 2.2,
+    "adaptK": 0.55,
+    "adaptMax": 5,
+    "nightLight": 0.04,
+    "groundBounce": 0.12,
+    "skyLightSaturation": 0.75,
+    "colors": {
+      "sun": "#ffe9c8",
+      "dayHorizon": "#c49058",
+      "dayZenith": "#946236",
+      "duskHorizon": "#7c4a2c",
+      "duskZenith": "#2a1c1c",
+      "rainHorizon": "#7d6a52",
+      "rainZenith": "#6e5c46",
+      "night": "#020203",
+      "glow": "#f2cf98",
+      "duskGlow": "#d98a48"
+    },
+    "glow": {
+      "dayStrength": 0.12,
+      "duskStrength": 0.35,
+      "widthDeg": 18,
+      "duskWidthDeg": 14,
+      "highDeg": 25,
+      "twilightScaleDeg": 4
+    },
+    "sunDisc": {
+      "opacity": 0.35,
+      "fullDeg": 20,
+      "radiusDeg": 0.5
+    },
+    "fog": {
+      "clearDensity": 0.00035,
+      "rainDensity": 0.007,
+      "rainEase": 0.4
+    },
+    "rain": {
+      "gloom": 0.45,
+      "directDepth": 2,
+      "skyDim": 0.3,
+      "streakOpacity": 0.7,
+      "streakCount": 4000,
+      "streakBoxM": 40,
+      "fallMps": 5,
+      "streakLengthM": 1.2,
+      "color": "#d8ccb8"
+    },
+    "ground": {
+      "color": "#7a6a58",
+      "albedoContrast": 0.75,
+      "darkSandTint": "#e6dcd4",
+      "darkToneLow": 0.5,
+      "darkToneHigh": 1.1
+    },
+    "floodlight": {
+      "color": "#ffe8cc",
+      "intensity": 70,
+      "angle": 0.65,
+      "penumbra": 0.9,
+      "decay": 1.0,
+      "targetDrop": 0.8
+    },
+    "shadowRadius": 3,
+    "sunMask": {
+      "bands": [16, 4, 2],
+      "minElevationDeg": -3
+    }
   },
   "survey": {
     "_placeholder": "Milestones and survey (T5). Orbital survey leads: the Selk ejecta field (rockyAreas.0). Text in data/titan/text.json survey.leads. Rounding is the Moon's.",

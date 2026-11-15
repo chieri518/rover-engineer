@@ -1,7 +1,8 @@
-// The drivable world (the Moon, or Mars): terrain, rover, Sun with moving shadows, sky, and the operating
+// The drivable world (the Moon, Mars or Titan): terrain, rover, Sun with moving shadows, sky, and the operating
 // boundary. The mission screen starts it and runs the mission systems on top through onStep and onFrame.
 // The world's sky model (worlds.ts) picks the look: the lunar black sky and regolith photometry, or the
-// Mars dust sky, ground color, sky light, fog and storm haze (marsLook.ts, marsSky.ts).
+// Mars dust sky, ground color, sky light, fog and storm haze (marsLook.ts, marsSky.ts), or the Titan haze
+// sky, dim diffuse light, fog and methane rain (titanLook.ts, titanSky.ts, numbers in tuning.look).
 import * as THREE from 'three';
 import type { GameData, Part } from '../rules/types';
 import type { RoverParams } from '../rules/drive';
@@ -16,6 +17,8 @@ import { ALBEDO_MEAN, createMoonLightUniforms, patchMoonLighting, type Photometr
 import { Sky } from './sky';
 import { MarsSky } from './marsSky';
 import { MARS_GROUND_HEX, marsLook, type MarsLook } from './marsLook';
+import { TitanRain, TitanSky } from './titanSky';
+import { titanLook, type TitanLook } from './titanLook';
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
@@ -102,7 +105,7 @@ export interface MoonScene {
   setPaused(paused: boolean): void;
   /** Switch the floodlights (if the rover has them). */
   setFloodlights(on: boolean): void;
-  /** Dust-storm haze, 0 (clear) to 1 (peak storm); the view eases toward it. Mars only (ignored on the Moon). */
+  /** Dust-storm haze (Mars) or methane rain (Titan), 0 (clear) to 1 (peak); the view eases toward it. Ignored on the Moon. */
   setStorm(intensity: number): void;
   /** Shake the camera, e.g. for a moonquake. */
   shake(seconds: number): void;
@@ -123,7 +126,11 @@ const HARD_STOP_KEEP = 0.9; // share of horizontal velocity kept per physics ste
 export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene> {
   const { container, data } = opts;
   const tuning = data.tuning;
-  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(opts.world), initRapier(), loadAlbedo(opts.world, WORLDS[opts.world].sky !== 'moon')]);
+  const skyModel = WORLDS[opts.world].sky;
+  // Titan's look lives in data (tuning.look); a Titan world without it falls back to the Mars model.
+  const titanTuning = skyModel === 'titan' && tuning.look?.colors ? tuning.look : undefined;
+  const titan = !!titanTuning;
+  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(opts.world), initRapier(), loadAlbedo(opts.world, skyModel !== 'moon')]);
   const { fine, near, far, info } = terrain;
   const site = { latitudeDeg: info.sunAndEarth.siteLatitude_deg, longitudeDeg: info.sunAndEarth.siteLongitude_deg };
 
@@ -138,16 +145,18 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400_000);
-  // Titan falls back to the Mars look until the Titan sky and light (T2) are wired in.
-  const mars = WORLDS[opts.world].sky !== 'moon';
+  const mars = skyModel !== 'moon' && !titan; // Mars, or a hazy world without its own look yet
   const marsSky = mars ? new MarsSky() : null;
-  const sky = marsSky ?? new Sky(skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg));
-  const photometry: Photometry = mars ? 'mars' : true;
-  const groundColor = mars ? MARS_GROUND_HEX : REGOLITH_COLOR;
+  const titanSky = titanTuning ? new TitanSky(titanTuning.sunDisc.radiusDeg) : null;
+  const sky = marsSky ?? titanSky ?? new Sky(skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg));
+  const hazy = mars || titan; // a sky that lights the scene: hemisphere light, fog, storm or rain haze
+  const photometry: Photometry = titan ? 'titan' : mars ? 'mars' : true;
+  const groundColor = titanTuning ? new THREE.Color(titanTuning.ground.color).getHex() : mars ? MARS_GROUND_HEX : REGOLITH_COLOR;
 
   // Terrain: three chunked layers sharing one regolith material.
   const lightUniforms = createMoonLightUniforms(fine, near, far);
-  const masks = new SunMasks(terrain, mars ? MARS_MASK_BANDS : MASK_BANDS);
+  const masks = new SunMasks(terrain, titanTuning ? titanTuning.sunMask.bands : mars ? MARS_MASK_BANDS : MASK_BANDS);
+  const maskMinElevationDeg = titanTuning ? titanTuning.sunMask.minElevationDeg : mars ? MARS_MASK_MIN_ELEVATION_DEG : -Infinity;
   lightUniforms.moonMaskFine.value = masks.fine;
   lightUniforms.moonMaskNear.value = masks.near;
   lightUniforms.moonMaskFar.value = masks.far;
@@ -156,9 +165,15 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     lightUniforms.moonAlbedo.value = albedo.texture;
     lightUniforms.moonAlbedoRect.value.set(albedo.minX, albedo.minZ, albedo.span, ALBEDO_EDGE_FADE_M);
     if (mars) lightUniforms.moonAlbedoTone.value.set(albedo.mean ?? ALBEDO_MEAN, MARS_ALBEDO_CONTRAST);
+    if (titanTuning) lightUniforms.moonAlbedoTone.value.set(albedo.mean ?? ALBEDO_MEAN, titanTuning.ground.albedoContrast);
   } else {
     // No map: a 1×1 texture at the mean albedo, so the shader stays the same and the ground is plain.
     lightUniforms.moonAlbedo.value = plainAlbedo();
+  }
+  if (titanTuning) {
+    const g = titanTuning.ground;
+    lightUniforms.moonDarkTint.value.set(g.darkSandTint); // sRGB hex to the linear working space
+    lightUniforms.moonDarkTone.value.set(g.darkToneLow, g.darkToneHigh);
   }
   // The play area gets the albedo map and fine detail; the distant rings stay plain regolith of the same mean tone.
   const groundMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: groundColor }), lightUniforms, photometry, true);
@@ -185,25 +200,41 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   sunLight.shadow.camera.updateProjectionMatrix();
   sunLight.shadow.bias = -0.0005;
   sunLight.shadow.normalBias = 0.02;
-  // Mars: sunlight color and strength, sky light and fog follow the Sun's height and the storm each frame.
-  const skyLight = mars ? new THREE.HemisphereLight(0xffffff, 0x000000, 1) : new THREE.AmbientLight(0xffffff, AMBIENT_INTENSITY);
+  if (titanTuning) sunLight.shadow.radius = titanTuning.shadowRadius; // diffuse light: soft rover shadows
+  // Mars and Titan: sunlight color and strength, sky light and fog follow the Sun's height and the storm (rain) each frame.
+  const skyLight = hazy ? new THREE.HemisphereLight(0xffffff, 0x000000, 1) : new THREE.AmbientLight(0xffffff, AMBIENT_INTENSITY);
   scene.add(sunLight, sunLight.target, skyLight);
-  const fog = mars ? new THREE.FogExp2(0x000000, 0) : null;
+  const fog = hazy ? new THREE.FogExp2(0x000000, 0) : null;
   scene.fog = fog;
+  const rain = titanTuning
+    ? new TitanRain({ count: titanTuning.rain.streakCount, boxM: titanTuning.rain.streakBoxM, fallMps: titanTuning.rain.fallMps, lengthM: titanTuning.rain.streakLengthM })
+    : null;
+  if (rain) scene.add(rain.object);
   let storm = 0;
   let stormTarget = 0;
-  let look: MarsLook | null = null;
-  const applyMarsLook = (sun: SkyDirection) => {
-    if (!marsSky || !fog) return;
-    look = marsLook(sun.elevationDeg, storm);
+  let look: MarsLook | TitanLook | null = null;
+  const applyHazeLook = (l: Pick<MarsLook, 'sun' | 'skyLight' | 'groundLight' | 'fog' | 'fogDensity'>) => {
+    if (!fog) return;
     sunLight.intensity = 1; // the look's sunlight color carries its strength
-    sunLight.color.setRGB(...look.sun);
+    sunLight.color.setRGB(...l.sun);
     const hemi = skyLight as THREE.HemisphereLight;
-    hemi.color.setRGB(...look.skyLight);
-    hemi.groundColor.setRGB(...look.groundLight);
-    fog.color.setRGB(...look.fog);
-    fog.density = look.fogDensity;
-    marsSky.setLook(look);
+    hemi.color.setRGB(...l.skyLight);
+    hemi.groundColor.setRGB(...l.groundLight);
+    fog.color.setRGB(...l.fog);
+    fog.density = l.fogDensity;
+  };
+  const applyMarsLook = (sun: SkyDirection) => {
+    if (marsSky) {
+      const l = marsLook(sun.elevationDeg, storm);
+      look = l;
+      applyHazeLook(l);
+      marsSky.setLook(l);
+    } else if (titanSky && titanTuning) {
+      const l = titanLook(sun.elevationDeg, storm, titanTuning);
+      look = l;
+      applyHazeLook(l);
+      titanSky.setLook(l);
+    }
   };
 
   // Physics world with the operating boundary as invisible walls.
@@ -239,15 +270,18 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   }
   scene.add(rover.object, lander.object);
   let lamp: THREE.SpotLight | null = null;
-  const lampIntensity = mars ? MARS_FLOODLIGHT.intensity : FLOODLIGHT_INTENSITY;
+  const titanLamp = titanTuning?.floodlight;
+  const lampIntensity = titanLamp ? titanLamp.intensity : mars ? MARS_FLOODLIGHT.intensity : FLOODLIGHT_INTENSITY;
   if (opts.lightRangeM) {
     // Floodlights: what lets the rover see inside permanent shadow. Off until it is dark.
-    lamp = mars
-      ? new THREE.SpotLight(MARS_FLOODLIGHT.color, lampIntensity, opts.lightRangeM, MARS_FLOODLIGHT.angle, MARS_FLOODLIGHT.penumbra, MARS_FLOODLIGHT.decay)
-      : new THREE.SpotLight(0xf4f1ea, lampIntensity, opts.lightRangeM, 0.6, 0.5, 1.2);
+    lamp = titanLamp
+      ? new THREE.SpotLight(new THREE.Color(titanLamp.color), lampIntensity, opts.lightRangeM, titanLamp.angle, titanLamp.penumbra, titanLamp.decay)
+      : mars
+        ? new THREE.SpotLight(MARS_FLOODLIGHT.color, lampIntensity, opts.lightRangeM, MARS_FLOODLIGHT.angle, MARS_FLOODLIGHT.penumbra, MARS_FLOODLIGHT.decay)
+        : new THREE.SpotLight(0xf4f1ea, lampIntensity, opts.lightRangeM, 0.6, 0.5, 1.2);
     lamp.intensity = 0; // intensity, not visibility: a changing light count would recompile every shader
     lamp.position.set(tuning.rover.body.lengthM / 2, 0.4, 0);
-    lamp.target.position.set(tuning.rover.body.lengthM / 2 + 10, mars ? -MARS_FLOODLIGHT.targetDrop : -1.2, 0);
+    lamp.target.position.set(tuning.rover.body.lengthM / 2 + 10, titanLamp ? -titanLamp.targetDrop : mars ? -MARS_FLOODLIGHT.targetDrop : -1.2, 0);
     rover.object.add(lamp, lamp.target);
   }
   const boulders = new Boulders(rapier, world, opts.boulderAreas ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
@@ -390,9 +424,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
 
     const sun = sunNow();
     placeSun(sun);
-    // Mars nights: the Sun is far below the horizon and gives no light, so the masks can wait for dawn.
-    if (!mars || sun.elevationDeg > MARS_MASK_MIN_ELEVATION_DEG) masks.updateStep(renderer, sun);
-    if (mars) {
+    // Mars and Titan nights: the Sun is far below the horizon and gives no light, so the masks can wait for dawn.
+    if (sun.elevationDeg > maskMinElevationDeg) masks.updateStep(renderer, sun);
+    if (hazy) {
       storm += (stormTarget - storm) * Math.min(1, dt / STORM_EASE_S);
       applyMarsLook(sun);
     }
@@ -411,6 +445,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       camera.position.z += (Math.random() - 0.5) * a;
     }
     sky.update(camera, sun);
+    if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, look.rainStreaks, look.rainColor);
     draw();
 
     const boundaryDistance = limit - Math.max(Math.abs(pos.x), Math.abs(pos.z));
@@ -449,7 +484,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
         lampOverride = on;
         if (lamp && on !== null) lamp.intensity = on ? lampIntensity : 0;
       },
-      /** The current Mars look (null on the Moon). */
+      /** The current Mars or Titan look (null on the Moon). */
       look() {
         return look;
       },
@@ -564,6 +599,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       observer.disconnect();
       input.dispose();
       boulders.dispose();
+      rain?.dispose();
       rover.dispose();
       lander.dispose();
       world.free();

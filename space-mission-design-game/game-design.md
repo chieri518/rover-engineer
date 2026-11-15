@@ -731,6 +731,8 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 *Proposed:* daylight at Titan's surface is very dim (darker than Earth just after sunset; often quoted as about a thousandth of Earth's daylight; [research 09](research/rover-engineering/09-titan-surface-data.md)) and scattered by thick orange haze, so there are almost no sharp shadows. The game keeps it readable: a hazy orange-brown sky, soft light, short visibility, a faint Sun. Night is close to black; Saturn is hidden by the haze. Lights are what let the rover see at night.
 
+*How it is drawn (decided during implementation, T2):* about 85% of the light is diffuse sky light, so rover shadows are faint and soft. A capped eye adaptation keeps the day dimmer than a clear Mars noon but readable. The sky goes from orange-brown by day to a darker, redder dusk and a long twilight, then a night with no stars. The haze hides 95% of the terrain by about 5 km. During the methane rain the scene darkens, the Sun disappears, visibility closes in to about 250 m, and rain streaks fall. Dark dune sand and brighter interdunes come from the generated ground texture. All of these values are in `data/titan/tuning.json` (`look`).
+
 #### Power and night
 
 *Proposed*, all numbers placeholders tuned against the Moon parts and checked by a battery-only test, as `marsNight.test.ts` checks Mars:
