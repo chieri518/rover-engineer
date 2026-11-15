@@ -1,11 +1,12 @@
 // Mission screen: the drivable Moon plus the mission systems. Each physics step it measures the
 // rover, calls the rules (rules/mission.ts) and applies what they allow; each frame it draws the HUD
 // and minimap. The mission ends at 5 minutes or on one of the four deaths, then goes to the debrief.
-import type { Screen } from '../flow/flow';
-import type { EarnedMilestone, MissionResult } from '../rules/payout';
+import type { AlbumPhoto, Screen } from '../flow/flow';
+import type { MissionResult } from '../rules/payout';
+import { buildZones, MilestoneTracker, type MilestoneUpdate, type Point3 } from '../rules/milestones';
 import { selectedParts } from '../rules/rover';
 import { roverParams } from '../rules/drive';
-import { gameDaysElapsed, sunAt } from '../rules/sun';
+import { gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
 import { scheduleEvents, seededRng } from '../rules/events';
 import { softnessAt } from '../rules/ground';
 import { noLightsLookaheadM } from '../rules/cold';
@@ -21,12 +22,15 @@ import { flareWarningText, noticeText } from '../events';
 import { el, fill } from './dom';
 import { Hud } from './hud';
 import { Minimap } from './minimap';
+import { milestoneCard, missedText } from './milestoneText';
 
 const DEG = 180 / Math.PI;
 const SUN_SAMPLE_STEPS = 12; // recompute sunlight at the rover every 12 physics steps (0.2 s)
 const MAX_STEP_DISTANCE_M = 5; // a larger jump is a teleport, not driving
 const GRADE_PROBE_M = 2;
 const MINIMAP_EVERY_FRAMES = 3;
+const EARTH_CHECK_EVERY_FRAMES = 10;
+const PHOTO_WIDTH_PX = 960;
 
 export const missionScreen: Screen = (game, root) => {
   const { data } = game;
@@ -43,6 +47,15 @@ export const missionScreen: Screen = (game, root) => {
   let state: MissionState = startMission(setup);
   let ended: MissionEnd | null = null;
   const explored = createExplored(8000, tuning.explore);
+  const mt = tuning.milestones;
+  const instrument = parts.find((p) => p.slot === 'instrument')?.effects.instrument ?? null;
+  const recordsHeld = [...game.state.records];
+  const earthDir = skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg);
+  let tracker: MilestoneTracker | null = null;
+  const album: AlbumPhoto[] = [];
+  let drillLeft = 0; // mission seconds of drilling left (0 = not drilling)
+  let earthInView = false;
+  let roverPos: Point3 | null = null; // ground point under the rover after the last step
 
   // What the last step measured
   let ctx: { terrain: Terrain; masks: TerrainMasks; sunVisibility: typeof import('../world/terrainData').sunVisibility } | null = null;
@@ -60,33 +73,79 @@ export const missionScreen: Screen = (game, root) => {
     if (ended) return;
     state = { ...state, poweredDown: !state.poweredDown };
   };
+  const ti = text.instruments;
+  const controls = [text.mission.controls, instrument === 'camera' ? ti.cameraControls : instrument === 'drill' ? ti.drillControls : '']
+    .filter(Boolean).join(' ');
   const hud = new Hud(text, togglePower, el('div', { class: 'hud-extra' },
-    el('p', { class: 'muted' }, text.mission.controls),
+    el('p', { class: 'muted' }, controls),
     status,
   ));
+
+  const announce = (u: MilestoneUpdate) => {
+    for (const r of u.reached) hud.milestone(milestoneCard(r, data, game.settings.missionHistory, recordsHeld));
+    for (const m of u.missed) hud.notify(missedText(m, text));
+  };
+  const dayText = () => gameDaysElapsed(state.seconds, tuning.mission).toFixed(1);
+
+  const takePhoto = () => {
+    if (ended || !scene || !tracker || !roverPos) return;
+    if (instrument !== 'camera') return hud.notify(ti.noCamera);
+    if (album.length >= mt.albumMax) return hud.notify(fill(ti.photoAlbumFull, { max: mt.albumMax }));
+    const earth = scene.inView(earthDir, mt.photoFrameMargin);
+    const u = tracker.photo(roverPos, earth);
+    const places = tracker.zones
+      .filter((z) => (z.id === 'rim-viewpoint' || z.id === 'crater-wall') && tracker!.currentZones().includes(z))
+      .map((z) => z.name);
+    if (earth) places.push(ti.captionEarth);
+    const caption = fill(ti.captionDay, { place: places.length ? places.join(', ') : ti.captionSurface, day: dayText() });
+    album.push({ src: scene.capture(PHOTO_WIDTH_PX), caption });
+    hud.notify(places.length ? fill(ti.photoTaken, { caption }) : ti.photoNoZone, 'good');
+    announce(u);
+  };
+
+  const startDrill = () => {
+    if (ended || drillLeft > 0) return;
+    if (instrument !== 'drill') return hud.notify(ti.noDrill);
+    if (state.poweredDown) return hud.notify(text.warnings.poweredDown);
+    if ((lastSample?.speedMps ?? 0) > tuning.ground.movingSpeedMps) return hud.notify(ti.drillMoving);
+    drillLeft = mt.drillSeconds;
+  };
+
+  const finishDrill = () => {
+    if (!tracker || !roverPos) return;
+    const zones = tracker.zones.filter((z) => tracker!.currentZones().includes(z)).map((z) => z.id);
+    const u = tracker.drill(roverPos);
+    hud.notify(zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : ti.drillDone, 'good');
+    announce(u);
+  };
+
   const onKey = (e: KeyboardEvent) => {
-    if (e.code === 'KeyP' && !e.repeat) togglePower();
+    if (e.repeat) return;
+    if (e.code === 'KeyP') togglePower();
+    if (e.code === 'KeyC') takePhoto();
+    if (e.code === 'KeyF') startDrill();
   };
   window.addEventListener('keydown', onKey);
 
-  const odometer = data.milestones.milestones.find((m) => m.id === 'odometer');
-  const earned = (): EarnedMilestone[] => {
-    const meters = odometer?.trigger.type === 'distance' ? odometer.trigger.meters : [];
-    const stages = meters.filter((m) => state.distanceM >= m).length;
-    return [{ id: 'touchdown' }, ...(stages > 0 ? [{ id: 'odometer', stages }] : [])];
-  };
-
   const finish = (end: MissionEnd) => {
     ended = end;
+    drillLeft = 0;
     scene?.stopClock();
+    if (tracker) announce(tracker.finish(end.survived, state.damage));
     const h = text.hud;
     const days = gameDaysElapsed(end.seconds, tuning.mission);
     const lines = [
       end.survived ? h.endedSurvived : end.detail === 'rollover' ? h.rollover : fill(h.endedFailed, { cause: text.causes[end.cause!] }),
       fill(h.lasted, { days: end.survived ? tuning.mission.gameDays : days.toFixed(1), total: tuning.mission.gameDays }),
     ];
-    const result: MissionResult = { survived: end.survived, cause: end.cause, secondsLasted: end.seconds, earned: earned() };
-    hud.showEnd(lines, () => game.endMission(result));
+    const result: MissionResult = {
+      survived: end.survived,
+      cause: end.cause,
+      detail: end.detail,
+      secondsLasted: end.seconds,
+      earned: tracker?.result() ?? [],
+    };
+    hud.showEnd(lines, () => game.endMission(result, album));
   };
 
   const onStep = (s: MoonStepSample): MoonDriveLimits | void => {
@@ -136,12 +195,25 @@ export const missionScreen: Screen = (game, root) => {
       const msg = noticeText(n, text);
       if (msg) hud.notify(msg.message, msg.tone);
     }
+    if (!ended && tracker) {
+      roverPos = { x: p.x, y: terrain.heightAt(p.x, p.z), z: p.z };
+      announce(tracker.step({
+        position: roverPos,
+        distanceM: state.distanceM,
+        exploredShare: exploredShare(explored),
+        flareSurvived: step.notices.some((n) => n.kind === 'flare-hit' && n.protected),
+      }));
+      if (drillLeft > 0) {
+        drillLeft = Math.max(0, drillLeft - s.dt);
+        if (drillLeft === 0 && !state.end) finishDrill();
+      }
+    }
     if (state.end && !ended) finish(state.end);
 
     // What the rover may do next step.
-    if (ended || state.poweredDown) {
+    if (ended || state.poweredDown || drillLeft > 0) {
       blockedByShadow = false;
-      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1 });
+      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: drillLeft > 0 });
     }
     // Without lights the rover stops at the edge of permanent shadow.
     let allowForward = true;
@@ -165,6 +237,18 @@ export const missionScreen: Screen = (game, root) => {
     return w[id];
   };
 
+  const hintText = (): string | null => {
+    if (drillLeft > 0) return ti.drilling;
+    const zones = tracker?.currentZones() ?? [];
+    if (instrument === 'camera') {
+      const view = zones.find((z) => z.id === 'rim-viewpoint' || z.id === 'crater-wall');
+      if (view) return fill(ti.viewpointHint, { name: view.name });
+      if (earthInView) return ti.earthHint;
+    }
+    if (instrument === 'drill' && zones.some((z) => z.id === 'ice-spot')) return ti.iceHint;
+    return null;
+  };
+
   let minimap: Minimap | null = null;
   let frame = 0;
   const onFrame = (f: { position: { x: number; z: number }; nearBoundary: boolean; forward: { x: number; z: number } }) => {
@@ -183,6 +267,8 @@ export const missionScreen: Screen = (game, root) => {
     hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / data.events.flare.warningSeconds : 0);
     const ids = lastSample ? missionWarnings(state, lastSample, lastSlip, blockedByShadow, setup, tuning) : [];
     hud.setWarnings([...(nearBoundary ? [text.mission.boundary] : []), ...ids.map(warningText)]);
+    if (instrument === 'camera' && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) earthInView = scene.inView(earthDir, mt.photoFrameMargin);
+    hud.setHint(hintText());
     if (reveal(explored, f.position.x, f.position.z, tuning.explore.revealRadiusM) > 0) {
       minimap?.reveal(f.position.x, f.position.z, tuning.explore.revealRadiusM);
     }
@@ -211,6 +297,15 @@ export const missionScreen: Screen = (game, root) => {
       if (disposed) return started.dispose();
       scene = started;
       status.textContent = '';
+      const f = masks.info.features;
+      tracker = new MilestoneTracker(data.milestones.milestones, parts, buildZones({
+        landing: { x: masks.info.landing.local.x, y: terrain.heightAt(masks.info.landing.local.x, masks.info.landing.local.z), z: masks.info.landing.local.z },
+        rimViewpoints: f.rimViewpoints,
+        rockyAreas: f.rockyAreas,
+        shadowedCrater: f.shadowedCrater,
+        craterDescent: f.craterDescent,
+      }, mt), mt);
+      announce(tracker.land());
     })
     .catch((err: unknown) => {
       if (!disposed) status.textContent = `The Moon failed to load: ${String(err)}`;
@@ -223,6 +318,15 @@ export const missionScreen: Screen = (game, root) => {
       setup,
       state: () => state,
       sample: () => ({ sample: lastSample, slip: lastSlip, sunlight, blockedByShadow, explored: exploredShare(explored), maxImpact }),
+      milestones: () => ({
+        earned: tracker?.result() ?? [],
+        zones: tracker?.currentZones().map((z) => z.key) ?? [],
+        earthInView: scene?.inView(earthDir, mt.photoFrameMargin) ?? false,
+        album: album.map((a) => a.caption),
+        drilling: drillLeft,
+      }),
+      photo: takePhoto,
+      drill: startDrill,
       resetMaxImpact() {
         maxImpact = 0;
       },

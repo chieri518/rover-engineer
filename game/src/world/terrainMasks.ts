@@ -11,9 +11,9 @@ interface Point { x: number; z: number }
 /** The parts of terrain.json the mission systems read. */
 export interface FeatureInfo {
   playArea: { pixel_m: number; samples: number; files: { slope: { file: string }; coldMask: { file: string } } };
-  landing: { local: Point };
+  landing: { local: Point & { y: number } };
   features: {
-    rimViewpoints: { name: string; local: Point }[];
+    rimViewpoints: { name: string; local: Point; lookToward: Point }[];
     rockyAreas: { name: string; local: Point; radius_m: number }[];
     shadowedCrater: { centroidLocal: Point; outlineLocal_xz: [number, number][]; entryPoint: { local: Point }; iceCandidate: { local: Point } };
     craterDescent: { name: string; local: Point };

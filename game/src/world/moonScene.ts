@@ -4,7 +4,7 @@ import * as THREE from 'three';
 import type { GameData } from '../rules/types';
 import type { RoverParams } from '../rules/drive';
 import { skyDirection, sunAt, type SkyDirection } from '../rules/sun';
-import { loadTerrain, type Terrain } from './terrainData';
+import { horizonMarginTan, loadTerrain, type Terrain } from './terrainData';
 import { Boulders } from './boulders';
 import type { SoftArea } from '../rules/ground';
 import { ChunkLayer } from './terrainChunks';
@@ -82,6 +82,10 @@ export interface MoonScene {
   setFloodlights(on: boolean): void;
   /** Shake the camera, e.g. for a moonquake. */
   shake(seconds: number): void;
+  /** Render the current view and return it as a JPEG data URL, at most maxWidth pixels wide. */
+  capture(maxWidth: number): string;
+  /** Is a body in this sky direction above the terrain horizon seen from the camera, and inside the frame? */
+  inView(dir: SkyDirection, frameMargin: number): boolean;
   dispose(): void;
 }
 
@@ -221,6 +225,15 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   for (const layer of layers) layer.update(landing.x, landing.z, Infinity);
   masks.updateAll(renderer, sunNow());
 
+  const draw = () => {
+    renderer.setRenderTarget(null);
+    renderer.clear();
+    renderer.render(sky.scene, sky.camera);
+    renderer.clearDepth();
+    renderer.render(scene, camera);
+  };
+  const ndc = new THREE.Vector3();
+
   // Frame-time samples for performance checks.
   const frameTimes: number[] = [];
   let acc = 0;
@@ -290,11 +303,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       camera.position.z += (Math.random() - 0.5) * a;
     }
     sky.update(camera, sun);
-    renderer.setRenderTarget(null);
-    renderer.clear();
-    renderer.render(sky.scene, sky.camera);
-    renderer.clearDepth();
-    renderer.render(scene, camera);
+    draw();
 
     const boundaryDistance = limit - Math.max(Math.abs(pos.x), Math.abs(pos.z));
     opts.onFrame?.({
@@ -378,6 +387,23 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     },
     shake(secondsToShake: number) {
       shakeLeft = Math.max(shakeLeft, secondsToShake);
+    },
+    capture(maxWidth: number) {
+      // Draw again and copy in the same task: the WebGL buffer is not kept between frames.
+      draw();
+      const src = renderer.domElement;
+      const k = Math.min(1, maxWidth / Math.max(src.width, 1));
+      const out = document.createElement('canvas');
+      out.width = Math.max(1, Math.round(src.width * k));
+      out.height = Math.max(1, Math.round(src.height * k));
+      out.getContext('2d')!.drawImage(src, 0, 0, out.width, out.height);
+      return out.toDataURL('image/jpeg', 0.85);
+    },
+    inView(dir: SkyDirection, frameMargin: number) {
+      const c = camera.position;
+      ndc.set(c.x + dir.x * 1000, c.y + dir.y * 1000, c.z + dir.z * 1000).project(camera);
+      const inFrame = ndc.z < 1 && Math.abs(ndc.x) <= frameMargin && Math.abs(ndc.y) <= frameMargin;
+      return inFrame && horizonMarginTan(terrain, c.x, c.z, c.y, dir) > 0;
     },
     dispose() {
       disposed = true;

@@ -10,6 +10,7 @@ const PX = 400; // canvas pixels per side (20 m per pixel over 8 km)
 const FOG = 'rgba(6, 7, 10, 0.86)';
 const MARK = '#f0b429';
 const COLD = 'rgba(90, 150, 255, 0.85)';
+const ICE = '#bff4ff';
 
 export class Minimap {
   readonly root: HTMLElement;
@@ -44,6 +45,7 @@ export class Minimap {
         el('span', { class: 'lg viewpoint' }, h.legendViewpoint),
         el('span', { class: 'lg crater' }, h.legendCrater),
         el('span', { class: 'lg cold' }, h.legendCold),
+        el('span', { class: 'lg ice' }, h.legendIce),
       ),
     );
   }
@@ -124,6 +126,20 @@ export class Minimap {
     }
     ctx.beginPath();
     ctx.arc(this.px(f.craterDescent.local.x), this.px(f.craterDescent.local.z), 6, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Ice candidate (orbital data marks where ice may be exposed)
+    const ice = f.shadowedCrater.iceCandidate.local;
+    ctx.fillStyle = ICE;
+    ctx.strokeStyle = '#0b0c10';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(this.px(ice.x), this.px(ice.z) - 6);
+    ctx.lineTo(this.px(ice.x) + 5, this.px(ice.z));
+    ctx.lineTo(this.px(ice.x), this.px(ice.z) + 6);
+    ctx.lineTo(this.px(ice.x) - 5, this.px(ice.z));
+    ctx.closePath();
+    ctx.fill();
     ctx.stroke();
 
     // Viewpoint zones

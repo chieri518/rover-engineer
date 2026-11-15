@@ -147,6 +147,27 @@ export function sunVisibility(terrain: Terrain, x: number, z: number, sun: { x: 
   return smoothstep(-SUN_RADIUS_TAN, SUN_RADIUS_TAN, tanEl - maxTan);
 }
 
+/**
+ * How far a body in direction `dir` stands above the terrain horizon seen from (x, eyeY, z), as a
+ * difference of slope tangents: positive when its center is above the horizon. Used for Earth photos.
+ */
+export function horizonMarginTan(terrain: Terrain, x: number, z: number, eyeY: number, dir: { x: number; y: number; z: number }): number {
+  const horiz = Math.hypot(dir.x, dir.z);
+  if (horiz < 1e-6) return dir.y > 0 ? Infinity : -Infinity;
+  const dx = dir.x / horiz;
+  const dz = dir.z / horiz;
+  const tanEl = dir.y / horiz;
+  let maxTan = -Infinity;
+  for (let t = terrain.fine.pixel; t < MARCH_MAX_M; t *= MARCH_GROWTH) {
+    const px = x + dx * t;
+    const pz = z + dz * t;
+    if (!terrain.far.contains(px, pz)) break;
+    maxTan = Math.max(maxTan, (terrain.heightAt(px, pz) - eyeY) / t);
+    if ((terrain.maxHeight - eyeY) / t < tanEl) break;
+  }
+  return tanEl - maxTan;
+}
+
 /** Height above the ground at which sunlight is tested (m). */
 export const GROUND_EYE_M = 1.0;
 /** March step growth and range shared by the CPU and GPU sun tests. */
