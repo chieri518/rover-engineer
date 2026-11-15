@@ -1,0 +1,82 @@
+{
+  "milestones": [
+    {
+      "id": "touchdown", "name": "Touchdown", "category": "record", "record": true,
+      "trigger": { "type": "landing" },
+      "requires": {}, "money": 150, "rp": 5,
+      "fact": "The Soviet Luna 9 probe made the first soft landing on the Moon on February 3, 1966."
+    },
+    {
+      "id": "odometer", "name": "Odometer", "category": "capability", "record": false,
+      "trigger": { "type": "distance", "meters": [500, 1000, 2000] },
+      "requires": {}, "money": 30, "rp": 2,
+      "fact": "Apollo 17's Lunar Roving Vehicle covered about 36 km across three drives in December 1972."
+    },
+    {
+      "id": "mapper", "name": "Mapper", "category": "capability", "record": false,
+      "trigger": { "type": "explore", "share": 0.1 },
+      "requires": {}, "money": 50, "rp": 3,
+      "fact": "NASA's Lunar Reconnaissance Orbiter has mapped the Moon since 2009; its laser altimeter measured the terrain you are driving on."
+    },
+    {
+      "id": "crater-descent", "name": "Crater descent", "category": "capability", "record": false,
+      "trigger": { "type": "zone", "zone": "large-crater", "mode": "enter-and-exit" },
+      "requires": {}, "money": 60, "rp": 5,
+      "fact": "Without wind or rain to wear them down, lunar craters keep their shape for hundreds of millions of years."
+    },
+    {
+      "id": "boulder-field", "name": "Boulder field", "category": "capability", "record": false,
+      "trigger": { "type": "zone", "zone": "boulder-field", "mode": "cross" },
+      "requires": {}, "money": 50, "rp": 3,
+      "fact": "Almost all boulders on the lunar surface are smaller than 4 m; most were thrown out by impacts."
+    },
+    {
+      "id": "into-the-dark", "name": "Into the dark", "category": "capability", "record": false,
+      "trigger": { "type": "zone", "zone": "shadowed-crater", "mode": "enter-and-exit" },
+      "requires": { "slots": ["lights", "heater"] }, "money": 80, "rp": 5,
+      "fact": "Craters near the lunar poles that never see sunlight measure about 33 to 38 K, around -238 °C."
+    },
+    {
+      "id": "flare-survivor", "name": "Flare survivor", "category": "capability", "record": false,
+      "trigger": { "type": "event", "event": "flare", "condition": "no-damage" },
+      "requires": {}, "money": 40, "rp": 2,
+      "fact": "With no thick atmosphere or global magnetic field, the lunar surface is exposed directly to radiation from solar flares."
+    },
+    {
+      "id": "clean-run", "name": "Clean run", "category": "capability", "record": false,
+      "trigger": { "type": "survive", "condition": "no-damage" },
+      "requires": {}, "money": 60, "rp": 3,
+      "fact": "ISRO's Pragyan rover was designed to work for one lunar daylight period, about 14 Earth days."
+    },
+    {
+      "id": "crater-layers", "name": "Crater layers", "category": "scientific", "record": false,
+      "trigger": { "type": "photo", "zone": "crater-wall" },
+      "requires": { "instrument": "camera" }, "money": 20, "rp": 25,
+      "fact": "Crater walls expose layers of older rock and debris, giving geologists a look back in time."
+    },
+    {
+      "id": "regolith-sample", "name": "Regolith sample", "category": "scientific", "record": false,
+      "trigger": { "type": "drill" },
+      "requires": { "instrument": "drill" }, "money": 20, "rp": 20,
+      "fact": "The six Apollo landings brought back 382 kg of lunar rock, core samples, pebbles, sand and dust."
+    },
+    {
+      "id": "water-ice", "name": "Water ice", "category": "scientific", "record": true,
+      "trigger": { "type": "drill", "zone": "ice-spot" },
+      "requires": { "instrument": "drill", "slots": ["lights", "heater"] }, "money": 200, "rp": 40,
+      "fact": "In 2009 NASA's LCROSS impact found about 4 to 6% water by weight in Cabeus crater near the south pole."
+    },
+    {
+      "id": "earth-on-horizon", "name": "Earth on the horizon", "category": "picture", "record": false,
+      "trigger": { "type": "photo", "target": "earth" },
+      "requires": { "instrument": "camera" }, "money": 25, "rp": 2,
+      "fact": "From the lunar south pole Earth sits low on the horizon and can dip below it."
+    },
+    {
+      "id": "rim-panorama", "name": "Rim panorama", "category": "picture", "record": false,
+      "trigger": { "type": "photo", "zone": "rim-viewpoint" },
+      "requires": { "instrument": "camera" }, "money": 20, "rp": 2,
+      "fact": "The de Gerlache crater rim is one of the regions NASA has considered for Artemis landings near the south pole."
+    }
+  ]
+}

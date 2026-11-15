@@ -1,0 +1,20 @@
+{
+  "flare": {
+    "windowsSeconds": [[60, 120], [180, 260]],
+    "warningSeconds": 5,
+    "damage": 25,
+    "realFlares": [
+      { "date": "2003-11-04", "class": "X28" },
+      { "date": "2017-09-06", "class": "X9.3" },
+      { "date": "2017-09-10", "class": "X8.2" },
+      { "date": "2024-05-14", "class": "X8.7" },
+      { "date": "2024-10-03", "class": "X9.0" }
+    ]
+  },
+  "quake": {
+    "windowsSeconds": [[90, 240]],
+    "warningSeconds": 0,
+    "damage": 10,
+    "faultDamageMultiplier": 2
+  }
+}

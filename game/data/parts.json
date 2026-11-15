@@ -1,0 +1,25 @@
+{
+  "slots": ["chassis", "wheels", "power", "battery", "lights", "heater", "instrument"],
+  "parts": [
+    { "id": "chassis-steel", "slot": "chassis", "name": "Steel frame", "description": "Cheap and strong, but heavy.", "cost": 60, "mass": 30, "size": 5, "effects": { "maxLoad": 90 } },
+    { "id": "chassis-titanium", "slot": "chassis", "name": "Titanium frame", "description": "Light and strong, but expensive.", "cost": 160, "mass": 16, "size": 4, "effects": { "maxLoad": 80 } },
+
+    { "id": "wheels-solid", "slot": "wheels", "name": "Solid aluminium wheels", "description": "Cheap and heavy. Lower grip in soft regolith.", "cost": 30, "mass": 20, "size": 4, "effects": { "baseSpeed": 2.2, "grip": 0.55, "energyPerMeter": 0.03 } },
+    { "id": "wheels-mesh", "slot": "wheels", "name": "Wire-mesh wheels", "description": "Light, fast and grippy, like the Apollo rover's. Bulky.", "cost": 70, "mass": 12, "size": 5, "effects": { "baseSpeed": 3.0, "grip": 0.8, "energyPerMeter": 0.02 } },
+
+    { "id": "power-fixed-panel", "slot": "power", "name": "Fixed solar panel", "description": "A flat panel. Catches little of a low Sun.", "cost": 40, "mass": 10, "size": 4, "effects": { "energyIncome": 1.0 } },
+    { "id": "power-solar-mast", "slot": "power", "name": "Vertical solar mast", "description": "Faces the low polar Sun. Light, expensive and bulky.", "cost": 130, "mass": 7, "size": 6, "effects": { "energyIncome": 2.0 } },
+
+    { "id": "battery-nih2", "slot": "battery", "name": "Nickel-hydrogen battery", "description": "Proven and cheap, but heavy for what it stores.", "cost": 30, "mass": 14, "size": 2, "effects": { "batteryCapacity": 300 } },
+    { "id": "battery-li-ion", "slot": "battery", "name": "Lithium-ion battery", "description": "Stores more for less mass.", "cost": 90, "mass": 8, "size": 2, "effects": { "batteryCapacity": 400 } },
+
+    { "id": "lights-halogen", "slot": "lights", "name": "Halogen lamps", "description": "Short range.", "cost": 15, "mass": 4, "size": 1, "effects": { "lightRange": 20 } },
+    { "id": "lights-led", "slot": "lights", "name": "LED floodlights", "description": "Long range and light.", "cost": 45, "mass": 2, "size": 1, "effects": { "lightRange": 45 } },
+
+    { "id": "heater-electric", "slot": "heater", "name": "Electric heater", "description": "Cheap. Slows freezing a little.", "cost": 20, "mass": 5, "size": 1, "effects": { "heat": 1 } },
+    { "id": "heater-rhu", "slot": "heater", "name": "Radioisotope heater units", "description": "Steady heat from decaying isotopes. Expensive.", "cost": 80, "mass": 3, "size": 1, "effects": { "heat": 2 } },
+
+    { "id": "instrument-camera", "slot": "instrument", "name": "Science camera", "description": "Photos and imaging science.", "cost": 50, "mass": 3, "size": 1, "effects": { "instrument": "camera" } },
+    { "id": "instrument-drill", "slot": "instrument", "name": "Regolith drill", "description": "Samples the soil, and ice where it exists. Heavy and bulky.", "cost": 90, "mass": 12, "size": 5, "effects": { "instrument": "drill" } }
+  ]
+}

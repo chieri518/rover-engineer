@@ -1,0 +1,54 @@
+{
+  "moneyPrefix": "$",
+  "moneySuffix": "k",
+  "moneyNote": "All amounts are game values for balancing, not real costs.",
+  "title": {
+    "heading": "Rover Engineer",
+    "subtitle": "REL — Rover Exploration Laboratory",
+    "newCampaign": "Start new campaign",
+    "continueCampaign": "Continue campaign"
+  },
+  "design": {
+    "heading": "Rover design",
+    "tutorial": "Select one part for each slot. Mass and size set the launch ticket tier. Light parts cost more.",
+    "overTopTier": "Exceeds the Large ticket limits. The rover cannot launch.",
+    "overBudget": "Total cost exceeds the available budget.",
+    "chassisOverloaded": "Total mass exceeds the chassis maximum load. The frame will take damage during the mission.",
+    "belowMinimum": "The balance is below the minimum budget for this mission. The mission cannot start."
+  },
+  "ticket": {
+    "heading": "Launch ticket",
+    "briefing": "REL secures a spot for the rover on the next commercial launch to the lunar south pole."
+  },
+  "landing": {
+    "heading": "Landing",
+    "briefing": "The lander has touched down on the de Gerlache crater rim. The rover is deploying."
+  },
+  "mission": {
+    "heading": "Mission",
+    "briefing": "Fourteen days of daylight. The Sun stays low and circles the horizon."
+  },
+  "debrief": {
+    "heading": "Mission debrief",
+    "survived": "The rover completed the full mission.",
+    "failedRound": "The balance is below the minimum budget for the next mission. The round must be restarted.",
+    "passedRound": "The balance meets the minimum budget for the next mission."
+  },
+  "causes": {
+    "energy": "Out of energy",
+    "stuck": "Stuck in soft regolith",
+    "froze": "Froze in a cold zone",
+    "destroyed": "Destroyed by damage"
+  },
+  "history": {
+    "survived": "ISRO's Pragyan rover completed its planned mission of one lunar daylight period in 2023.",
+    "energy": "NASA's Opportunity rover lost power in 2018 when a planet-wide dust storm blocked sunlight from its solar panels.",
+    "stuck": "NASA's Spirit rover became stuck in soft soil on Mars in 2009 and never drove free.",
+    "froze": "India's Vikram lander and Pragyan rover did not wake after the cold lunar night in 2023.",
+    "destroyed": "The Soviet Lunokhod 2 rover was lost in 1973 after lunar dust covered its radiator and it overheated."
+  },
+  "marsSoon": {
+    "heading": "Mars: coming soon",
+    "body": "The Moon campaign is complete. Research points carry forward to Mars technology."
+  }
+}
