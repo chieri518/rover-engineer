@@ -17,13 +17,21 @@
     "battery": "Battery",
     "lights": "Lights",
     "heater": "Heater",
-    "instrument": "Instrument"
+    "instrument": "Payload bay"
   },
   "design": {
     "heading": "Rover design",
-    "tutorial": "Select one part for each slot. Mass and size set the launch ticket tier. Light parts cost more.",
+    "tutorial": "Select one part for each slot and choose the instruments for the payload bay. Mass and size set the launch ticket tier. Light parts cost more.",
     "slotEmpty": "Not chosen",
-    "slotsEmpty": "Select a part for every slot before launch. Still empty: {slots}.",
+    "bayHint": "Any mix of instruments, or none. Each takes one mounting point; the chassis sets how many there are.",
+    "bayPoints": "{used} of {points} mounting points used",
+    "bayNoChassis": "Choose a chassis to see the mounting points",
+    "bayFull": "The payload bay is full. Remove an instrument to fit another.",
+    "bayNone": "No instruments",
+    "bayNoneChosen": "No instruments (confirmed)",
+    "bayDropped": "The {chassis} has {points} mounting points: {parts} removed from the payload bay.",
+    "bayOverCapacity": "The payload bay holds more instruments than the chassis has mounting points.",
+    "slotsEmpty": "Select a part for every slot and choose the payload bay before launch. Still to choose: {slots}.",
     "tierSoFar": "Tier for the parts chosen so far. The empty slots will add mass and size.",
     "previewLabel": "3D view of the rover as built so far. Drag to turn it.",
     "previewEmpty": "Choose parts to start building",
@@ -163,16 +171,19 @@
     "categoryPicture": "Pretty picture"
   },
   "instruments": {
-    "cameraControls": "C to take a photograph.",
-    "drillControls": "F to drill a sample (stop first).",
+    "cameraControls": "{key} to take a photograph.",
+    "drillControls": "{key} to drill a sample (stop first).",
+    "buttonCamera": "Photo",
+    "buttonDrill": "Drill",
+    "buttonsLabel": "Instruments",
     "photoTaken": "Photograph added to the album: {caption}.",
     "photoNoZone": "Photograph added to the album. Milestones count only at viewpoints, or with Earth above the horizon in view.",
     "photoAlbumFull": "The album is full ({max} photographs).",
     "noCamera": "This rover carries no camera.",
     "noDrill": "This rover carries no drill.",
-    "viewpointHint": "Viewpoint: {name}. Press C to take a photograph.",
-    "earthHint": "Earth is above the horizon in view. Press C to take a photograph.",
-    "iceSearchHint": "Inside permanent shadow. Stop and press F to test-drill for water ice.",
+    "viewpointHint": "Viewpoint: {name}. Press {key} to take a photograph.",
+    "earthHint": "Earth is above the horizon in view. Press {key} to take a photograph.",
+    "iceSearchHint": "Inside permanent shadow. Stop and press {key} to test-drill for water ice.",
     "drilling": "Drilling. The rover holds still.",
     "drillMoving": "Stop the rover before drilling.",
     "drillDone": "Regolith sample collected.",
@@ -188,7 +199,7 @@
     "captionSurface": "Lunar surface"
   },
   "drill": {
-    "searchHintHydrogen": "Inside permanent shadow. Stop and press F to test-drill. Each sample reports the hydrogen signal: the stronger it is, the closer the ice.",
+    "searchHintHydrogen": "Inside permanent shadow. Stop and press {key} to test-drill. Each sample reports the hydrogen signal: the stronger it is, the closer the ice.",
     "hydrogenSignal": "Hydrogen signal: {level}.",
     "hydrogenWeak": "weak",
     "hydrogenModerate": "moderate",
@@ -222,7 +233,7 @@
       {
         "title": "Parts, mass and cost",
         "body": [
-          "Select one part for each of the seven slots. Every slot starts empty, and the rover can launch only when each slot has a part; \"No lights\" and \"No heater\" count as choices. Each part has a cost, a mass and a size. The specification sheet shows the totals for the rover.",
+          "Select one part for each of the six slots, and choose the instruments for the payload bay. Everything starts empty, and the rover can launch only when each slot has a part and the bay is chosen; \"No lights\", \"No heater\" and \"No instruments\" count as choices. Each part has a cost, a mass and a size. The specification sheet shows the totals for the rover.",
           "Cheap parts are heavy and light parts are expensive. A heavier rover is slower, uses more energy per meter and sinks deeper in soft ground."
         ]
       },
@@ -272,12 +283,13 @@
         ]
       },
       {
-        "title": "Instrument and map",
+        "title": "Instruments and map",
         "instrument": {
-          "camera": "Camera: C takes a photograph. Photographs count toward milestones at viewpoints, or with Earth above the horizon in view at least {earthMinDistance} m from the lander.",
-          "drill": "Drill: stop the rover, then press F to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
+          "camera": "Camera: {key} (or its button) takes a photograph. Photographs count toward milestones at viewpoints, or with Earth above the horizon in view at least {earthMinDistance} m from the lander.",
+          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
         },
         "body": [
+          "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
           "The map shows the lander, viewpoints, craters, permanent shadow and the area explored so far."
         ]
       }

@@ -1,11 +1,15 @@
 // The rover's look, built from three.js primitives and shaped by the selected parts: a titanium or
 // steel frame, solid or wire-mesh wheels, a flat solar panel or a vertical solar mast, the battery
-// pack, floodlights, the heater's gold thermal blanket, and a camera mast or a regolith drill.
+// pack, floodlights, the heater's gold thermal blanket, and the payload bay's instruments: a camera
+// mast and a regolith drill, each in its own place, so any mix can be drawn.
 // Visual only: the physics body stays the box and four ray-cast wheels in vehicle.ts.
 // A draft build (design screen preview) shows only the parts chosen so far.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import type { Part, RoverHandling, Slot } from '../rules/types';
+import type { BusSlot, Instrument, Part, RoverHandling } from '../rules/types';
+
+/** How the model groups its static parts: one group per bus slot, and one per instrument in the bay. */
+export type ModelGroup = BusSlot | Instrument;
 
 /** What the model shows, read from the selected parts. `null` / `false`: nothing drawn for that slot. */
 export interface RoverLook {
@@ -15,7 +19,7 @@ export interface RoverLook {
   battery: 'cylinders' | 'pack' | null;
   lights: boolean;
   heater: boolean;
-  instrument: 'camera' | 'drill' | null;
+  instruments: Instrument[]; // the payload bay, in bay order (empty: no instruments drawn)
 }
 
 /** The look for the chosen parts; a slot with no part shows nothing. A complete build fills every field. */
@@ -32,7 +36,7 @@ export function roverLook(parts: Part[]): RoverLook {
     battery: pick('battery', (id) => (id.includes('nih2') ? 'cylinders' : 'pack')),
     lights: (bySlot('lights')?.effects.lightRange ?? 0) > 0,
     heater: (bySlot('heater')?.effects.heat ?? 0) > 0,
-    instrument: bySlot('instrument')?.effects.instrument ?? null,
+    instruments: parts.flatMap((p) => (p.slot === 'instrument' && p.effects.instrument ? [p.effects.instrument] : [])),
   };
 }
 
@@ -42,14 +46,15 @@ export interface RoverModel {
   /** One per wheel, in the vehicle's wheel order: `wheel` follows suspension and steering, `spin` rolls. */
   wheels: { wheel: THREE.Object3D; spin: THREE.Object3D }[];
   /**
-   * With `bySlot`: the static parts of each slot as its own group (the children of `body`), so a
-   * preview can animate one part. The wheels belong to the wheels slot. Empty without `bySlot`.
+   * With `bySlot`: the static parts of each slot, and of each instrument, as its own group (the
+   * children of `body`), so a preview can animate one part. The wheels belong to the wheels slot.
+   * Empty without `bySlot`.
    */
-  slots: Partial<Record<Slot, THREE.Group>>;
+  slots: Partial<Record<ModelGroup, THREE.Group>>;
 }
 
 export interface RoverModelOptions {
-  /** Keep each slot's static parts in a separate group (a few more draw calls). Default: one mesh per material. */
+  /** Keep each slot's (and instrument's) static parts in a separate group (a few more draw calls). Default: one mesh per material. */
   bySlot?: boolean;
 }
 
@@ -121,7 +126,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     if (!m) mats.set(key, (m = new THREE.MeshLambertMaterial(params)));
     return m;
   };
-  let slot: Slot = 'chassis'; // the slot the static parts added next belong to
+  let slot: ModelGroup = 'chassis'; // the group the static parts added next belong to
   const add = (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, y: number, z: number, parent: THREE.Object3D = body) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -233,7 +238,8 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     }
   }
 
-  // Instrument: a tall camera mast with a stereo head, or a drill tower with a short navigation camera.
+  // Instruments, each in its own place: a tall camera mast with a stereo head near the front corner,
+  // and a drill tower at the front (with a short navigation camera when there is no camera mast).
   const cameraHead = (x: number, height: number, z: number) => {
     add(rod(0.03, height), frame, x, deckY + height / 2, z);
     add(box(0.16, 0.14, 0.4), dark, x, deckY + height + 0.06, z);
@@ -242,8 +248,9 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
       lens.rotation.z = Math.PI / 2;
     }
   };
-  slot = 'instrument';
-  if (look.instrument === 'drill') {
+  const hasCamera = look.instruments.includes('camera');
+  if (look.instruments.includes('drill')) {
+    slot = 'drill';
     const drill = mat('drill', { color: COLORS.drill });
     const dx = l / 2 + 0.08;
     const rail = 1.05;
@@ -257,8 +264,10 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     add(rod(0.022, stringLen), mat('string', { color: 0xd0d3d7 }), dx + 0.1, stringTop - stringLen / 2, 0);
     const bit = add(new THREE.ConeGeometry(0.04, 0.08, 10), dark, dx + 0.1, groundY + 0.08, 0);
     bit.rotation.z = Math.PI;
-    cameraHead(l * 0.3, 0.45, w * 0.3);
-  } else if (look.instrument === 'camera') {
+    if (!hasCamera) cameraHead(l * 0.3, 0.45, w * 0.3);
+  }
+  if (hasCamera) {
+    slot = 'camera';
     cameraHead(l * 0.32, 1.0, w * 0.28);
   }
 
@@ -325,14 +334,14 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
  * shadow pass). With `bySlot`, one mesh per material within each slot's own group.
  */
 function mergeByMaterial(group: THREE.Group, bySlot: boolean): Pick<RoverModel, 'body' | 'slots'> {
-  const byKey = new Map<string, { slot: Slot; material: THREE.Material; geometries: THREE.BufferGeometry[] }>();
+  const byKey = new Map<string, { slot: ModelGroup; material: THREE.Material; geometries: THREE.BufferGeometry[] }>();
   for (const child of group.children) {
     if (!(child instanceof THREE.Mesh)) continue;
     child.updateMatrix();
     const g = (child.geometry as THREE.BufferGeometry).clone().applyMatrix4(child.matrix);
     child.geometry.dispose();
     const material = child.material as THREE.Material;
-    const slot = child.userData.slot as Slot;
+    const slot = child.userData.slot as ModelGroup;
     const key = bySlot ? `${slot}:${material.uuid}` : material.uuid;
     const entry = byKey.get(key) ?? { slot, material, geometries: [] };
     entry.geometries.push(g);

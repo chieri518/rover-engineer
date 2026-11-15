@@ -12,7 +12,7 @@ export interface TutorialPageText {
 export function tutorialPages(
   id: TutorialId,
   data: GameData,
-  opts: { mission: MissionId; instrument: Instrument | null },
+  opts: { mission: MissionId; instruments: Instrument[] }, // instruments: the payload bay, in bay order
 ): TutorialPageText[] {
   const { text, tuning, tiers, events } = data;
   const t = text.tutorial;
@@ -29,14 +29,19 @@ export function tutorialPages(
     warningSeconds: events.flare.warningSeconds,
     earthMinDistance: tuning.milestones.earthPhotoMinDistanceM,
     sampleSpacing: tuning.milestones.sampleSpacingM,
+    bayMax: Math.max(0, ...data.parts.parts.map((p) => p.effects.mountingPoints ?? 0)),
     sunlit: text.hud.sunlit,
     shadow: text.hud.shadow,
   };
   return t[id].map((page) => {
-    const instrumentLine = opts.instrument ? page.instrument?.[opts.instrument] : undefined;
+    // One line per carried instrument, with its mission key (bay order).
+    const instrumentLines = opts.instruments.flatMap((inst, i) => {
+      const line = page.instrument?.[inst];
+      return line ? [fill(line, { ...vars, key: i + 1 })] : [];
+    });
     return {
       title: fill(page.title, vars),
-      paragraphs: [...(instrumentLine ? [instrumentLine] : []), ...page.body].map((p) => fill(p, vars)),
+      paragraphs: [...instrumentLines, ...page.body.map((p) => fill(p, vars))],
     };
   });
 }

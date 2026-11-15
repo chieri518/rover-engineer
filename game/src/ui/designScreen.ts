@@ -1,12 +1,14 @@
-// The design screen ("the engineer's desk"): pick one part per slot and watch the specification sheet.
+// The design screen ("the engineer's desk"): pick one part per bus slot, fill the payload bay, and watch
+// the specification sheet.
 // All numbers come from rules/ (quoteBuild); this file only lays them out.
 import type { Screen } from '../flow/flow';
 import { canStartMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
+import { fitPayload, togglePayload } from '../rules/payload';
 import { chosenParts } from '../rules/rover';
-import type { GameData, Part, Tier } from '../rules/types';
+import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
 import { tierWhyText } from './tierText';
@@ -20,7 +22,7 @@ function keyEffect(part: Part, data: GameData): string | null {
   const e = part.effects;
   switch (part.slot) {
     case 'chassis':
-      return e.maxLoad !== undefined ? `Max load ${e.maxLoad} kg` : null;
+      return e.maxLoad !== undefined ? `Max load ${e.maxLoad} kg · ${e.mountingPoints ?? 0} mounting points` : null;
     case 'wheels':
       return e.baseSpeed !== undefined
         ? `Top speed ${gameSpeed(e.baseSpeed, data.tuning.speed).toFixed(1)} m/s · grip ${(e.grip ?? 0).toFixed(2)}`
@@ -61,44 +63,133 @@ export const designScreen: Screen = (game, root) => {
   const tiers = data.tiers.tiers;
   const allowed = canStartMission(game.state, data.tuning);
 
-  // Part cards: one radio group per slot.
+  const partById = (id: string) => data.parts.parts.find((p) => p.id === id);
+  const chassisPoints = (build: DraftBuild): number | null => {
+    const chassis = build.chassis ? partById(build.chassis) : undefined;
+    return chassis ? chassis.effects.mountingPoints ?? 0 : null;
+  };
+  // Before a chassis is chosen the bay may take as many instruments as the roomiest chassis; choosing
+  // a smaller chassis then drops the ones added last.
+  const maxPoints = Math.max(0, ...data.parts.parts.map((p) => p.effects.mountingPoints ?? 0));
+  let bayNotice = ''; // why instruments were just dropped from the bay
+  const setBuild = (build: DraftBuild, notice = '') => {
+    game.build = build;
+    bayNotice = notice;
+    update();
+  };
+
   const cards = new Map<string, HTMLElement>();
   const fieldsets = new Map<string, HTMLElement>();
+  const card = (part: Part, input: HTMLInputElement, ...extra: (Node | null)[]) => {
+    const effect = keyEffect(part, data);
+    const node = el('label', { class: 'option' },
+      input,
+      el('span', { class: 'option-name' }, part.name),
+      el('span', { class: 'option-desc' }, part.description),
+      el('span', { class: 'option-stats' },
+        el('span', {}, money(part.cost, text)),
+        el('span', {}, `${part.mass} kg`),
+        el('span', {}, `size ${part.size}`),
+      ),
+      effect && el('span', { class: 'option-effect' }, effect),
+      ...extra,
+    );
+    cards.set(part.id, node);
+    return node;
+  };
+
+  // Part cards: one radio group per bus slot.
   const slots = data.parts.slots.map((slot) => {
     const options = data.parts.parts.filter((p) => p.slot === slot);
     const fieldset = el('fieldset', { class: 'slot' },
       el('legend', {}, text.slots[slot], el('span', { class: 'slot-empty' }, t.slotEmpty)),
       el('div', { class: 'options' },
-        ...options.map((part) => {
-          const effect = keyEffect(part, data);
-          const card = el('label', { class: 'option' },
-            el('input', {
-              type: 'radio',
-              name: `slot-${slot}`,
-              value: part.id,
-              checked: part.id === game.build[slot],
-              onchange: () => {
-                game.build = { ...game.build, [slot]: part.id };
-                update();
-              },
-            }),
-            el('span', { class: 'option-name' }, part.name),
-            el('span', { class: 'option-desc' }, part.description),
-            el('span', { class: 'option-stats' },
-              el('span', {}, money(part.cost, text)),
-              el('span', {}, `${part.mass} kg`),
-              el('span', {}, `size ${part.size}`),
-            ),
-            effect && el('span', { class: 'option-effect' }, effect),
-          );
-          cards.set(part.id, card);
-          return card;
-        }),
+        ...options.map((part) => card(part, el('input', {
+          type: 'radio',
+          name: `slot-${slot}`,
+          value: part.id,
+          checked: part.id === game.build[slot],
+          onchange: () => {
+            const build: DraftBuild = { ...game.build, [slot]: part.id };
+            // A chassis with fewer mounting points drops the instruments added last.
+            const points = chassisPoints(build);
+            if (slot !== 'chassis' || !build.payload || points === null) return setBuild(build);
+            const { kept, dropped } = fitPayload(build.payload, points);
+            if (!dropped.length) return setBuild(build);
+            const names = dropped.map((id) => partById(id)?.name ?? id).join(text.ticket.and);
+            setBuild({ ...build, payload: kept }, fill(t.bayDropped, { chassis: part.name, points, parts: names }));
+          },
+        }))),
       ),
     );
     fieldsets.set(slot, fieldset);
     return fieldset;
   });
+
+  // The payload bay: instrument cards with checkboxes, in the order they were added (the mission keys).
+  const instrumentParts = data.parts.parts.filter((p) => p.slot === 'instrument');
+  const bayInputs = new Map<string, HTMLInputElement>();
+  const bayKeys = new Map<string, HTMLElement>();
+  const bayCounter = el('span', { class: 'bay-counter' });
+  const baySockets = el('span', { class: 'bay-sockets', 'aria-hidden': 'true' });
+  const bayStatus = el('p', { class: 'bay-notice', role: 'status' });
+  const noneButton = el('button', {
+    type: 'button',
+    class: 'bay-none',
+    onclick: () => setBuild({ ...game.build, payload: [] }),
+  }, t.bayNone);
+  const bay = el('fieldset', { class: 'slot bay' },
+    el('legend', {}, text.slots.instrument, el('span', { class: 'slot-empty' }, t.slotEmpty)),
+    el('div', { class: 'bay-body' },
+      el('p', { class: 'bay-head' }, baySockets, bayCounter),
+      el('div', { class: 'options' },
+        ...instrumentParts.map((part) => {
+          const input = el('input', {
+            type: 'checkbox',
+            name: 'payload',
+            value: part.id,
+            onchange: () => {
+              const payload = togglePayload(game.build.payload, part.id, chassisPoints(game.build) ?? maxPoints);
+              // Taking out the last instrument leaves the bay unconfirmed: "No instruments" confirms an empty bay.
+              setBuild({ ...game.build, payload: payload.length ? payload : undefined });
+            },
+          });
+          bayInputs.set(part.id, input);
+          const key = el('span', { class: 'option-key' });
+          bayKeys.set(part.id, key);
+          return card(part, input, key);
+        }),
+      ),
+      el('div', { class: 'bay-foot' }, noneButton, el('span', { class: 'muted' }, t.bayHint)),
+      bayStatus,
+    ),
+  );
+  fieldsets.set('instrument', bay);
+  slots.push(bay);
+
+  function updateBay(): void {
+    const payload = game.build.payload;
+    const used = payload?.length ?? 0;
+    const points = chassisPoints(game.build);
+    const full = used >= (points ?? maxPoints);
+    bayCounter.textContent = points === null ? t.bayNoChassis : fill(t.bayPoints, { used, points });
+    baySockets.replaceChildren(...Array.from({ length: points ?? 0 }, (_, i) => el('span', { class: `socket${i < used ? ' filled' : ''}` })));
+    for (const [id, input] of bayInputs) {
+      const at = payload?.indexOf(id) ?? -1;
+      input.checked = at >= 0;
+      input.disabled = at < 0 && full;
+      const node = cards.get(id)!;
+      node.classList.toggle('disabled', input.disabled);
+      node.title = input.disabled ? t.bayFull : '';
+      bayKeys.get(id)!.textContent = at >= 0 ? `Key ${at + 1}` : '';
+    }
+    const confirmedEmpty = payload !== undefined && payload.length === 0;
+    noneButton.textContent = confirmedEmpty ? t.bayNoneChosen : t.bayNone;
+    noneButton.classList.toggle('active', confirmedEmpty);
+    noneButton.setAttribute('aria-pressed', String(confirmedEmpty));
+    bayStatus.textContent = bayNotice;
+    bayStatus.hidden = !bayNotice;
+  }
 
   // Specification sheet.
   const sheet = el('div', { class: 'sheet-body' });
@@ -163,13 +254,18 @@ export const designScreen: Screen = (game, root) => {
     const chosen = chosenParts(game.build, data.parts);
     preview?.show(chosen);
     previewHint.hidden = chosen.length > 0;
-    for (const [id, card] of cards) card.classList.toggle('selected', Object.values(game.build).includes(id));
-    for (const [slot, fieldset] of fieldsets) fieldset.classList.toggle('empty', !game.build[slot as keyof typeof game.build]);
+    const selected = new Set([...data.parts.slots.map((s) => game.build[s]), ...(game.build.payload ?? [])]);
+    for (const [id, node] of cards) node.classList.toggle('selected', selected.has(id));
+    for (const [slot, fieldset] of fieldsets) {
+      fieldset.classList.toggle('empty', slot === 'instrument' ? game.build.payload === undefined : !game.build[slot as keyof typeof game.build]);
+    }
+    updateBay();
     const q = quoteBuild(game.build, data, game.state.balance);
     const d = q.drive;
     const why = q.tierWhy;
     // A draft rover: driving numbers need the parts they come from.
     const has = (slot: keyof typeof game.build) => Boolean(game.build[slot]);
+    const bayOver = q.payloadProblems.some((p) => p.kind === 'over-capacity');
     const dash = '—';
 
     sheet.replaceChildren(
@@ -179,6 +275,8 @@ export const designScreen: Screen = (game, root) => {
       row('Size', `${q.size}`, 'gauge-row'),
       tierGauge(q.size, tiers.map((tier) => ({ tier, limit: tier.sizeLimit })), 'size units'),
       row('Chassis load', `${q.mass} / ${q.maxLoad ?? '—'} kg`, q.overloaded ? 'bad' : ''),
+      row('Payload bay', q.mountingPoints === null ? `${q.instruments} / — instruments` : `${q.instruments} / ${q.mountingPoints} instruments`,
+        q.mountingPoints !== null && q.instruments > q.mountingPoints ? 'bad' : ''),
 
       el('h3', {}, 'Launch ticket'),
       row('Tier', q.tier ? `${q.tier.name}` : 'None fits', q.tier ? '' : 'bad'),
@@ -210,7 +308,8 @@ export const designScreen: Screen = (game, root) => {
       ...[
         !q.complete && fill(t.slotsEmpty, { slots: q.missing.map((s) => text.slots[s]).join(', ') }),
         !allowed && t.belowMinimum,
-        !q.canLaunch && t.overTopTier,
+        !q.tier && t.overTopTier,
+        bayOver && t.bayOverCapacity,
         !q.canAfford && t.overBudget,
         q.overloaded && t.chassisOverloaded,
       ]
@@ -224,7 +323,7 @@ export const designScreen: Screen = (game, root) => {
   let tutorial: TutorialHandle | null = null;
   const openHelp = () => {
     if (tutorial) return;
-    const pages = tutorialPages('design', data, { mission: game.state.mission, instrument: null });
+    const pages = tutorialPages('design', data, { mission: game.state.mission, instruments: [] });
     tutorial = openTutorial(root, 'design', pages, text.tutorial, () => {
       tutorial = null;
       game.markTutorialSeen('design');

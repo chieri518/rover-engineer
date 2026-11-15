@@ -5,6 +5,8 @@ import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
 import { buildZones, hydrogenSignal, MilestoneTracker, type MilestoneUpdate, type Point3 } from '../rules/milestones';
 import { isCompleteBuild, selectedParts } from '../rules/rover';
+import { instrumentsOf } from '../rules/payload';
+import type { Instrument } from '../rules/types';
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
 import { scheduleEvents, seededRng } from '../rules/events';
@@ -51,7 +53,10 @@ export const missionScreen: Screen = (game, root) => {
   let ended: MissionEnd | null = null;
   const explored = createExplored(8000, tuning.explore);
   const mt = tuning.milestones;
-  const instrument = parts.find((p) => p.slot === 'instrument')?.effects.instrument ?? null;
+  // The payload bay, in bay order: instrument i is used with number key i + 1 or its HUD button.
+  const instruments = instrumentsOf(parts);
+  const carries = (i: Instrument) => instruments.includes(i);
+  const keyOf = (i: Instrument) => instruments.indexOf(i) + 1;
   const recordsHeld = [...game.state.records];
   const earthDir = skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg);
   let tracker: MilestoneTracker | null = null;
@@ -80,14 +85,14 @@ export const missionScreen: Screen = (game, root) => {
   const ti = text.instruments;
   const td = text.drill;
   let hydrogenFactShown = false; // the real-world note on the hydrogen signal shows once per mission
-  const controls = [text.mission.controls, instrument === 'camera' ? ti.cameraControls : instrument === 'drill' ? ti.drillControls : '']
-    .filter(Boolean).join(' ');
+  const controls = [text.mission.controls, ...instruments.map((i) => fill(i === 'camera' ? ti.cameraControls : ti.drillControls, { key: keyOf(i) }))]
+    .join(' ');
   // Drive tutorial: opens by itself on the first mission (the scene loads meanwhile); the Help button
   // reopens it. The mission is paused while it is open.
   let tutorial: TutorialHandle | null = null;
   const openHelp = () => {
     if (tutorial || ended) return;
-    const pages = tutorialPages('drive', data, { mission: game.state.mission, instrument });
+    const pages = tutorialPages('drive', data, { mission: game.state.mission, instruments });
     tutorial = openTutorial(root, 'drive', pages, text.tutorial, () => {
       tutorial = null;
       scene?.setPaused(false);
@@ -102,7 +107,14 @@ export const missionScreen: Screen = (game, root) => {
     title: text.tutorial.helpDrive,
     onclick: openHelp,
   }, text.tutorial.help);
+  // One HUD button per instrument, in bay order (the same order as the number keys).
+  const instrumentButtons = new Map<Instrument, HTMLButtonElement>(instruments.map((inst, i) => [inst, el('button', {
+    type: 'button',
+    class: 'instrument-button',
+    onclick: () => useInstrument(inst),
+  }, el('span', { class: 'instrument-key' }, String(i + 1)), inst === 'camera' ? ti.buttonCamera : ti.buttonDrill)]));
   const hud = new Hud(text, togglePower, el('div', { class: 'hud-extra' },
+    instruments.length > 0 && el('div', { class: 'hud-instruments', role: 'group', 'aria-label': ti.buttonsLabel }, ...instrumentButtons.values()),
     el('p', { class: 'muted' }, controls),
     status,
     el('div', { class: 'hud-help' }, help),
@@ -131,7 +143,7 @@ export const missionScreen: Screen = (game, root) => {
 
   const takePhoto = () => {
     if (ended || !scene || !tracker || !roverPos) return;
-    if (instrument !== 'camera') return hud.notify(ti.noCamera);
+    if (!carries('camera')) return hud.notify(ti.noCamera);
     if (album.length >= mt.albumMax) return hud.notify(fill(ti.photoAlbumFull, { max: mt.albumMax }));
     const earth = scene.inView(earthDir, mt.photoFrameMargin);
     const lit = earthLit();
@@ -150,7 +162,7 @@ export const missionScreen: Screen = (game, root) => {
 
   const startDrill = () => {
     if (ended || drillLeft > 0) return;
-    if (instrument !== 'drill') return hud.notify(ti.noDrill);
+    if (!carries('drill')) return hud.notify(ti.noDrill);
     if (state.poweredDown) return hud.notify(text.warnings.poweredDown);
     if ((lastSample?.speedMps ?? 0) > tuning.ground.movingSpeedMps) return hud.notify(ti.drillMoving);
     drillLeft = mt.drillSeconds;
@@ -177,17 +189,25 @@ export const missionScreen: Screen = (game, root) => {
     announce(u);
   };
 
+  function useInstrument(inst: Instrument): void {
+    if (tutorial) return;
+    if (inst === 'camera') takePhoto();
+    else startDrill();
+  }
+
   const onKey = (e: KeyboardEvent) => {
     if (e.repeat || tutorial) return;
     if (e.code === 'KeyP') togglePower();
-    if (e.code === 'KeyC') takePhoto();
-    if (e.code === 'KeyF') startDrill();
+    const digit = /^(?:Digit|Numpad)([1-9])$/.exec(e.code);
+    const inst = digit ? instruments[Number(digit[1]) - 1] : undefined;
+    if (inst) useInstrument(inst);
   };
   window.addEventListener('keydown', onKey);
 
   const finish = (end: MissionEnd) => {
     ended = end;
     drillLeft = 0;
+    for (const button of instrumentButtons.values()) button.disabled = true;
     scene?.stopClock();
     if (tracker) announce(tracker.finish(end.survived, state.damageBy));
     const h = text.hud;
@@ -300,16 +320,19 @@ export const missionScreen: Screen = (game, root) => {
   const hintText = (): string | null => {
     if (drillLeft > 0) return ti.drilling;
     const zones = tracker?.currentZones() ?? [];
-    if (instrument === 'camera') {
+    if (carries('camera')) {
+      const key = keyOf('camera');
       const view = zones.find((z) => z.id === 'rim-viewpoint' || z.id === 'crater-wall');
-      if (view) return fill(ti.viewpointHint, { name: view.name });
+      if (view) return fill(ti.viewpointHint, { name: view.name, key });
       if (earthInView) {
         const lit = earthLit();
-        return (roverPos && earthBlocker(roverPos, lit)) ?? ti.earthHint;
+        return (roverPos && earthBlocker(roverPos, lit)) ?? fill(ti.earthHint, { key });
       }
     }
     // The exact ice spot is never revealed: inside the dark crater the hint only invites a test drill.
-    if (instrument === 'drill' && zones.some((z) => z.id === 'shadowed-crater')) return mt.hydrogenSignal ? td.searchHintHydrogen : ti.iceSearchHint;
+    if (carries('drill') && zones.some((z) => z.id === 'shadowed-crater')) {
+      return fill(mt.hydrogenSignal ? td.searchHintHydrogen : ti.iceSearchHint, { key: keyOf('drill') });
+    }
     return null;
   };
 
@@ -326,12 +349,13 @@ export const missionScreen: Screen = (game, root) => {
       poweredDown: state.poweredDown,
     });
     scene?.setFloodlights(!ended && !state.poweredDown && sunlight < 0.5);
+    instrumentButtons.get('drill')?.classList.toggle('active', drillLeft > 0);
     if (ended) return;
     const flare = activeFlareWarning(state, setup);
     hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / data.events.flare.warningSeconds : 0);
     const ids = lastSample ? missionWarnings(state, lastSample, lastSlip, blockedByShadow, setup, tuning) : [];
     hud.setWarnings([...(nearBoundary ? [text.mission.boundary] : []), ...ids.map(warningText)]);
-    if (instrument === 'camera' && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) earthInView = scene.inView(earthDir, mt.photoFrameMargin);
+    if (carries('camera') && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) earthInView = scene.inView(earthDir, mt.photoFrameMargin);
     hud.setHint(hintText());
     if (reveal(explored, f.position.x, f.position.z, tuning.explore.revealRadiusM) > 0) {
       minimap?.reveal(f.position.x, f.position.z, tuning.explore.revealRadiusM);
