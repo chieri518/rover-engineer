@@ -123,9 +123,15 @@ describe('instrument costs and keys', () => {
   it('reads energy per use, standby energy and hold time from the parts, in bay order; absent means none', () => {
     const parts = selectedParts({ ...build, payload: ['drill', 'camera'] }, testParts);
     expect(instrumentCosts(parts)).toEqual([
-      { instrument: 'drill', energyPerUse: 10, standbyEnergy: 0, useSeconds: 3 },
-      { instrument: 'camera', energyPerUse: 0, standbyEnergy: 0, useSeconds: 0 },
+      { instrument: 'drill', mode: 'use', energyPerUse: 10, standbyEnergy: 0, useSeconds: 3, shadowHoldFactor: 1, coldTolerant: false, needsEarth: false, needsBoulder: false },
+      { instrument: 'camera', mode: 'use', energyPerUse: 0, standbyEnergy: 0, useSeconds: 0, shadowHoldFactor: 1, coldTolerant: false, needsEarth: false, needsBoulder: false },
     ]);
+  });
+
+  it('the mode follows the effects: a standby draw makes a switch, deploy a deployable, otherwise a use', () => {
+    const parts = selectedParts({ ...build, chassis: 'steel', payload: ['neutron', 'xray', 'seismometer'] }, testParts);
+    expect(instrumentCosts(parts).map((c) => [c.instrument, c.mode])).toEqual([['neutron', 'switch'], ['xray', 'use'], ['seismometer', 'deploy']]);
+    expect(instrumentCosts(parts)[1]).toMatchObject({ shadowHoldFactor: 0.5, coldTolerant: true, needsBoulder: true });
   });
 
   it('numbers the instruments 1, 2, 3 in bay order', () => {

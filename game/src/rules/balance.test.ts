@@ -2,7 +2,7 @@
 //   BALANCE_REPORT=1 npx vitest run balance
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
-import { allBuilds, dominatedPairs, evaluateBuild, simulate, type BuildEval } from './balance';
+import { allBuilds, buildLabel, dominatedPairs, evaluateBuild, simulate, type BuildEval } from './balance';
 import terrain from '../../public/terrain/terrain.json';
 
 const data = loadGameData();
@@ -38,6 +38,16 @@ function row(e: BuildEval) {
     'crater run': `${end(crater)} ${(crater.distanceM / 1000).toFixed(1)}km`,
   };
 }
+
+describe('build labels', () => {
+  it('every part has a short code: no label spells out a part id', () => {
+    const ids = data.parts.parts.map((p) => p.id);
+    for (const b of allBuilds(data)) {
+      const label = buildLabel(b, data.parts.slots);
+      for (const id of ids) expect(label, id).not.toContain(id);
+    }
+  });
+});
 
 describe('balance report', () => {
   it('evaluates every build', () => {

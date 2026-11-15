@@ -41,10 +41,29 @@ describe('game data', () => {
 
   it('validation catches negative instrument costs and a cold slowdown below 1', () => {
     const parts = data.parts.parts.map((p) => (p.id === 'instrument-drill' ? { ...p, effects: { ...p.effects, energyPerUse: -1 } } : p));
-    const tuning = { ...data.tuning, instruments: { coldSlowdown: 0.5 } };
+    const tuning = { ...data.tuning, instruments: { ...data.tuning.instruments, coldSlowdown: 0.5 } };
     expect(validateGameData({ ...data, parts: { ...data.parts, parts }, tuning })).toEqual([
-      'instrument part instrument-drill has a negative energyPerUse',
+      'part instrument-drill has a negative or non-finite energyPerUse',
       'tuning.instruments.coldSlowdown must be at least 1 (the cold never speeds an instrument up)',
+    ]);
+  });
+
+  it('validation: a switch has no use, hold or deploy; instrument effects only on instruments; numbers finite', () => {
+    const parts = data.parts.parts.map((p) =>
+      p.id === 'instrument-neutron' ? { ...p, effects: { ...p.effects, useSeconds: 2, deploy: true } }
+      : p.id === 'heater-rhu' ? { ...p, effects: { ...p.effects, energyPerUse: 1 } }
+      : p.id === 'instrument-xray' ? { ...p, effects: { ...p.effects, shadowHoldFactor: 2 } }
+      : p.id === 'battery-nih2' ? { ...p, effects: { batteryCapacity: Infinity } }
+      : p);
+    const tuning = { ...data.tuning, instruments: { ...data.tuning.instruments, seismometer: { recordWindowSeconds: -1, quietDistanceM: NaN } } };
+    expect(validateGameData({ ...data, parts: { ...data.parts, parts }, tuning })).toEqual([
+      'part battery-nih2 has a negative or non-finite batteryCapacity',
+      'part heater-rhu is not an instrument but has energyPerUse',
+      'instrument part instrument-neutron has a standby draw, so it cannot also have useSeconds',
+      'instrument part instrument-neutron has a standby draw, so it cannot also have deploy',
+      'instrument part instrument-xray needs a shadowHoldFactor above 0 and at most 1',
+      'tuning.instruments.seismometer.recordWindowSeconds must be a finite number, not negative',
+      'tuning.instruments.seismometer.quietDistanceM must be a finite number, not negative',
     ]);
   });
 
@@ -53,7 +72,15 @@ describe('game data', () => {
     expect(effects('instrument-drill')).toMatchObject({ energyPerUse: 10, useSeconds: 3 });
     expect(effects('instrument-camera').energyPerUse ?? 0).toBe(0);
     expect(effects('instrument-camera').useSeconds ?? 0).toBe(0);
-    expect(data.parts.parts.every((p) => (p.effects.standbyEnergy ?? 0) === 0)).toBe(true); // the neutron spectrometer brings the first
+    expect(data.parts.parts.filter((p) => (p.effects.standbyEnergy ?? 0) > 0).map((p) => p.id)).toEqual(['instrument-neutron']);
+  });
+
+  it('the four new Moon instruments: neutron spectrometer a switch, X-ray a held reading, two stations that deploy', () => {
+    const part = (id: string) => data.parts.parts.find((p) => p.id === id)!;
+    expect(part('instrument-neutron')).toMatchObject({ cost: 80, mass: 4, size: 2, effects: { standbyEnergy: 0.1 } });
+    expect(part('instrument-xray')).toMatchObject({ cost: 60, mass: 2, size: 1, effects: { energyPerUse: 3, useSeconds: 4, needsBoulder: true, coldTolerant: true } });
+    expect(part('instrument-seismometer')).toMatchObject({ cost: 70, mass: 4, size: 2, effects: { useSeconds: 3, deploy: true } });
+    expect(part('instrument-reflector')).toMatchObject({ cost: 30, mass: 3, size: 1, effects: { useSeconds: 3, deploy: true, needsEarth: true } });
   });
 
   it('has 6 bus slots with 2 options each, 3 tiers and 13 milestones', () => {
@@ -63,9 +90,9 @@ describe('game data', () => {
     expect(data.milestones.milestones).toHaveLength(13);
   });
 
-  it('offers camera and drill as the instrument options', () => {
+  it('offers the six Moon instruments', () => {
     const instruments = data.parts.parts.filter((p) => p.slot === 'instrument').map((p) => p.effects.instrument);
-    expect(instruments.sort()).toEqual(['camera', 'drill']);
+    expect(instruments.sort()).toEqual(['camera', 'drill', 'neutron', 'reflector', 'seismometer', 'xray']);
   });
 
   it('the chassis sets the payload bay: steel 3 mounting points, titanium 2', () => {
@@ -74,10 +101,11 @@ describe('game data', () => {
     expect(points('chassis-titanium')).toBe(2);
   });
 
-  it('every bay that fits is enumerated: 64 bus builds, each with an empty bay, one instrument, or both', () => {
+  it('every bay that fits is enumerated: 64 bus builds; steel takes up to 3 of the 6 instruments (42 bays), titanium up to 2 (22)', () => {
     const builds = allBuilds();
-    expect(builds).toHaveLength(2 ** data.parts.slots.length * 4);
-    expect(builds.filter((b) => b.payload.length === 2 && b.chassis === 'chassis-titanium').length).toBe(32);
+    expect(builds).toHaveLength(32 * 42 + 32 * 22);
+    expect(builds.filter((b) => b.payload.length === 2 && b.chassis === 'chassis-titanium').length).toBe(32 * 15);
+    expect(builds.some((b) => b.payload.length === 3 && b.chassis === 'chassis-titanium')).toBe(false);
   });
 
   it('a mid build fits the Medium tier and is affordable from the starting budget', () => {
@@ -100,7 +128,8 @@ describe('game data', () => {
   it('the top tier is a real limit: the bulkiest builds cannot launch', () => {
     const quotes = allBuilds().map((b) => quoteBuild(b, data, data.tuning.budget.startingBudget));
     expect(quotes.some((q) => !q.canLaunch)).toBe(true);
-    expect(quotes.filter((q) => q.canLaunch).length).toBeGreaterThan(quotes.length * 0.9);
+    // Most builds can launch; full steel bays with the bulky drill and wheels are the ones that cannot.
+    expect(quotes.filter((q) => q.canLaunch).length).toBeGreaterThan(quotes.length * 0.85);
   });
 
   it('the Moon minimum budget is enough to buy at least one launchable rover', () => {

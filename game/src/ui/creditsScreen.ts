@@ -129,8 +129,13 @@ export const creditsScreen: Screen = (game, root) => {
           entry(c.speedLabel, text.design.speedInfoSources))),
       section(c.milestones,
         el('ul', { class: 'credit-list' },
-          ...data.milestones.milestones.filter((m) => m.source).map((m) => entry(m.name, m.source)),
-          entry(c.drillHydrogenLabel, text.drill.hydrogenSource))),
+          ...data.milestones.milestones.filter((m) => m.source).map((m) => entry(m.name, m.source)))),
+      section(c.instrumentsLabel,
+        el('ul', { class: 'credit-list' },
+          ...data.parts.parts.flatMap((p) => {
+            const it = p.effects.instrument ? text.instrumentText[p.effects.instrument] : undefined;
+            return it?.source ? [entry(p.name, it.source)] : [];
+          }))),
       section(c.debrief,
         el('ul', { class: 'credit-list' }, ...HISTORY_KEYS.map((k) => entry(historyLabel(k), text.historySources[k])))),
       section(c.generatedHeading, el('p', {}, c.generated)),

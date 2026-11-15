@@ -18,12 +18,29 @@ export function instrumentsOf(parts: Part[]): Instrument[] {
   return parts.flatMap((p) => (p.effects.instrument ? [p.effects.instrument] : []));
 }
 
-/** An instrument's operating costs in a mission, from its part. */
+/**
+ * How an instrument is worked in a mission: a switch is turned on and off and draws its standby energy
+ * while on; a use is a photo, a sample or a reading; a deploy sets the part down on the ground for good.
+ */
+export type InstrumentMode = 'switch' | 'use' | 'deploy';
+
+/** An instrument's operating costs and conditions in a mission, from its part. */
 export interface InstrumentCosts {
   instrument: Instrument;
+  mode: InstrumentMode;
   energyPerUse: number; // energy each use costs
-  standbyEnergy: number; // energy per second while switched on (0: no standby; such an instrument is used, not switched)
+  standbyEnergy: number; // energy per second while switched on (0 unless mode is 'switch')
   useSeconds: number; // mission seconds the rover holds still for each use (0: instant)
+  shadowHoldFactor: number; // the hold time is multiplied by this in shadow (1: no change)
+  coldTolerant: boolean; // exempt from the cold slowdown
+  needsEarth: boolean; // usable only with Earth above the horizon
+  needsBoulder: boolean; // usable only with a boulder within reach
+}
+
+/** The mode an instrument part implies: a standby draw makes a switch, `deploy` a deployable, otherwise a use. */
+export function instrumentMode(effects: Part['effects']): InstrumentMode {
+  if ((effects.standbyEnergy ?? 0) > 0) return 'switch';
+  return effects.deploy ? 'deploy' : 'use';
 }
 
 /** The operating costs of each instrument the parts provide, in part (bay) order. */
@@ -31,7 +48,17 @@ export function instrumentCosts(parts: Part[]): InstrumentCosts[] {
   return parts.flatMap((p) => {
     const e = p.effects;
     if (!e.instrument) return [];
-    return [{ instrument: e.instrument, energyPerUse: e.energyPerUse ?? 0, standbyEnergy: e.standbyEnergy ?? 0, useSeconds: e.useSeconds ?? 0 }];
+    return [{
+      instrument: e.instrument,
+      mode: instrumentMode(e),
+      energyPerUse: e.energyPerUse ?? 0,
+      standbyEnergy: e.standbyEnergy ?? 0,
+      useSeconds: e.useSeconds ?? 0,
+      shadowHoldFactor: e.shadowHoldFactor ?? 1,
+      coldTolerant: e.coldTolerant ?? false,
+      needsEarth: e.needsEarth ?? false,
+      needsBoulder: e.needsBoulder ?? false,
+    }];
   });
 }
 

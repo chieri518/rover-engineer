@@ -6,6 +6,7 @@ import {
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
 import type { MissionResult } from '../rules/payout';
+import type { InstrumentLog } from '../rules/instruments';
 import { quoteBuild } from '../rules/quote';
 import { isCompleteBuild } from '../rules/rover';
 import { upgradeSavedBuild } from '../rules/payload';
@@ -32,6 +33,8 @@ export class Game {
   lastResult: MissionResult | null = null;
   /** Photographs from the last mission (not saved: data URLs are too large for localStorage). */
   album: AlbumPhoto[] = [];
+  /** What the instruments recorded in the last mission, for the debrief (not saved). */
+  instrumentLog: InstrumentLog | null = null;
   settings: Settings = loadSettings();
   /** Tutorials already seen; each opens by itself only the first time its screen is reached. */
   tutorialSeen: TutorialSeen = loadTutorialSeen();
@@ -107,9 +110,10 @@ export class Game {
     saveTutorialSeen(this.tutorialSeen);
   }
 
-  endMission(result: MissionResult, album: AlbumPhoto[] = []): void {
+  endMission(result: MissionResult, album: AlbumPhoto[] = [], instrumentLog: InstrumentLog | null = null): void {
     this.lastResult = result;
     this.album = album;
+    this.instrumentLog = instrumentLog;
     this.outcome = finishMission(this.state, result, this.data);
     this.setCampaign(this.outcome.state);
     this.go('debrief');

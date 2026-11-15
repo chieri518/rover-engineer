@@ -134,7 +134,17 @@
     "noPhotos": "No photographs were taken.",
     "historyHeading": "Mission history",
     "restart": "Restart round",
-    "continue": "Continue"
+    "continue": "Continue",
+    "logHeading": "Instrument log",
+    "logNote": "What the instruments recorded. These readings earn no money or research points yet.",
+    "logRock": "X-ray spectrometer: {rock}. {elements}.",
+    "logNoRocks": "X-ray spectrometer: no rocks were read.",
+    "logQuakeClean": "Seismometer station: recorded the moonquake, a clean trace.",
+    "logQuakeNoisy": "Seismometer station: recorded the moonquake, but the rover's driving made the trace noisy.",
+    "logQuakeMissed": "Seismometer station: set down after the moonquake, so there was nothing to record.",
+    "logQuakeNone": "Seismometer station: no moonquake recorded.",
+    "logReflector": "Laser retroreflector: set down with Earth in view.",
+    "logHydrogen": "Neutron spectrometer: highest hydrogen reading {percent}%."
   },
   "causes": {
     "energy": "Out of energy",
@@ -178,20 +188,13 @@
     "categoryPicture": "Pretty picture"
   },
   "instruments": {
-    "cameraControls": "{key} to take a photograph.",
-    "drillControls": "{key} to drill a sample (stop first; {energy} energy each).",
-    "buttonCamera": "Photo",
-    "buttonDrill": "Drill",
     "buttonsLabel": "Instruments",
     "photoTaken": "Photograph added to the album: {caption}.",
     "photoNoZone": "Photograph added to the album. Milestones count only at viewpoints, or with Earth above the horizon in view.",
     "photoAlbumFull": "The album is full ({max} photographs).",
-    "noCamera": "This rover carries no camera.",
-    "noDrill": "This rover carries no drill.",
     "viewpointHint": "Viewpoint: {name}. Press {key} to take a photograph.",
     "earthHint": "Earth is above the horizon in view. Press {key} to take a photograph.",
     "iceSearchHint": "Inside permanent shadow. Stop and press {key} to test-drill for water ice.",
-    "drilling": "Drilling. The rover holds still.",
     "holding": "{name} working. The rover holds still.",
     "useMoving": "{name}: stop the rover first.",
     "usePoweredDown": "{name}: the rover is powered down. Press P to power up first.",
@@ -208,16 +211,96 @@
     "partialCrossingHint": "Partial crossing: the rover left the boulder field close to where it entered. Drive through to the far side to record a crossing.",
     "captionEarth": "Earth above the horizon",
     "captionDay": "{place}, day {day}",
-    "captionSurface": "Lunar surface"
+    "captionSurface": "Lunar surface",
+    "useFastShadow": "{name}: the detector is colder in the shade, so the reading finishes sooner ({seconds} s).",
+    "useDeployed": "{name} is already on the ground.",
+    "useNoEarth": "{name}: Earth is below the horizon here. Lasers from Earth must reach the reflector: set it down where Earth is in view.",
+    "useNoBoulder": "{name}: no boulder within reach. Stop beside a boulder (within {reach} m).",
+    "standbyOn": "{name} switched on ({standby} energy/s).",
+    "standbyOff": "{name} switched off.",
+    "standbyLowEnergy": "{name}: the battery is low. Recharge above {share}% before switching it on.",
+    "standbyAutoOff": "Battery low: {names} switched off to save energy.",
+    "deployedButton": "Deployed",
+    "hydrogenMeter": "Hydrogen",
+    "earthLight": "Earth",
+    "earthInView": "Earth in view",
+    "earthHidden": "Earth hidden",
+    "xrayResult": "X-ray reading: {rock}. {elements}.",
+    "xrayAgain": "X-ray reading: {rock}, the same as the last reading of this boulder.",
+    "seismometerDeployed": "Seismometer station set down. It will record the moonquake. Driving within {distance} m of it adds noise.",
+    "reflectorDeployed": "Laser retroreflector set down with Earth in view. Observatories on Earth can now range it.",
+    "quakeClean": "The seismometer station recorded the moonquake: a clean trace.",
+    "quakeNoisy": "The seismometer station recorded the moonquake, but the trace is noisy: the rover drove {distance} m from it.",
+    "quakeMissed": "The moonquake has already passed: the seismometer station has nothing to record.",
+    "quakeTrace": "Seismometer",
+    "boulderHint": "Boulder within reach. Stop and press {key} for an X-ray reading.",
+    "neutronHint": "Inside permanent shadow. Watch the hydrogen meter: it rises toward buried ice."
   },
-  "drill": {
-    "searchHintHydrogen": "Inside permanent shadow. Stop and press {key} to test-drill. Each sample reports the hydrogen signal: the stronger it is, the closer the ice.",
-    "hydrogenSignal": "Hydrogen signal: {level}.",
-    "hydrogenWeak": "weak",
-    "hydrogenModerate": "moderate",
-    "hydrogenStrong": "strong",
-    "hydrogenHistory": "Orbiters search for polar ice the same way: LEND, the Russian-built neutron detector on NASA's Lunar Reconnaissance Orbiter, maps hydrogen near the poles, because hydrogen in the soil cuts the number of neutrons escaping the surface.",
-    "hydrogenSource": "NASA Goddard, LRO instruments: LEND (lunar.gsfc.nasa.gov/lend.html); Mitrofanov et al. 2010, Science 330:483"
+  "instrumentText": {
+    "camera": {
+      "button": "Photo",
+      "controls": "{key} to take a photograph.",
+      "notCarried": "This rover carries no camera."
+    },
+    "drill": {
+      "button": "Drill",
+      "controls": "{key} to drill a sample (stop first; {energy} energy each).",
+      "notCarried": "This rover carries no drill.",
+      "holding": "Drilling. The rover holds still."
+    },
+    "neutron": {
+      "button": "Neutron",
+      "controls": "{key} to switch the neutron spectrometer on or off ({standby} energy/s while on).",
+      "notCarried": "This rover carries no neutron spectrometer.",
+      "fact": "NASA's VIPER rover carries a Neutron Spectrometer System that senses hidden water up to about 1 m (3 feet) below the surface while it drives.",
+      "source": "NASA Science, VIPER rover and instruments (science.nasa.gov/mission/viper/rover-and-instruments)"
+    },
+    "xray": {
+      "button": "X-ray",
+      "controls": "{key} for an X-ray reading beside a boulder (stop first; {energy} energy each).",
+      "notCarried": "This rover carries no X-ray spectrometer.",
+      "holding": "X-ray reading. The rover holds still.",
+      "fact": "In 2023 India's Pragyan rover measured the soil near the Moon's south polar region with its X-ray spectrometer, and found a typical highland rock: ferroan anorthosite.",
+      "source": "Vadawale et al. (2024), Chandrayaan-3 APXS elemental abundance measurements at lunar high latitude, Nature 633:327-331, doi:10.1038/s41586-024-07870-7"
+    },
+    "seismometer": {
+      "button": "Seismometer",
+      "controls": "{key} to set down the seismometer station (stop first).",
+      "notCarried": "This rover carries no seismometer station.",
+      "holding": "Setting down the seismometer station. The rover holds still.",
+      "fact": "Four Apollo seismometers on the Moon recorded about 11,800 seismic events during their years of operation.",
+      "source": "NASA NTRS, Apollo Passive Seismic Experiment final report (1979), ntrs.nasa.gov/citations/19790013804"
+    },
+    "reflector": {
+      "button": "Reflector",
+      "controls": "{key} to set down the laser retroreflector where Earth is in view (stop first).",
+      "notCarried": "This rover carries no laser retroreflector.",
+      "holding": "Setting down the laser retroreflector. The rover holds still.",
+      "fact": "Apollo 11 left a laser reflector on the Moon on July 21, 1969. It needs no power, and it was still in use 35 years later.",
+      "source": "NASA JPL, Apollo 11 experiment still going strong after 35 years (jpl.nasa.gov/news/apollo-11-experiment-still-going-strong-after-35-years)"
+    }
+  },
+  "rocks": {
+    "ferroan-anorthosite": {
+      "name": "Ferroan anorthosite",
+      "elements": "Calcium and aluminum rich; iron and titanium poor",
+      "note": "The pale, ancient crust of the highlands, formed from the early Moon's magma ocean."
+    },
+    "noritic-anorthosite": {
+      "name": "Noritic anorthosite",
+      "elements": "Calcium and aluminum rich, with more iron and magnesium",
+      "note": "Highland crust with more pyroxene in it."
+    },
+    "impact-melt-breccia": {
+      "name": "Impact melt breccia",
+      "elements": "Glassy, mixed fragments, once melted by an impact",
+      "note": "Rock melted by an impact and cooled again; its age dates the impact."
+    },
+    "regolith-breccia": {
+      "name": "Regolith breccia",
+      "elements": "Soil fragments pressed together into rock",
+      "note": "Ancient surface soil turned to rock, a record of the old surface."
+    }
   },
   "settings": {
     "heading": "Settings",
@@ -298,7 +381,11 @@
         "title": "Instruments and map",
         "instrument": {
           "camera": "Camera: {key} (or its button) takes a photograph. Photographs count toward milestones at viewpoints, or with Earth above the horizon in view at least {earthMinDistance} m from the lander.",
-          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
+          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other.",
+          "neutron": "Neutron spectrometer: {key} (or its button) switches it on or off. While on, a hydrogen meter beside the meters reads the ground as the rover drives, and it draws a little energy.",
+          "xray": "X-ray spectrometer: stop beside a boulder, then press {key} (or its button) to read the rock's main elements.",
+          "seismometer": "Seismometer station: stop and press {key} (or its button) to set it down before the moonquake, then drive away so the rover's driving does not add noise.",
+          "reflector": "Laser retroreflector: stop where Earth is in view (the Earth light beside the meters) and press {key} (or its button) to set it down."
         },
         "body": [
           "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
@@ -341,7 +428,7 @@
       }
     ],
     "speedLabel": "Real drive speeds (design screen)",
-    "drillHydrogenLabel": "Drill hydrogen readings",
+    "instrumentsLabel": "Instrument facts",
     "survivedLabel": "Mission completed",
     "back": "Back"
   }

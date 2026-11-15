@@ -1,5 +1,7 @@
 // Mission HUD: energy, damage and cold meters, sunlight on the panel, the power-down toggle,
-// standing warnings, short event notices, a flare warning bar, and the end-of-mission panel.
+// standing warnings, short event notices, a flare warning bar, and the end-of-mission panel. Instrument
+// readouts: the neutron spectrometer's hydrogen meter, the Earth-in-view light for the laser
+// retroreflector, and the seismometer station's moonquake trace.
 // No clock: time reads only from the Sun and shadows.
 import type { TextFile } from '../rules/types';
 import { el } from './dom';
@@ -59,6 +61,9 @@ export class Hud {
   private readonly flash = el('div', { class: 'flare-flash' });
   private readonly hint = el('div', { class: 'hud-hint', hidden: true });
   private readonly cards = el('div', { class: 'milestone-cards', 'aria-live': 'polite' });
+  private readonly hydrogen;
+  private readonly earthLight = el('div', { class: 'earth-light', hidden: true });
+  private readonly trace = el('div', { class: 'quake-trace', hidden: true });
   private lastWarnings = '';
 
   constructor(
@@ -70,6 +75,8 @@ export class Hud {
     this.energy = meter(h.energy, 'energy');
     this.damage = meter(h.damage, 'damage');
     this.cold = meter(h.cold, 'cold');
+    this.hydrogen = meter(text.instruments.hydrogenMeter, 'hydrogen');
+    this.hydrogen.root.hidden = true;
     this.power = el('button', { class: 'power-toggle', type: 'button', onclick: () => onTogglePower() }, h.powerDown);
     this.flare.append(this.flareText, el('div', { class: 'flare-bar' }, this.flareBar));
     this.root = el('div', { class: 'hud-layer' },
@@ -77,7 +84,10 @@ export class Hud {
         this.energy.root,
         this.damage.root,
         this.cold.root,
+        this.hydrogen.root,
         this.sun,
+        this.earthLight,
+        this.trace,
         this.power,
         extra,
       ),
@@ -96,6 +106,47 @@ export class Hud {
     this.sun.classList.toggle('shadow', m.sunlight <= 0.5);
     this.power.textContent = m.poweredDown ? h.powerUp : h.powerDown;
     this.power.classList.toggle('active', m.poweredDown);
+  }
+
+  /** The neutron spectrometer's hydrogen meter (0..1), or null to hide it (switched off or powered down). */
+  setHydrogen(reading: number | null): void {
+    this.hydrogen.root.hidden = reading === null;
+    if (reading !== null) this.hydrogen.set(reading, `${Math.round(reading * 100)}%`, false);
+  }
+
+  /** The Earth-in-view light (laser retroreflector aboard), or null to hide it. */
+  setEarthLight(inView: boolean | null): void {
+    this.earthLight.hidden = inView === null;
+    if (inView === null) return;
+    const t = this.text.instruments;
+    this.earthLight.classList.toggle('on', inView);
+    const label = inView ? t.earthInView : t.earthHidden;
+    if (this.earthLight.textContent !== label) this.earthLight.textContent = label;
+  }
+
+  /** The seismometer station's moonquake trace: a burst, clean or buried in the rover's own noise. */
+  showQuakeTrace(quality: 'clean' | 'noisy'): void {
+    const n = 120;
+    const pts: string[] = [];
+    let seed = 7;
+    const rand = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 2 - 1;
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * 100;
+      const burst = i > 30 ? Math.exp(-(i - 30) / 22) * Math.sin(i * 1.3) * 13 : 0;
+      const noise = quality === 'noisy' ? rand() * 9 : rand() * 0.8;
+      pts.push(`${x.toFixed(1)},${(17 - burst - noise).toFixed(1)}`);
+    }
+    const svgNs = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNs, 'svg');
+    svg.setAttribute('viewBox', '0 0 100 34');
+    svg.setAttribute('preserveAspectRatio', 'none');
+    svg.setAttribute('aria-hidden', 'true');
+    const line = document.createElementNS(svgNs, 'polyline');
+    line.setAttribute('points', pts.join(' '));
+    svg.append(line);
+    this.trace.replaceChildren(el('span', {}, this.text.instruments.quakeTrace), svg);
+    this.trace.classList.toggle('noisy', quality === 'noisy');
+    this.trace.hidden = false;
   }
 
   /** Standing warnings, already worded. Rebuilt only when they change. */

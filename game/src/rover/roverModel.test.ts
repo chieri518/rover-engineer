@@ -81,4 +81,22 @@ describe('rover model for a draft build', () => {
     const grouped = buildRoverModel(handling, connectY, roverLook(all), { bySlot: true });
     expect(meshCount(grouped.body)).toBeGreaterThanOrEqual(meshCount(merged.body));
   });
+
+  it('draws each new instrument in its own group', () => {
+    for (const id of ['neutron', 'xray', 'seismometer', 'reflector'] as const) {
+      const model = buildRoverModel(handling, connectY, roverLook([part(`instrument-${id}`)]), { bySlot: true });
+      expect(Object.keys(model.slots)).toEqual([id]);
+      expect(meshCount(model.slots[id]!)).toBeGreaterThan(0);
+    }
+  });
+
+  it('builds any three instruments of the six', () => {
+    const ids = ['camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector'] as const;
+    for (let a = 0; a < 6; a++) for (let b = a + 1; b < 6; b++) for (let c = b + 1; c < 6; c++) {
+      const picked = [ids[a]!, ids[b]!, ids[c]!];
+      const look = roverLook([part('chassis-steel'), part('wheels-solid'), ...picked.map((i) => part(`instrument-${i}`))]);
+      const model = buildRoverModel(handling, connectY, look, { bySlot: true });
+      for (const i of picked) expect(model.slots[i]).toBeDefined();
+    }
+  });
 });

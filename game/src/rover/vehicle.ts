@@ -26,6 +26,9 @@ export class RoverVehicle {
   private readonly controller: RAPIER.DynamicRayCastVehicleController;
   private readonly wheels: THREE.Object3D[] = [];
   private readonly wheelSpin: THREE.Object3D[] = [];
+  private readonly collider: RAPIER.Collider;
+  private readonly connectY: number;
+  private modelObjects: THREE.Object3D[] = []; // the model's own children of `object` (floodlights etc. stay)
   private steer = 0;
   private input: DriveInput = { throttle: 0, steer: 0, brake: false };
   /** Multiplies the top speed (development shortcut only). */
@@ -43,27 +46,22 @@ export class RoverVehicle {
   ) {
     const h = handling;
     const { lengthM: l, widthM: w, heightM: ht } = h.body;
+    this.connectY = -ht / 2 + 0.12;
     this.body = world.createRigidBody(
       rapier.RigidBodyDesc.dynamic()
         .setAngularDamping(h.angularDamping)
         .setGravityScale(h.gravityScale)
         .setCanSleep(false),
     );
-    const m = params.massKg;
-    world.createCollider(
+    this.collider = world.createCollider(
       rapier.ColliderDesc.cuboid(l / 2, ht / 2, w / 2)
-        .setMassProperties(
-          m,
-          { x: 0, y: -h.centerOfMassDropM, z: 0 },
-          { x: (m * (ht * ht + w * w)) / 12, y: (m * (l * l + w * w)) / 12, z: (m * (l * l + ht * ht)) / 12 },
-          { x: 0, y: 0, z: 0, w: 1 },
-        )
+        .setMassProperties(...this.massProperties(params.massKg))
         .setFriction(0.6),
       this.body,
     );
 
     this.controller = world.createVehicleController(this.body);
-    const connectY = -ht / 2 + 0.12;
+    const connectY = this.connectY;
     const corners: [number, number][] = [
       [h.wheelBaseM / 2, h.wheelTrackM / 2],
       [h.wheelBaseM / 2, -h.wheelTrackM / 2],
@@ -82,6 +80,26 @@ export class RoverVehicle {
     this.setParams(params);
     this.buildModel(connectY, parts);
     this.teleport(start.x, start.y, start.z, start.headingDeg);
+  }
+
+  private massProperties(m: number): [number, { x: number; y: number; z: number }, { x: number; y: number; z: number }, { x: number; y: number; z: number; w: number }] {
+    const h = this.handling;
+    const { lengthM: l, widthM: w, heightM: ht } = h.body;
+    return [
+      m,
+      { x: 0, y: -h.centerOfMassDropM, z: 0 },
+      { x: (m * (ht * ht + w * w)) / 12, y: (m * (l * l + w * w)) / 12, z: (m * (l * l + ht * ht)) / 12 },
+      { x: 0, y: 0, z: 0, w: 1 },
+    ];
+  }
+
+  /** Change the build at runtime (e.g. a deployed instrument leaves the rover): new mass, speed and grip, and a model of the remaining parts. */
+  setBuild(params: RoverParams, parts: Part[]): void {
+    this.setParams(params);
+    this.collider.setMassProperties(...this.massProperties(params.massKg));
+    this.disposeModel();
+    this.buildModel(this.connectY, parts);
+    this.sync();
   }
 
   /** Change the per-build inputs (Phase 3: from the selected parts). */
@@ -215,27 +233,44 @@ export class RoverVehicle {
   private buildModel(connectY: number, parts: Part[]): void {
     const model = buildRoverModel(this.handling, connectY, roverLook(parts));
     this.object.add(model.body);
+    this.modelObjects = [model.body];
     for (const { wheel, spin } of model.wheels) {
       this.object.add(wheel);
+      this.modelObjects.push(wheel);
       this.wheels.push(wheel);
       this.wheelSpin.push(spin);
     }
   }
 
+  /** Remove the model's meshes (not the floodlights) and free them. */
+  private disposeModel(): void {
+    for (const obj of this.modelObjects) {
+      obj.removeFromParent();
+      freeObject(obj);
+    }
+    this.modelObjects = [];
+    this.wheels.length = 0;
+    this.wheelSpin.length = 0;
+  }
+
   dispose(): void {
     this.world.removeRigidBody(this.body);
-    const geometries = new Set<THREE.BufferGeometry>();
-    const materials = new Set<THREE.MeshLambertMaterial>();
-    this.object.traverse((obj) => {
-      if (obj instanceof THREE.Mesh) {
-        geometries.add(obj.geometry);
-        materials.add(obj.material as THREE.MeshLambertMaterial);
-      }
-    });
-    geometries.forEach((g) => g.dispose());
-    materials.forEach((m) => {
-      m.map?.dispose();
-      m.dispose();
-    });
+    freeObject(this.object);
   }
+}
+
+function freeObject(root: THREE.Object3D): void {
+  const geometries = new Set<THREE.BufferGeometry>();
+  const materials = new Set<THREE.MeshLambertMaterial>();
+  root.traverse((obj) => {
+    if (obj instanceof THREE.Mesh) {
+      geometries.add(obj.geometry);
+      materials.add(obj.material as THREE.MeshLambertMaterial);
+    }
+  });
+  geometries.forEach((g) => g.dispose());
+  materials.forEach((m) => {
+    m.map?.dispose();
+    m.dispose();
+  });
 }

@@ -2,7 +2,8 @@
 // screens have their own files.
 import { milestoneStages } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
-import type { HistoryKey } from '../rules/types';
+import type { HistoryKey, Instrument, TextFile } from '../rules/types';
+import type { InstrumentLog } from '../rules/instruments';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
@@ -99,6 +100,27 @@ function albumView(photos: AlbumPhoto[]): HTMLElement {
   );
 }
 
+/** The debrief's instrument log: what the new instruments recorded, one line each. Empty without them. */
+function instrumentLogLines(log: InstrumentLog | null, text: TextFile): string[] {
+  if (!log) return [];
+  const t = text.debrief;
+  const has = (i: Instrument) => log.carried.includes(i);
+  const lines: string[] = [];
+  if (has('neutron') && log.hydrogenPeak !== null) lines.push(fill(t.logHydrogen, { percent: Math.round(log.hydrogenPeak * 100) }));
+  if (has('xray')) {
+    if (log.rocks.length === 0) lines.push(t.logNoRocks);
+    for (const r of log.rocks) {
+      const rock = text.rocks[r.rock];
+      lines.push(fill(t.logRock, { rock: rock?.name ?? r.rock, elements: rock?.elements ?? '' }));
+    }
+  }
+  if (has('seismometer')) {
+    lines.push(log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone);
+  }
+  if (log.reflectorPlaced) lines.push(t.logReflector);
+  return lines;
+}
+
 const debrief: Screen = (game, root) => {
   const { data } = game;
   const { text } = data;
@@ -110,6 +132,8 @@ const debrief: Screen = (game, root) => {
   const history = game.settings.missionHistory;
   const historyKey: HistoryKey = result.survived ? 'survived' : result.detail === 'rollover' ? 'rollover' : (result.cause ?? 'energy');
   const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
+
+  const logLines = instrumentLogLines(game.instrumentLog, text);
 
   // Milestones in catalog order; records already held this campaign are listed without a reward.
   const items = data.milestones.milestones.flatMap((m) => {
@@ -148,6 +172,10 @@ const debrief: Screen = (game, root) => {
         row(t.balance, money(state.balance, text), 'total'),
       ),
       el('p', { class: 'note' }, text.moneyNote),
+
+      logLines.length > 0 && el('h3', {}, t.logHeading),
+      logLines.length > 0 && el('ul', { class: 'debrief-log' }, ...logLines.map((l) => el('li', {}, l))),
+      logLines.length > 0 && el('p', { class: 'note' }, t.logNote),
 
       el('h3', {}, t.albumHeading),
       game.album.length ? albumView(game.album) : el('p', { class: 'muted' }, t.noPhotos),

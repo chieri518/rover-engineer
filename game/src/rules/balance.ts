@@ -34,7 +34,8 @@ const SHORT: Record<string, string> = {
   'battery-nih2': 'NiH2', 'battery-li-ion': 'Li',
   'lights-none': '-', 'lights-led': 'L',
   'heater-none': '-', 'heater-rhu': 'H',
-  'instrument-camera': 'cam', 'instrument-drill': 'drill',
+  'instrument-camera': 'cam', 'instrument-drill': 'drill', 'instrument-neutron': 'neut',
+  'instrument-xray': 'xray', 'instrument-seismometer': 'seis', 'instrument-reflector': 'refl',
 };
 
 const short = (id: string) => SHORT[id] ?? id;

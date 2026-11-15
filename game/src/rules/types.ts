@@ -5,7 +5,7 @@ import type { DamageCause } from './damage';
 export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
 /** A part's catalog category: a bus slot, or 'instrument' for the payload bay (which holds a list). */
 export type Slot = BusSlot | 'instrument';
-export type Instrument = 'camera' | 'drill';
+export type Instrument = 'camera' | 'drill' | 'neutron' | 'xray' | 'seismometer' | 'reflector';
 
 export interface PartEffects {
   maxLoad?: number; // chassis: kg of total rover mass it can carry
@@ -21,6 +21,11 @@ export interface PartEffects {
   energyPerUse?: number; // instrument: energy each use costs (absent: none)
   standbyEnergy?: number; // instrument: energy per second while switched on, not while powered down (absent: no standby; the instrument is a switch when it has one)
   useSeconds?: number; // instrument: mission seconds the rover holds still for each use (absent: instant)
+  deploy?: boolean; // instrument: a use sets the part down on the ground for good; its mass leaves the rover
+  shadowHoldFactor?: number; // instrument: the hold time is multiplied by this (0..1) while the rover is in shadow (sunlight below tuning.instruments.shadowSunlight)
+  coldTolerant?: boolean; // instrument: exempt from the cold slowdown (its sensor head sits outside the warm body)
+  needsEarth?: boolean; // instrument: usable only where Earth is above the terrain horizon from the rover
+  needsBoulder?: boolean; // instrument: usable only with a boulder within tuning.instruments.xray.reachM
 }
 
 export interface Part {
@@ -169,8 +174,26 @@ export interface Tuning {
     warningDistanceM: number; // the "leaving the area" notice shows this close to the boundary
   };
   milestones: MilestoneTuning;
-  instruments: {
-    coldSlowdown: number; // an instrument's hold time is multiplied by this in a cold zone on a rover without a heater
+  instruments: InstrumentTuning;
+}
+
+/** How the instruments behave in a mission (rules/mission.ts, rules/instruments.ts). */
+export interface InstrumentTuning {
+  coldSlowdown: number; // an instrument's hold time is multiplied by this in a cold zone on a rover without a heater (cold-tolerant parts excepted)
+  shadowSunlight: number; // the rover counts as in shadow below this sunlight share (shadowHoldFactor)
+  neutron: {
+    iceRangeM: number; // in permanent shadow, the hydrogen signal falls from 1 at the ice spot's center to 0 at this distance
+    coldBackground: number; // the reading anywhere in permanent shadow (0..1): a little hydrogen in every cold trap
+    noiseFloor: number; // the reading on ordinary ground (0..1)
+    jitter: number; // the live reading wobbles by up to this much (counting noise)
+  };
+  xray: {
+    reachM: number; // a boulder counts when its surface is this close to the rover's center
+    rocks: { id: string; weight: number }[]; // placeholder rock types, picked per boulder by weight (names in text.json rocks)
+  };
+  seismometer: {
+    recordWindowSeconds: number; // the station records the ground for this long before the moonquake
+    quietDistanceM: number; // the rover driving closer than this during the window makes the trace noisy
   };
 }
 
@@ -189,9 +212,6 @@ export interface MilestoneTuning {
   sampleSpacingM: number; // a staged sample milestone counts a new site only this far from earlier sites
   earthPhotoMinLit: number; // the Earth photo counts only when at least this share of Earth's disc is lit (its phase)
   earthPhotoMinDistanceM: number; // ...and only this far from the landing point, so it is not free at the start
-  hydrogenSignal: boolean; // drill samples in the dark crater report a hydrogen signal that grows nearer the ice (off: no clue)
-  hydrogenStrongWithinM: number; // "strong" within this distance of the ice spot center...
-  hydrogenModerateWithinM: number; // ..."moderate" within this one, "weak" farther away
 }
 
 /** The Sun's path over the mission. Azimuths follow terrain.json: from local -z, turning toward +x. */
@@ -291,7 +311,8 @@ export interface TextFile {
   debrief: Record<
     | 'heading' | 'survived' | 'failedRound' | 'passedRound' | 'cause' | 'rollover' | 'milestonesHeading' | 'noMilestones'
     | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
-    | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue',
+    | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue'
+    | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logReflector' | 'logHydrogen',
     string
   >;
   causes: Record<DeathCause, string>;
@@ -300,18 +321,20 @@ export interface TextFile {
   marsSoon: Record<'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle', string>;
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
-    | 'cameraControls' | 'drillControls' | 'buttonCamera' | 'buttonDrill' | 'buttonsLabel' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
-    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'
+    | 'buttonsLabel' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull'
+    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'
     | 'captionEarth' | 'captionDay' | 'captionSurface'
-    | 'holding' | 'useMoving' | 'usePoweredDown' | 'useBusy' | 'useNoEnergy' | 'useSlowCold',
+    | 'holding' | 'useMoving' | 'usePoweredDown' | 'useBusy' | 'useNoEnergy' | 'useSlowCold' | 'useFastShadow' | 'useDeployed'
+    | 'useNoEarth' | 'useNoBoulder' | 'standbyLowEnergy' | 'standbyOff' | 'standbyOn' | 'standbyAutoOff' | 'deployedButton'
+    | 'hydrogenMeter' | 'earthLight' | 'earthInView' | 'earthHidden' | 'xrayResult' | 'xrayAgain' | 'seismometerDeployed' | 'reflectorDeployed'
+    | 'quakeClean' | 'quakeNoisy' | 'quakeMissed' | 'quakeTrace' | 'boulderHint' | 'neutronHint',
     string
   >;
+  /** Per instrument: HUD button, controls line, refusal when not carried, and the history fact shown on first use. */
+  instrumentText: Record<Instrument, InstrumentText>;
+  /** X-ray spectrometer rock types (placeholder content), keyed by tuning.instruments.xray.rocks ids. */
+  rocks: Record<string, { name: string; elements: string; note: string }>;
   settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'back', string>;
-  drill: Record<
-    | 'searchHintHydrogen' | 'hydrogenSignal' | 'hydrogenWeak' | 'hydrogenModerate' | 'hydrogenStrong'
-    | 'hydrogenHistory' | 'hydrogenSource',
-    string
-  >;
   tutorial: Record<
     | 'label' | 'designHeading' | 'driveHeading' | 'help' | 'helpDesign' | 'helpDrive'
     | 'next' | 'back' | 'skip' | 'done' | 'step' | 'reopen' | 'tierItem' | 'tierJoin',
@@ -321,9 +344,19 @@ export interface TextFile {
     | 'open' | 'heading' | 'intro' | 'disclaimer'
     | 'terrain' | 'imagery' | 'spaceWeather' | 'soil' | 'milestones' | 'debrief' | 'generatedHeading' | 'generated'
     | 'loading' | 'loadFailed' | 'imageryFallback' | 'provider' | 'imageCredit' | 'license' | 'productPage'
-    | 'flaresUsed' | 'speedLabel' | 'drillHydrogenLabel' | 'survivedLabel' | 'back',
+    | 'flaresUsed' | 'speedLabel' | 'instrumentsLabel' | 'survivedLabel' | 'back',
     string
   > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
+}
+
+/** An instrument's mission text. {key} is its mission key; controls may also use {energy} and {standby}. */
+export interface InstrumentText {
+  button: string; // HUD button label
+  controls: string; // the controls line under the HUD buttons
+  notCarried: string; // the notice when it is used on a rover that does not carry it
+  holding?: string; // the hint while the rover holds still for it (default: instruments.holding)
+  fact?: string; // one real-history sentence, shown on first use when Mission history is on
+  source?: string; // where the fact comes from (credits)
 }
 
 /** One page of a tutorial. {name} placeholders are filled from the game data. */
@@ -412,8 +445,9 @@ export interface RouteLeg {
 
 export interface PlanStop {
   node: string;
-  use?: Instrument[]; // use these instruments here, in this order, each only if the build carries it
-  waitUntil?: number; // wait here (parked) until this mission second before using the instrument
+  use?: Instrument[]; // use these instruments here, in this order, each only if the build carries it (a held use parks the rover until it is done)
+  standby?: Instrument[]; // switch these standby instruments on (all others off) when leaving this stop, or once its uses are done at the last stop; ones the build does not carry are skipped
+  waitUntil?: number; // wait here (parked) until this mission second before using the instruments
 }
 
 export interface RoutePlan {
