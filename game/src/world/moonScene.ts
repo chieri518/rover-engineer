@@ -115,6 +115,9 @@ export interface MoonScene {
 
 const SHAKE_AMPLITUDE_M = 0.35;
 const FLOODLIGHT_INTENSITY = 300;
+// Mars floodlights: softer and warmer than the Moon's, so the night ground in front of the rover reads as
+// ground, not a blown-out white wedge (the Mars night already has some sky light).
+const MARS_FLOODLIGHT = { color: 0xffe8cc, intensity: 70, angle: 0.65, penumbra: 0.9, decay: 1.0, targetDrop: 0.8 };
 const HARD_STOP_KEEP = 0.9; // share of horizontal velocity kept per physics step during a hard stop
 
 export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene> {
@@ -235,12 +238,15 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   }
   scene.add(rover.object, lander.object);
   let lamp: THREE.SpotLight | null = null;
+  const lampIntensity = mars ? MARS_FLOODLIGHT.intensity : FLOODLIGHT_INTENSITY;
   if (opts.lightRangeM) {
     // Floodlights: what lets the rover see inside permanent shadow. Off until it is dark.
-    lamp = new THREE.SpotLight(0xf4f1ea, FLOODLIGHT_INTENSITY, opts.lightRangeM, 0.6, 0.5, 1.2);
+    lamp = mars
+      ? new THREE.SpotLight(MARS_FLOODLIGHT.color, lampIntensity, opts.lightRangeM, MARS_FLOODLIGHT.angle, MARS_FLOODLIGHT.penumbra, MARS_FLOODLIGHT.decay)
+      : new THREE.SpotLight(0xf4f1ea, lampIntensity, opts.lightRangeM, 0.6, 0.5, 1.2);
     lamp.intensity = 0; // intensity, not visibility: a changing light count would recompile every shader
     lamp.position.set(tuning.rover.body.lengthM / 2, 0.4, 0);
-    lamp.target.position.set(tuning.rover.body.lengthM / 2 + 10, -1.2, 0);
+    lamp.target.position.set(tuning.rover.body.lengthM / 2 + 10, mars ? -MARS_FLOODLIGHT.targetDrop : -1.2, 0);
     rover.object.add(lamp, lamp.target);
   }
   const boulders = new Boulders(rapier, world, opts.boulderAreas ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
@@ -440,7 +446,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       /** Force the floodlights on or off (null: back to the mission's choice). */
       lamp(on: boolean | null) {
         lampOverride = on;
-        if (lamp && on !== null) lamp.intensity = on ? FLOODLIGHT_INTENSITY : 0;
+        if (lamp && on !== null) lamp.intensity = on ? lampIntensity : 0;
       },
       /** The current Mars look (null on the Moon). */
       look() {
@@ -529,7 +535,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       stormTarget = Math.min(1, Math.max(0, Number.isFinite(intensity) ? intensity : 0));
     },
     setFloodlights(on: boolean) {
-      if (lamp) lamp.intensity = (lampOverride ?? on) ? FLOODLIGHT_INTENSITY : 0;
+      if (lamp) lamp.intensity = (lampOverride ?? on) ? lampIntensity : 0;
     },
     shake(secondsToShake: number) {
       shakeLeft = Math.max(shakeLeft, secondsToShake);
