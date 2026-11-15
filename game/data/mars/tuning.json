@@ -8,7 +8,7 @@
     "gravity": 3.71
   },
   "payout": {
-    "_interface": "survivalPayout: Mars survival payout, Owner A sets it (placeholder: the Moon value). The Titan pass mark is budget.minimumBudget.titan in data/tuning.json (placeholder 0).",
+    "_interface": "survivalPayout: Mars survival payout, Owner A sets it (placeholder: the Moon value). The Titan pass mark is budget.minimumBudget.titan in data/tuning.json: a fixed placeholder of 800 (decided November 15 by Owner B; Owner A to revisit).",
     "survivalPayout": 50
   },
   "rover": {
