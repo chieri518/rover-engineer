@@ -186,3 +186,28 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .setting { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; margin: 12px 0; }
 .setting input { margin-top: 4px; width: 18px; height: 18px; }
 .setting .muted { grid-column: 2; font-size: 0.85rem; margin: 0; }
+
+/* Tutorial dialog and Help buttons */
+.help-button { font-size: 0.85rem; padding: 4px 12px; }
+.desk-head-side { display: flex; align-items: flex-end; gap: 16px; }
+.hud-help { display: flex; }
+.hud-help .help-button { font-size: 0.8rem; padding: 3px 10px; }
+.tutorial-overlay { position: fixed; inset: 0; z-index: 20; display: grid; place-items: center; padding: 16px; background: rgba(5, 6, 9, 0.62); }
+.tutorial-overlay.tutorial-drive { position: absolute; background: none; place-items: end center; pointer-events: none; }
+.tutorial { pointer-events: auto; width: min(520px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--accent); border-radius: 8px; padding: 16px 20px; line-height: 1.5; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55); }
+.tutorial-drive .tutorial { max-height: min(62vh, 440px); background: rgba(22, 24, 31, 0.96); }
+.tutorial:focus { outline: none; }
+.tutorial-head { display: flex; justify-content: space-between; gap: 12px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.tutorial-step { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tutorial h2 { font-size: 1.15rem; margin: 6px 0 4px; color: var(--accent); }
+.tutorial-body p { margin: 6px 0; font-size: 0.92rem; }
+.tutorial-body p.note { font-size: 0.82rem; }
+.tutorial-actions { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
+.tutorial-actions [hidden] { display: none; }
+.tutorial-spacer { flex: 1; }
+.tutorial-skip { background: none; border-color: transparent; color: var(--muted); padding-left: 0; }
+.tutorial-skip:hover { color: var(--text); }
+@media (max-height: 640px) {
+  .tutorial { padding: 12px 16px; }
+  .tutorial-body p { font-size: 0.88rem; margin: 4px 0; }
+}

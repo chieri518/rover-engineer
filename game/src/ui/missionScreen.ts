@@ -23,6 +23,8 @@ import { el, fill } from './dom';
 import { Hud } from './hud';
 import { Minimap } from './minimap';
 import { causeText, milestoneCard, missedText } from './milestoneText';
+import { openTutorial, type TutorialHandle } from './tutorial';
+import { tutorialPages } from './tutorialText';
 
 const DEG = 180 / Math.PI;
 const SUN_SAMPLE_STEPS = 12; // recompute sunlight at the rover every 12 physics steps (0.2 s)
@@ -79,9 +81,30 @@ export const missionScreen: Screen = (game, root) => {
   let hydrogenFactShown = false; // the real-world note on the hydrogen signal shows once per mission
   const controls = [text.mission.controls, instrument === 'camera' ? ti.cameraControls : instrument === 'drill' ? ti.drillControls : '']
     .filter(Boolean).join(' ');
+  // Drive tutorial: opens by itself on the first mission (the scene loads meanwhile); the Help button
+  // reopens it. The mission is paused while it is open.
+  let tutorial: TutorialHandle | null = null;
+  const openHelp = () => {
+    if (tutorial || ended) return;
+    const pages = tutorialPages('drive', data, { mission: game.state.mission, instrument });
+    tutorial = openTutorial(root, 'drive', pages, text.tutorial, () => {
+      tutorial = null;
+      scene?.setPaused(false);
+      game.markTutorialSeen('drive');
+    });
+    scene?.setPaused(true);
+  };
+  const help = el('button', {
+    type: 'button',
+    class: 'help-button',
+    id: 'tutorial-help-drive',
+    title: text.tutorial.helpDrive,
+    onclick: openHelp,
+  }, text.tutorial.help);
   const hud = new Hud(text, togglePower, el('div', { class: 'hud-extra' },
     el('p', { class: 'muted' }, controls),
     status,
+    el('div', { class: 'hud-help' }, help),
   ));
 
   const announce = (u: MilestoneUpdate) => {
@@ -143,7 +166,7 @@ export const missionScreen: Screen = (game, root) => {
   };
 
   const onKey = (e: KeyboardEvent) => {
-    if (e.repeat) return;
+    if (e.repeat || tutorial) return;
     if (e.code === 'KeyP') togglePower();
     if (e.code === 'KeyC') takePhoto();
     if (e.code === 'KeyF') startDrill();
@@ -326,6 +349,7 @@ export const missionScreen: Screen = (game, root) => {
       });
       if (disposed) return started.dispose();
       scene = started;
+      if (tutorial) scene.setPaused(true);
       status.textContent = '';
       const f = masks.info.features;
       tracker = new MilestoneTracker(data.milestones.milestones, parts, buildZones({
@@ -377,9 +401,11 @@ export const missionScreen: Screen = (game, root) => {
   }
 
   root.append(view, hud.root);
+  if (!game.tutorialSeen.drive) openHelp();
 
   return () => {
     disposed = true;
+    tutorial?.dispose();
     window.removeEventListener('keydown', onKey);
     scene?.dispose();
     if (import.meta.env.DEV) delete (window as unknown as { __mission?: unknown }).__mission;

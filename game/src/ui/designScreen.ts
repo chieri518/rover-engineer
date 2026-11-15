@@ -8,6 +8,8 @@ import { quoteBuild, type BuildQuote } from '../rules/quote';
 import type { GameData, Part, Tier } from '../rules/types';
 import { el, fill, money } from './dom';
 import { tierWhyText } from './tierText';
+import { openTutorial, type TutorialHandle } from './tutorial';
+import { tutorialPages } from './tutorialText';
 
 const KMH = 3.6;
 
@@ -184,6 +186,24 @@ export const designScreen: Screen = (game, root) => {
     next.disabled = !allowed || !q.canLaunch || !q.canAfford;
   }
 
+  // Tutorial: opens by itself on the first visit; the Help button reopens it.
+  let tutorial: TutorialHandle | null = null;
+  const openHelp = () => {
+    if (tutorial) return;
+    const pages = tutorialPages('design', data, { mission: game.state.mission, instrument: null });
+    tutorial = openTutorial(root, 'design', pages, text.tutorial, () => {
+      tutorial = null;
+      game.markTutorialSeen('design');
+    });
+  };
+  const help = el('button', {
+    type: 'button',
+    class: 'help-button',
+    id: 'tutorial-help-design',
+    title: text.tutorial.helpDesign,
+    onclick: openHelp,
+  }, text.tutorial.help);
+
   root.append(
     el('section', { class: 'desk' },
       el('header', { class: 'desk-head' },
@@ -191,7 +211,10 @@ export const designScreen: Screen = (game, root) => {
           el('h2', {}, t.heading),
           el('p', { class: 'muted' }, t.tutorial),
         ),
-        el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
+        el('div', { class: 'desk-head-side' },
+          help,
+          el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
+        ),
       ),
       el('div', { class: 'desk-grid' },
         el('div', { class: 'slots' }, ...slots),
@@ -206,4 +229,6 @@ export const designScreen: Screen = (game, root) => {
     ),
   );
   update();
+  if (!game.tutorialSeen.design) openHelp();
+  return () => tutorial?.dispose();
 };
