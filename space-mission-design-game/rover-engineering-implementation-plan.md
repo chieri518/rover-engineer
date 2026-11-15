@@ -168,6 +168,8 @@ All behavior is pure rules in a new `rules/instruments.ts`; the mission screen o
 
 **Done when:** a relationship met in a mission appears in the notebook during that mission and in the next review for a build that triggers it, survives a restart, and never appears in the review before it is discovered.
 
+**Built (November 15).** Lead decisions taken with it: the cold-and-dark lights variant removed (unreachable), no lights discovered at the shadow edge as a lesson of its own, the seismometer lesson fired by a noisy record, the neutron lesson not fired by a lucky ice find, relationship notices in their own HUD slot, a build check per relationship for the review (`BUILD_PREDICATES`), and N as the notebook key. Details in game-design.md, section 7.
+
 ### Phase 6: Text, tutorial, and playtest
 
 - Tutorial pages for the bay (design) and for number-key instrument use (drive); per-instrument lines replace the camera and drill lines.

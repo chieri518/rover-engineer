@@ -493,13 +493,15 @@ Shares are already in the design (mass, mounting points, energy). The new work i
 
 Before buying the launch ticket, the desk runs a short review, as real missions hold design reviews before launch. It lists, in plain language, the relationships the current build triggers **that REL has already met in the field**, marked green (fine), yellow (a risk to plan around), or red (something will not work), the same status colors NASA's concept maturity checklists use ([challenge brief](challenge-brief.md#resources)).
 
+**Built in Phase 5** on the launch ticket screen; what each build triggers is in [game-design.md](game-design.md#7-rover-design) ("Engineering notebook and pre-launch review"). A build that carries the answer (drill with neutron spectrometer, heater against the cold) shows that relationship green, as solved.
+
 **The review shows only what the notebook holds** *(decided November 15)*. It gets smarter as REL gains field experience, the way real design reviews lean on earlier missions' lessons.
 
 | Relationship | What the review shows |
 | --- | --- |
 | Not yet in the notebook | Nothing. The player finds it in the mission. |
 | In the notebook | The full line: what happens, why, and the answers. Example: "Yellow. Seismometer station: the rover's own driving shakes the ground. Deploy it, then drive away before the moonquake." |
-| Hard blocks | Always shown, because the desk and the mission already state them. Example: "Red. No lights: the rover cannot enter permanent shadow." |
+| Hard blocks | Always shown for a build that triggers them, because the desk and the mission already state them. Example: "Red. No lights: the rover cannot enter permanent shadow." *(Phase 5)* No lights is also discovered in the mission like the others, so it enters the notebook. |
 
 - **Why not hint at undiscovered relationships.** Most hints give the answer away: "seismometer station with a driving rover" already tells the player not to drive near it. Discovery is the fun, and the learning sticks better when the player sees it happen.
 - **Why the first meeting is still fair.** Consequences are mild by default and the mission explains them as they happen (rules 1 and 2), so the player can react in the same run. The debrief explains the real basis, and the notebook entry unlocks, so the next design can plan for it.
@@ -508,16 +510,19 @@ Before buying the launch ticket, the desk runs a short review, as real missions 
 
 ### Engineering notebook
 
-A collection of relationships the player has met, kept across the campaign. The notebook opens from the desk, the title screen, and during the mission (pausing it), so a relationship can be read as soon as it is discovered. **Decided (November 15):** unlike balance, RP, and records, the notebook is **not** rolled back by a restart: knowledge from a failed run is the point of failing, and it cannot be farmed for money. An entry unlocks the first time a relationship affects a mission, and holds the cause, what happened, how to solve it, and the real story (for example Curiosity's neutron detector and its generator). It rewards discovery, gives players a reason to try different builds, and shows judges the learning design. Real basis: NASA keeps a lessons learned system for exactly this.
+A collection of relationships the player has met, kept across the campaign. The notebook opens from the desk, the title screen, and during the mission (pausing it), so a relationship can be read as soon as it is discovered. **Decided (November 15):** unlike balance, RP, and records, the notebook is **not** rolled back by a restart: knowledge from a failed run is the point of failing, and it cannot be farmed for money. An entry unlocks the first time a relationship affects a mission, and holds the cause, what happened, how to solve it, and the real story (for example Curiosity's neutron detector and its generator). It rewards discovery, gives players a reason to try different builds, and shows judges the learning design. Real basis: NASA keeps a lessons learned system for exactly this. **Built in Phase 5:** a "Notebook" button on the title screen, the desk and the mission HUD (and the N key in the mission); undiscovered lessons show only as a count.
 
 ### Moon relationships
 
 | Relationship | Kind | What the player sees | Answers | Real basis |
 | --- | --- | --- | --- | --- |
 | The neutron spectrometer finds the ice, the drill confirms it | Needs | Hydrogen meter rises near the ice; the drill alone gets no clue | Bring both; or skip the ice and earn elsewhere | VIPER's neutron spectrometer senses hidden water up to about 1 m below the surface while it drives ([NASA VIPER](https://science.nasa.gov/mission/viper/rover-and-instruments)); that VIPER would then drill where it reads high was not confirmed and is not claimed |
-| The seismometer needs quiet ground | Conditions | Its trace is noisy while the rover drives nearby; clean once the rover is far enough away | Deploy early and drive on; or deploy where the route does not return | Chandrayaan-3's ILSA seismometer recorded the vibrations of its own rover driving nearby on August 25, 2023 ([ISRO](https://www.isro.gov.in/Ch3_ILSA_Listens_Landing_Site.html)); InSight isolated its seismometer from its own tether and covered it with a wind and thermal shield to cut noise ([JPL](https://www.jpl.nasa.gov/news/insights-seismometer-now-has-a-cozy-shelter-on-mars/)) |
-| Cold and dark: instruments need the heater in permanent shadow, the camera needs lights | Needs | Without the heater, instruments in the cold work slowly; without lights, photos in shadow come out black | Bring heater and lights; or keep science in sunlight | Lunar polar shadows reach about 25 to 40 K (game-design.md, [Shadowed craters](game-design.md#shadowed-craters)); VIPER needing its own lights in shadow ([NTRS](https://ntrs.nasa.gov/api/citations/20220008301/downloads/2022-06-02-spaceops-viper-planning.pdf)) was not confirmed and is not used in the game |
+| The seismometer needs quiet ground | Conditions | The moonquake record is noisy if the rover drove nearby while the station listened; clean if it kept far enough away or parked | Deploy early and drive on; or deploy where the route does not return | Chandrayaan-3's ILSA seismometer recorded the vibrations of its own rover driving nearby on August 25, 2023 ([ISRO](https://www.isro.gov.in/Ch3_ILSA_Listens_Landing_Site.html)); InSight isolated its seismometer from its own tether and covered it with a wind and thermal shield to cut noise ([JPL](https://www.jpl.nasa.gov/news/insights-seismometer-now-has-a-cozy-shelter-on-mars/)) |
+| Cold and dark: in the cold, instruments need the heater | Needs | Without the heater, instruments in permanent shadow work slowly | Bring a heater; or keep instrument work in sunlight | LRO Diviner: permanently shadowed regions near the poles as cold as -414 °F, about 25 K ([NASA SVS 11230](https://svs.gsfc.nasa.gov/11230)) |
+| No lights, no permanent shadow (hard block) | Needs | A rover without lights stops at the edge of permanent shadow | Fit lights; or plan the mission on sunlit ground | VIPER was built to explore dark craters where the Sun never reaches and is NASA's first rover with headlights ([NASA Science](https://science.nasa.gov/mission/viper/rover-and-instruments/)) |
 | A colder X-ray detector gives sharper readings | Conditions | X-ray spectrometer readings finish faster in shadow; the one instrument that likes the cold | Plan readings in shade; or accept slower readings in sunlight | Curiosity's APXS reaches its best resolution below about −15 °C and can switch on a small cooler to chill its detector ("in daytime" was not confirmed) ([MSL APXS](https://an.rsl.wustl.edu/help/Content/About%20the%20mission/MSL/Instruments/APXS%20Alpha%20Particle%20X-ray%20Spectrometer.htm)) |
+
+*(Phase 5, lead decision)* The cold-and-dark lights lesson (a photo in shadow comes out black) is dropped: a rover without lights cannot enter permanent shadow, so it could never happen. No lights is instead a lesson of its own, discovered at the shadow edge, and still a hard block in the review. The earlier VIPER-lights citation ([NTRS](https://ntrs.nasa.gov/api/citations/20220008301/downloads/2022-06-02-spaceops-viper-planning.pdf)) was not confirmed; NASA's VIPER page, which says VIPER is NASA's first rover with headlights, was checked instead.
 
 The retroreflector's need for Earth in view is a condition of a single instrument, already in its catalog entry, not a relationship between parts. Stopping to drill, touch, or deploy is a base rule for all instruments.
 
@@ -544,10 +549,12 @@ The retroreflector's need for Earth in view is a condition of a single instrumen
 
 ### Checked claims
 
-Two claims were checked against sources on November 15 before going in:
+Two claims were checked against sources on November 15 before going in (Phase 5 checked two more: see the end of this list):
 
 - **Heater units and neutron noise: not used.** A light-weight radioisotope heater unit holds about 2.7 g of plutonium dioxide, against about 4.8 kg in an MMRTG. By that ratio (our estimate) a rover with 1 to 10 heater units has roughly 0.1% to 2% of an RTG's neutron output, too little to matter next to the cosmic-ray background. The noise relationship applies only to a full RTG, so it starts on Mars. Safe wording: "A small heater gives off only a few neutrons, but a big nuclear generator gives off enough to drown out a neutron detector."
 - **X-ray detector and cold: used, worded carefully.** Curiosity's APXS documentation confirms a colder detector gives sharper readings and that it uses a cooler. That the team ran it overnight *for this reason* is not documented, so the game does not say so. Safe wording: "Curiosity's X-ray tool gets sharper readings when its detector is colder, so it uses a small cooler to chill the detector."
+- **Diviner's 25 K: reworded** *(Phase 5)*. NASA SVS 11230 gives "as low as -414 °F" for permanently shadowed regions (about -248 °C, 25 K by conversion). Paige et al. (2010) does not give 25 K in its abstract (it gives about 38 K at the LCROSS site), so it is no longer cited for this number. NASA's 2009 Hermite crater figure (-248 °C, 25 K) is one crater, near the north pole.
+- **VIPER's headlights: used** *(Phase 5)*. NASA's VIPER rover and instruments page says VIPER is NASA's first rover with headlights, next to "VIPER will explore inside dark craters where the Sun never reaches." The game says only that, not that VIPER could not drive without them.
 
 ### Questions for relationships
 
