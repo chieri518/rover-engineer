@@ -1,7 +1,7 @@
 {
   "_about": "Mars overlay, deep-merged over data/text.json (arrays replace). Owners: campaign and screens (M4) everything here except survey, instruments and drill (milestones and survey, M5). Integration (M6) wires the sol, night and storm strings into the HUD; they may use the {placeholders} of missionVars() in src/ui/tutorialText.ts. Every real fact cites its source (historySources, campaign.sources).",
   "partText": {
-    "_about": "Mars wording for the shared parts (data/parts.json), by part id; names and numbers stay the Moon's. Matches the Mars rules: no driving at night without lights, map-wide night cold, solar income by day only and less in a dust storm, soft ground only in Seitah's sand ripples.",
+    "_about": "Mars wording for the shared parts (data/parts.json), by part id; numbers stay the Moon's. Matches the Mars rules: no driving at night without lights, map-wide night cold, solar income by day only and less in a dust storm, soft ground only in Seitah's sand ripples.",
     "wheels-solid": { "description": "Cheap and heavy. Lower grip in sand ripples." },
     "power-fixed-panel": { "description": "A flat panel. Solar income by day, most with the Sun high. Nothing at night, less in a dust storm." },
     "power-solar-mast": { "description": "Twice the fixed panel's solar income. Nothing at night, less in a dust storm. Light, expensive and bulky." },
@@ -9,7 +9,7 @@
     "lights-led": { "description": "Lets the rover keep driving at night, at a high battery cost." },
     "heater-none": { "description": "Saves cost, mass, and space. The rover freezes in its first night." },
     "heater-rhu": { "description": "Steady heat from decaying isotopes. Lets the rover survive the night cold." },
-    "instrument-drill": { "description": "Drills rock cores. Heavier and bulkier than the camera." }
+    "instrument-drill": { "name": "Rock drill", "description": "Drills rock cores. Heavier and bulkier than the camera." }
   },
   "landing": {
     "heading": "Landing: Jezero crater",
