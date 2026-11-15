@@ -8,7 +8,8 @@
     "startingBudget": 750,
     "minimumBudget": {
       "moon": 520,
-      "mars": 780
+      "mars": 780,
+      "titan": 0
     }
   },
   "payout": {

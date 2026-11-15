@@ -1,0 +1,150 @@
+{
+  "_about": "Mars overlay: replaces the Moon's milestone list (arrays replace). Ids are prefixed or distinct from the Moon's, because records are kept per campaign.",
+  "_interface": "money and rp are placeholders set with Owner A.",
+  "_placeholder": "Milestones and survey track (M5): triggers, zones, summaries and fact-checked facts.",
+  "milestones": [
+    {
+      "id": "mars-touchdown",
+      "name": "Touchdown",
+      "category": "record",
+      "record": true,
+      "trigger": {
+        "type": "landing"
+      },
+      "requires": {},
+      "money": 50,
+      "rp": 5,
+      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
+      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
+      "source": "[placeholder]"
+    },
+    {
+      "id": "mars-odometer",
+      "name": "Odometer",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "distance",
+        "meters": [
+          500,
+          1000,
+          2000
+        ]
+      },
+      "requires": {},
+      "money": 20,
+      "rp": 2,
+      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
+      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
+      "source": "[placeholder]"
+    },
+    {
+      "id": "mars-mapper",
+      "name": "Mapper",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "explore",
+        "share": 0.018
+      },
+      "requires": {},
+      "money": 40,
+      "rp": 4,
+      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
+      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
+      "source": "[placeholder]"
+    },
+    {
+      "id": "night-drive",
+      "name": "Night drive",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "night-distance",
+        "meters": [
+          200
+        ]
+      },
+      "requires": {
+        "slots": [
+          "lights",
+          "heater"
+        ]
+      },
+      "money": 60,
+      "rp": 6,
+      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
+      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
+      "source": "[placeholder]"
+    },
+    {
+      "id": "storm-survivor",
+      "name": "Storm survivor",
+      "category": "capability",
+      "record": false,
+      "trigger": {
+        "type": "storm-survive"
+      },
+      "requires": {},
+      "money": 60,
+      "rp": 6,
+      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
+      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
+      "source": "[placeholder]"
+    },
+    {
+      "id": "delta-layers",
+      "name": "Delta layers",
+      "category": "scientific",
+      "record": false,
+      "trigger": {
+        "type": "photo",
+        "zone": "delta-layers"
+      },
+      "requires": {
+        "instrument": "camera"
+      },
+      "money": 80,
+      "rp": 20,
+      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
+      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
+      "source": "[placeholder]"
+    },
+    {
+      "id": "lake-sediment-sample",
+      "name": "Lake sediment sample",
+      "category": "scientific",
+      "record": false,
+      "trigger": {
+        "type": "drill",
+        "sites": 3
+      },
+      "requires": {
+        "instrument": "drill"
+      },
+      "money": 40,
+      "rp": 10,
+      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
+      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
+      "source": "[placeholder]"
+    },
+    {
+      "id": "blue-sunset",
+      "name": "Blue sunset",
+      "category": "picture",
+      "record": false,
+      "trigger": {
+        "type": "photo",
+        "target": "sunset"
+      },
+      "requires": {
+        "instrument": "camera"
+      },
+      "money": 40,
+      "rp": 4,
+      "summary": "[placeholder] The milestones and survey track (M5) writes this.",
+      "fact": "[placeholder] M5 adds one fact-checked history sentence.",
+      "source": "[placeholder]"
+    }
+  ]
+}

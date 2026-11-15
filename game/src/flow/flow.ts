@@ -1,10 +1,12 @@
-// Screen flow: title → design → ticket → landing → mission → debrief,
-// then restart round (back to design, snapshot restored) or "Mars: coming soon".
-import type { DraftBuild, GameData } from '../rules/types';
+// Screen flow: title → design → ticket → landing → mission → debrief, then restart the round (back to
+// design, snapshot restored) or continue to the next world's design screen (Moon → Mars), and after the
+// last world the "coming soon" screen (screen id marsSoon; on Mars its text reads "Titan: coming soon").
+import type { DraftBuild, GameData, MissionId } from '../rules/types';
 import {
-  buyRover, finishMission, newCampaign, restartRound, startRound,
+  buyRover, finishMission, isPlayable, newCampaign, normalizeCampaign, restartRound, startRound,
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
+import { worldOfStep, type WorldId } from '../worlds';
 import type { MissionResult } from '../rules/payout';
 import { quoteBuild } from '../rules/quote';
 import { isCompleteBuild } from '../rules/rover';
@@ -34,16 +36,30 @@ export class Game {
   settings: Settings = loadSettings();
   /** Tutorials already seen; each opens by itself only the first time its screen is reached. */
   tutorialSeen: TutorialSeen = loadTutorialSeen();
+  /**
+   * The world whose data the screens show: the campaign's mission, except that the debrief keeps the
+   * world just played until the player continues (finishMission has already moved the campaign on).
+   */
+  world: WorldId;
   private current: ScreenId = 'title';
   private cleanup: (() => void) | null = null;
+  /** false for a debug start (?world=mars): the throwaway campaign does not overwrite the save. */
+  private persist = true;
 
   constructor(
-    readonly data: GameData,
+    private readonly dataFor: (world: WorldId) => GameData,
     private readonly root: HTMLElement,
     private readonly screens: Record<ScreenId, Screen>,
   ) {
-    this.campaign = loadCampaign();
+    const saved = loadCampaign();
+    this.campaign = saved && normalizeCampaign(saved);
     this.build = this.campaign?.lastBuild ?? {};
+    this.world = this.campaign ? worldOfStep(this.campaign.mission) : 'moon';
+  }
+
+  /** The current world's game data (shared data with the world's overlay). */
+  get data(): GameData {
+    return this.dataFor(this.world);
   }
 
   get screen(): ScreenId {
@@ -62,7 +78,7 @@ export class Game {
 
   private setCampaign(state: CampaignState): CampaignState {
     this.campaign = state;
-    saveCampaign(state);
+    if (this.persist) saveCampaign(state);
     return state;
   }
 
@@ -73,6 +89,8 @@ export class Game {
   }
 
   newCampaign(): void {
+    this.persist = true;
+    this.world = 'moon';
     clearCampaign();
     this.setCampaign(startRound(newCampaign(this.data.tuning)));
     this.build = {};
@@ -80,10 +98,29 @@ export class Game {
     this.go('design');
   }
 
+  /** From the title or the debrief: on to the campaign's current mission, or the coming-soon screen at the end. */
   continueCampaign(): void {
-    if (this.state.completed.includes('moon')) return this.go('marsSoon');
+    const mission = this.state.mission;
+    this.world = worldOfStep(mission);
+    this.outcome = null;
+    if (!isPlayable(mission)) return this.go('marsSoon');
     // Any round in progress is rolled back to its snapshot, as on a restart.
     this.setCampaign(startRound(restartRound(this.state)));
+    this.go('design');
+  }
+
+  /**
+   * Debug start (?world=mars): a throwaway campaign at that world's mission with the earlier missions
+   * marked completed, straight to the design screen. It is not saved.
+   */
+  debugStart(world: MissionId): void {
+    this.persist = false;
+    this.world = world;
+    const order: MissionId[] = ['moon', 'mars'];
+    const fresh = newCampaign(this.data.tuning);
+    this.setCampaign(startRound({ ...fresh, mission: world, completed: order.slice(0, order.indexOf(world)) }));
+    this.build = {};
+    this.outcome = null;
     this.go('design');
   }
 

@@ -1,0 +1,14 @@
+{
+  "_about": "Mars overlay, deep-merged over data/events.json. Solar flares and moonquakes stay on the Moon (null removes them). Types: rules/types.ts EventsFile, rules/marsTypes.ts DustStormSpec.",
+  "flare": null,
+  "quake": null,
+  "duststorm": {
+    "_placeholder": "Rules track (M3) sets these. Design: one regional storm per mission, forecast a sol ahead, solar income about a third for about 2 sols, milder nights.",
+    "windowsSeconds": [[180, 360]],
+    "warningSeconds": 60,
+    "durationSeconds": 120,
+    "solarFactor": 0.33,
+    "freezeFactor": 0.5,
+    "source": "[placeholder] M3 cites the 2018 global dust storm (Opportunity's power) and MRO MARCI weather reports."
+  }
+}

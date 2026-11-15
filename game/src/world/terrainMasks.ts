@@ -1,23 +1,35 @@
 // 8-bit terrain masks for the mission systems: slope (slope.png) and the cold zones (cold-mask.png).
-// Decode formulas are in public/terrain/terrain.json. Cold zones are the permanently shadowed
-// patches (mask >= 128) connected to the terrain.json features listed in tuning.cold.zones: the
-// shadowed crater and the small cold patch in Rocky area 1. Other tiny shadowed spots are ignored.
+// Decode formulas are in each world's terrain.json. Cold zones are the permanently shadowed
+// patches (mask >= 128) connected to the terrain.json features listed in tuning.cold.zones: on the Moon
+// the shadowed crater and the small cold patch in Rocky area 1. Other tiny shadowed spots are ignored.
+// Mars has no cold mask (its night cold is map-wide), so it has no cold zones.
 import { decode } from 'fast-png';
 import type { Tuning } from '../rules/types';
 import type { SoftArea } from '../rules/ground';
+import type { MarsTerrainFeatures } from '../rules/marsTypes';
+import { terrainUrl, type WorldId } from '../worlds';
 
 interface Point { x: number; z: number }
 
+/** Moon terrain.json features (absent on Mars). */
+export interface MoonTerrainFeatures {
+  rimViewpoints: { name: string; local: Point; lookToward: Point }[];
+  shadowedCrater: { centroidLocal: Point; outlineLocal_xz: [number, number][]; entryPoint: { local: Point }; iceCandidate: { local: Point } };
+  craterDescent: { name: string; local: Point };
+}
+
+/**
+ * terrain.json features: rocky areas on every world; the Moon's and Mars's own features are optional,
+ * so each world's code checks for the ones it uses.
+ */
+export type TerrainFeatures = { rockyAreas: { name: string; local: Point; radius_m: number }[] }
+  & Partial<MoonTerrainFeatures> & Partial<Omit<MarsTerrainFeatures, 'rockyAreas'>>;
+
 /** The parts of terrain.json the mission systems read. */
 export interface FeatureInfo {
-  playArea: { pixel_m: number; samples: number; files: { slope: { file: string }; coldMask: { file: string } } };
+  playArea: { pixel_m: number; samples: number; files: { slope: { file: string }; coldMask?: { file: string }; softGround?: { file: string } } };
   landing: { local: Point & { y: number } };
-  features: {
-    rimViewpoints: { name: string; local: Point; lookToward: Point }[];
-    rockyAreas: { name: string; local: Point; radius_m: number }[];
-    shadowedCrater: { centroidLocal: Point; outlineLocal_xz: [number, number][]; entryPoint: { local: Point }; iceCandidate: { local: Point } };
-    craterDescent: { name: string; local: Point };
-  };
+  features: TerrainFeatures;
 }
 
 const PSR_THRESHOLD = 128; // terrain.json: value >= 128 means permanently shadowed
@@ -26,7 +38,10 @@ export class TerrainMasks {
   readonly n: number;
   readonly pixel: number;
   readonly half: number;
+  /** Soft ground: the Moon's fresh crater rims (its rocky areas); Mars's sand-ripple fields. */
   readonly softAreas: SoftArea[];
+  /** Where boulders lie: the rocky areas on every world. */
+  readonly boulderAreas: SoftArea[];
 
   constructor(
     readonly info: FeatureInfo,
@@ -37,7 +52,10 @@ export class TerrainMasks {
     this.n = info.playArea.samples;
     this.pixel = info.playArea.pixel_m;
     this.half = (this.n - 1) / 2;
-    this.softAreas = info.features.rockyAreas.map((a) => ({ x: a.local.x, z: a.local.z, radiusM: a.radius_m }));
+    const circles = (list: { local: Point; radius_m: number }[]) => list.map((a) => ({ x: a.local.x, z: a.local.z, radiusM: a.radius_m }));
+    this.boulderAreas = circles(info.features.rockyAreas);
+    const sand = info.features.softGround?.areas;
+    this.softAreas = sand ? circles(sand) : this.boulderAreas;
   }
 
   private index(x: number, z: number): number {
@@ -67,8 +85,8 @@ async function fetchMask(url: string): Promise<{ data: Uint8Array; n: number }> 
 /** Where each named cold zone's feature sits: a terrain.json feature key or a feature name. */
 function zoneAnchor(info: FeatureInfo, zone: string): Point | null {
   const f = info.features;
-  if (zone === 'shadowedCrater') return f.shadowedCrater.centroidLocal;
-  const named = [...f.rimViewpoints, ...f.rockyAreas, f.craterDescent].find((p) => p.name === zone);
+  if (zone === 'shadowedCrater') return f.shadowedCrater?.centroidLocal ?? null;
+  const named = [...(f.rimViewpoints ?? []), ...f.rockyAreas, ...(f.craterDescent ? [f.craterDescent] : [])].find((p) => p.name === zone);
   return named?.local ?? null;
 }
 
@@ -111,24 +129,29 @@ function coldZones(psr: Uint8Array, n: number, pixel: number, anchors: Point[], 
   return zone;
 }
 
-let cached: Promise<TerrainMasks> | null = null;
+const cache = new Map<WorldId, Promise<TerrainMasks>>();
 
-export function loadTerrainMasks(tuning: Tuning): Promise<TerrainMasks> {
-  cached ??= (async () => {
-    const base = `${import.meta.env.BASE_URL}terrain/`;
+/** A world's masks, loaded once per world (the cold zones depend on that world's tuning.cold). */
+export function loadTerrainMasks(tuning: Tuning, world: WorldId): Promise<TerrainMasks> {
+  let cached = cache.get(world);
+  if (cached) return cached;
+  cached = (async () => {
+    const base = terrainUrl(world);
     const res = await fetch(`${base}terrain.json`);
     if (!res.ok) throw new Error(`could not load terrain.json: ${res.status}`);
     const info = (await res.json()) as FeatureInfo;
+    const coldFile = info.playArea.files.coldMask?.file;
     const [slope, psr] = await Promise.all([
       fetchMask(base + info.playArea.files.slope.file),
-      fetchMask(base + info.playArea.files.coldMask.file),
+      coldFile ? fetchMask(base + coldFile) : null,
     ]);
     const anchors = tuning.cold.zones.map((z) => zoneAnchor(info, z)).filter((p): p is Point => p !== null);
-    const cold = coldZones(psr.data, psr.n, info.playArea.pixel_m, anchors, tuning.cold.zoneSearchRadiusM);
+    const cold = psr
+      ? coldZones(psr.data, psr.n, info.playArea.pixel_m, anchors, tuning.cold.zoneSearchRadiusM)
+      : new Uint8Array(slope.n * slope.n);
     return new TerrainMasks(info, slope.data, cold);
   })();
-  cached.catch(() => {
-    cached = null;
-  });
+  cache.set(world, cached);
+  cached.catch(() => cache.delete(world));
   return cached;
 }

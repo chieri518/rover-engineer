@@ -3,6 +3,7 @@
 import type { Screen } from '../flow/flow';
 import type { CreditEntry, HistoryKey, TextFile } from '../rules/types';
 import { el, fill } from './dom';
+import { terrainUrl, type WorldId } from '../worlds';
 
 /** The fields of public/terrain/terrain.json this screen reads. */
 interface TerrainSources {
@@ -61,8 +62,8 @@ function handEntry(e: CreditEntry): HTMLLIElement {
   return entry(e.label, e.text, e.citation, urls(e.url));
 }
 
-async function fetchJson<T>(file: string): Promise<T> {
-  const res = await fetch(`${import.meta.env.BASE_URL}terrain/${file}`);
+async function fetchJson<T>(world: WorldId, file: string): Promise<T> {
+  const res = await fetch(terrainUrl(world, file));
   if (!res.ok) throw new Error(`${file}: ${res.status}`);
   return (await res.json()) as T;
 }
@@ -119,7 +120,7 @@ export const creditsScreen: Screen = (game, root) => {
 
       section(c.terrain, terrain),
       section(c.imagery, imagery),
-      section(c.spaceWeather,
+      flare && section(c.spaceWeather,
         el('ul', { class: 'credit-list' },
           entry(null, flare.source,
             fill(c.flaresUsed, { list: flare.realFlares.map((f) => `${f.class} (${f.date})`).join(', ') })))),
@@ -139,11 +140,11 @@ export const creditsScreen: Screen = (game, root) => {
     ),
   );
 
-  void fetchJson<TerrainSources>('terrain.json')
+  void fetchJson<TerrainSources>(game.world, 'terrain.json')
     .then((info) => terrainList(info, c))
     .catch(() => fallback(c, c.terrainFallback))
     .then((nodes) => { if (!disposed) terrain.replaceChildren(...nodes); });
-  void fetchJson<TextureSource>('texture.json')
+  void fetchJson<TextureSource>(game.world, 'texture.json')
     .then((info) => imageryList(info, c))
     .catch(() => fallback(c, [c.imageryFallback]))
     .then((nodes) => { if (!disposed) imagery.replaceChildren(...nodes); });

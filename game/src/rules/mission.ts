@@ -158,8 +158,9 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
       else state.flaresHarmed++;
       notices.push({ kind: 'flare-hit', flare: ev.flare, protected: safe, damage });
     } else {
-      hurt('quake', events.quake.damage);
-      notices.push({ kind: 'quake', damage: events.quake.damage });
+      const damage = events.quake?.damage ?? 0;
+      hurt('quake', damage);
+      notices.push({ kind: 'quake', damage });
     }
   });
   state.eventStages = stages;

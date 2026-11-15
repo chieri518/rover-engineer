@@ -14,6 +14,7 @@ import { ALBEDO_MEAN, createMoonLightUniforms, patchMoonLighting } from './lunar
 import { Sky } from './sky';
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
+import { terrainUrl, type WorldId } from '../worlds';
 import { RoverVehicle } from '../rover/vehicle';
 import { KeyboardInput } from '../rover/input';
 import type { DriveInput } from '../rover/vehicle';
@@ -69,6 +70,8 @@ export interface MoonDriveLimits {
 
 export interface MoonSceneOptions {
   container: HTMLElement;
+  /** Which world's terrain and albedo to load. Sky and lighting stay lunar until the Mars sky track (M2). */
+  world: WorldId;
   data: GameData;
   rover: RoverParams;
   parts?: Part[]; // the selected parts, for the rover model
@@ -102,7 +105,7 @@ const HARD_STOP_KEEP = 0.9; // share of horizontal velocity kept per physics ste
 export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene> {
   const { container, data } = opts;
   const tuning = data.tuning;
-  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(), initRapier(), loadAlbedo()]);
+  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(opts.world), initRapier(), loadAlbedo(opts.world)]);
   const { fine, near, far, info } = terrain;
   const site = { latitudeDeg: info.sunAndEarth.siteLatitude_deg, longitudeDeg: info.sunAndEarth.siteLongitude_deg };
 
@@ -512,9 +515,9 @@ interface TextureInfo {
  * on heightmap vertex (col, row), so the image spans half a pixel beyond the grid on each side.
  * Returns null if it fails to load: the ground is then plain regolith.
  */
-async function loadAlbedo(): Promise<{ texture: THREE.Texture; minX: number; minZ: number; span: number } | null> {
+async function loadAlbedo(world: WorldId): Promise<{ texture: THREE.Texture; minX: number; minZ: number; span: number } | null> {
   try {
-    const base = `${import.meta.env.BASE_URL}terrain/`;
+    const base = terrainUrl(world);
     const res = await fetch(`${base}texture.json`);
     if (!res.ok) return null;
     const { playArea: p } = (await res.json()) as TextureInfo;

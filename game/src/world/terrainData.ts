@@ -1,6 +1,8 @@
-// Loads the terrain pipeline outputs from public/terrain/ (see game/tools/README.md and terrain.json).
-// 16-bit PNGs are decoded with fast-png: a browser canvas would cut them to 8 bits.
+// Loads the terrain pipeline outputs from each world's terrain folder (public/terrain/ for the Moon, see
+// src/worlds.ts; game/tools/README.md and terrain.json). 16-bit PNGs are decoded with fast-png: a browser
+// canvas would cut them to 8 bits.
 import { decode } from 'fast-png';
+import { terrainUrl, type WorldId } from '../worlds';
 
 /** The parts of terrain.json the game reads. */
 export interface TerrainInfo {
@@ -89,12 +91,14 @@ async function fetchGrid(url: string, minM: number, maxM: number, pixel: number)
   return new HeightGrid(png.width, pixel, heights);
 }
 
-let cached: Promise<Terrain> | null = null;
+const cache = new Map<WorldId, Promise<Terrain>>();
 
-/** Loads and decodes the terrain once; later missions reuse it. */
-export function loadTerrain(): Promise<Terrain> {
-  cached ??= (async () => {
-    const base = `${import.meta.env.BASE_URL}terrain/`;
+/** Loads and decodes a world's terrain once; later missions on that world reuse it. */
+export function loadTerrain(world: WorldId): Promise<Terrain> {
+  let cached = cache.get(world);
+  if (cached) return cached;
+  cached = (async () => {
+    const base = terrainUrl(world);
     const res = await fetch(`${base}terrain.json`);
     if (!res.ok) throw new Error(`could not load terrain.json: ${res.status}`);
     const info = (await res.json()) as TerrainInfo;
@@ -119,9 +123,8 @@ export function loadTerrain(): Promise<Terrain> {
       },
     };
   })();
-  cached.catch(() => {
-    cached = null;
-  });
+  cache.set(world, cached);
+  cached.catch(() => cache.delete(world));
   return cached;
 }
 

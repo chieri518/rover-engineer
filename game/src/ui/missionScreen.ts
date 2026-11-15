@@ -252,7 +252,7 @@ export const missionScreen: Screen = (game, root) => {
     lastSlip = step.slip;
     maxImpact = Math.max(maxImpact, s.deltaV);
     for (const n of step.notices) {
-      if (n.kind === 'quake') scene?.shake(data.events.quake.shakeSeconds);
+      if (n.kind === 'quake') scene?.shake(data.events.quake?.shakeSeconds ?? 0);
       if (n.kind === 'flare-hit' && !n.protected) hud.flashScreen();
       const msg = noticeText(n, text);
       if (msg) hud.notify(msg.message, msg.tone);
@@ -334,7 +334,7 @@ export const missionScreen: Screen = (game, root) => {
     scene?.setFloodlights(!ended && !state.poweredDown && sunlight < 0.5);
     if (ended) return;
     const flare = activeFlareWarning(state, setup);
-    hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / data.events.flare.warningSeconds : 0);
+    hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / (data.events.flare?.warningSeconds ?? 1) : 0);
     const ids = lastSample ? missionWarnings(state, lastSample, lastSlip, blockedByShadow, setup, tuning) : [];
     hud.setWarnings([...(nearBoundary ? [text.mission.boundary] : []), ...ids.map(warningText)]);
     if (instrument === 'camera' && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) earthInView = scene.inView(earthDir, mt.photoFrameMargin);
@@ -361,7 +361,7 @@ export const missionScreen: Screen = (game, root) => {
   // Load three, Rapier and the terrain only when the mission starts, so the menus stay light.
   void Promise.all([import('../world/moonScene'), import('../world/terrainData'), import('../world/terrainMasks')])
     .then(async ([{ startMoonScene }, terrainData, { loadTerrainMasks }]) => {
-      const [terrain, masks] = await Promise.all([terrainData.loadTerrain(), loadTerrainMasks(tuning)]);
+      const [terrain, masks] = await Promise.all([terrainData.loadTerrain(game.world), loadTerrainMasks(tuning, game.world)]);
       if (disposed) return;
       ctx = { terrain, masks, sunVisibility: terrainData.sunVisibility };
       minimap = new Minimap(terrain.fine, masks, terrain.fine.extent - tuning.area.boundaryInsetM, text, tuning.minimap);
@@ -370,10 +370,11 @@ export const missionScreen: Screen = (game, root) => {
       hud.root.append(minimap.root);
       const started = await startMoonScene({
         container: view,
+        world: game.world,
         data,
         rover: roverParams(parts, tuning),
         parts,
-        boulderAreas: masks.softAreas,
+        boulderAreas: masks.boulderAreas,
         lightRangeM: parts.reduce((m, p) => Math.max(m, p.effects.lightRange ?? 0), 0),
         onStep,
         onFrame: (s) => onFrame({ position: s.position, nearBoundary: s.nearBoundary, forward: s.forward }),
@@ -423,9 +424,10 @@ export const missionScreen: Screen = (game, root) => {
       togglePower,
       /** Schedule a flare (warning now, hit after the warning time) or a quake (now). */
       inject(kind: 'flare' | 'quake') {
-        const at = state.seconds + (kind === 'flare' ? data.events.flare.warningSeconds : 0.1);
+        if (!data.events[kind]) return;
+        const at = state.seconds + (kind === 'flare' ? data.events.flare!.warningSeconds : 0.1);
         setup.events.push(kind === 'flare'
-          ? { kind, at, warningAt: state.seconds, flare: data.events.flare.realFlares[0]! }
+          ? { kind, at, warningAt: state.seconds, flare: data.events.flare!.realFlares[0]! }
           : { kind, at, warningAt: at });
         state = { ...state, eventStages: [...state.eventStages, 'pending'] };
       },

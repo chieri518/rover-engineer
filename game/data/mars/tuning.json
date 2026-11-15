@@ -1,0 +1,49 @@
+{
+  "_about": "Mars overlay, deep-merged over data/tuning.json (src/gameData.ts, rules/merge.ts). Keys starting with _ are notes and are dropped; null removes a shared key. Sections not listed here are the Moon's. Types: rules/types.ts Tuning, rules/marsTypes.ts.",
+  "_placeholder": "Values listed under a section's _placeholder are stubs for the track named there. Values under _interface are set with Owner A.",
+  "mission": {
+    "_note": "Decided: 10 sols in 10 minutes. gameDays counts sols on Mars. gravity: Mars surface gravity, m/s^2.",
+    "lengthSeconds": 600,
+    "gameDays": 10,
+    "gravity": 3.71
+  },
+  "payout": {
+    "_interface": "survivalPayout: Mars survival payout, Owner A sets it (placeholder: the Moon value). The Titan pass mark is budget.minimumBudget.titan in data/tuning.json (placeholder 0).",
+    "survivalPayout": 50
+  },
+  "rover": {
+    "_placeholder": "gravityScale keeps the ground gravity the Moon's handling was tuned for (3.71 x 1.75 = 6.5 m/s^2, the Moon's 1.62 x 4); airGravityScale stays the time-lapse value (16 x the world's gravity). Integration (M6) and verification tune these on the real terrain.",
+    "gravityScale": 1.75,
+    "airGravityScale": 16
+  },
+  "sun": {
+    "_placeholder": "Stand-in until the rules track (M3) adds the real Jezero Sun path on the sol clock: the lunar model with the Sun fixed near noon at Ls 200 (subsolar longitude = site longitude, solar declination -8.4 deg), so the placeholder world stays lit.",
+    "startAzimuthDeg": 77.45,
+    "degreesPerEarthDay": 0,
+    "subsolarLatitudeDeg": -8.4
+  },
+  "cold": {
+    "_note": "No cold zones on Mars: the night cold is map-wide (tuning.night, rules track M3).",
+    "zones": []
+  },
+  "survey": {
+    "_placeholder": "Milestones and survey track (M5): leads to the delta front, Seitah and a rocky area (site keys from the Mars terrain.json features). Text in data/mars/text.json survey.leads.",
+    "leads": []
+  },
+  "sol": {
+    "_note": "Decided (game-design.md, The Mars mission): 10 sols of 60 s, 45 s of day then 15 s of night, season Ls about 200. Owner: rules track (M3).",
+    "sols": 10,
+    "secondsPerSol": 60,
+    "daySeconds": 45,
+    "nightSeconds": 15,
+    "solarLongitudeDeg": 200
+  },
+  "night": {
+    "_placeholder": "Rules track (M3) sets every value here. Interface: freeze rate per night (Owner B) against heater strength and draw (Owner A).",
+    "lightsDrainPerSecond": 1,
+    "sleepDrainPerSecond": 0.1,
+    "driveWithoutLights": false,
+    "freezeRatePerSecond": 4,
+    "warmRecoveryPerSecond": 6
+  }
+}

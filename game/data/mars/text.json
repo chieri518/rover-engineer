@@ -1,0 +1,31 @@
+{
+  "_about": "Mars overlay, deep-merged over data/text.json. Strings marked [placeholder] are stubs: campaign and screens (M4) own the screens text, integration (M6) the night and storm notices, M5 the survey and milestone text.",
+  "landing": {
+    "briefing": "[placeholder] The lander has touched down on the floor of Jezero crater. The rover is deploying."
+  },
+  "mission": {
+    "briefing": "[placeholder] Ten sols on Mars. The Sun sets every sol: lights on to keep driving, or sleep until dawn.",
+    "loading": "Loading Jezero crater…"
+  },
+  "marsSoon": {
+    "heading": "Titan: coming soon",
+    "body": "[placeholder] The Mars mission is complete. Research points carry forward to Titan technology."
+  },
+  "sol": {
+    "hudSol": "Sol {sol} of {total}",
+    "lasted": "[placeholder] Lasted {sols} of {total} sols"
+  },
+  "night": {
+    "sunset": "Sunset. Lights on to keep driving, or sleep until dawn.",
+    "dawn": "[placeholder] Dawn. Solar power is back.",
+    "sleeping": "[placeholder] Asleep until dawn",
+    "noLights": "[placeholder] No lights: the rover cannot drive at night.",
+    "lightsOn": "[placeholder] Lights on"
+  },
+  "storm": {
+    "forecast": "[placeholder] Orbital weather report: a dust storm reaches the site in about a sol.",
+    "started": "[placeholder] Dust storm. Solar power is down to about a third.",
+    "cleared": "[placeholder] The dust storm has cleared.",
+    "credit": "[placeholder]"
+  }
+}

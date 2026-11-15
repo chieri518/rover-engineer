@@ -34,10 +34,11 @@ export function validateGameData(data: GameData): string[] {
       problems.push(`milestone ${m.id} requires instrument ${m.requires.instrument}, which no part provides`);
     }
   }
-  if (data.events.flare.realFlares.length < data.events.flare.windowsSeconds.length) {
+  const { flare, quake, duststorm } = data.events;
+  if (flare && flare.realFlares.length < flare.windowsSeconds.length) {
     problems.push('events.json needs at least one real flare per flare window');
   }
-  for (const [a, b] of [...data.events.flare.windowsSeconds, ...data.events.quake.windowsSeconds]) {
+  for (const [a, b] of [...(flare?.windowsSeconds ?? []), ...(quake?.windowsSeconds ?? []), ...(duststorm?.windowsSeconds ?? [])]) {
     if (!(a <= b && b <= data.tuning.mission.lengthSeconds)) problems.push(`event window [${a}, ${b}] is outside the mission`);
   }
   return problems;

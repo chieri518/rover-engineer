@@ -1,5 +1,5 @@
 // Small fixed data for unit tests, so tests do not break when game/data/ is re-tuned.
-import type { EventsFile, Milestone, Part, PartsFile, Tier, Tuning } from './types';
+import type { EventsFile, FlareSpec, Milestone, Part, PartsFile, Tier, Tuning } from './types';
 
 const part = (id: string, slot: Part['slot'], cost: number, mass: number, size: number, effects: Part['effects'] = {}): Part => ({
   id, slot, name: id, description: '', cost, mass, size, effects,
@@ -30,7 +30,7 @@ export const testTiers: Tier[] = [
 
 export const testTuning: Tuning = {
   mission: { lengthSeconds: 300, gameDays: 14, gravity: 1.62 },
-  budget: { startingBudget: 750, minimumBudget: { moon: 450, mars: 300 } },
+  budget: { startingBudget: 750, minimumBudget: { moon: 450, mars: 300, titan: 200 } },
   payout: {
     survivalPayout: 250,
     deathPenalty: { energy: 100, stuck: 200, froze: 300, destroyed: 400 },
@@ -102,7 +102,7 @@ export const testMilestones: Milestone[] = [
   milestone('dark', 80, 5, { requires: { slots: ['lights', 'heater'] } }),
 ];
 
-export const testEvents: EventsFile = {
+export const testEvents: EventsFile & { flare: FlareSpec; quake: NonNullable<EventsFile['quake']> } = {
   flare: {
     windowsSeconds: [[60, 120], [180, 260]],
     warningSeconds: 5,

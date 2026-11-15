@@ -22,21 +22,23 @@ export interface Site {
 }
 
 /** The terrain.json features the survey uses. */
+/** terrain.json features the survey reads. The Moon's own features are absent on Mars. */
 export interface SurveyFeatures {
-  rimViewpoints: { name: string; local: Point }[];
+  rimViewpoints?: { name: string; local: Point }[];
   rockyAreas: { name: string; local: Point; radius_m: number }[];
-  shadowedCrater: { outlineLocal_xz: [number, number][] };
-  craterDescent: { name: string; local: Point };
+  shadowedCrater?: { outlineLocal_xz: [number, number][] };
+  craterDescent?: { name: string; local: Point };
 }
 
 /** Sites sized like the milestone zones: viewpoint and wall zones, the boulder spread, the shadow outline. */
 export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCraterName: string): Site[] {
   const circle = (x: number, z: number, r: number): SiteArea => ({ kind: 'circle', x, z, r });
+  const { craterDescent: wall, shadowedCrater: dark } = f;
   return [
-    ...f.rimViewpoints.map((v): Site => ({ key: v.name, name: v.name, kind: 'viewpoint', area: circle(v.local.x, v.local.z, m.photoZoneRadiusM), discovered: false })),
+    ...(f.rimViewpoints ?? []).map((v): Site => ({ key: v.name, name: v.name, kind: 'viewpoint', area: circle(v.local.x, v.local.z, m.photoZoneRadiusM), discovered: false })),
     ...f.rockyAreas.map((a): Site => ({ key: a.name, name: a.name, kind: 'rocky-area', area: circle(a.local.x, a.local.z, a.radius_m * m.boulderCrossRadiusFactor), discovered: false })),
-    { key: 'craterDescent', name: f.craterDescent.name, kind: 'crater-wall', area: circle(f.craterDescent.local.x, f.craterDescent.local.z, m.photoZoneRadiusM), discovered: false },
-    { key: 'shadowedCrater', name: shadowedCraterName, kind: 'shadowed-crater', area: { kind: 'polygon', points: f.shadowedCrater.outlineLocal_xz }, discovered: false },
+    ...(wall ? [{ key: 'craterDescent', name: wall.name, kind: 'crater-wall', area: circle(wall.local.x, wall.local.z, m.photoZoneRadiusM), discovered: false } satisfies Site] : []),
+    ...(dark ? [{ key: 'shadowedCrater', name: shadowedCraterName, kind: 'shadowed-crater', area: { kind: 'polygon', points: dark.outlineLocal_xz }, discovered: false } satisfies Site] : []),
   ];
 }
 

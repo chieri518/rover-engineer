@@ -56,7 +56,7 @@ const landing: Screen = (game, root) => {
   const leads = el('ul', { class: 'survey-leads' }, el('li', { class: 'muted' }, s.loading));
   void import('../world/terrainMasks')
     .then(async ({ loadTerrainMasks }) => {
-      const masks = await loadTerrainMasks(data.tuning);
+      const masks = await loadTerrainMasks(data.tuning, game.world);
       const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName);
       const lines = briefingLines(buildLeads(sites, data.tuning.survey), masks.info.landing.local, data);
       leads.replaceChildren(...lines.map((l) => el('li', {}, l)));
@@ -180,7 +180,7 @@ const debrief: Screen = (game, root) => {
       el('div', { class: 'actions' },
         failed
           ? el('button', { class: 'primary', onclick: () => game.restartRound() }, t.restart)
-          : el('button', { class: 'primary', onclick: () => game.go('marsSoon') }, t.continue),
+          : el('button', { class: 'primary', onclick: () => game.continueCampaign() }, t.continue),
       ),
     ),
   );

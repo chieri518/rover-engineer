@@ -1,6 +1,6 @@
 // Tutorial pages with their {name} placeholders filled from the game data (no DOM, so it is testable).
 import { nextMission } from '../rules/campaign';
-import type { GameData, Instrument, MissionId } from '../rules/types';
+import type { GameData, Instrument, CampaignStep } from '../rules/types';
 import type { TutorialId } from '../save/tutorialSeen';
 import { fill, money } from './dom';
 
@@ -12,7 +12,7 @@ export interface TutorialPageText {
 export function tutorialPages(
   id: TutorialId,
   data: GameData,
-  opts: { mission: MissionId; instrument: Instrument | null },
+  opts: { mission: CampaignStep; instrument: Instrument | null },
 ): TutorialPageText[] {
   const { text, tuning, tiers, events } = data;
   const t = text.tutorial;
@@ -26,7 +26,7 @@ export function tutorialPages(
     minutes: +(tuning.mission.lengthSeconds / 60).toFixed(1),
     days: tuning.mission.gameDays,
     maxSlope: tuning.ground.maxSlopeDegrees,
-    warningSeconds: events.flare.warningSeconds,
+    warningSeconds: events.flare?.warningSeconds ?? 0,
     earthMinDistance: tuning.milestones.earthPhotoMinDistanceM,
     sampleSpacing: tuning.milestones.sampleSpacingM,
     sunlit: text.hud.sunlit,

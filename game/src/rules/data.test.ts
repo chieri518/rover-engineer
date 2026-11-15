@@ -111,15 +111,15 @@ describe('game data', () => {
   });
 
   it('flare damage grows modestly with the flare class, and a protected rover takes none', () => {
-    const flares = data.events.flare.realFlares;
+    const flares = data.events.flare!.realFlares;
     const dmg = (cls: string) => flareDamage({ ...flares[0]!, class: cls }, data.events);
-    expect(dmg('X1.0')).toBe(data.events.flare.damage);
+    expect(dmg('X1.0')).toBe(data.events.flare!.damage);
     expect(dmg('X9.0')).toBeGreaterThan(1.4 * dmg('X1.0'));
     expect(dmg('X9.0')).toBeLessThan(2.5 * dmg('X1.0'));
     expect(dmg('X9.3')).toBeGreaterThan(dmg('X3.3'));
     // The two worst real flares plus the moonquake do not destroy an otherwise undamaged rover.
     const worst = flares.map((f) => flareDamage(f, data.events)).sort((a, b) => b - a);
-    expect(worst[0]! + worst[1]! + data.events.quake.damage).toBeLessThan(data.tuning.damage.max);
+    expect(worst[0]! + worst[1]! + data.events.quake!.damage).toBeLessThan(data.tuning.damage.max);
     // Powered down in full sun, even the strongest flare does nothing.
     const strongest = [...flares].sort((a, b) => flareDamage(b, data.events) - flareDamage(a, data.events))[0]!;
     const setup = missionSetup(selectedParts(reference, data.parts), data.tuning, [

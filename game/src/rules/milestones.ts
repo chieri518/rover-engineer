@@ -11,12 +11,13 @@ export interface Point { x: number; z: number }
 export interface Point3 { x: number; y: number; z: number }
 
 /** The terrain.json features the milestones use. */
+/** terrain.json features the milestone zones read. The Moon's own features are absent on Mars. */
 export interface MilestoneFeatures {
   landing: Point3;
-  rimViewpoints: { name: string; local: Point; lookToward: Point }[];
+  rimViewpoints?: { name: string; local: Point; lookToward: Point }[];
   rockyAreas: { name: string; local: Point; radius_m: number }[];
-  shadowedCrater: { outlineLocal_xz: [number, number][]; iceCandidate: { local: Point } };
-  craterDescent: { name: string; local: Point };
+  shadowedCrater?: { outlineLocal_xz: [number, number][]; iceCandidate: { local: Point } };
+  craterDescent?: { name: string; local: Point };
 }
 
 /** Zone ids that milestones.json triggers refer to. */
@@ -37,21 +38,22 @@ export interface Zone {
 
 export function buildZones(f: MilestoneFeatures, t: MilestoneTuning): Zone[] {
   const zones: Zone[] = [];
-  f.rimViewpoints.forEach((v, i) => zones.push({
+  const { rimViewpoints = [], craterDescent: wall, shadowedCrater: dark } = f;
+  rimViewpoints.forEach((v, i) => zones.push({
     id: 'rim-viewpoint', key: `rim-viewpoint-${i}`, name: v.name,
     shape: { kind: 'circle', x: v.local.x, z: v.local.z, r: t.photoZoneRadiusM },
   }));
-  zones.push({
-    id: 'crater-wall', key: 'crater-wall', name: f.craterDescent.name,
-    shape: { kind: 'circle', x: f.craterDescent.local.x, z: f.craterDescent.local.z, r: t.photoZoneRadiusM },
+  if (wall) zones.push({
+    id: 'crater-wall', key: 'crater-wall', name: wall.name,
+    shape: { kind: 'circle', x: wall.local.x, z: wall.local.z, r: t.photoZoneRadiusM },
   });
   f.rockyAreas.forEach((a, i) => zones.push({
     id: 'boulder-field', key: `boulder-field-${i}`, name: a.name,
     shape: { kind: 'circle', x: a.local.x, z: a.local.z, r: a.radius_m * t.boulderCrossRadiusFactor },
   }));
-  zones.push({
+  if (dark) zones.push({
     id: 'shadowed-crater', key: 'shadowed-crater', name: 'Shadowed crater',
-    shape: { kind: 'polygon', points: f.shadowedCrater.outlineLocal_xz },
+    shape: { kind: 'polygon', points: dark.outlineLocal_xz },
   });
   // Ground the lander's engine plume disturbed: drill samples here do not count.
   zones.push({
@@ -59,11 +61,14 @@ export function buildZones(f: MilestoneFeatures, t: MilestoneTuning): Zone[] {
     shape: { kind: 'circle', x: f.landing.x, z: f.landing.z, r: t.sampleMinDistanceM },
   });
   // The ice spot is hidden from the player (no marker); they find it by drilling in the dark crater.
-  const ice = f.shadowedCrater.iceCandidate.local;
-  zones.push({ id: 'ice-spot', key: 'ice-spot', name: 'Ice spot', shape: { kind: 'circle', x: ice.x, z: ice.z, r: t.iceSpotRadiusM } });
+  if (dark) {
+    const ice = dark.iceCandidate.local;
+    zones.push({ id: 'ice-spot', key: 'ice-spot', name: 'Ice spot', shape: { kind: 'circle', x: ice.x, z: ice.z, r: t.iceSpotRadiusM } });
+  }
   // de Gerlache's inner wall: the side of the rim the viewpoints look toward (the north flank, toward the
   // dark crater, also drops far below the landing point and must not count).
-  const toward = f.rimViewpoints[0]?.lookToward ?? { x: 0, z: 1 };
+  if (!wall) return zones; // not the Moon
+  const toward = rimViewpoints[0]?.lookToward ?? { x: 0, z: 1 };
   zones.push({
     id: 'large-crater', key: 'large-crater', name: 'de Gerlache inner wall',
     shape: {

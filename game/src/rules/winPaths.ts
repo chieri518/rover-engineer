@@ -67,9 +67,11 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
   const parts: Part[] = selectedParts(build, data.parts);
   const quote = quoteBuild(build, data, t.budget.startingBudget);
   // The two flares, as real flares of the median class in events.json, at fixed times.
-  const flares = data.events.flare.realFlares;
+  const flareSpec = data.events.flare;
+  if (!flareSpec) throw new Error('the win-path analysis is for the Moon: it needs the flare data');
+  const flares = flareSpec.realFlares;
   const flare = [...flares].sort((a, b) => parseFloat(a.class.slice(1)) - parseFloat(b.class.slice(1)))[Math.floor(flares.length / 2)]!;
-  const events: MissionEvent[] = play.flareSeconds.map((at) => ({ kind: 'flare', at, warningAt: at - data.events.flare.warningSeconds, flare }));
+  const events: MissionEvent[] = play.flareSeconds.map((at) => ({ kind: 'flare', at, warningAt: at - flareSpec.warningSeconds, flare }));
   const setup = missionSetup(parts, t, events);
   const speed = setup.stats.topSpeed * play.speedShare;
   const instrument = parts.find((p) => p.slot === 'instrument')?.effects.instrument;
@@ -155,7 +157,7 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
     let poweredDown = false;
 
     // At each flare warning the player stops and powers down, unless the plan presses on.
-    if (flaresLeft.length && s.seconds >= flaresLeft[0]! - data.events.flare.warningSeconds) {
+    if (flaresLeft.length && s.seconds >= flaresLeft[0]! - flareSpec.warningSeconds) {
       flaresLeft.shift();
       if (!plan.ignoreFlares) busyUntil = Math.max(busyUntil, s.seconds + play.flareStopSeconds);
     }
