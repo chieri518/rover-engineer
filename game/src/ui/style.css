@@ -188,7 +188,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 
 @media (max-width: 900px) {
   .desk-grid { grid-template-columns: 1fr; }
-  .sheet { position: static; }
+  .sheet { position: relative; top: auto; } /* relative, not static: anchors its corner brackets */
 }
 @media (max-width: 560px) {
   .slot { grid-template-columns: 1fr; }
@@ -271,7 +271,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .credits p { margin: 6px 0; }
 .credits-disclaimer { border-left: 3px solid var(--accent); padding-left: 10px; }
 .credit-list { list-style: none; padding: 0; margin: 0; display: grid; }
-.credit { display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.credit { display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--line); overflow-wrap: anywhere; }
 .credit-line { font-size: 0.86rem; color: var(--muted); overflow-wrap: anywhere; }
 .credits a { color: var(--accent-soft); overflow-wrap: anywhere; }
 .credits a:hover { color: var(--accent); }
