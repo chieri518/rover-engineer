@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import terrain from '../../public/terrain/terrain.json';
-import { buildZones, MilestoneTracker, zoneContains, type MilestoneFeatures, type Point3 } from './milestones';
+import { buildZones, hydrogenSignal, MilestoneTracker, zoneContains, type MilestoneFeatures, type Point3 } from './milestones';
 import { selectedParts } from './rover';
 import { finishMission, newCampaign, startRound } from './campaign';
 import type { Build } from './types';
@@ -144,6 +144,21 @@ describe('milestone triggers', () => {
     expect(dist(ice)).toBeLessThan(dist(sc.centroidLocal));
     expect(sc.iceCandidate.depthInsideShadow_m).toBeGreaterThanOrEqual(100);
     expect(sc.iceCandidate.depthInsideShadow_m).toBeLessThanOrEqual(200);
+  });
+
+  it('Hydrogen signal: only in the dark crater, stronger nearer the ice, off with the tuning flag', () => {
+    const ice = f.shadowedCrater.iceCandidate.local;
+    const entry = f.shadowedCrater.entryPoint.local;
+    const crater = f.shadowedCrater.centroidLocal;
+    expect(hydrogenSignal(at(ice.x, ice.z), zones, t)).toBe('strong');
+    expect(hydrogenSignal(at(ice.x + t.hydrogenStrongWithinM - 10, ice.z), zones, t)).toBe('strong');
+    expect(hydrogenSignal(at(crater.x + 300, crater.z - 400), zones, t)).toBe('weak');
+    expect(hydrogenSignal(at(L.x + 300, L.z), zones, t)).toBeNull(); // outside the dark crater: no reading
+    // Just inside the edge where a rover enters, the signal is already above weak: a lead to follow.
+    const inside = at(entry.x + 0.3 * (ice.x - entry.x), entry.z + 0.3 * (ice.z - entry.z));
+    expect(zoneContains(zones.find((z) => z.id === 'shadowed-crater')!, inside)).toBe(true);
+    expect(hydrogenSignal(inside, zones, t)).toBe('moderate');
+    expect(hydrogenSignal(at(ice.x, ice.z), zones, { ...t, hydrogenSignal: false })).toBeNull();
   });
 
   it('Flare survivor on a protected flare; Clean run only when surviving without damage', () => {

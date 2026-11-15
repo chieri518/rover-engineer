@@ -3,7 +3,7 @@
 // and minimap. The mission ends at 5 minutes or on one of the four deaths, then goes to the debrief.
 import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
-import { buildZones, MilestoneTracker, type MilestoneUpdate, type Point3 } from '../rules/milestones';
+import { buildZones, hydrogenSignal, MilestoneTracker, type MilestoneUpdate, type Point3 } from '../rules/milestones';
 import { selectedParts } from '../rules/rover';
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
@@ -75,6 +75,8 @@ export const missionScreen: Screen = (game, root) => {
     state = { ...state, poweredDown: !state.poweredDown };
   };
   const ti = text.instruments;
+  const td = text.drill;
+  let hydrogenFactShown = false; // the real-world note on the hydrogen signal shows once per mission
   const controls = [text.mission.controls, instrument === 'camera' ? ti.cameraControls : instrument === 'drill' ? ti.drillControls : '']
     .filter(Boolean).join(' ');
   const hud = new Hud(text, togglePower, el('div', { class: 'hud-extra' },
@@ -126,7 +128,17 @@ export const missionScreen: Screen = (game, root) => {
     const zones = tracker.zones.filter((z) => tracker!.currentZones().includes(z)).map((z) => z.id);
     const u = tracker.drill(roverPos);
     if (zones.includes('near-lander')) hud.notify(fill(ti.drillNearLander, { distance: mt.sampleMinDistanceM }));
-    else hud.notify(zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : ti.drillDone, 'good');
+    else {
+      const result = zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : ti.drillDone;
+      // In the dark crater each sample also reads the hydrogen signal, a clue to where the ice is.
+      const level = hydrogenSignal(roverPos, tracker.zones, mt);
+      const levelWord = level === 'strong' ? td.hydrogenStrong : level === 'moderate' ? td.hydrogenModerate : td.hydrogenWeak;
+      hud.notify(level ? `${result} ${fill(td.hydrogenSignal, { level: levelWord })}` : result, 'good');
+      if (level && game.settings.missionHistory && !hydrogenFactShown) {
+        hydrogenFactShown = true;
+        hud.notify(td.hydrogenHistory, 'good');
+      }
+    }
     announce(u);
   };
 
@@ -262,7 +274,7 @@ export const missionScreen: Screen = (game, root) => {
       }
     }
     // The exact ice spot is never revealed: inside the dark crater the hint only invites a test drill.
-    if (instrument === 'drill' && zones.some((z) => z.id === 'shadowed-crater')) return ti.iceSearchHint;
+    if (instrument === 'drill' && zones.some((z) => z.id === 'shadowed-crater')) return mt.hydrogenSignal ? td.searchHintHydrogen : ti.iceSearchHint;
     return null;
   };
 

@@ -177,6 +177,9 @@ export interface MilestoneTuning {
   photoFrameMargin: number; // Earth counts as in view inside this share of the frame (NDC)
   sampleMinDistanceM: number; // drill samples count only this far from the landing point (ground the lander disturbed)
   earthPhotoMinLit: number; // the Earth photo counts only when at least this share of Earth's disc is lit (its phase)
+  hydrogenSignal: boolean; // drill samples in the dark crater report a hydrogen signal that grows nearer the ice (off: no clue)
+  hydrogenStrongWithinM: number; // "strong" within this distance of the ice spot center...
+  hydrogenModerateWithinM: number; // ..."moderate" within this one, "weak" farther away
 }
 
 /** The Sun's path over the mission. Azimuths follow terrain.json: from local -z, turning toward +x. */
@@ -288,6 +291,11 @@ export interface TextFile {
     string
   >;
   settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'back', string>;
+  drill: Record<
+    | 'searchHintHydrogen' | 'hydrogenSignal' | 'hydrogenWeak' | 'hydrogenModerate' | 'hydrogenStrong'
+    | 'hydrogenHistory' | 'hydrogenSource',
+    string
+  >;
 }
 
 export interface GameData {

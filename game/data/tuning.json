@@ -137,6 +137,9 @@
     "albumMax": 12,
     "photoFrameMargin": 0.85,
     "sampleMinDistanceM": 200,
-    "earthPhotoMinLit": 0.25
+    "earthPhotoMinLit": 0.25,
+    "hydrogenSignal": true,
+    "hydrogenStrongWithinM": 100,
+    "hydrogenModerateWithinM": 250
   }
 }

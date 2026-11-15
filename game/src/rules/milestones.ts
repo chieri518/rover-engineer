@@ -105,6 +105,23 @@ function zoneCenter(zone: Zone): Point | null {
   return zone.shape.kind === 'circle' ? { x: zone.shape.x, z: zone.shape.z } : null;
 }
 
+export type HydrogenLevel = 'weak' | 'moderate' | 'strong';
+
+/**
+ * The drill's hydrogen reading, a clue to the hidden ice spot (like LRO's LEND neutron detector, which maps
+ * hydrogen from orbit): stronger nearer the ice. Only inside the dark crater, and only when the tuning flag
+ * is on; otherwise null.
+ */
+export function hydrogenSignal(p: Point3, zones: Zone[], t: MilestoneTuning): HydrogenLevel | null {
+  if (!t.hydrogenSignal) return null;
+  const crater = zones.find((z) => z.id === 'shadowed-crater');
+  const ice = zones.find((z) => z.id === 'ice-spot');
+  const center = ice && zoneCenter(ice);
+  if (!crater || !center || !zoneContains(crater, p)) return null;
+  const d = Math.hypot(p.x - center.x, p.z - center.z);
+  return d <= t.hydrogenStrongWithinM ? 'strong' : d <= t.hydrogenModerateWithinM ? 'moderate' : 'weak';
+}
+
 /** A milestone reached this step. For staged milestones (Odometer), `stage` counts from 1. */
 export interface Reached {
   milestone: Milestone;
