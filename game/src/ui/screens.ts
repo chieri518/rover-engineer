@@ -13,18 +13,36 @@ import { ticketScreen } from './ticketScreen';
 
 const title: Screen = (game, root) => {
   const t = game.data.text.title;
+  // Live 3D cover behind the title (loaded on demand, with three.js); a CSS star field shows until it
+  // is ready and stays if WebGL is unavailable. The buttons never depend on it.
+  const cover = el('div', { class: 'title-cover', 'aria-hidden': 'true' });
+  let stopCover: (() => void) | null = null;
+  let left = false;
+  void import('./titleCover')
+    .then(({ mountTitleCover }) => {
+      if (!left) stopCover = mountTitleCover(cover, game.data.tuning.rover);
+    })
+    .catch(() => cover.classList.add('fallback'));
   root.append(
-    panel(
+    cover,
+    el('div', { class: 'title-scrim', 'aria-hidden': 'true' }),
+    el('section', { class: 'panel title-panel' },
+      el('p', { class: 'title-kicker' }, t.kicker),
       el('h1', {}, t.heading),
-      el('p', { class: 'muted' }, t.subtitle),
-      el('div', { class: 'actions' },
+      el('p', { class: 'title-subtitle' }, t.subtitle),
+      el('div', { class: 'actions column' },
         el('button', { class: 'primary', onclick: () => game.newCampaign() }, t.newCampaign),
         game.campaign && el('button', { onclick: () => game.continueCampaign() }, t.continueCampaign),
         el('button', { onclick: () => game.go('settings') }, game.data.text.settings.open),
         el('button', { id: 'open-credits', onclick: () => game.go('credits') }, game.data.text.credits.open),
       ),
     ),
+    el('p', { class: 'title-caption' }, t.coverCaption),
   );
+  return () => {
+    left = true;
+    stopCover?.();
+  };
 };
 
 const landing: Screen = (game, root) => {

@@ -43,7 +43,7 @@ function makeStars(): THREE.Points {
   return new THREE.Points(geometry, material);
 }
 
-function glowTexture(): THREE.CanvasTexture {
+export function glowTexture(): THREE.CanvasTexture {
   const size = 256;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
@@ -63,7 +63,7 @@ function glowTexture(): THREE.CanvasTexture {
 }
 
 /** A simple procedural Earth: oceans, land and cloud bands. Phase 6 can swap in a real image. */
-function earthTexture(): THREE.CanvasTexture {
+export function earthTexture(): THREE.CanvasTexture {
   const w = 512;
   const h = 256;
   const canvas = document.createElement('canvas');

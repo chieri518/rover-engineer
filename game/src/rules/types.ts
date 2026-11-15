@@ -252,7 +252,7 @@ export interface TextFile {
   moneyPrefix: string;
   moneySuffix: string;
   moneyNote: string;
-  title: Record<'heading' | 'subtitle' | 'newCampaign' | 'continueCampaign', string>;
+  title: Record<'heading' | 'subtitle' | 'kicker' | 'coverCaption' | 'newCampaign' | 'continueCampaign', string>;
   slots: Record<Slot, string>;
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
