@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import type { RoverParams } from '../rules/drive';
-import type { RoverHandling } from '../rules/types';
+import type { Part, RoverHandling } from '../rules/types';
 
 type Rapier = typeof RAPIER;
 
@@ -38,6 +38,7 @@ export class RoverVehicle {
     private params: RoverParams,
     private readonly handling: RoverHandling,
     start: { x: number; y: number; z: number; headingDeg: number },
+    parts: Part[] = [],
   ) {
     const h = handling;
     const { lengthM: l, widthM: w, heightM: ht } = h.body;
@@ -78,7 +79,7 @@ export class RoverVehicle {
       this.controller.setWheelSideFrictionStiffness(i, h.sideFrictionStiffness);
     });
     this.setParams(params);
-    this.buildModel(connectY);
+    this.buildModel(connectY, parts);
     this.teleport(start.x, start.y, start.z, start.headingDeg);
   }
 
@@ -210,7 +211,7 @@ export class RoverVehicle {
     }
   }
 
-  private buildModel(connectY: number): void {
+  private buildModel(connectY: number, _parts: Part[]): void {
     const h = this.handling;
     const { lengthM: l, widthM: w, heightM: ht } = h.body;
     const bodyMat = new THREE.MeshLambertMaterial({ color: 0xd8d4c8 });

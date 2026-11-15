@@ -1,7 +1,7 @@
 // The drivable Moon: terrain, rover, low Sun with moving shadows, sky, and the operating boundary.
 // The mission screen starts it and runs the mission systems on top through onStep and onFrame.
 import * as THREE from 'three';
-import type { GameData } from '../rules/types';
+import type { GameData, Part } from '../rules/types';
 import type { RoverParams } from '../rules/drive';
 import { skyDirection, sunAt, type SkyDirection } from '../rules/sun';
 import { horizonMarginTan, loadTerrain, type Terrain } from './terrainData';
@@ -68,6 +68,7 @@ export interface MoonSceneOptions {
   container: HTMLElement;
   data: GameData;
   rover: RoverParams;
+  parts?: Part[]; // the selected parts, for the rover model
   boulderAreas?: SoftArea[];
   lightRangeM?: number; // floodlights on the rover (0 or undefined: none)
   onFrame?: (state: MoonFrameState) => void;
@@ -166,7 +167,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     y: fine.sample(landing.x, landing.z),
     z: landing.z,
     headingDeg: tuning.rover.startHeadingDeg,
-  });
+  }, opts.parts ?? []);
   rover.object.traverse((obj) => {
     if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshLambertMaterial) {
       patchMoonLighting(obj.material, lightUniforms, false);

@@ -306,6 +306,7 @@ export const missionScreen: Screen = (game, root) => {
         container: view,
         data,
         rover: roverParams(parts, tuning),
+        parts,
         boulderAreas: masks.softAreas,
         lightRangeM: parts.reduce((m, p) => Math.max(m, p.effects.lightRange ?? 0), 0),
         onStep,
