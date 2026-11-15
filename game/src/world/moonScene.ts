@@ -9,7 +9,7 @@ import { Boulders } from './boulders';
 import type { SoftArea } from '../rules/ground';
 import { ChunkLayer } from './terrainChunks';
 import { SunMasks } from './sunMask';
-import { createMoonLightUniforms, patchMoonLighting } from './lunarLighting';
+import { ALBEDO_MEAN, createMoonLightUniforms, patchMoonLighting } from './lunarLighting';
 import { Sky } from './sky';
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
@@ -30,6 +30,8 @@ const MAX_PIXEL_RATIO = 1.5;
 const PHYSICS_STEP = 1 / 60;
 const CHUNK_REBUILDS_PER_FRAME = 2;
 const MASK_BANDS: [number, number, number] = [16, 4, 2];
+const ALBEDO_EDGE_FADE_M = 150; // the LROC albedo blends to the plain regolith tone at the play-area edge
+const MAX_ANISOTROPY = 8;
 
 export interface MoonFrameState {
   seconds: number; // mission time; the HUD does not show it (time reads from the Sun)
@@ -99,7 +101,7 @@ const HARD_STOP_KEEP = 0.9; // share of horizontal velocity kept per physics ste
 export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene> {
   const { container, data } = opts;
   const tuning = data.tuning;
-  const [terrain, rapier] = await Promise.all([loadTerrain(), initRapier()]);
+  const [terrain, rapier, albedo] = await Promise.all([loadTerrain(), initRapier(), loadAlbedo()]);
   const { fine, near, far, info } = terrain;
   const site = { latitudeDeg: info.sunAndEarth.siteLatitude_deg, longitudeDeg: info.sunAndEarth.siteLongitude_deg };
 
@@ -122,9 +124,19 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   lightUniforms.moonMaskFine.value = masks.fine;
   lightUniforms.moonMaskNear.value = masks.near;
   lightUniforms.moonMaskFar.value = masks.far;
+  if (albedo) {
+    albedo.texture.anisotropy = Math.min(MAX_ANISOTROPY, renderer.capabilities.getMaxAnisotropy());
+    lightUniforms.moonAlbedo.value = albedo.texture;
+    lightUniforms.moonAlbedoRect.value.set(albedo.minX, albedo.minZ, albedo.span, ALBEDO_EDGE_FADE_M);
+  } else {
+    // No map: a 1×1 texture at the mean albedo, so the shader stays the same and the ground is plain.
+    lightUniforms.moonAlbedo.value = plainAlbedo();
+  }
+  // The play area gets the albedo map and fine detail; the distant rings stay plain regolith of the same mean tone.
+  const groundMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: REGOLITH_COLOR }), lightUniforms, true, true);
   const terrainMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: REGOLITH_COLOR }), lightUniforms, true);
   const layers = [
-    new ChunkLayer({ grid: fine, chunkCells: 100, lod: { steps: [1, 2, 4, 10], distances: [500, 1200, 2500, Infinity] } }, terrainMaterial),
+    new ChunkLayer({ grid: fine, chunkCells: 100, lod: { steps: [1, 2, 4, 10], distances: [500, 1200, 2500, Infinity] } }, groundMaterial),
     new ChunkLayer({ grid: near, chunkCells: 100, inner: fine, lod: { steps: [1, 2, 4], distances: [7000, 15000, Infinity] } }, terrainMaterial),
     new ChunkLayer({ grid: far, chunkCells: 100, inner: near, lod: { steps: [1, 2], distances: [50000, Infinity] } }, terrainMaterial),
   ];
@@ -422,6 +434,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       world.free();
       for (const layer of layers) layer.dispose();
       terrainMaterial.dispose();
+      groundMaterial.dispose();
+      lightUniforms.moonAlbedo.value?.dispose();
       masks.dispose();
       sky.dispose();
       renderer.dispose();
@@ -432,3 +446,41 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   };
 }
 
+
+/** The parts of texture.json the game reads. */
+interface TextureInfo {
+  playArea: { file: string; size_px: [number, number]; pixel_m: number };
+}
+
+/**
+ * The LROC albedo map of the play area (public/terrain/texture.json): pixel (col, row) is centered
+ * on heightmap vertex (col, row), so the image spans half a pixel beyond the grid on each side.
+ * Returns null if it fails to load: the ground is then plain regolith.
+ */
+async function loadAlbedo(): Promise<{ texture: THREE.Texture; minX: number; minZ: number; span: number } | null> {
+  try {
+    const base = `${import.meta.env.BASE_URL}terrain/`;
+    const res = await fetch(`${base}texture.json`);
+    if (!res.ok) return null;
+    const { playArea: p } = (await res.json()) as TextureInfo;
+    const texture = await new THREE.TextureLoader().loadAsync(base + p.file);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.flipY = false; // row 0 is grid north (−z): v = 0 there
+    texture.wrapS = texture.wrapT = THREE.ClampToEdgeWrapping;
+    texture.needsUpdate = true;
+    const span = p.size_px[0] * p.pixel_m;
+    return { texture, minX: -span / 2, minZ: -span / 2, span };
+  } catch {
+    return null;
+  }
+}
+
+function plainAlbedo(): THREE.Texture {
+  const srgb = new THREE.Color().setRGB(ALBEDO_MEAN, ALBEDO_MEAN, ALBEDO_MEAN, THREE.LinearSRGBColorSpace)
+    .getRGB({ r: 0, g: 0, b: 0 }, THREE.SRGBColorSpace);
+  const v = Math.round(srgb.r * 255);
+  const texture = new THREE.DataTexture(new Uint8Array([v, v, v, 255]), 1, 1);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.needsUpdate = true;
+  return texture;
+}
