@@ -111,7 +111,7 @@ Each phase ends with tests and the build passing, a browser check, and a commit.
 - Desk (`ui/designScreen.ts`): the bay as a fieldset of instrument cards with checkboxes and an "n of m mounting points" counter; cards disable when the bay is full; a "No instruments" button confirms an empty bay. Changing chassis to one with fewer points drops the last-added instruments with a notice.
 - Preview and model (`rover/roverModel.ts`, `ui/buildPreview.ts`, `ui/titleCover.ts`): `RoverLook.instrument` becomes `instruments: Instrument[]`; camera and drill can both be drawn, each in its own mount position.
 - Mission (`ui/missionScreen.ts`): instruments are used with keys 1 to 3 (bay order) and HUD buttons, replacing the fixed C and F keys. Camera and drill behave exactly as today.
-- Balance model (`rules/balance.ts`, `rules/winPaths.ts`, `data/balance.json`): archetype builds get `payload` lists; `allBuilds` enumerates payload subsets that fit; plan stops say which instrument to use (`"use": "camera"`).
+- Balance model (`rules/balance.ts`, `rules/winPaths.ts`, `data/balance.json`): archetype builds get `payload` lists; `allBuilds` enumerates payload subsets that fit; plan stops list which instruments to use (`"use": ["camera", "drill"]`).
 
 **Done when:** a steel rover can carry the camera and the drill together, take a photo and a sample in the same mission, and both milestones credit; a titanium rover refuses a third instrument.
 
@@ -137,7 +137,7 @@ All behavior is pure rules in a new `rules/instruments.ts`; the mission screen o
 | Laser retroreflector | Deploy only where Earth is above the terrain horizon, using the existing `horizonMarginTan` test from the rover's position (no camera frame check) | An "Earth in view" light while it is aboard; refused with a notice when Earth is hidden. |
 
 - **Deployables:** using a station removes its part from the rover. `rules/mission.ts` gets `deployPart(setup, part, allParts, tuning)`, which recomputes `stats` (mass, speed, energy per meter, sinkage) from the remaining parts; the rover model drops the part and the world places a static station mesh.
-- **Rock types:** the weighted list is placeholder content (south polar highland rocks, such as anorthosite, impact melt breccia, regolith breccia). Which rocks lie where is Moon-level content and comes with the milestones later.
+- **Rock types:** the weighted list is placeholder content (south polar highland rocks, such as anorthosite, impact melt breccia, regolith breccia). Which rocks lie where is Moon-level content and comes with the milestones later. *(Decided November 15:)* document the placeholder in rover-engineering-design.md, with notes for the later map work: how rock types are assigned today, what a real assignment would need from the map (for example rock types per rocky area or by distance from a crater, and whether the terrain pipeline should export them), and how that would change the X-ray spectrometer's readings and any future milestones.
 - **Debrief:** an "Instrument log" section lists what the new instruments recorded (rock types read, the quake record and its quality, reflector placed). It earns nothing yet.
 - **Mission history:** one fact per new instrument the first time it is used, from `text.json`, with sources, as for the hydrogen fact today.
 
