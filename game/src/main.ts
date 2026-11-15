@@ -1,3 +1,10 @@
+// Self-hosted fonts (no request to Google): only the weights the stylesheet uses.
+import '@fontsource/chakra-petch/500.css';
+import '@fontsource/chakra-petch/600.css';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
 import './ui/style.css';
 import { loadGameData } from './gameData';
 import { Game } from './flow/flow';
