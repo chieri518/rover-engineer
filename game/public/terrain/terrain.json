@@ -573,24 +573,26 @@
       "iceCandidate": {
         "name": "Ice candidate",
         "local": {
-          "x": -210,
-          "z": -3330,
-          "y": 848.36
+          "x": -130,
+          "z": -2890,
+          "y": 848.39
         },
         "polarStereo": {
-          "X": -41207.5,
-          "Y": 20222.5
+          "X": -41127.5,
+          "Y": 19782.5
         },
         "latLon": [
-          -88.48633,
-          -63.8606
+          -88.49504,
+          -64.3123
         ],
-        "elevation_m": 851.6,
-        "distanceFromLanding_m": 3371,
-        "driveDistanceFromLanding_m": 3572,
-        "slope_deg": 2.7,
+        "elevation_m": 850.8,
+        "distanceFromLanding_m": 2953,
+        "driveDistanceFromLanding_m": 3198,
+        "slope_deg": 5.6,
         "avgIllumination": 0.0,
-        "earthVisibility": 0.212
+        "earthVisibility": 0.331,
+        "depthInsideShadow_m": 105,
+        "note": "Game ice spot: 100-200 m inside the permanent-shadow edge on the side facing the landing, fully shadowed. Not shown on the minimap; players find it by drilling."
       }
     },
     "craterDescent": {

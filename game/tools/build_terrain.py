@@ -72,6 +72,10 @@ PSR_TARGET = (1500.0, 3000.0)  # m, landing -> nearest real PSR edge
 MAX_CENTER_OFFSET = 750.0  # m, landing may sit this far from window center
 DRIVE_MAX_SLOPE = 20.0  # deg at 20 m scale; Apollo LRV-based climbing limit
 EDGE_MARGIN = 200.0  # m, keep features this far inside the play area
+ICE_DEPTH = (100.0, 200.0)  # m inside the PSR edge for the ice spot: near the edge facing landing, still deep shadow
+ICE_MAX_SLOPE = 12.0  # deg at 20 m scale, flat enough to stop and drill
+ICE_MIN_PSR = 0.9  # PSR fraction over the whole 20 m cell (cold-mask)
+ICE_MAX_ILLUM = 0.005  # average illumination over the whole 20 m cell
 EYE_HEIGHT = 1.7  # m, rover camera for the horizon profile
 
 # de Gerlache crater center from the IAU gazetteer (88.5 S, 87.1 W), used only
@@ -406,16 +410,27 @@ def main():
             continue
         e = np.unravel_index(np.argmin(np.where(cand, cum, np.inf)), cum.shape)
         depth = ndimage.distance_transform_edt(m)  # px from the PSR edge
-        depth20 = depth[: n20 * k, : n20 * k].reshape(n20, k, n20, k).max(axis=(1, 3))
-        ice_c = m20 & np.isfinite(cum) & (s20 <= 15)
-        ice = (np.unravel_index(np.argmax(np.where(ice_c, depth20 * 1000 - cum, -np.inf)), cum.shape)
-               if ice_c.any() else None)
+        blocks = lambda a: a[: n20 * k, : n20 * k].reshape(n20, k, n20, k)  # noqa: E731
+        depth20 = blocks(depth).max(axis=(1, 3))
+        # Ice spot: the cheapest-to-reach drivable cell 100-200 m inside the shadow edge (so on the side
+        # facing the landing), wholly permanently shadowed. Most of the crater stays dry; the game hides
+        # the exact spot and the player searches by drilling. Fallback: the deepest drivable cell.
+        dmin, dmax = blocks(depth).min(axis=(1, 3)) * PLAY_RES, depth20 * PLAY_RES
+        ice_c = (m20 & np.isfinite(cum) & (s20 <= ICE_MAX_SLOPE) & (dmin >= ICE_DEPTH[0]) & (dmax <= ICE_DEPTH[1])
+                 & (np.nan_to_num(blocks(psr_w)).min(axis=(1, 3)) >= ICE_MIN_PSR)
+                 & (np.nan_to_num(blocks(ill_w), nan=1).max(axis=(1, 3)) <= ICE_MAX_ILLUM))
+        if ice_c.any():
+            ice = np.unravel_index(np.argmin(np.where(ice_c, cum, np.inf)), cum.shape)
+        else:
+            deep_c = m20 & np.isfinite(cum) & (s20 <= 15)
+            ice = (np.unravel_index(np.argmax(np.where(deep_c, depth20 * 1000 - cum, -np.inf)), cum.shape)
+                   if deep_c.any() else None)
         area = float(m.sum() * 25.0)
-        psr_features.append((cum[e], b, area, e, ice))
-    psr_features.sort()
+        psr_features.append((cum[e], b, area, e, ice, depth))
+    psr_features.sort(key=lambda f: (f[0], f[1]))
     shadow = None
     if psr_features:
-        _, b, area, e, ice = psr_features[0]
+        _, b, area, e, ice, depth = psr_features[0]
         m = lab_w == b
         rows, cols = np.nonzero(m)
         cx, cz = wrc_to_xz(rows.mean(), cols.mean())
@@ -434,7 +449,12 @@ def main():
             "centroidLocal": {"x": round(cx), "z": round(cz)},
             "outlineLocal_xz": outline,
             "entryPoint": feature("Shadowed crater entry", *e),
-            "iceCandidate": feature("Ice candidate", *ice) if ice is not None else None,
+            "iceCandidate": feature(
+                "Ice candidate", *ice,
+                depthInsideShadow_m=round(float(depth[ice[0] * k + k // 2, ice[1] * k + k // 2]) * PLAY_RES),
+                note="Game ice spot: 100-200 m inside the permanent-shadow edge on the side facing the landing, "
+                     "fully shadowed. Not shown on the minimap; players find it by drilling.",
+            ) if ice is not None else None,
         }
 
     # Crater descent: drivable point on the de Gerlache side >= 150 m below landing.
