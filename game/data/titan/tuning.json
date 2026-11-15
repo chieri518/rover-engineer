@@ -68,7 +68,7 @@
     "radiusOverScaleHeight": 64,
     "directDepth": 0.5,
     "directReddening": [0.8, 1.0, 1.35],
-    "directGain": 0.35,
+    "directGain": 0.5,
     "diffuseGain": 0.7,
     "diffuseSunPower": 0.6,
     "twilightShare": 0.08,
@@ -80,7 +80,7 @@
     "skyAdaptMax": 2.2,
     "adaptK": 0.55,
     "adaptMax": 5,
-    "nightLight": 0.02,
+    "nightLight": 0.04,
     "groundBounce": 0.12,
     "skyLightSaturation": 0.75,
     "colors": {
@@ -117,17 +117,17 @@
       "gloom": 0.45,
       "directDepth": 2,
       "skyDim": 0.3,
-      "streakOpacity": 0.5,
-      "streakCount": 1500,
+      "streakOpacity": 0.7,
+      "streakCount": 4000,
       "streakBoxM": 40,
       "fallMps": 5,
-      "streakLengthM": 0.8,
-      "color": "#b8a890"
+      "streakLengthM": 1.2,
+      "color": "#d8ccb8"
     },
     "ground": {
       "color": "#7a6a58",
-      "albedoContrast": 0.9,
-      "darkSandTint": "#8c7c74",
+      "albedoContrast": 0.75,
+      "darkSandTint": "#e6dcd4",
       "darkToneLow": 0.5,
       "darkToneHigh": 1.1
     },
@@ -139,7 +139,7 @@
       "decay": 1.0,
       "targetDrop": 0.8
     },
-    "shadowRadius": 6,
+    "shadowRadius": 3,
     "sunMask": {
       "bands": [16, 4, 2],
       "minElevationDeg": -3

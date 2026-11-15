@@ -33,9 +33,10 @@ void main() {
   // A broad, soft brightening around the Sun, spread along the horizon when the Sun is low.
   float spread = 1.0 + 1.2 * ( 1.0 - smoothstep( 0.0, 0.4, abs( d.y - sunDir.y ) ) );
   c += glow * ( exp( -a / ( glowWidth * spread ) ) + 0.25 * exp( -a / ( glowWidth * 3.0 ) ) );
-  c += ( fract( sin( dot( gl_FragCoord.xy, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ) - 0.5 ) / 255.0;
   gl_FragColor = vec4( max( c, 0.0 ), 1.0 );
   #include <colorspace_fragment>
+  // Dither after the sRGB encode, so the near-black night sky does not turn to grain.
+  gl_FragColor.rgb += ( fract( sin( dot( gl_FragCoord.xy, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ) - 0.5 ) / 255.0;
 }
 `;
 
@@ -134,6 +135,7 @@ uniform vec3 color;
 uniform float opacity;
 void main() {
   gl_FragColor = vec4( color, opacity );
+  #include <colorspace_fragment>
 }
 `;
 
