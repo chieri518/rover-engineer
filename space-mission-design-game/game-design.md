@@ -214,7 +214,7 @@ The real NASA milestone types and rewards behind this design are in [rover-engin
 
 | Number | Before | Now |
 | --- | --- | --- |
-| Mars minimum budget (the pass mark) | 300 | **780** (the Moon must pay for itself) |
+| Mars minimum budget (the pass mark) | 300 | **780** (the Moon must pay for itself). Confirmed for now (November 15); the team will revisit it when designing the Mars mission, based on what Mars rovers cost. |
 | Survival payout | 250 | **50** |
 | Touchdown | 150 | **50** |
 | Odometer (per stage: 500 m, 1 km, 2 km) | 30 | 30 |
