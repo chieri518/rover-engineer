@@ -112,13 +112,16 @@ function albumView(photos: AlbumPhoto[]): HTMLElement {
   );
 }
 
-/** The debrief's instrument log: what the new instruments recorded, one line each. Empty without them. */
+/** The debrief's instrument log: one line per carried new instrument (an X-ray line per rock read), with plain wording when unused. */
 function instrumentLogLines(log: InstrumentLog | null, text: TextFile): string[] {
   if (!log) return [];
   const t = text.debrief;
   const has = (i: Instrument) => log.carried.includes(i);
   const lines: string[] = [];
-  if (has('neutron') && log.hydrogenPeak !== null) lines.push(fill(t.logHydrogen, { percent: Math.round(log.hydrogenPeak * 100) }));
+  // One line per carried new instrument; nothing for instruments not carried.
+  if (has('neutron')) {
+    lines.push(log.hydrogenPeak === null ? t.logHydrogenNone : fill(t.logHydrogen, { percent: Math.round(log.hydrogenPeak * 100) }));
+  }
   if (has('xray')) {
     if (log.rocks.length === 0) lines.push(t.logNoRocks);
     for (const r of log.rocks) {
@@ -127,9 +130,9 @@ function instrumentLogLines(log: InstrumentLog | null, text: TextFile): string[]
     }
   }
   if (has('seismometer')) {
-    lines.push(log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone);
+    lines.push(!log.stationPlaced ? t.logStationNone : log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone);
   }
-  if (log.reflectorPlaced) lines.push(t.logReflector);
+  if (has('reflector')) lines.push(log.reflectorPlaced ? t.logReflector : t.logReflectorNone);
   return lines;
 }
 

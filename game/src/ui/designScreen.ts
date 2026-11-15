@@ -6,7 +6,7 @@ import { canStartMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
-import { fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
+import { earnsMilestones, fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
 import { chosenParts } from '../rules/rover';
 import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
@@ -107,6 +107,8 @@ export const designScreen: Screen = (game, root) => {
         el('span', {}, `size ${part.size}`),
       ),
       effect && el('span', { class: 'option-effect' }, effect),
+      part.effects.instrument && !earnsMilestones(part.effects.instrument, data.milestones)
+        ? el('span', { class: 'option-note' }, t.instrumentNoMilestones) : null,
       ...extra,
     );
     cards.set(part.id, node);

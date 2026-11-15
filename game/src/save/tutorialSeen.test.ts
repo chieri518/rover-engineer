@@ -12,7 +12,7 @@ describe('tutorial seen', () => {
     expect(loadTutorialSeen(store)).toEqual({ design: false, drive: false });
     expect(saveTutorialSeen({ design: true, drive: false }, store)).toBe(true);
     expect(JSON.parse(store.getItem(TUTORIAL_KEY)!)).toEqual({ design: true, drive: false });
-    expect(TUTORIAL_KEY).toBe('rover-engineer.tutorial.v1');
+    expect(TUTORIAL_KEY).toBe('rover-engineer.tutorial.v2');
     expect(loadTutorialSeen(store)).toEqual({ design: true, drive: false });
   });
 

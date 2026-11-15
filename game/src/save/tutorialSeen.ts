@@ -8,7 +8,7 @@ export interface TutorialSeen {
 
 export type TutorialId = keyof TutorialSeen;
 
-export const TUTORIAL_KEY = 'rover-engineer.tutorial.v1';
+export const TUTORIAL_KEY = 'rover-engineer.tutorial.v2';
 
 type KeyValueStore = Pick<Storage, 'getItem' | 'setItem'>;
 

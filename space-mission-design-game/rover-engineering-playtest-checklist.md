@@ -47,7 +47,7 @@ Each lesson's notice appears once per mission, in its own place under the warnin
 ## 5. Pre-launch review
 
 - [ ] First campaign, before any lesson: the ticket screen shows the review with no lessons, only the no-lights block (red, "Always checked") if the rover has no lights.
-- [ ] After the lessons are learned and the mission is over, build a rover that would trigger them again: the review lists those lessons, each marked Fine, Risk or Will not work (the color in words as well).
+- [ ] After the lessons are learned and the mission is over, build a rover that would trigger them again: the review lists those lessons, each marked Fine or Risk (the color in words as well). A rover without lights shows only the red no-lights line (Blocked), whatever else it carries.
 - [ ] A lesson that has not been found never appears in the review, whatever the build.
 - [ ] Neutron spectrometer plus drill: the neutron/drill line shows green "Solved". Drill only: yellow. A heater with a drill or station: the cold line shows "Solved"; without a heater: yellow.
 - [ ] The review never blocks the purchase.
@@ -56,15 +56,17 @@ Each lesson's notice appears once per mission, in its own place under the warnin
 
 - [ ] The Notebook button is on the title screen (once a campaign exists), on the desk next to Help, and on the mission HUD.
 - [ ] A fresh campaign: "0 of 5 Moon lessons found" and no names.
-- [ ] In the mission, when a lesson fires: the button shows a dot. N (or the button) opens the notebook, the mission is paused (the clock and the rover stop), the new entry is marked "New", and the dot goes away. N or Escape closes it and the mission resumes.
+- [ ] In the mission, when a lesson fires: the button shows a dot. N (or the button) opens the notebook, the mission is paused (the clock and the rover stop), the new entry is marked "New", and the dot goes away. N or Escape closes it and the mission resumes. On the end panel, the Notebook button opens it too (the dot clears).
 - [ ] Undiscovered lessons show only in the count, never by name.
 - [ ] End the mission, then restart the round ("restart"): the notebook still has the lessons. Start a new campaign: it is empty.
 - [ ] **Old save.** In the browser console, remove `notebook` from the `rover-engineer.campaign.v1` entry in local storage and reload: the game loads with an empty notebook and no error.
+- [ ] The four new instrument cards on the desk say "Records to the instrument log. Earns no milestones yet."; the camera and drill cards do not. The X-ray card does not say anything about cold.
+- [ ] With an empty bay, the drive tutorial has no "number key" line. A player with an old save sees both tutorials once more (storage key `.v2`).
 - [ ] The drive tutorial and the design tutorial mention the notebook, the bay and the review, but do not say what any lesson is.
 
 ## 7. Debrief
 
-- [ ] The **Instrument log** lists what the new instruments recorded (highest hydrogen reading, rock types read, the quake record and its quality, reflector placed), and is absent when none were used.
+- [ ] The **Instrument log** has one line for each new instrument that was carried, and nothing for those not carried: neutron (highest hydrogen reading, or "not switched on"), X-ray (a line per rock, or "no rocks were read"), seismometer (clean, noisy, set down after the quake, "set down, but no moonquake came", or "not set down"), reflector (placed, or "not placed"). A station never set down must not say "no moonquake recorded". The log is absent when no new instrument was carried.
 - [ ] **What the rover taught us** lists each lesson met, in the order met, with what happened and the ways to solve it.
 - [ ] Mission history on: each lesson also shows its real fact and source. Mission history off: the facts and sources are missing there, but still in the notebook.
 - [ ] Credits screen: the "Engineering lessons" section lists the sources without naming the lessons.

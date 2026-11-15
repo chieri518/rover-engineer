@@ -201,10 +201,11 @@ export interface InstrumentLog {
   carried: Instrument[]; // the payload at launch, in bay order
   rocks: { boulder: number; rock: string }[]; // X-ray readings, one per boulder, in order
   quake: 'clean' | 'noisy' | 'missed' | null; // seismometer: missed = set down after the quake; null = no station down at a quake
+  stationPlaced: boolean; // the seismometer station was set down (whether or not a quake came after)
   reflectorPlaced: boolean;
   hydrogenPeak: number | null; // highest neutron spectrometer reading (null: never switched on)
 }
 
 export function emptyInstrumentLog(carried: Instrument[]): InstrumentLog {
-  return { carried: [...carried], rocks: [], quake: null, reflectorPlaced: false, hydrogenPeak: null };
+  return { carried: [...carried], rocks: [], quake: null, stationPlaced: false, reflectorPlaced: false, hydrogenPeak: null };
 }

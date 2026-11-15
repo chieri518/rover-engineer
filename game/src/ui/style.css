@@ -193,6 +193,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .option-desc { color: var(--muted); }
 .option-stats { display: flex; flex-wrap: wrap; gap: 0 12px; font-variant-numeric: tabular-nums; }
 .option-effect { color: var(--accent-soft); }
+.option-note { color: var(--muted); font-size: 0.85rem; }
 /* The payload bay: mounting-point sockets, instrument cards with their mission key, and "No instruments". */
 .bay-body { display: grid; gap: 6px; min-width: 0; }
 .bay-head { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }

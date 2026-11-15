@@ -289,14 +289,14 @@ export interface TextFile {
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
     | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
-    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
+    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentNoMilestones' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
     string
   > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
   ticket: Record<
     'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
     string
   >;
-  review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'red' | 'blocked' | 'hardBlock', string>; // the pre-launch review on the ticket screen
+  review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'blocked' | 'hardBlock', string>; // the pre-launch review on the ticket screen
   notebook: Record<
     | 'open' | 'openTitle' | 'openMission' | 'unread' | 'heading' | 'count' | 'intro' | 'empty' | 'answers' | 'source' | 'newBadge' | 'close' | 'closeHint',
     string
@@ -318,7 +318,7 @@ export interface TextFile {
     | 'heading' | 'survived' | 'failedRound' | 'passedRound' | 'cause' | 'rollover' | 'milestonesHeading' | 'noMilestones'
     | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
     | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue'
-    | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logReflector' | 'logHydrogen'
+    | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
     | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource', // "What the rover taught us": the relationships met
     string
   >;
@@ -340,7 +340,7 @@ export interface TextFile {
   /** Per instrument: HUD button, controls line, refusal when not carried, and the history fact shown on first use. */
   instrumentText: Record<Instrument, InstrumentText>;
   /** X-ray spectrometer rock types (placeholder content), keyed by tuning.instruments.xray.rocks ids. */
-  rocks: Record<string, { name: string; elements: string; note: string }>;
+  rocks: Record<string, { name: string; elements: string }>;
   settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'back', string>;
   tutorial: Record<
     | 'label' | 'designHeading' | 'driveHeading' | 'help' | 'helpDesign' | 'helpDrive'

@@ -259,14 +259,14 @@ export class Hud {
   }
 
   /** The end-of-mission panel. */
-  showEnd(lines: string[], onContinue: () => void): HTMLButtonElement {
+  showEnd(lines: string[], onContinue: () => void, onNotebook?: () => void): HTMLButtonElement {
     const h = this.text.hud;
     const button = el('button', { class: 'primary', type: 'button', onclick: () => onContinue() }, h.toDebrief);
     this.root.append(
       el('div', { class: 'mission-end', role: 'dialog', 'aria-label': h.endedHeading },
         el('h2', {}, h.endedHeading),
         ...lines.map((l) => el('p', {}, l)),
-        el('div', { class: 'actions' }, button),
+        el('div', { class: 'actions' }, onNotebook && el('button', { type: 'button', id: 'notebook-open-end', onclick: () => onNotebook() }, this.text.notebook.open), button),
       ),
     );
     this.setWarnings([]);

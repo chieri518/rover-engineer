@@ -42,7 +42,8 @@ export function tutorialPages(
     });
     return {
       title: fill(page.title, vars),
-      paragraphs: [...instrumentLines, ...page.body.map((p) => fill(p, vars))],
+      // In the drive tutorial, a body line that mentions the bay's number keys ({bayMax}) is left out for an empty bay.
+      paragraphs: [...instrumentLines, ...page.body.filter((p) => id !== 'drive' || opts.instruments.length > 0 || !p.includes('{bayMax}')).map((p) => fill(p, vars))],
     };
   });
 }

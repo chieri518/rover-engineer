@@ -196,7 +196,7 @@ export const missionScreen: Screen = (game, root) => {
     notebookButton.classList.toggle('unread', on);
   }
   function openNotes(): void {
-    if (notebook || tutorial || ended) return;
+    if (notebook || tutorial) return;
     const thisMission = metIds(met).filter((id) => !notebookAtLaunch.includes(id));
     notebook = openNotebook(root, data, {
       ids: addToNotebook(notebookAtLaunch, thisMission),
@@ -204,11 +204,11 @@ export const missionScreen: Screen = (game, root) => {
       closeKey: NOTEBOOK_KEY,
       onClose: () => {
         notebook = null;
-        pauseMission(false);
+        if (!ended) pauseMission(false); // the clock is stopped for good once the mission has ended
       },
     });
     setUnread(false);
-    pauseMission(true);
+    if (!ended) pauseMission(true);
   }
   // One HUD button per instrument, in bay order (the same order as the number keys).
   // A switch instrument (one with a standby draw) shows whether it is on.
@@ -355,7 +355,7 @@ export const missionScreen: Screen = (game, root) => {
     const boulder = index === null ? undefined : boulders[index];
     if (index === null || !boulder) return hud.notify(ti.xrayNoTarget);
     const id = rockTypeFor(boulder, tuning.instruments.xray);
-    const rock = text.rocks[id] ?? { name: id, elements: '', note: '' };
+    const rock = text.rocks[id] ?? { name: id, elements: '' };
     const again = log.rocks.find((r) => r.boulder === index);
     hud.notify(again ? fill(ti.xrayAgain, { rock: rock.name }) : fill(ti.xrayResult, { rock: rock.name, elements: rock.elements }), 'good');
     if (!again) log.rocks.push({ boulder: index, rock: id });
@@ -374,6 +374,7 @@ export const missionScreen: Screen = (game, root) => {
       hud.notify(ti.reflectorDeployed, 'good');
       return;
     }
+    log.stationPlaced = true;
     stationSetDown = at; // stepSeismometer places it later in this step (before a moonquake in the same step)
   };
 
@@ -458,7 +459,7 @@ export const missionScreen: Screen = (game, root) => {
       earned: tracker?.result() ?? [],
       relationships: met, // for the debrief and the engineering notebook (added at mission end)
     };
-    hud.showEnd(lines, () => game.endMission(result, album, log));
+    hud.showEnd(lines, () => game.endMission(result, album, log), () => openNotes());
   };
 
   const onStep = (s: MoonStepSample): MoonDriveLimits | void => {

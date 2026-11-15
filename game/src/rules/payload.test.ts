@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  fitPayload, instrumentCosts, instrumentForKey, instrumentKeys, instrumentsOf, isBayOverCapacity, mountingPoints, payloadProblems,
+  earnsMilestones, fitPayload, instrumentCosts, instrumentForKey, instrumentKeys, instrumentsOf, isBayOverCapacity, mountingPoints, payloadProblems,
   togglePayload, upgradeSavedBuild,
 } from './payload';
 import { selectedParts } from './rover';
@@ -148,5 +148,13 @@ describe('instrument costs and keys', () => {
     expect(instrumentForKey('Digit0', parts)).toBeUndefined();
     expect(instrumentForKey('KeyC', parts)).toBeUndefined();
     expect(instrumentForKey('Digit10', parts)).toBeUndefined();
+  });
+});
+
+describe('earnsMilestones', () => {
+  const file = { milestones: [{ requires: { instrument: 'camera' } }, { requires: {} }] } as unknown as import('./types').MilestonesFile;
+  it('is true only for an instrument some milestone requires', () => {
+    expect(earnsMilestones('camera', file)).toBe(true);
+    expect(earnsMilestones('xray', file)).toBe(false);
   });
 });

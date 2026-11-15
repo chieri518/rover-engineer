@@ -56,4 +56,16 @@ describe('tutorial text', () => {
       expect(text).not.toMatch(/noise|noisy|quiet|slow(ly|s) .*cold|sharper|colder detector|drive away/i);
     }
   });
+
+  it('the drive tutorial leaves out the number-key line for an empty bay', () => {
+    const lines = (instruments: Instrument[]) => tutorialPages('drive', data, { mission: 'moon', instruments }).flatMap((p) => p.paragraphs).join('\n');
+    expect(lines([])).not.toMatch(/number key/);
+    expect(lines(['camera'])).toMatch(/number key/);
+  });
+
+  it('the design tutorial says some instruments earn no milestones yet', () => {
+    const design = tutorialPages('design', data, { mission: 'moon', instruments: [] }).flatMap((p) => p.paragraphs).join('\n');
+    expect(design).toMatch(/earn no milestones yet/);
+    expect(design).not.toMatch(/a few problems/);
+  });
 });

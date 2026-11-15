@@ -21,7 +21,7 @@ export const ticketScreen: Screen = (game, root) => {
     el('p', { class: 'muted' }, review.length ? r.intro : r.empty),
     review.length > 0 && el('ul', { class: 'review-items' },
       ...review.map((item) => el('li', { class: `review-item ${item.color}`, 'data-relationship': item.id, 'data-color': item.color },
-        el('span', { class: 'review-mark' }, item.hardBlock && item.color === 'red' ? r.blocked : r[item.color]),
+        el('span', { class: 'review-mark' }, item.color === 'red' ? r.blocked : r[item.color]),
         el('div', {},
           el('strong', {}, item.name),
           item.hardBlock && el('span', { class: 'badge' }, r.hardBlock),

@@ -470,11 +470,11 @@ Real anchors for each slot are in the [component catalog](research/rover-enginee
 
 ### Rules for relationships
 
-1. **Discover in the mission, never in silence.** Relationships are not announced before the player has met them. When one happens, the mission says so at once, in plain language: what is happening, the cause, and that the player can do something about it now (for example "Seismometer trace noisy: the rover is driving nearby"). The pre-launch review shows only relationships already discovered (see [Pre-launch review](#pre-launch-review)).
+1. **Discover in the mission, never in silence.** Relationships are not announced before the player has met them. When one happens, the mission says so at once, in plain language: what is happening, the cause, and that the player can do something about it. A consequence that happens once, like the moonquake, cannot be met twice in one run: the lesson lands when it happens (a noisy record) and applies to the next run, and the mission only gives a gentle timing clue beforehand that does not name the lesson (the moonquake can come any time after the first few days, so set the station down early). The pre-launch review shows only relationships already discovered (see [Pre-launch review](#pre-launch-review)).
 2. **Mild by default, but they count.** A consequence makes something slower, noisier, or riskier, and the player can respond during the mission; it rarely forbids. Consequences still matter: they can cost enough milestones to fail the Moon's pass mark, and some add damage to the rover or its parts that builds up. Hard blocks stay few and obvious (no lights, no entering permanent shadow).
 3. **At least two answers.** Every relationship can be solved in more than one way (add a part, change the plan, or pick another instrument), so several builds stay viable.
 4. **One cause, one signal, one explanation.** Each relationship has a single cause at the desk, a visible signal in the mission (a meter, an icon, the notice from rule 1), and a plain-language "why" in the debrief with the real mission behind it (brief items EDU-05 and EDU-06).
-5. **Rationed per world.** About three or four on the Moon, more on Mars and Titan. No chain longer than two steps on the Moon.
+5. **Rationed per world.** Five lessons on the Moon (four relationships and the no-lights hard block), more on Mars and Titan. No chain longer than two steps on the Moon.
 6. **Real and checked.** Each relationship is a documented effect on a real mission. Claims that do not survive checking stay out (see [Checked claims](#checked-claims)).
 
 ### Kinds of relationship
@@ -504,7 +504,7 @@ Before buying the launch ticket, the desk runs a short review, as real missions 
 | Hard blocks | Always shown for a build that triggers them, because the desk and the mission already state them. Example: "Red. No lights: the rover cannot enter permanent shadow." *(Phase 5)* No lights is also discovered in the mission like the others, so it enters the notebook. |
 
 - **Why not hint at undiscovered relationships.** Most hints give the answer away: "seismometer station with a driving rover" already tells the player not to drive near it. Discovery is the fun, and the learning sticks better when the player sees it happen.
-- **Why the first meeting is still fair.** Consequences are mild by default and the mission explains them as they happen (rules 1 and 2), so the player can react in the same run. The debrief explains the real basis, and the notebook entry unlocks, so the next design can plan for it.
+- **Why the first meeting is still fair.** Consequences are mild by default and the mission explains them as they happen (rules 1 and 2), so the player can react in the same run when the consequence is ongoing. For a one-time event (the moonquake), the lesson lands when the consequence happens, a noisy record, and applies to the next run: the timing clue beforehand keeps the first run fair, and a noisy record costs only a record that earns nothing yet. The debrief explains the real basis, and the notebook entry unlocks, so the next design can plan for it.
 - **Risk is a choice.** The player can launch with yellow and red items. NASA's own telescope game greys out incompatible choices instead; this game lets players learn from the result, as the brief asks ("learn from successful and unsuccessful outcomes").
 - **A first build has an empty review** apart from hard blocks. That is expected: REL is new, and the review fills up with the player's own experience.
 
@@ -561,7 +561,7 @@ Two claims were checked against sources on November 15 before going in (Phase 5 
 | # | Question | Status |
 | --- | --- | --- |
 | R1 | Adopt relationships, the pre-launch review, and the engineering notebook? | **Decided (November 15):** yes |
-| R2 | The Moon set | **Decided (November 15):** the four in [Moon relationships](#moon-relationships) |
+| R2 | The Moon set | **Decided (November 15):** the five lessons (four relationships plus the no-lights hard block) in [Moon relationships](#moon-relationships) |
 | R3 | How strong the effects are (slowdown, noise floor, quiet distance) | **Decided (November 15):** set in the later balance patch |
 | R4 | Does the review show only relationships already in the notebook? | **Decided (November 15):** yes. Undiscovered relationships are not shown; the mission explains them when they happen. Hard blocks are always shown (see [Pre-launch review](#pre-launch-review)) |
 | R5 | Does a restart roll back the notebook? | **Decided (November 15):** no; the notebook survives restarts and failed runs |

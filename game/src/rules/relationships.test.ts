@@ -162,6 +162,12 @@ describe('pre-launch review', () => {
     expect(both[0]!.text).toBe(file.relationships.find((r) => r.id === 'neutron-drill')!.reviewSolved);
   });
 
+  it('a build without lights gets only the red no-lights line: it cannot reach permanent shadow, so neutron/cold say nothing', () => {
+    const dark = build({ lights: 'lights-none', payload: ['instrument-drill', 'instrument-camera'] });
+    expect(review(dark, everything)).toEqual([['no-lights', 'red']]);
+    expect(review({ ...dark, heater: 'heater-rhu', payload: ['instrument-drill', 'instrument-neutron'] }, everything)).toEqual([['no-lights', 'red']]);
+  });
+
   it('the X-ray spectrometer: helpful, green; cold tolerant, so it does not raise cold and dark', () => {
     expect(review(build({ payload: ['instrument-xray'] }), everything)).toEqual([['xray-cold', 'green']]);
   });

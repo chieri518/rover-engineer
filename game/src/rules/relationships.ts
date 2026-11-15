@@ -192,12 +192,13 @@ export interface BuildPredicate {
 export const BUILD_PREDICATES: Record<RelationshipId, BuildPredicate> = {
   'neutron-drill': {
     solvable: true,
-    verdict: (b) => (!b.instruments.includes('drill') ? null : b.instruments.includes('neutron') ? 'solved' : 'risk'),
+    // Neither can happen without entering permanent shadow, which takes lights: the no-lights block covers that build.
+    verdict: (b) => (!b.lights || !b.instruments.includes('drill') ? null : b.instruments.includes('neutron') ? 'solved' : 'risk'),
   },
   // Only a held use can be slowed by the cold (mission.ts), and a cold-tolerant part never is.
   'cold-dark': {
     solvable: true,
-    verdict: (b) => (!b.costs.some((c) => c.useSeconds > 0 && !c.coldTolerant) ? null : b.heater ? 'solved' : 'risk'),
+    verdict: (b) => (!b.lights || !b.costs.some((c) => c.useSeconds > 0 && !c.coldTolerant) ? null : b.heater ? 'solved' : 'risk'),
   },
   'xray-cold': { solvable: false, verdict: (b) => (b.instruments.includes('xray') ? 'risk' : null) },
   'seismometer-quiet': { solvable: false, verdict: (b) => (b.instruments.includes('seismometer') ? 'risk' : null) },
@@ -270,6 +271,7 @@ export function relationshipProblems(file: RelationshipsFile, partIds: ReadonlyS
     if (r.parts.length === 0) problems.push(`relationship ${r.id} names no parts`);
     for (const p of r.parts) if (!partIds.has(p)) problems.push(`relationship ${r.id} names unknown part ${p}`);
     if (!filled(r.name) || !filled(r.reviewText)) problems.push(`relationship ${r.id} needs a name and review text`);
+    if (r.review === 'red' && !r.hardBlock) problems.push(`relationship ${r.id} is red, which only a hard block can be (the review shows red as Blocked)`);
     if (r.hardBlock && r.review !== 'red') problems.push(`relationship ${r.id} is a hard block, so its review is red`);
     if ('variants' in r) problems.push(`relationship ${r.id} has variants, but the mission fires one lesson per relationship`);
     if (!(r.id in BUILD_PREDICATES)) problems.push(`relationship ${r.id} has no build predicate, so the review cannot show it`);
