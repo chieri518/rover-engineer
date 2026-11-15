@@ -177,6 +177,15 @@
     "captionDay": "{place}, day {day}",
     "captionSurface": "Lunar surface"
   },
+  "drill": {
+    "searchHintHydrogen": "Inside permanent shadow. Stop and press F to test-drill. Each sample reports the hydrogen signal: the stronger it is, the closer the ice.",
+    "hydrogenSignal": "Hydrogen signal: {level}.",
+    "hydrogenWeak": "weak",
+    "hydrogenModerate": "moderate",
+    "hydrogenStrong": "strong",
+    "hydrogenHistory": "Orbiters search for polar ice the same way: LEND, the Russian-built neutron detector on NASA's Lunar Reconnaissance Orbiter, maps hydrogen near the poles, because hydrogen in the soil cuts the number of neutrons escaping the surface.",
+    "hydrogenSource": "NASA Goddard, LRO instruments: LEND (lunar.gsfc.nasa.gov/lend.html); Mitrofanov et al. 2010, Science 330:483"
+  },
   "settings": {
     "heading": "Settings",
     "open": "Settings",
