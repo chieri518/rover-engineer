@@ -1,0 +1,7 @@
+# Offline terrain pipeline (Python 3.14; all have 3.14 wheels on macOS arm64).
+numpy>=2.3
+rasterio>=1.5   # bundles GDAL; used for local GeoTIFFs and /vsicurl/ windowed reads
+scipy>=1.16
+scikit-image>=0.26
+pillow>=12
+matplotlib>=3.10  # only for --preview
