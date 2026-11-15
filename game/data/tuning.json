@@ -7,7 +7,7 @@
   "budget": {
     "startingBudget": 750,
     "minimumBudget": {
-      "moon": 450,
+      "moon": 520,
       "mars": 300
     }
   },
