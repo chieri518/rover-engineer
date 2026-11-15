@@ -96,7 +96,7 @@ Instrument ──► mass ──► ticket tier, speed, energy per meter, sinkag
 
 ## 4. The payload bay
 
-**Decided (November 15):** the Moon's single instrument slot becomes a payload bay, with the rules below. Not built yet.
+**Decided (November 15):** the Moon's single instrument slot becomes a payload bay, with the rules below. **Built** (Phases 1 to 3; see [game-design.md](game-design.md#moon-parts)).
 
 | Rule | Proposal |
 | --- | --- |
@@ -249,6 +249,29 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 - **Needs:** on the Moon a built-in deploy mechanism, as on Pragyan; from Mars, contact instruments need the robotic arm.
 - **World:** Moon.
 
+##### Rock types (placeholder)
+
+*(Decided November 15, built in Phase 3.)* What an X-ray reading reports is placeholder content: which rocks lie where is Moon content for the later map work. The list and weights are in `tuning.json` → `instruments.xray.rocks`; names, main elements and notes in `text.json` → `rocks`.
+
+| Rock type | Readout (main elements) | Weight | What it tells scientists | Support |
+| --- | --- | --- | --- | --- |
+| Ferroan anorthosite | Calcium and aluminum rich; iron and titanium poor | 6 | The pale, ancient crust of the highlands, formed from the early Moon's magma ocean | Well supported: Chandrayaan-3's APXS found the soil near its south polar site to be typical highland anorthosite (Vadawale et al. 2024, Nature 633:327, doi:10.1038/s41586-024-07870-7) |
+| Noritic anorthosite | Calcium and aluminum rich, with more iron and magnesium | 3 | Highland crust with more pyroxene | Supported by Apollo 16 samples and orbital spectra of the South Pole-Aitken basin interior (Pieters et al. 1997, GRL); the Apollo 16 clast study citation is not yet checked |
+| Impact melt breccia | Glassy, mixed fragments, once melted by an impact | 3 | Rock melted by an impact then cooled; its age dates the impact | Well supported in Apollo samples (Apollo 16 sample 65015); its occurrence at the south pole is not confirmed |
+| Regolith breccia | Soil fragments pressed together into rock | 3 | Ancient surface soil turned to rock, a record of the old surface | Well supported in Apollo samples (Apollo 16 sample 60016) |
+
+Left out as speculative at a highland polar site: mare basalt (rare ejecta from the lowlands) and magnesium-rich material (possibly deep South Pole-Aitken material; Chandrayaan-3's APXS saw a magnesium excess, but the deep-source link is an interpretation). Pragyan's LIBS sulfur finding is reported only in news coverage, not on ISRO's own page, and is not used.
+
+**How rock types are assigned today.** Each boulder (scattered deterministically in the two rocky areas, `rules/boulders.ts`) gets one rock type, picked by weight from the list and seeded by the boulder's position (`rockTypeFor` in `rules/instruments.ts`). The same boulder reads the same rock in every mission, and both rocky areas hold the same mix, so a reading tells the player nothing about place yet.
+
+**What a real assignment needs from the map** (later map work):
+
+- **Rock-type areas.** Highland anorthosite as the default everywhere; noritic anorthosite and breccias in older or crater-blasted zones; basalt only near the South Pole-Aitken interior or lowland edges, if at all in our play area.
+- **Distance from a young crater.** Boulders near a fresh crater's rim were thrown out from deeper down, so a fresh-crater zone (our rocky areas are small fresh craters) should give a higher chance of impact melt breccia or deeper, more mafic rock, falling with distance from the rim.
+- **Terrain pipeline.** Either hand-made areas in `terrain.json` (per rocky area, or rings by distance from each crater rim), or a rock-type layer exported by the pipeline from real data (LRO, Moon Mineralogy Mapper, Diviner). We did not find M3 or Diviner rock maps of this south-pole site in our review, so the export is not yet known to be feasible; the hand-made areas are the fallback.
+
+**How that would change the game.** With real areas, readings at two places differ, which is something to learn and to plan a route for, and the readout stays honest. Possible future milestones, both needing the map layer first: "Read three different rock types" and "Find a rare rock".
+
 #### Laser spectrometer (LIBS)
 
 - **Real basis:** laser-induced breakdown spectroscopy vaporizes a pinpoint of rock and reads the light: Pragyan's LIBS (which confirmed sulfur near the south pole), and SuperCam on Perseverance, which works at up to about 7 m (about 10.6 kg, 17.9 W, [02](research/rover-engineering/02-rover-subsystems.md#instrument-reference-values)).
@@ -357,7 +380,7 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 
 ## 7. The Moon payload
 
-**Decided (November 15):** six instruments, two of them today's. The list can be tuned later.
+**Decided (November 15):** six instruments, two of them today's. The list can be tuned later. **Built in Phase 3** with the indicative numbers below; the four new ones record into the debrief's instrument log and earn nothing until their milestones come (mechanics in [game-design.md](game-design.md#moon-parts)).
 
 | Instrument | Verb | Uses what the game already has | Indicative cost / mass / size | Energy |
 | --- | --- | --- | --- | --- |
@@ -376,7 +399,7 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 - **Range of prices.** The reflector is cheap and light; the drill is expensive and heavy. A tight budget still has choices.
 - **Combinations.** Neutron spectrometer and drill for the ice; spectrometer and camera at a boulder field; a station dropped on the way to somewhere else.
 
-**The hydrogen clue moves to the neutron spectrometer** *(decided November 15)*. Until now each drill sample in the dark crater reported a hydrogen signal (strong, moderate, weak; game-design.md). With the bay, the live hydrogen meter belongs only to the neutron spectrometer, as on VIPER, and the drill only confirms the ice; the drill gives no hydrogen reading of its own. An ice hunter therefore needs two mounting points and the energy for both. This changes the ice route's balance: with today's numbers and the indicative ones above, the cheapest ice build plus a neutron spectrometer reaches size 24, over the Medium limit of 23, so it would need the Large ticket and cost about 895 against a 750 budget. That is left to the later balance patch, with the tiers.
+**The hydrogen clue moves to the neutron spectrometer** *(decided November 15; built in Phase 3)*. Until now each drill sample in the dark crater reported a hydrogen signal (strong, moderate, weak; game-design.md). With the bay, the live hydrogen meter belongs only to the neutron spectrometer, as on VIPER, and the drill only confirms the ice; the drill gives no hydrogen reading of its own. An ice hunter therefore needs two mounting points and the energy for both. This changes the ice route's balance: with today's numbers and the indicative ones above, the cheapest ice build plus a neutron spectrometer reaches size 24, over the Medium limit of 23, so it would need the Large ticket and cost about 895 against a 750 budget. That is left to the later balance patch, with the tiers.
 
 **Held back for Mars and Titan.** Ground-penetrating radar and the mass spectrometer have also flown on the Moon (Yutu-2, PRIME-1) but are kept for later worlds so each world brings new verbs; their history facts can say they also flew on the Moon.
 
