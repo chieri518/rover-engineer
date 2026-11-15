@@ -8,6 +8,7 @@ import {
 import type { MissionResult } from '../rules/payout';
 import { quoteBuild } from '../rules/quote';
 import { isCompleteBuild } from '../rules/rover';
+import { upgradeSavedBuild } from '../rules/payload';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 import { loadSettings, saveSettings, type Settings } from '../save/settings';
 import { loadTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen } from '../save/tutorialSeen';
@@ -43,7 +44,7 @@ export class Game {
     private readonly screens: Record<ScreenId, Screen>,
   ) {
     this.campaign = loadCampaign();
-    this.build = this.campaign?.lastBuild ?? {};
+    this.build = upgradeSavedBuild(this.campaign?.lastBuild); // saves from before the payload bay move their instrument into it
   }
 
   get screen(): ScreenId {

@@ -5,7 +5,7 @@ import { missionSetup, missionWarnings, startMission, stepMission, type MissionS
 import type { MissionEvent } from './events';
 import type { Build } from './types';
 
-const build: Build = { chassis: 'titanium', wheels: 'mesh', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', instrument: 'camera' };
+const build: Build = { chassis: 'titanium', wheels: 'mesh', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', payload: ['camera'] };
 const parts = selectedParts(build, testParts).map((p) => {
   // The fixed test parts have no drive effects; give them some.
   if (p.slot === 'wheels') return { ...p, effects: { baseSpeed: 3, grip: 0.8, energyPerMeter: 0.2 } };

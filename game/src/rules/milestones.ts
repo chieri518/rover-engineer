@@ -2,7 +2,7 @@
 // (passed in as plain data) and sized by tuning.milestones. The mission screen feeds the tracker the
 // rover's position each step, plus photo and drill actions and flare outcomes; the tracker returns the
 // milestones reached. Required parts are enforced here. Pure: no rendering, no DOM.
-import type { Milestone, MilestoneTuning, Part, Slot } from './types';
+import type { BusSlot, Instrument, Milestone, MilestoneTuning, Part } from './types';
 import type { DamageCause } from './damage';
 import { milestoneStages, type EarnedMilestone } from './payout';
 import { meetsRequirements } from './rover';
@@ -20,7 +20,9 @@ export interface MilestoneFeatures {
 }
 
 /** Zone ids that milestones.json triggers refer to. */
-export type ZoneId = 'large-crater' | 'boulder-field' | 'shadowed-crater' | 'crater-wall' | 'ice-spot' | 'rim-viewpoint' | 'near-lander';
+/** Every zone buildZones makes; milestone triggers may name only these (validate.ts checks). */
+export const ZONE_IDS = ['large-crater', 'boulder-field', 'shadowed-crater', 'crater-wall', 'ice-spot', 'rim-viewpoint', 'near-lander'] as const;
+export type ZoneId = (typeof ZONE_IDS)[number];
 
 export type ZoneShape =
   | { kind: 'circle'; x: number; z: number; r: number }
@@ -138,7 +140,7 @@ export interface Reached {
 /** A trigger that fired on a rover without the required parts: not credited. */
 export interface Missed {
   milestone: Milestone;
-  missing: (Slot | 'camera' | 'drill')[];
+  missing: (BusSlot | Instrument)[];
 }
 
 export interface MilestoneUpdate {

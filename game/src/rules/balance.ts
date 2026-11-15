@@ -1,13 +1,14 @@
 // Offline balance evaluator: every build's cost, ticket, speed and energy, plus Pareto dominance.
 // Used by data.test.ts (balance targets) and balance.test.ts (the report). Pure.
-import type { Build, GameData, Slot } from './types';
+import type { Build, BusSlot, GameData, Part } from './types';
 import { quoteBuild } from './quote';
 import { selectedParts } from './rover';
+import { instrumentsOf, mountingPoints } from './payload';
 import { missionSetup, startMission, stepMission, type MissionEnd } from './mission';
 
 export interface BuildEval {
   build: Build;
-  label: string; // one short code per slot, e.g. "Ti mesh mast Li L H cam"
+  label: string; // one short code per bus slot, then the bay, e.g. "Ti mesh mast Li L H cam+drill"
   cost: number; // parts only
   mass: number;
   size: number;
@@ -22,7 +23,7 @@ export interface BuildEval {
   grip: number;
   lights: boolean;
   heater: boolean;
-  instrument: string;
+  instruments: string; // the bay's instruments, e.g. "camera+drill", or "none"
   driveDrain: number; // energy/s driving at top speed, before solar income
 }
 
@@ -36,17 +37,32 @@ const SHORT: Record<string, string> = {
   'instrument-camera': 'cam', 'instrument-drill': 'drill',
 };
 
-export function buildLabel(build: Build, slots: Slot[]): string {
-  return slots.map((s) => SHORT[build[s]] ?? build[s]).join(' ');
+const short = (id: string) => SHORT[id] ?? id;
+
+export function buildLabel(build: Build, slots: BusSlot[]): string {
+  const bay = build.payload.length ? build.payload.map(short).join('+') : 'empty';
+  return [...slots.map((s) => short(build[s])), bay].join(' ');
 }
 
+/** Every subset of the instrument parts, each part at most once, in catalog order (the empty bay first). */
+function payloadSubsets(instruments: Part[]): string[][] {
+  let subsets: string[][] = [[]];
+  for (const part of instruments) subsets = subsets.flatMap((s) => [s, [...s, part.id]]);
+  return subsets.sort((a, b) => a.length - b.length);
+}
+
+/** Every build: each mix of bus parts, with each payload that fits its chassis (the empty bay included). */
 export function allBuilds(data: GameData): Build[] {
-  let builds: Partial<Build>[] = [{}];
+  let buses: Partial<Build>[] = [{}];
   for (const slot of data.parts.slots) {
     const options = data.parts.parts.filter((p) => p.slot === slot);
-    builds = builds.flatMap((b) => options.map((o) => ({ ...b, [slot]: o.id })));
+    buses = buses.flatMap((b) => options.map((o) => ({ ...b, [slot]: o.id })));
   }
-  return builds as Build[];
+  const bays = payloadSubsets(data.parts.parts.filter((p) => p.slot === 'instrument'));
+  return buses.flatMap((bus) => {
+    const points = mountingPoints(data.parts.parts.filter((p) => p.id === bus.chassis));
+    return bays.filter((bay) => bay.length <= points).map((payload) => ({ ...bus, payload }) as Build);
+  });
 }
 
 export function evaluateBuild(build: Build, data: GameData): BuildEval {
@@ -70,7 +86,7 @@ export function evaluateBuild(build: Build, data: GameData): BuildEval {
     grip: d.grip,
     lights: parts.some((p) => (p.effects.lightRange ?? 0) > 0),
     heater: parts.some((p) => (p.effects.heat ?? 0) > 0),
-    instrument: parts.find((p) => p.slot === 'instrument')?.effects.instrument ?? 'none',
+    instruments: instrumentsOf(parts).sort().join('+') || 'none',
     driveDrain: d.topSpeed * d.energyPerMeter,
   };
 }
@@ -79,11 +95,11 @@ export function evaluateBuild(build: Build, data: GameData): BuildEval {
  * True when `a` is at least as good as `b` on everything the player feels (total price with the
  * ticket, speed, energy, sinkage, grip, overload, equipment) and strictly better on one. Mass and
  * size are left out on purpose: they only matter through their effects (the ticket, which is in the
- * total, speed, energy per meter, sinkage = mass / grip, and overload). Different instruments are
- * never comparable. Both must be able to launch.
+ * total, speed, energy per meter, sinkage = mass / grip, and overload). Different payloads are never
+ * comparable. Both must be able to launch.
  */
 export function dominates(a: BuildEval, b: BuildEval): boolean {
-  if (a.tier === null || b.tier === null || a.instrument !== b.instrument) return false;
+  if (a.tier === null || b.tier === null || a.instruments !== b.instruments) return false;
   const eps = 1e-9;
   const noWorse =
     a.total <= b.total && sinkage(a) <= sinkage(b) + eps && a.topSpeed >= b.topSpeed - eps && a.energyPerMeter <= b.energyPerMeter + eps &&

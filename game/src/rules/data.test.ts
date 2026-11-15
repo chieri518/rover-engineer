@@ -9,6 +9,7 @@ import terrain from '../../public/terrain/terrain.json';
 import { missionSetup, startMission, stepMission, type MissionState } from './mission';
 import { allBuilds as everyBuild, dominatedPairs, evaluateBuild, simulate } from './balance';
 import { flareDamage } from './events';
+import { validateGameData } from './validate';
 
 const data: GameData = loadGameData();
 const allBuilds = () => everyBuild(data);
@@ -16,7 +17,7 @@ const craterM = terrain.features.shadowedCrater.entryPoint.driveDistanceFromLand
 /** A middle-of-the-road build used as a reference (the old default build). */
 const reference: Build = {
   chassis: 'chassis-titanium', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
-  lights: 'lights-led', heater: 'heater-rhu', instrument: 'instrument-camera',
+  lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-camera'],
 };
 
 describe('game data', () => {
@@ -24,8 +25,22 @@ describe('game data', () => {
     expect(() => loadGameData()).not.toThrow();
   });
 
-  it('has 7 slots with 2 options each, 3 tiers and 13 milestones', () => {
-    expect(data.parts.slots).toHaveLength(7);
+  it('validation catches a chassis without mounting points, an instrument part without an instrument, and an unknown zone', () => {
+    const parts = data.parts.parts.map((p) =>
+      p.id === 'chassis-steel' ? { ...p, effects: { maxLoad: 100 } } : p.id === 'instrument-drill' ? { ...p, effects: {} } : p);
+    const milestones = data.milestones.milestones.map((m) =>
+      m.id === 'crater-layers' ? { ...m, trigger: { type: 'photo' as const, zone: 'crater-wal' } } : m);
+    expect(validateGameData({ ...data, parts: { ...data.parts, parts }, milestones: { milestones } })).toEqual([
+      'chassis chassis-steel needs a whole number of mountingPoints',
+      'instrument part instrument-drill has no instrument effect',
+      'milestone crater-layers names unknown zone crater-wal',
+      'milestone regolith-sample requires instrument drill, which no part provides',
+      'milestone water-ice requires instrument drill, which no part provides',
+    ]);
+  });
+
+  it('has 6 bus slots with 2 options each, 3 tiers and 13 milestones', () => {
+    expect(data.parts.slots).toEqual(['chassis', 'wheels', 'power', 'battery', 'lights', 'heater']);
     for (const slot of data.parts.slots) expect(data.parts.parts.filter((p) => p.slot === slot)).toHaveLength(2);
     expect(data.tiers.tiers.map((t) => t.name)).toEqual(['Small', 'Medium', 'Large']);
     expect(data.milestones.milestones).toHaveLength(13);
@@ -36,10 +51,22 @@ describe('game data', () => {
     expect(instruments.sort()).toEqual(['camera', 'drill']);
   });
 
+  it('the chassis sets the payload bay: steel 3 mounting points, titanium 2', () => {
+    const points = (id: string) => data.parts.parts.find((p) => p.id === id)!.effects.mountingPoints;
+    expect(points('chassis-steel')).toBe(3);
+    expect(points('chassis-titanium')).toBe(2);
+  });
+
+  it('every bay that fits is enumerated: 64 bus builds, each with an empty bay, one instrument, or both', () => {
+    const builds = allBuilds();
+    expect(builds).toHaveLength(2 ** data.parts.slots.length * 4);
+    expect(builds.filter((b) => b.payload.length === 2 && b.chassis === 'chassis-titanium').length).toBe(32);
+  });
+
   it('a mid build fits the Medium tier and is affordable from the starting budget', () => {
     const mid: Build = {
       chassis: 'chassis-titanium', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
-      lights: 'lights-led', heater: 'heater-rhu', instrument: 'instrument-camera',
+      lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-camera'],
     };
     const q = quoteBuild(mid, data, data.tuning.budget.startingBudget);
     expect(q.tier?.id).toBe('medium');

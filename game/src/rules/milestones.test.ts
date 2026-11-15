@@ -21,9 +21,9 @@ const L = terrain.landing.local;
 
 const camera: Build = {
   chassis: 'chassis-titanium', wheels: 'wheels-mesh', power: 'power-fixed-panel', battery: 'battery-li-ion',
-  lights: 'lights-led', heater: 'heater-rhu', instrument: 'instrument-camera',
+  lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-camera'],
 };
-const drill: Build = { ...camera, instrument: 'instrument-drill' };
+const drill: Build = { ...camera, payload: ['instrument-drill'] };
 
 function tracker(build: Build) {
   return new MilestoneTracker(data.milestones.milestones, selectedParts(build, data.parts), zones, t);
@@ -165,6 +165,15 @@ describe('milestone triggers', () => {
     expect(ids(tracker(drill).drill(at(ice.x, ice.z)))).toEqual(['regolith-sample', 'water-ice']);
     expect(ids(tracker(camera).drill(at(ice.x, ice.z)))).toEqual([]);
     expect(tr.result().find((e) => e.id === 'regolith-sample')).toEqual({ id: 'regolith-sample', stages: 3 });
+  });
+
+  it('a steel rover carrying the camera and the drill earns a photo and a sample in the same mission', () => {
+    const both: Build = { ...camera, chassis: 'chassis-steel', payload: ['instrument-camera', 'instrument-drill'] };
+    const tr = tracker(both);
+    const v = f.rimViewpoints[0]!.local;
+    step(tr, at(v.x, v.z));
+    expect(ids(tr.photo(at(v.x, v.z), false, 0))).toEqual(['rim-panorama']);
+    expect(ids(tr.drill(at(v.x, v.z)))).toEqual(['regolith-sample']);
   });
 
   it('the ice spot is small and lies just inside the dark crater, on the side facing the landing', () => {

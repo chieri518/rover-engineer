@@ -11,7 +11,7 @@ const data = {
 } as GameData;
 
 const build: Build = {
-  chassis: 'steel', wheels: 'solid', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', instrument: 'camera',
+  chassis: 'steel', wheels: 'solid', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', payload: ['camera'],
 };
 
 describe('campaign', () => {

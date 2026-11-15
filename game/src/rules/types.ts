@@ -1,11 +1,15 @@
 // Types for the JSON files in game/data/. These are the data contract.
 import type { DamageCause } from './damage';
 
-export type Slot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater' | 'instrument';
+/** The rover's bus: one part per slot. */
+export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
+/** A part's catalog category: a bus slot, or 'instrument' for the payload bay (which holds a list). */
+export type Slot = BusSlot | 'instrument';
 export type Instrument = 'camera' | 'drill';
 
 export interface PartEffects {
   maxLoad?: number; // chassis: kg of total rover mass it can carry
+  mountingPoints?: number; // chassis: instruments the payload bay can hold (one point each)
   baseSpeed?: number; // wheels: m/s
   grip?: number; // wheels: 0..1, higher = less slip
   energyPerMeter?: number; // wheels: energy per meter at reference mass
@@ -13,7 +17,7 @@ export interface PartEffects {
   batteryCapacity?: number; // battery: energy units
   lightRange?: number; // lights: meters
   heat?: number; // heater: heat units, slows freezing
-  instrument?: Instrument; // instrument slot
+  instrument?: Instrument; // instrument parts (payload bay)
 }
 
 export interface Part {
@@ -28,7 +32,7 @@ export interface Part {
 }
 
 export interface PartsFile {
-  slots: Slot[];
+  slots: BusSlot[]; // the bus slots; instrument parts go in the payload bay instead
   parts: Part[];
 }
 
@@ -59,8 +63,8 @@ export type MilestoneTrigger =
   | { type: 'survive'; condition?: 'no-damage'; except?: DamageCause[] };
 
 export interface MilestoneRequirements {
-  slots?: Slot[]; // the part in each slot must have a non-zero capability effect
-  instrument?: Instrument;
+  slots?: BusSlot[]; // the part in each slot must have a non-zero capability effect
+  instrument?: Instrument; // some part in the payload bay must provide it
 }
 
 export interface Milestone {
@@ -257,7 +261,8 @@ export interface TextFile {
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
-    | 'previewLabel' | 'previewEmpty', // the live 3D build preview (aria label, empty-state hint)
+    | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
+    | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity', // the payload bay
     string
   > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
   ticket: Record<
@@ -289,7 +294,7 @@ export interface TextFile {
   marsSoon: Record<'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle', string>;
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
-    | 'cameraControls' | 'drillControls' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
+    | 'cameraControls' | 'drillControls' | 'buttonCamera' | 'buttonDrill' | 'buttonsLabel' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
     | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'
     | 'captionEarth' | 'captionDay' | 'captionSurface',
     string
@@ -318,7 +323,7 @@ export interface TextFile {
 export interface TutorialPage {
   title: string;
   body: string[]; // one paragraph per entry
-  instrument?: Partial<Record<Instrument, string>>; // shown only for the equipped instrument
+  instrument?: Partial<Record<Instrument, string>>; // shown only for the instruments carried, in bay order; {key} is the mission key
 }
 
 /** A hand-written credits entry, for sources with no metadata in the data files. */
@@ -338,10 +343,13 @@ export interface GameData {
   text: TextFile;
 }
 
-/** A rover build: one part id per slot. */
-export type Build = Record<Slot, string>;
-/** A build on the design screen: a new campaign starts with every slot empty. */
-export type DraftBuild = Partial<Build>;
+/** A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order). */
+export type Build = Record<BusSlot, string> & { payload: string[] };
+/**
+ * A build on the design screen: a new campaign starts with every slot empty. `payload` undefined: the
+ * player has not confirmed the bay yet; `[]`: a confirmed empty bay.
+ */
+export type DraftBuild = Partial<Record<BusSlot, string>> & { payload?: string[] };
 
 /**
  * data/balance.json: the offline win-path analysis (rules/winPaths.ts). Drive legs between milestone
@@ -397,7 +405,7 @@ export interface RouteLeg {
 
 export interface PlanStop {
   node: string;
-  use?: boolean; // use the instrument here: a photo, or a drill sample
+  use?: Instrument[]; // use these instruments here, in this order, each only if the build carries it
   waitUntil?: number; // wait here (parked) until this mission second before using the instrument
 }
 

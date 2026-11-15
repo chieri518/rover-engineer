@@ -1,4 +1,5 @@
 import type { GameData } from './types';
+import { ZONE_IDS } from './milestones';
 
 /** Checks the data files for broken references and missing entries. Returns a list of problems. */
 export function validateGameData(data: GameData): string[] {
@@ -8,7 +9,13 @@ export function validateGameData(data: GameData): string[] {
   for (const part of parts) {
     if (ids.has(part.id)) problems.push(`duplicate part id ${part.id}`);
     ids.add(part.id);
-    if (!slots.includes(part.slot)) problems.push(`part ${part.id} has unknown slot ${part.slot}`);
+    if (part.slot === 'instrument') {
+      if (!part.effects.instrument) problems.push(`instrument part ${part.id} has no instrument effect`);
+    } else if (!slots.includes(part.slot)) problems.push(`part ${part.id} has unknown slot ${part.slot}`);
+    if (part.slot === 'chassis') {
+      const points = part.effects.mountingPoints;
+      if (points === undefined || !Number.isInteger(points) || points < 0) problems.push(`chassis ${part.id} needs a whole number of mountingPoints`);
+    }
     if (part.cost < 0 || part.mass < 0 || part.size < 0) problems.push(`part ${part.id} has a negative value`);
   }
   for (const slot of slots) {
@@ -33,6 +40,10 @@ export function validateGameData(data: GameData): string[] {
     if (m.requires.instrument && !parts.some((p) => p.effects.instrument === m.requires.instrument)) {
       problems.push(`milestone ${m.id} requires instrument ${m.requires.instrument}, which no part provides`);
     }
+    // A trigger naming an unknown zone would silently never fire.
+    const tr = m.trigger;
+    const zone = tr.type === 'zone' || tr.type === 'photo' || tr.type === 'drill' ? tr.zone : undefined;
+    if (zone !== undefined && !(ZONE_IDS as readonly string[]).includes(zone)) problems.push(`milestone ${m.id} names unknown zone ${zone}`);
   }
   if (data.events.flare.realFlares.length < data.events.flare.windowsSeconds.length) {
     problems.push('events.json needs at least one real flare per flare window');

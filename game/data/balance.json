@@ -1,5 +1,5 @@
 {
-  "note": "Offline win-path analysis (src/rules/winPaths.ts), not loaded by the game. Nodes and legs were measured once on the real terrain: least-cost drive routes on a 10 m grid with slopes up to 18 degrees, avoiding permanent shadow except into the dark crater; lit shares from the game shadow test with the decided Sun path, every 10 s. Plans and play assumptions are design choices.",
+  "note": "Offline win-path analysis (src/rules/winPaths.ts), not loaded by the game. Nodes and legs were measured once on the real terrain: least-cost drive routes on a 10 m grid with slopes up to 18 degrees, avoiding permanent shadow except into the dark crater; lit shares from the game shadow test with the decided Sun path, every 10 s. Plans and play assumptions are design choices. Each plan stop lists the instruments used there, in order; a build uses only the ones it carries.",
   "site": {
     "latitudeDeg": -88.5378,
     "longitudeDeg": -67.6065
@@ -956,7 +956,7 @@
       "stops": [
         {
           "node": "wall",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rocky1East"
@@ -966,11 +966,11 @@
         },
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rim1",
-          "use": true,
+          "use": ["camera", "drill"],
           "waitUntil": 240
         }
       ]
@@ -987,11 +987,11 @@
         },
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rim2",
-          "use": true,
+          "use": ["camera", "drill"],
           "waitUntil": 240
         }
       ]
@@ -1002,22 +1002,22 @@
       "stops": [
         {
           "node": "wall",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rocky1East",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rocky1North"
         },
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rim2",
-          "use": true
+          "use": ["camera", "drill"]
         }
       ]
     },
@@ -1027,18 +1027,18 @@
       "stops": [
         {
           "node": "wall",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "landing"
         },
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rim2",
-          "use": true
+          "use": ["camera", "drill"]
         }
       ]
     },
@@ -1048,18 +1048,18 @@
       "stops": [
         {
           "node": "rocky1East",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rocky1North"
         },
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rim2",
-          "use": true
+          "use": ["camera", "drill"]
         }
       ]
     },
@@ -1069,7 +1069,7 @@
       "stops": [
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "darkEdge"
@@ -1088,7 +1088,7 @@
       "stops": [
         {
           "node": "wall",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rocky2West"
@@ -1110,11 +1110,11 @@
       "stops": [
         {
           "node": "darkEdge",
-          "use": true
+          "use": ["drill"]
         },
         {
           "node": "ice",
-          "use": true
+          "use": ["drill"]
         },
         {
           "node": "darkEdge"
@@ -1127,11 +1127,11 @@
       "stops": [
         {
           "node": "darkEdge",
-          "use": true
+          "use": ["drill"]
         },
         {
           "node": "ice",
-          "use": true
+          "use": ["drill"]
         },
         {
           "node": "darkEdge"
@@ -1145,14 +1145,14 @@
       "stops": [
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "darkEdge"
         },
         {
           "node": "ice",
-          "use": true
+          "use": ["drill"]
         },
         {
           "node": "darkEdge"
@@ -1165,7 +1165,7 @@
       "stops": [
         {
           "node": "wall",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "landing"
@@ -1178,7 +1178,7 @@
       "stops": [
         {
           "node": "rocky1East",
-          "use": true
+          "use": ["camera", "drill"]
         }
       ]
     },
@@ -1188,11 +1188,11 @@
       "stops": [
         {
           "node": "rocky1East",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         }
       ]
     },
@@ -1202,11 +1202,11 @@
       "stops": [
         {
           "node": "rim1",
-          "use": true
+          "use": ["camera", "drill"]
         },
         {
           "node": "rim2",
-          "use": true,
+          "use": ["camera", "drill"],
           "waitUntil": 240
         }
       ]
@@ -1243,7 +1243,7 @@
         "battery": "battery-nih2",
         "lights": "lights-none",
         "heater": "heater-none",
-        "instrument": "instrument-camera"
+        "payload": ["instrument-camera"]
       },
       "plan": "scout-loop"
     },
@@ -1256,7 +1256,7 @@
         "battery": "battery-li-ion",
         "lights": "lights-none",
         "heater": "heater-none",
-        "instrument": "instrument-drill"
+        "payload": ["instrument-drill"]
       },
       "plan": "geology-north"
     },
@@ -1269,7 +1269,7 @@
         "battery": "battery-li-ion",
         "lights": "lights-led",
         "heater": "heater-rhu",
-        "instrument": "instrument-drill"
+        "payload": ["instrument-drill"]
       },
       "plan": "ice"
     }

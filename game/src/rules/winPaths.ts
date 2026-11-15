@@ -4,9 +4,10 @@
 // the real payout and pass rule. Used by the balance tests to check that idling fails, that several
 // different builds pass on different routes, and that most builds put together without a plan fail.
 // Pure: no rendering, no DOM. An estimate, not the game: the browser playtests confirm it.
-import type { BalanceFile, Build, GameData, Milestone, Part, RouteLeg, RouteNode, RoutePlan } from './types';
+import type { BalanceFile, Build, GameData, Instrument, Milestone, Part, RouteLeg, RouteNode, RoutePlan } from './types';
 import { quoteBuild } from './quote';
 import { meetsRequirements, selectedParts } from './rover';
+import { instrumentsOf } from './payload';
 import { missionSetup, startMission, stepMission, type MissionEnd, type MissionState } from './mission';
 import { wheelSlip } from './ground';
 import { earthLitShare, skyDirection, sunAt } from './sun';
@@ -72,7 +73,7 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
   const events: MissionEvent[] = play.flareSeconds.map((at) => ({ kind: 'flare', at, warningAt: at - data.events.flare.warningSeconds, flare }));
   const setup = missionSetup(parts, t, events);
   const speed = setup.stats.topSpeed * play.speedShare;
-  const instrument = parts.find((p) => p.slot === 'instrument')?.effects.instrument;
+  const carried = instrumentsOf(parts);
   const step = routes.litStepSeconds;
   const earthDir = skyDirection(t.earth.azimuthDeg, t.earth.elevationDeg);
   const log: string[] = [];
@@ -91,7 +92,7 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
   let leg: RouteLeg | null = null;
   let legPos = 0;
   let busyUntil = 0; // drilling or sheltering from a flare: parked
-  let actionDone = true; // the instrument action at the current stop
+  let actionDone = true; // the instrument actions at the current stop
   let deep = false; // below the Crater descent depth on the de Gerlache side
   let inDark = false;
   let crossed = false;
@@ -119,7 +120,8 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
     log.push(`${Math.round(s.seconds)}s at ${node.id} (energy ${Math.round(s.energy)})`);
   };
 
-  const useInstrument = () => {
+  const useInstrument = (instrument: Instrument) => {
+    if (!carried.includes(instrument)) return;
     if (instrument === 'camera') {
       for (const m of byTrigger((m) => m.trigger.type === 'photo' && m.trigger.zone !== undefined && m.trigger.zone === at.photoZone)) credit(m);
       const sun = sunAt(s.seconds, t.sun, t.mission, routes.site);
@@ -129,7 +131,7 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
       }
       log.push(`${Math.round(s.seconds)}s photo at ${at.id}`);
     } else if (instrument === 'drill') {
-      busyUntil = s.seconds + mt.drillSeconds;
+      busyUntil = Math.max(busyUntil, s.seconds + mt.drillSeconds);
       if (at.fromLandingM >= mt.sampleMinDistanceM) {
         const here = at;
         const newSite = sites.every((n) => Math.hypot(n.x - here.x, n.z - here.z) >= mt.sampleSpacingM);
@@ -168,7 +170,7 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
       const stop = plan.stops[stopIndex - 1]!;
       if (stop.waitUntil === undefined || s.seconds >= stop.waitUntil) {
         actionDone = true;
-        if (stop.use) useInstrument();
+        for (const instrument of stop.use ?? []) useInstrument(instrument);
       }
     } else if (stopIndex < plan.stops.length) {
       const next = plan.stops[stopIndex]!;

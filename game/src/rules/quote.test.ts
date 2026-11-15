@@ -11,7 +11,7 @@ const data = {
 } as unknown as GameData;
 
 const build: Build = {
-  chassis: 'steel', wheels: 'solid', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', instrument: 'camera',
+  chassis: 'steel', wheels: 'solid', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', payload: ['camera'],
 };
 
 describe('build quote', () => {
@@ -42,12 +42,32 @@ describe('build quote', () => {
   it('quotes a draft build: an empty design, and a partial one, report the empty slots', () => {
     const empty = quoteBuild({}, data, 700);
     expect(empty.complete).toBe(false);
-    expect(empty.missing).toEqual(testParts.slots);
+    expect(empty.missing).toEqual([...testParts.slots, 'instrument']);
     expect(empty.cost).toBe(0);
     expect(empty.drive.topSpeed).toBe(0);
     const partial = quoteBuild({ chassis: 'steel', lights: 'no-lights' }, data, 700);
-    expect(partial.missing).toEqual(testParts.slots.filter((s) => s !== 'chassis' && s !== 'lights'));
+    expect(partial.missing).toEqual([...testParts.slots.filter((s) => s !== 'chassis' && s !== 'lights'), 'instrument']);
     expect(partial.mass).toBe(testParts.parts.find((p) => p.id === 'steel')!.mass);
     expect(quoteBuild(build, data, 700).complete).toBe(true);
+  });
+
+  it('reports the mounting points and blocks launch when the bay is over capacity', () => {
+    const q = quoteBuild({ ...build, payload: ['camera', 'drill'] }, data, 2000);
+    expect(q.mountingPoints).toBe(3);
+    expect(q.instruments).toBe(2);
+    expect(q.canLaunch).toBe(true);
+    // Titanium has 2 points: a third instrument cannot fit (a draft can still hold one, e.g. after a chassis change).
+    const over = quoteBuild({ ...build, chassis: 'titanium', payload: ['camera', 'drill', 'camera'] }, data, 2000);
+    expect(over.tier).not.toBeNull();
+    expect(over.canLaunch).toBe(false);
+    expect(over.payloadProblems.map((p) => p.kind)).toEqual(['duplicate', 'over-capacity']);
+    expect(quoteBuild({ payload: ['camera'] }, data, 700).mountingPoints).toBeNull();
+  });
+
+  it('an empty, confirmed bay is complete and can launch', () => {
+    const q = quoteBuild({ ...build, payload: [] }, data, 700);
+    expect(q.complete).toBe(true);
+    expect(q.canLaunch).toBe(true);
+    expect(q.instruments).toBe(0);
   });
 });
