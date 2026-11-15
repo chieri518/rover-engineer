@@ -1,5 +1,7 @@
 {
   "name": "rover-engineer",
+  "description": "Rover Engineer, a browser rover game for NASA Space Apps 2026. Code written with AI assistance (Anthropic Claude via Claude Code); see space-mission-design-game/submission/ai-disclosure.md.",
+  "license": "MIT",
   "private": true,
   "version": "0.0.0",
   "type": "module",
