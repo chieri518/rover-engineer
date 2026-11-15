@@ -2,7 +2,6 @@
 > Written to the event guide's rules on "Super Intelligence" (SI) tools: SI may assist but should not originate the solution idea; describe how it was used; visibly watermark generated images and video; acknowledge generated audio, code and data in descriptive text and metadata; generated content must not use or modify NASA branding. The disclosure field is not shown to judges.
 >
 > **For the team to check before pasting:**
-> - In-game text (tutorial, milestone pop-ups, debrief, credits in `game/data/text.json` and `milestones.json`) was committed together with the code. If Claude drafted any of it, add "in-game text" to the list below; it is not listed now because it was not in the facts given for this draft.
 > - The guide asks for generated code to be acknowledged in **metadata** as well as text. Consider adding a one-line note to the repository README or `game/package.json`, such as "Code written with AI assistance (Anthropic Claude via Claude Code); see ai-disclosure.md."
 > - Confirm that no SI tool other than Claude was used (for example, chat assistants, code completion, translation or image tools). If one was, add it under "Tool used".
 > - If the demo video or slides use any AI-generated images, video, voice or music, they must be watermarked or acknowledged, and this file updated.
@@ -11,7 +10,7 @@
 
 ## Form version (one paragraph)
 
-Rover Engineer is the work of a two-person human team, which originated the game concept and made all key design decisions: a player designs a rover within constraints, it is delivered to another world, and the player keeps it working on the surface, with a mass-versus-cost puzzle, launch "ticket" tiers, a Moon → Mars → Titan progression, research points versus money, and optional history facts. We used Anthropic's Claude, through Claude Code, extensively: for background research and literature summaries on NASA missions and rovers; for drafting and organizing design documents from our decisions; for writing essentially all of the game's code (TypeScript, Three.js, Rapier) and the Python scripts that process NASA data; for balancing numbers; for fact-checking in-game history text against cited sources; and for drafting these submission texts. Team members directed, reviewed and tested this work. The game contains no AI-generated images, video or audio: its visuals are real NASA data (terrain and imagery) plus procedural rendering. It uses no NASA logos or branding; REL (Rover Exploration Laboratory) is a fictional agency.
+Rover Engineer is the work of a two-person human team, which originated the game concept and made all key design decisions: a player designs a rover within constraints, it is delivered to another world, and the player keeps it working on the surface, with a mass-versus-cost puzzle, launch "ticket" tiers, a Moon → Mars → Titan progression, research points versus money, and optional history facts. We used Anthropic's Claude, through Claude Code, extensively: for background research and literature summaries on NASA missions and rovers; for drafting and organizing design documents from our decisions; for writing essentially all of the game's code (TypeScript, Three.js, Rapier) and the Python scripts that process NASA data; for balancing numbers; for drafting the in-game text (tutorial, milestone pop-ups, history facts, debrief and credits) and fact-checking the history facts against cited sources; and for drafting these submission texts. Team members directed, reviewed and tested this work. The game contains no AI-generated images, video or audio: its visuals are real NASA data (terrain and imagery) plus procedural rendering. It uses no NASA logos or branding; REL (Rover Exploration Laboratory) is a fictional agency.
 
 ## Full disclosure
 
@@ -42,7 +41,8 @@ Claude was used extensively, in these areas:
 | Game code | Writing essentially all of the game's code, in TypeScript with Three.js (3D rendering) and Rapier (physics) |
 | Data processing | Writing the Python scripts that turn NASA datasets into game files: the LOLA terrain, slope, sunlight, permanent-shadow and Earth-visibility files, the LROC ground texture, and the DONKI solar flare list |
 | Balancing | Balancing game numbers such as part costs, masses, energy use and ticket prices |
-| Fact-checking | Checking the in-game history text against cited sources |
+| In-game text | Drafting the tutorial, milestone pop-ups, history facts, debrief and credits text, in the tone the team set |
+| Fact-checking | Checking the in-game history facts against cited sources |
 | Submission | Drafting these submission texts |
 
 ### What the team did
