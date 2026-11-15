@@ -58,6 +58,8 @@ const landing: Screen = (game, root) => {
   const vars = missionVars(data);
   // Orbital survey leads: a rough bearing and distance from the lander to each area of interest. The
   // terrain features load here (and stay cached for the mission).
+  const leadsHeading = el('h3', {}, s.heading);
+  const leadsIntro = el('p', {}, s.intro);
   const leads = el('ul', { class: 'survey-leads' }, el('li', { class: 'muted' }, s.loading));
   const landmark = el('p', { hidden: true });
   void import('../world/terrainMasks')
@@ -66,6 +68,7 @@ const landing: Screen = (game, root) => {
       const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName);
       const lines = briefingLines(buildLeads(sites, data.tuning.survey), masks.info.landing.local, data);
       leads.replaceChildren(...lines.map((l) => el('li', {}, l)));
+      if (lines.length === 0) for (const n of [leadsHeading, leadsIntro, leads]) n.remove(); // no leads for this world yet
       // Mars: how far Perseverance's 2021 landing site is from the lander.
       const percy = (masks.info.features as { perseveranceLanding?: { local: { x: number; z: number } } }).perseveranceLanding;
       if (mars && percy) {
@@ -87,8 +90,8 @@ const landing: Screen = (game, root) => {
       landmark,
       mars && el('h3', {}, mars.newHeading),
       mars && el('ul', { class: 'new-on-world' }, ...mars.newOnMars.map((line) => el('li', {}, fill(line, vars)))),
-      el('h3', {}, s.heading),
-      el('p', {}, s.intro),
+      leadsHeading,
+      leadsIntro,
       leads,
       mars && el('p', { class: 'note' }, mars.sources),
       el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => game.go('mission') }, 'Begin mission')),
