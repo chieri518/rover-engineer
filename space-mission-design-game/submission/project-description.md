@@ -3,8 +3,7 @@
 >
 > **For the team to check:**
 > - Datasets listed in `game-design.md` §9 but **not** in the current game (ShadowCam, Diviner temperature maps, Moon Mineralogy Mapper, Apollo seismometer data, SVS star maps, LROC/Chandrayaan-2 boulder counts) are deliberately left out. Diviner appears only as a cited history fact. Add any of them only if they are actually built in.
-> - The "Crater layers" milestone fact is marked in `milestones.json` as "not checked against a single source". Add a source or reword it before judges see it.
-> - The repo has no LICENSE file. The event terms say original content must be openly available or under an OSI-approved license, and NASA uses Apache 2.0 if none is given. Choose a license if you publish the code.
+> - The repo is under the MIT License (`LICENSE`), which is OSI-approved. Make sure the published repository includes that file.
 > - The ice spot, landing point and launch-ticket numbers describe the current provisional defaults (`game-design.md` open questions 1a–1c).
 
 # Rover Engineer: Project Description
@@ -14,6 +13,8 @@
 **Play the game:** `TODO: GAME URL`
 **Demo (30-second video or up to 7 slides):** `TODO: DEMO LINK`
 **Source code (optional):** `TODO: REPOSITORY URL`
+
+**License:** MIT (see the `LICENSE` file in the repository)
 
 ## Short version (about 100 words)
 
