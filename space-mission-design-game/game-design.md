@@ -785,6 +785,13 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 - **Campaign complete.** Replaces "Titan: coming soon": banked RP, final balance, records held, and the campaign table with one row per mission. *Proposed:* a failed Titan round (rover lost before dawn and the balance below a final mark, interface) can be retried from the Titan snapshot; otherwise the campaign ends.
 - **Credits** add the Titan sources (Cassini radar and maps, Huygens, Dragonfly).
 
+#### Spine decisions *(decided during implementation, Phase T0, Owner B to confirm)*
+
+- **Campaign end marker.** The campaign order is Moon → Mars → Titan → `complete`. Titan is playable; `complete` is the end screen. Saves at the old `titan` end marker (after a passed Mars round) now open the Titan design screen.
+- **Titan final mark.** A placeholder of 0 (`budget.minimumBudget.complete`), so a Titan round fails only if the balance goes negative. The Titan entry minimum stays the Mars pass mark (800). The final-mark rule ("rover lost before dawn and the balance below a final mark") is left to the campaign track and Owner A.
+- **Handling.** Titan gravity is 1.35 m/s². `rover.gravityScale` is 4.8, so ground gravity is 6.48 m/s², the Moon's tuned value, as on Mars.
+- **Placeholders.** Until the sky track lands, Titan uses the Mars look. Until the rules and integration tracks land, it uses the lunar Sun model fixed near noon. The one Titan day is written in the Mars sol format (`tuning.sol`: 1 sol of 900 s, 450 s day, 450 s night, start 150 s after sunrise), and the rules track decides whether to keep it.
+
 ### Build order
 
 1. **Moon:** being designed now.
