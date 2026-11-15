@@ -307,6 +307,7 @@
       }
     ],
     "speedLabel": "Real drive speeds (design screen)",
+    "drillHydrogenLabel": "Drill hydrogen readings",
     "survivedLabel": "Mission completed",
     "back": "Back"
   }

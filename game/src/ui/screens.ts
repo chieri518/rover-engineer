@@ -5,6 +5,7 @@ import type { HistoryKey } from '../rules/types';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
+import { creditsScreen } from './creditsScreen';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
 import { ticketScreen } from './ticketScreen';
@@ -19,6 +20,7 @@ const title: Screen = (game, root) => {
         el('button', { class: 'primary', onclick: () => game.newCampaign() }, t.newCampaign),
         game.campaign && el('button', { onclick: () => game.continueCampaign() }, t.continueCampaign),
         el('button', { onclick: () => game.go('settings') }, game.data.text.settings.open),
+        el('button', { id: 'open-credits', onclick: () => game.go('credits') }, game.data.text.credits.open),
       ),
     ),
   );
@@ -169,6 +171,7 @@ const marsSoon: Screen = (game, root) => {
 export const screens: Record<ScreenId, Screen> = {
   title,
   settings,
+  credits: creditsScreen,
   design: designScreen,
   ticket: ticketScreen,
   landing,
