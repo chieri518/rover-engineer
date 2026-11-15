@@ -87,14 +87,14 @@
   "sun": {
     "startAzimuthDeg": 75,
     "degreesPerEarthDay": 12.19,
-    "subsolarLatitudeDeg": -0.52
+    "subsolarLatitudeDeg": -1.54
   },
   "earth": {
     "azimuthDeg": 0,
     "elevationDeg": 0.6
   },
   "rover": {
-    "startHeadingDeg": 197,
+    "startHeadingDeg": 0,
     "body": {
       "lengthM": 1.8,
       "widthM": 1.3,
