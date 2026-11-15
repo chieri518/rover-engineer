@@ -8,6 +8,7 @@ export interface EarnedMilestone {
 export interface MissionResult {
   survived: boolean;
   cause?: DeathCause; // set when survived is false
+  detail?: 'rollover'; // destroyed by rolling over rather than by the damage meter
   secondsLasted: number;
   earned: EarnedMilestone[];
 }

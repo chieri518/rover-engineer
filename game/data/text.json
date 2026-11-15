@@ -76,7 +76,8 @@
     "legendCrater": "Crater",
     "legendCold": "Permanent shadow",
     "lasted": "The rover operated for {days} of {total} days.",
-    "toDebrief": "Continue to debrief"
+    "toDebrief": "Continue to debrief",
+    "legendIce": "Ice candidate"
   },
   "warnings": {
     "lowEnergy": "Battery low. Stop in sunlight to recharge.",
@@ -95,8 +96,25 @@
   "debrief": {
     "heading": "Mission debrief",
     "survived": "The rover completed the full mission.",
-    "failedRound": "The balance is below the minimum budget for the next mission. The round must be restarted.",
-    "passedRound": "The balance meets the minimum budget for the next mission."
+    "cause": "Mission ended early. Cause: {cause}.",
+    "rollover": "Destroyed: the rover rolled over",
+    "failedRound": "The balance is below the minimum budget for the next mission. The round must be restarted. Balance, research points and records return to their values at the start of the round.",
+    "passedRound": "The balance meets the minimum budget for the next mission.",
+    "milestonesHeading": "Milestones reached",
+    "noMilestones": "No milestones were reached.",
+    "recordHeld": "Record already held this campaign. No reward.",
+    "payoutHeading": "Payout",
+    "survivalPayout": "Survival payout",
+    "milestoneMoney": "Milestone rewards",
+    "penalty": "Loss penalty",
+    "net": "Net change",
+    "rpEarned": "Research points earned",
+    "balance": "Balance",
+    "albumHeading": "Photo album",
+    "noPhotos": "No photographs were taken.",
+    "historyHeading": "Mission history",
+    "restart": "Restart round",
+    "continue": "Continue"
   },
   "causes": {
     "energy": "Out of energy",
@@ -105,14 +123,65 @@
     "destroyed": "Destroyed by damage"
   },
   "history": {
-    "survived": "ISRO's Pragyan rover completed its planned mission of one lunar daylight period in 2023.",
-    "energy": "NASA's Opportunity rover lost power in 2018 when a planet-wide dust storm blocked sunlight from its solar panels.",
-    "stuck": "NASA's Spirit rover became stuck in soft soil on Mars in 2009 and never drove free.",
-    "froze": "India's Vikram lander and Pragyan rover did not wake after the cold lunar night in 2023.",
-    "destroyed": "The Soviet Lunokhod 2 rover was lost in 1973 after lunar dust covered its radiator and it overheated."
+    "survived": "India's Pragyan rover did likewise in 2023: it completed its planned one lunar day of operations, about 14 Earth days, before ISRO put it into sleep mode for the lunar night.",
+    "energy": "NASA's solar-powered Opportunity rover ended the same way: a Mars-wide dust storm covered its site, its last signal arrived on June 10, 2018, and NASA declared the mission over on February 13, 2019.",
+    "stuck": "NASA's Spirit rover met this fate on Mars: it became stuck in soft soil on May 1, 2009, and in January 2010 NASA redefined its mission as a stationary science platform.",
+    "froze": "India's Vikram lander and Pragyan rover entered sleep mode before the cold lunar night in September 2023, and ISRO has not reported regaining contact after its wake-up attempts around September 22.",
+    "destroyed": "The Soviet Lunokhod 2 rover was also lost to damage: its lid touched a crater wall on May 9, 1973, dust fell onto its radiator, it overheated, and the mission was closed on June 4, 1973.",
+    "rollover": "No planetary rover is known to have been lost to a rollover. NASA's Spirit rover had a static tip-over angle of 45 degrees, and its software stopped a drive whenever its tilt passed a set limit."
   },
   "marsSoon": {
     "heading": "Mars: coming soon",
-    "body": "The Moon campaign is complete. Research points carry forward to Mars technology."
+    "body": "The Moon campaign is complete. Research points carry forward to Mars technology.",
+    "rpBanked": "Research points banked: {rp}",
+    "balance": "Balance: {balance}",
+    "backToTitle": "Back to title"
+  },
+  "historySources": {
+    "survived": "ISRO, Chandrayaan-3 details (isro.gov.in/Chandrayaan3_Details.html) and mission updates (isro.gov.in/Chandrayaan3.html): rover deployed Aug 24, 2023; sleep mode Sept 4, 2023",
+    "energy": "NASA JPL, NASA's Opportunity Rover Mission on Mars Comes to End (jpl.nasa.gov/news/nasas-opportunity-rover-mission-on-mars-comes-to-end/)",
+    "stuck": "NASA Science, Spirit (science.nasa.gov/mission/mer-spirit/)",
+    "froze": "ISRO, Chandrayaan-3 mission updates (isro.gov.in/Chandrayaan3.html); ISRO has not stated a cause",
+    "destroyed": "NASA/ASU LROC, Lunokhod 2 (lroc.im-ldi.com/images/699)",
+    "rollover": "Leger et al. (2005), Mars Exploration Rover Surface Operations: Driving Spirit at Gusev Crater, IEEE SMC (www-robotics.jpl.nasa.gov/media/documents/leger_driving05.pdf)"
+  },
+  "milestone": {
+    "reached": "Milestone reached",
+    "stage": "{name} {stage} of {stages}",
+    "reward": "+{money}, +{rp} RP",
+    "record": "Record",
+    "recordHeld": "Record already held this campaign. No reward.",
+    "notCredited": "{name} not credited: this rover has no {missing}.",
+    "categoryCapability": "Capability",
+    "categoryScientific": "Scientific",
+    "categoryRecord": "Record",
+    "categoryPicture": "Pretty picture"
+  },
+  "instruments": {
+    "cameraControls": "C to take a photograph.",
+    "drillControls": "F to drill a sample (stop first).",
+    "photoTaken": "Photograph added to the album: {caption}.",
+    "photoNoZone": "Photograph added to the album. Milestones count only at viewpoints, or with Earth above the horizon in view.",
+    "photoAlbumFull": "The album is full ({max} photographs).",
+    "noCamera": "This rover carries no camera.",
+    "noDrill": "This rover carries no drill.",
+    "viewpointHint": "Viewpoint: {name}. Press C to take a photograph.",
+    "earthHint": "Earth is above the horizon in view. Press C to take a photograph.",
+    "iceHint": "Ice candidate site. Stop and press F to drill.",
+    "drilling": "Drilling. The rover holds still.",
+    "drillMoving": "Stop the rover before drilling.",
+    "drillDone": "Regolith sample collected.",
+    "drillIce": "Sample collected. The regolith contains water ice.",
+    "drillNoIce": "Sample collected. No water ice detected at this site.",
+    "captionEarth": "Earth above the horizon",
+    "captionDay": "{place}, day {day}",
+    "captionSurface": "Lunar surface"
+  },
+  "settings": {
+    "heading": "Settings",
+    "open": "Settings",
+    "history": "Mission history",
+    "historyHelp": "Show a one-sentence real fact on each milestone notice, and a comparison with a real rover in the debrief.",
+    "back": "Back"
   }
 }

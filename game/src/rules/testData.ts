@@ -79,10 +79,14 @@ export const testTuning: Tuning = {
     angularDamping: 1,
   },
   area: { boundaryInsetM: 100, warningDistanceM: 60 },
+  milestones: {
+    photoZoneRadiusM: 60, iceSpotRadiusM: 50, boulderCrossRadiusFactor: 1.1, boulderCrossMinAngleDeg: 90,
+    craterDescentDepthM: 150, craterDescentExitDepthM: 100, drillSeconds: 3, albumMax: 12, photoFrameMargin: 0.85,
+  },
 };
 
 const milestone = (id: string, money: number, rp: number, extra: Partial<Milestone> = {}): Milestone => ({
-  id, name: id, category: 'capability', record: false, trigger: { type: 'landing' }, requires: {}, money, rp, fact: '', ...extra,
+  id, name: id, category: 'capability', record: false, trigger: { type: 'landing' }, requires: {}, money, rp, summary: '', fact: '', ...extra,
 });
 
 export const testMilestones: Milestone[] = [

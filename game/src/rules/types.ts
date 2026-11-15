@@ -70,7 +70,9 @@ export interface Milestone {
   requires: MilestoneRequirements;
   money: number; // per stage for staged triggers (distance)
   rp: number;
-  fact: string;
+  summary: string; // what the rover did, in the formal mission-log tone of the pop-up
+  fact: string; // one real-history sentence, shown only when the Mission history setting is on
+  source?: string; // where the fact comes from (not shown in the pop-up)
 }
 
 export interface MilestonesFile {
@@ -78,6 +80,8 @@ export interface MilestonesFile {
 }
 
 export type DeathCause = 'energy' | 'stuck' | 'froze' | 'destroyed';
+/** Debrief real-rover comparisons: one per ending; a rollover is 'destroyed' with its own comparison. */
+export type HistoryKey = DeathCause | 'survived' | 'rollover';
 export type MissionId = 'moon' | 'mars';
 
 export interface Tuning {
@@ -155,6 +159,20 @@ export interface Tuning {
     boundaryInsetM: number; // the operating boundary sits this far inside the 8 km play area
     warningDistanceM: number; // the "leaving the area" notice shows this close to the boundary
   };
+  milestones: MilestoneTuning;
+}
+
+/** Zone sizes and actions for the milestones (zones come from terrain.json features). */
+export interface MilestoneTuning {
+  photoZoneRadiusM: number; // viewpoint zones: a circle this wide around each terrain.json viewpoint
+  iceSpotRadiusM: number; // drilling within this distance of the ice candidate finds ice
+  boulderCrossRadiusFactor: number; // a rocky area's zone is its radius times this (where the boulders lie)
+  boulderCrossMinAngleDeg: number; // "cross": entry and exit points at least this far apart around the center
+  craterDescentDepthM: number; // de Gerlache's inner wall: at least this far below the landing point...
+  craterDescentExitDepthM: number; // ...and back out: climb back above this depth below landing
+  drillSeconds: number; // mission seconds the rover stands still while drilling
+  albumMax: number; // photos kept per mission
+  photoFrameMargin: number; // Earth counts as in view inside this share of the frame (NDC)
 }
 
 /** The Sun's path over the mission. Azimuths follow terrain.json: from local -z, turning toward +x. */
@@ -240,7 +258,7 @@ export interface TextFile {
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
     | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief' | 'rollover'
-    | 'legendLander' | 'legendViewpoint' | 'legendCrater' | 'legendCold',
+    | 'legendLander' | 'legendViewpoint' | 'legendCrater' | 'legendCold' | 'legendIce',
     string
   >;
   warnings: Record<
@@ -248,10 +266,24 @@ export interface TextFile {
     | 'flareWarning' | 'flareHit' | 'flareSafe' | 'quake' | 'impact',
     string
   >;
-  debrief: Record<'heading' | 'survived' | 'failedRound' | 'passedRound', string>;
+  debrief: Record<
+    | 'heading' | 'survived' | 'failedRound' | 'passedRound' | 'cause' | 'rollover' | 'milestonesHeading' | 'noMilestones'
+    | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
+    | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue',
+    string
+  >;
   causes: Record<DeathCause, string>;
-  history: Record<DeathCause | 'survived', string>;
-  marsSoon: Record<'heading' | 'body', string>;
+  history: Record<HistoryKey, string>;
+  historySources: Record<HistoryKey, string>;
+  marsSoon: Record<'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle', string>;
+  milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
+  instruments: Record<
+    | 'cameraControls' | 'drillControls' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
+    | 'viewpointHint' | 'earthHint' | 'iceHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce'
+    | 'captionEarth' | 'captionDay' | 'captionSurface',
+    string
+  >;
+  settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'back', string>;
 }
 
 export interface GameData {
