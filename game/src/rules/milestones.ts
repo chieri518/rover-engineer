@@ -161,13 +161,17 @@ export class MilestoneTracker {
   private readonly earned = new Map<string, number>(); // id → stages reached
   private readonly inside = new Map<string, Point | null>(); // zone key → where it was entered
   private readonly missedOnce = new Set<string>();
+  private readonly landing: Point;
 
   constructor(
     private readonly catalog: Milestone[],
     private readonly parts: Part[],
     readonly zones: Zone[],
     private readonly t: MilestoneTuning,
-  ) {}
+  ) {
+    const lander = zones.find((z) => z.id === 'near-lander');
+    this.landing = lander && lander.shape.kind === 'circle' ? { x: lander.shape.x, z: lander.shape.z } : { x: 0, z: 0 };
+  }
 
   /** Whether this rover is equipped to earn the milestone at all. */
   eligible(m: Milestone): boolean {
@@ -262,14 +266,22 @@ export class MilestoneTracker {
     this.each('photo', (m) => {
       const tr = m.trigger;
       if (tr.type !== 'photo') return;
-      if (tr.target === 'earth' ? this.earthPhotoCounts(earthInView, earthLit) : zones.some((z) => z.id === tr.zone)) this.fire(m, u);
+      if (tr.target === 'earth' ? this.earthPhotoCounts(p, earthInView, earthLit) : zones.some((z) => z.id === tr.zone)) this.fire(m, u);
     });
     return u;
   }
 
-  /** Whether an Earth photo counts: Earth in view and lit enough to show (not a dark new Earth). */
-  earthPhotoCounts(earthInView: boolean, earthLit: number): boolean {
-    return earthInView && earthLit >= this.t.earthPhotoMinLit;
+  /** Whether an Earth photo here would be too close to the lander to count. */
+  earthPhotoTooClose(p: Point): boolean {
+    return Math.hypot(p.x - this.landing.x, p.z - this.landing.z) < this.t.earthPhotoMinDistanceM;
+  }
+
+  /**
+   * Whether an Earth photo counts: Earth in view, lit enough to show (not a dark new Earth), and taken
+   * far enough from the lander (Earth is in view at the start, so the photo is not free).
+   */
+  earthPhotoCounts(p: Point, earthInView: boolean, earthLit: number): boolean {
+    return earthInView && earthLit >= this.t.earthPhotoMinLit && !this.earthPhotoTooClose(p);
   }
 
   /** A completed drill sample at the rover's position. Samples near the lander do not count. */

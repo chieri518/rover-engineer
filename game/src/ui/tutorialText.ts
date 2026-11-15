@@ -27,6 +27,7 @@ export function tutorialPages(
     days: tuning.mission.gameDays,
     maxSlope: tuning.ground.maxSlopeDegrees,
     warningSeconds: events.flare.warningSeconds,
+    earthMinDistance: tuning.milestones.earthPhotoMinDistanceM,
     sunlit: text.hud.sunlit,
     shadow: text.hud.shadow,
   };

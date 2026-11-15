@@ -138,6 +138,7 @@
     "photoFrameMargin": 0.85,
     "sampleMinDistanceM": 200,
     "earthPhotoMinLit": 0.25,
+    "earthPhotoMinDistanceM": 300,
     "hydrogenSignal": true,
     "hydrogenStrongWithinM": 100,
     "hydrogenModerateWithinM": 250

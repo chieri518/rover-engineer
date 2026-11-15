@@ -108,8 +108,11 @@ describe('milestone triggers', () => {
     const d = f.craterDescent.local;
     expect(ids(tr.photo(at(d.x, d.z), false, 1))).toEqual(['crater-layers']);
     // A dark new Earth does not count, even in view.
-    expect(ids(tr.photo(at(L.x, L.z), true, data.tuning.milestones.earthPhotoMinLit - 0.01))).toEqual([]);
-    expect(ids(tr.photo(at(L.x, L.z), true, data.tuning.milestones.earthPhotoMinLit))).toEqual(['earth-on-horizon']);
+    const far = data.tuning.milestones.earthPhotoMinDistanceM;
+    expect(ids(tr.photo(at(L.x, L.z - far + 1), true, 1))).toEqual([]); // too close to the lander
+    expect(tr.earthPhotoTooClose(at(L.x, L.z - far + 1))).toBe(true);
+    expect(ids(tr.photo(at(L.x, L.z - far), true, data.tuning.milestones.earthPhotoMinLit - 0.01))).toEqual([]);
+    expect(ids(tr.photo(at(L.x, L.z - far), true, data.tuning.milestones.earthPhotoMinLit))).toEqual(['earth-on-horizon']);
     expect(ids(tracker(drill).photo(at(v.x, v.z), true, 1))).toEqual([]);
   });
 

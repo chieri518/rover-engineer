@@ -119,6 +119,13 @@ export const missionScreen: Screen = (game, root) => {
   /** Sunlit share of Earth's disc right now (its phase). */
   const earthLit = () => earthLitShare(sunNow(), earthDir);
   const earthDarkText = (lit: number) => fill(ti.earthDarkHint, { lit: Math.round(lit * 100), min: Math.round(mt.earthPhotoMinLit * 100) });
+  const earthTooCloseText = (p: { x: number; z: number }) => {
+    const L = ctx?.terrain.info.landing.local ?? { x: 0, z: 0 };
+    return fill(ti.earthTooCloseHint, { distance: Math.round(Math.hypot(p.x - L.x, p.z - L.z)), min: mt.earthPhotoMinDistanceM });
+  };
+  /** Why an Earth photo here would not count, or null if it would. */
+  const earthBlocker = (p: { x: number; z: number }, lit: number): string | null =>
+    lit < mt.earthPhotoMinLit ? earthDarkText(lit) : tracker?.earthPhotoTooClose(p) ? earthTooCloseText(p) : null;
 
   const takePhoto = () => {
     if (ended || !scene || !tracker || !roverPos) return;
@@ -134,7 +141,8 @@ export const missionScreen: Screen = (game, root) => {
     const caption = fill(ti.captionDay, { place: places.length ? places.join(', ') : ti.captionSurface, day: dayText() });
     album.push({ src: scene.capture(PHOTO_WIDTH_PX), caption });
     hud.notify(places.length ? fill(ti.photoTaken, { caption }) : ti.photoNoZone, 'good');
-    if (earth && !tracker.earthPhotoCounts(earth, lit)) hud.notify(earthDarkText(lit));
+    const blocker = earth ? earthBlocker(roverPos, lit) : null;
+    if (blocker) hud.notify(blocker);
     announce(u);
   };
 
@@ -293,7 +301,7 @@ export const missionScreen: Screen = (game, root) => {
       if (view) return fill(ti.viewpointHint, { name: view.name });
       if (earthInView) {
         const lit = earthLit();
-        return lit >= mt.earthPhotoMinLit ? ti.earthHint : earthDarkText(lit);
+        return (roverPos && earthBlocker(roverPos, lit)) ?? ti.earthHint;
       }
     }
     // The exact ice spot is never revealed: inside the dark crater the hint only invites a test drill.

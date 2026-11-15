@@ -17,7 +17,7 @@ describe('tutorial text', () => {
     const drive = (instrument: 'camera' | 'drill') =>
       tutorialPages('drive', data, { mission: 'moon', instrument }).flatMap((p) => p.paragraphs).join('\n');
     expect(drive('camera')).toContain(`${data.tuning.ground.maxSlopeDegrees}°`);
-    expect(drive('camera')).toContain(data.text.tutorial.drive.at(-1)!.instrument!.camera!);
+    expect(drive('camera')).toContain(`at least ${data.tuning.milestones.earthPhotoMinDistanceM} m from the lander`);
     expect(drive('camera')).not.toContain(data.text.tutorial.drive.at(-1)!.instrument!.drill!);
     expect(drive('drill')).toContain(data.text.tutorial.drive.at(-1)!.instrument!.drill!);
     const design = tutorialPages('design', data, { mission: 'moon', instrument: null }).flatMap((p) => p.paragraphs).join('\n');
