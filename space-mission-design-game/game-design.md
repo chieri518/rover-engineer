@@ -550,9 +550,20 @@ The Moon teaches one trade-off. Mars and Titan add more intricate ones about wha
 - **Detailed play area.** *Proposed:* 8 km × 8 km at 5 m, resampled from the 1 m model. This is the Moon's size and format, so the terrain pipeline and the loader carry over.
 - **Distant terrain.** The rest of the HiRISE model, then CTX 20 m, then MOLA, so the rim of the 45 km crater rings the horizon. From rover camera height the Mars horizon is about 3.4 km away.
 - **Ground imagery.** The HiRISE 25 cm mosaic, resampled.
-- **Landing point.** *Proposed:* a flat spot on the crater floor near Perseverance's 2021 landing site (Octavia E. Butler Landing, 18.4447°N, 77.4508°E), picked by the pipeline from the real slope map, with the delta front and Séítah inside the play area. REL lands near the site, not on it.
-- **Sites to place** (*Proposed*; the pipeline measures the distances): the delta front, whose layered cliffs record an ancient lake; Séítah, a ridged rock unit with sand ripples (soft ground); and rocky areas on the crater floor (boulder fields, as on the Moon).
-- **Soft ground.** The sand ripples use the Moon's sinkage and slip rules. Spirit was stuck in sand at "Troy" in 2009 ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#terrain-sand-rocks-slopes)).
+- **Landing point.** *Decided (pipeline, November 15):* 18.4529°N, 77.44796°E on the crater floor, 517 m north-northwest of Perseverance's 2021 landing site (Octavia E. Butler Landing, 18.4447°N, 77.4508°E), with a mean slope of 1.3°. REL lands near the site, not on it, and Perseverance's site is a landmark on the map.
+- **Sites** *(decided, pipeline)*. Drive distances from the landing, on a 10 m grid with slopes up to 18°:
+
+| Site | What it is | Drive | Source |
+| --- | --- | --- | --- |
+| Rocky area 2 | A fresh crater about 255 m across | 224 m | The elevation data |
+| Rocky area 1 (survey lead) | A block field just south of Perseverance's site | 744 m | Published maps |
+| Séítah entry | A ridged rock unit with sand ripples | 1,230 m | Traced on HiRISE, guided by published maps (±100 m) |
+| Delta viewpoint (Delta layers) | Faces a 48 m cliff of the delta front | 1,482 m | Delta front at the foot of the cliff in the HiRISE model |
+| Delta front sample point | At Hawksbill Gap | 2,501 m | Published maps |
+| West sunset viewpoint | On the delta top, facing the setting Sun (azimuth 261°) | 3,616 m | The elevation data |
+
+- **Soft ground** *(decided, pipeline)*. Only Séítah and a 150 m margin around it (0.86 km²), from ripples detected in the HiRISE image and those mapped by Crumpler et al. (2023). Real ripple fields elsewhere, such as at the delta front, stay firm ground for now. The ripples use the Moon's sinkage and slip rules. Spirit was stuck in sand at "Troy" in 2009 ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#terrain-sand-rocks-slopes)).
+- **Western horizon.** From near the landing, the crater rim stands about 5° high in the west, so the Sun sets behind it. The Blue sunset photo counts anywhere at least 300 m from the lander, so the far sunset viewpoint is optional.
 - **Season.** *Proposed:* early northern autumn (Ls about 200), the start of the dust storm season, so a storm is realistic. At 18°N, day and night are close to equal then.
 
 #### Time: 10 sols in 10 minutes
