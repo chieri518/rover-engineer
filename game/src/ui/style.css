@@ -49,7 +49,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .sun-state.shadow { color: var(--muted); }
 .power-toggle { font-size: 0.85rem; padding: 6px 10px; }
 .power-toggle.active { background: #2b3a55; border-color: #6aa8ff; color: #dbe8ff; }
-.hud-center { position: absolute; top: 14%; left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); display: grid; gap: 8px; justify-items: center; }
+/* Between the HUD panel (left, 260 px) and the minimap (right, up to 216 px), so long notices never cover them. */
+.hud-center { position: absolute; top: 14%; left: 50%; transform: translateX(-50%); width: clamp(200px, calc(100% - 600px), 560px); display: grid; gap: 8px; justify-items: center; }
 .hud-warnings { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; justify-items: center; }
 .hud-warnings li, .hud-notice, .flare-warning { background: rgba(40, 14, 8, 0.85); color: var(--warn); border: 1px solid var(--warn); padding: 8px 16px; border-radius: 6px; font-weight: 600; letter-spacing: 0.01em; text-align: center; }
 .hud-notices { display: grid; gap: 6px; justify-items: center; }
@@ -77,7 +78,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (max-width: 640px) {
   .hud { width: calc(60% - 24px); }
   .minimap { width: calc(40% - 16px); }
-  .hud-center { top: auto; bottom: 16px; }
+  .hud-center { top: auto; bottom: 16px; width: calc(100% - 32px); }
 }
 .status { font-size: 0.85rem; color: var(--accent); }
 
@@ -209,6 +210,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .tutorial-spacer { flex: 1; }
 .tutorial-skip { background: none; border-color: transparent; color: var(--muted); padding-left: 0; }
 .tutorial-skip:hover { color: var(--text); }
+/* On narrower screens the drive tutorial sits bottom left, clear of the milestone pop-ups (bottom right). */
+@media (max-width: 1000px) {
+  .tutorial-overlay.tutorial-drive { place-items: end start; }
+  .tutorial-drive .tutorial { width: min(440px, calc(100% - 388px)); }
+}
+@media (max-width: 640px) {
+  .tutorial-overlay.tutorial-drive { place-items: end center; }
+  .tutorial-drive .tutorial { width: 100%; }
+}
 @media (max-height: 640px) {
   .tutorial { padding: 12px 16px; }
   .tutorial-body p { font-size: 0.88rem; margin: 4px 0; }
