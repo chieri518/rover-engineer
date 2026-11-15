@@ -31,6 +31,12 @@ describe('game data', () => {
     expect(data.milestones.milestones).toHaveLength(13);
   });
 
+  it('in the air the rover falls at the time-lapse gravity (speed compression squared), on the ground at less', () => {
+    const { rover, speed } = data.tuning;
+    expect(rover.airGravityScale).toBe(speed.compression ** 2);
+    expect(rover.gravityScale).toBeLessThan(rover.airGravityScale);
+  });
+
   it('offers camera and drill as the instrument options', () => {
     const instruments = data.parts.parts.filter((p) => p.slot === 'instrument').map((p) => p.effects.instrument);
     expect(instruments.sort()).toEqual(['camera', 'drill']);

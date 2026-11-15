@@ -227,11 +227,16 @@ export interface RoverHandling {
   maxLateralAccelMps2: number; // steering lock shrinks with speed so a full turn stays below this
   steerRateDegPerSecond: number;
   /**
-   * Gravity on the rover body as a multiple of lunar gravity. Driving is compressed ~4× like time;
-   * a true time-lapse would also scale accelerations by 4² = 16. A smaller factor keeps the rover
-   * on the ground at compressed speeds while keeping some lunar float.
+   * Gravity on the rover body on the ground, as a multiple of lunar gravity. Driving is compressed ~4×
+   * like time; a true time-lapse would also scale accelerations by 4² = 16, which would stop the rover
+   * climbing. airGravityScale applies the time-lapse value while the wheels are off the ground.
    */
   gravityScale: number;
+  /**
+   * Gravity scale while all four wheels are off the ground (in between for one to three wheels off).
+   * 16 = the time-lapse value: a hop over a bump lasts and rises as it would for a real rover at real speed.
+   */
+  airGravityScale: number;
   angularDamping: number;
 }
 

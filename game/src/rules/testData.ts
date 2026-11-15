@@ -78,6 +78,7 @@ export const testTuning: Tuning = {
     maxSteerDeg: 30,
     maxLateralAccelMps2: 3,
     gravityScale: 1,
+    airGravityScale: 1,
     steerRateDegPerSecond: 90,
     angularDamping: 1,
   },

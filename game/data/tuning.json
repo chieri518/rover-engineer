@@ -133,6 +133,7 @@
     "maxSteerDeg": 28,
     "maxLateralAccelMps2": 3,
     "gravityScale": 4,
+    "airGravityScale": 16,
     "steerRateDegPerSecond": 90,
     "angularDamping": 1.0
   },
