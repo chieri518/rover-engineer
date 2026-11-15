@@ -139,7 +139,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .sheet { grid-area: sheet; }
 /* The live 3D preview (buildPreview.ts): a dark assembly bay behind a transparent canvas. */
 .preview {
-  grid-area: preview; position: relative; min-width: 0; height: clamp(320px, 46vh, 460px);
+  grid-area: preview; position: relative; min-width: 0; height: clamp(340px, 54vh, 540px);
   border: 1px solid var(--edge); border-radius: 4px;
   background:
     radial-gradient(ellipse 70% 55% at 50% 38%, rgba(40, 72, 112, 0.42) 0%, rgba(16, 28, 46, 0.2) 55%, rgba(7, 11, 20, 0) 100%),
@@ -220,7 +220,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 @media (max-width: 900px) {
   .desk-grid { grid-template-columns: 1fr; grid-template-areas: 'preview' 'slots' 'sheet'; }
   .desk.no-preview .desk-grid { grid-template-areas: 'slots' 'sheet'; }
-  .preview { height: clamp(240px, 40vh, 340px); }
+  .preview { height: clamp(260px, 46vh, 400px); }
   .sheet { position: relative; top: auto; } /* relative, not static: anchors its corner brackets */
 }
 @media (max-width: 560px) {
