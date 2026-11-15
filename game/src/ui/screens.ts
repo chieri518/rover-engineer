@@ -1,13 +1,16 @@
-// Screens: title, settings, landing, debrief and "Mars: coming soon". The design, ticket and mission
-// screens have their own files.
+// Screens: title, settings, landing, debrief and "coming soon" (after the last playable mission:
+// "Titan: coming soon" with the campaign summary). The design, ticket and mission screens have their own files.
 import { milestoneStages } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
 import type { HistoryKey } from '../rules/types';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
-import { buildLeads, buildSites } from '../rules/survey';
-import { briefingLines } from './surveyText';
+import { azimuthDeg, buildLeads, buildSites, compassPoint } from '../rules/survey';
+import { nextMission, type MissionLogEntry } from '../rules/campaign';
+import type { GameData } from '../rules/types';
+import { briefingLines, kmText } from './surveyText';
+import { missionVars } from './tutorialText';
 import { creditsScreen } from './creditsScreen';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
@@ -51,24 +54,43 @@ const landing: Screen = (game, root) => {
   const { data } = game;
   const t = data.text.landing;
   const s = data.text.survey;
+  const mars = data.text.campaign; // Mars only: Perseverance's site, what is new on Mars
+  const vars = missionVars(data);
   // Orbital survey leads: a rough bearing and distance from the lander to each area of interest. The
   // terrain features load here (and stay cached for the mission).
   const leads = el('ul', { class: 'survey-leads' }, el('li', { class: 'muted' }, s.loading));
+  const landmark = el('p', { hidden: true });
   void import('../world/terrainMasks')
     .then(async ({ loadTerrainMasks }) => {
       const masks = await loadTerrainMasks(data.tuning, game.world);
       const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName);
       const lines = briefingLines(buildLeads(sites, data.tuning.survey), masks.info.landing.local, data);
       leads.replaceChildren(...lines.map((l) => el('li', {}, l)));
+      // Mars: how far Perseverance's 2021 landing site is from the lander.
+      const percy = (masks.info.features as { perseveranceLanding?: { local: { x: number; z: number } } }).perseveranceLanding;
+      if (mars && percy) {
+        const from = masks.info.landing.local;
+        const km = Math.hypot(percy.local.x - from.x, percy.local.z - from.z) / 1000;
+        landmark.textContent = fill(mars.perseverance, {
+          distance: kmText(km),
+          direction: s.compass[compassPoint(azimuthDeg(from, percy.local))] ?? '',
+        });
+        landmark.hidden = false;
+      }
     })
     .catch(() => leads.remove());
   root.append(
     panel(
+      mars && el('p', { class: 'title-kicker' }, mars.kicker),
       el('h2', {}, t.heading),
       el('p', {}, t.briefing),
+      landmark,
+      mars && el('h3', {}, mars.newHeading),
+      mars && el('ul', { class: 'new-on-world' }, ...mars.newOnMars.map((line) => el('li', {}, fill(line, vars)))),
       el('h3', {}, s.heading),
       el('p', {}, s.intro),
       leads,
+      mars && el('p', { class: 'note' }, mars.sources),
       el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => game.go('mission') }, 'Begin mission')),
     ),
   );
@@ -126,6 +148,9 @@ const debrief: Screen = (game, root) => {
   if (!outcome || !result) return void game.go('title');
   const { payout, failed, state } = outcome;
   const history = game.settings.missionHistory;
+  // The pass mark: the minimum budget of the mission after the one just played.
+  const next = nextMission(game.world);
+  const minimum = { minimum: money(next ? data.tuning.budget.minimumBudget[next] : 0, text) };
   const historyKey: HistoryKey = result.survived ? 'survived' : result.detail === 'rollover' ? 'rollover' : (result.cause ?? 'energy');
   const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
 
@@ -176,7 +201,7 @@ const debrief: Screen = (game, root) => {
         el('p', { class: 'note' }, `Source: ${text.historySources[historyKey]}`),
       ),
 
-      el('p', { class: failed ? 'outcome failed' : 'outcome' }, failed ? t.failedRound : t.passedRound),
+      el('p', { class: failed ? 'outcome failed' : 'outcome' }, fill(failed ? t.failedRound : t.passedRound, minimum)),
       el('div', { class: 'actions' },
         failed
           ? el('button', { class: 'primary', onclick: () => game.restartRound() }, t.restart)
@@ -186,20 +211,49 @@ const debrief: Screen = (game, root) => {
   );
 };
 
-const marsSoon: Screen = (game, root) => {
+/** The outcome of a logged mission, in that mission's own words ("Froze during the night" on Mars). */
+function outcomeText(entry: MissionLogEntry, data: GameData): string {
+  const { text } = data;
+  if (entry.outcome === 'survived') return text.comingSoon.completed;
+  return entry.outcome === 'rollover' ? text.debrief.rollover : text.causes[entry.outcome];
+}
+
+const comingSoon: Screen = (game, root) => {
   const { data } = game;
-  const t = data.text.marsSoon;
+  const { text } = data;
+  const t = text.comingSoon;
+  const { state } = game;
+  const log = state.log ?? [];
+  const cell = (tag: 'th' | 'td', value: string, attrs: Record<string, string> = {}) => el(tag, attrs, value);
   root.append(
     panel(
       el('h2', {}, t.heading),
       el('p', {}, t.body),
       el('div', { class: 'readout' },
-        el('div', { class: 'big' }, fill(t.rpBanked, { rp: game.state.rp })),
-        el('div', {}, fill(t.balance, { balance: money(game.state.balance, data.text) })),
+        el('div', { class: 'big' }, fill(t.rpBanked, { rp: state.rp })),
+        el('div', {}, fill(t.balance, { balance: money(state.balance, text) })),
+        el('div', {}, fill(t.records, { n: state.records.length })),
       ),
+      el('h3', {}, t.summaryHeading),
+      log.length
+        ? el('table', { class: 'tiers campaign-log' },
+          el('thead', {}, el('tr', {},
+            ...[t.colMission, t.colOutcome, t.colNet, t.colRp, t.colMilestones].map((h) => cell('th', h, { scope: 'col' })))),
+          el('tbody', {}, ...log.map((e) => {
+            const own = game.dataOf(e.mission);
+            return el('tr', {},
+              cell('th', own.text.worlds[e.mission], { scope: 'row' }),
+              cell('td', outcomeText(e, own)),
+              cell('td', money(e.money, text)),
+              cell('td', String(e.rp)),
+              cell('td', String(e.milestones)),
+            );
+          })))
+        : el('p', { class: 'muted' }, t.noLog),
+      el('p', { class: 'note' }, text.moneyNote),
       el('div', { class: 'actions' },
         el('button', { onclick: () => game.go('title') }, t.backToTitle),
-        el('button', { class: 'primary', onclick: () => game.newCampaign() }, data.text.title.newCampaign),
+        el('button', { class: 'primary', onclick: () => game.newCampaign() }, text.title.newCampaign),
       ),
     ),
   );
@@ -214,5 +268,5 @@ export const screens: Record<ScreenId, Screen> = {
   landing,
   mission: missionScreen,
   debrief,
-  marsSoon,
+  comingSoon,
 };

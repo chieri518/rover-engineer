@@ -38,6 +38,7 @@ export const ticketScreen: Screen = (game, root) => {
       el('h2', {}, t.heading),
       el('p', {}, t.briefing),
       el('p', { class: 'muted' }, t.tierRule),
+      text.campaign && el('p', { class: 'muted' }, text.campaign.ticketNote),
       el('div', { class: 'rover-line' },
         row('Rover mass', `${q.mass} kg`),
         row('Rover size', `${q.size}`),

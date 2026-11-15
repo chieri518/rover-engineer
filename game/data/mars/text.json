@@ -1,31 +1,164 @@
 {
-  "_about": "Mars overlay, deep-merged over data/text.json. Strings marked [placeholder] are stubs: campaign and screens (M4) own the screens text, integration (M6) the night and storm notices, M5 the survey and milestone text.",
+  "_about": "Mars overlay, deep-merged over data/text.json (arrays replace). Owners: campaign and screens (M4) everything here except survey, instruments and drill (milestones and survey, M5). Integration (M6) wires the sol, night and storm strings into the HUD; they may use the {placeholders} of missionVars() in src/ui/tutorialText.ts. Every real fact cites its source (historySources, campaign.sources).",
   "landing": {
-    "briefing": "[placeholder] The lander has touched down on the floor of Jezero crater. The rover is deploying."
+    "heading": "Landing: Jezero crater",
+    "briefing": "The lander has touched down on the floor of Jezero crater on Mars. The crater is about 45 km wide and held a lake, fed by a river that built a delta, about 3.5 billion years ago. The rover is deploying."
+  },
+  "ticket": {
+    "briefing": "REL secures a spot for the rover on the next commercial launch to Mars. The lander will set it down on the floor of Jezero crater."
+  },
+  "design": {
+    "speedInfo": [
+      "The mission compresses {sols} sols on Mars into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
+      "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
+      "Robotic rovers drive far slower. NASA's Curiosity and Perseverance rovers on Mars have a top speed of about 4 cm/s (0.15 km/h) on flat ground."
+    ]
+  },
+  "campaign": {
+    "kicker": "Mission 2 · Mars, Jezero crater",
+    "carryOver": "Balance carried over from the Moon: {balance}.",
+    "passMark": "After this mission the balance must stay at or above {minimum}, the pass mark for Titan.",
+    "sameParts": "Parts and launch ticket tiers are the same as on the Moon in this version.",
+    "ticketNote": "The launch ticket tiers are the same as for the Moon in this version.",
+    "perseverance": "NASA's Perseverance rover landed in Jezero crater on February 18, 2021. Its landing site, Octavia E. Butler Landing, is about {distance} km {direction} of the lander.",
+    "newHeading": "New on Mars",
+    "newOnMars": [
+      "Sols: the mission lasts {sols} sols. Each sol is {daySeconds} s of daylight followed by {nightSeconds} s of night.",
+      "Night: keep the lights on to continue driving, at a high battery cost and with no solar income, or power down with P and sleep until dawn. Without lights the rover cannot drive at night.",
+      "Cold: every night the rover cools, everywhere on the map. A heater slows freezing.",
+      "Dust storm: an orbital weather report forecasts the storm about {stormLeadSols} sol ahead. During the storm, solar income falls to about {stormSolarPercent}%."
+    ],
+    "sourcesLabel": "Landing briefing",
+    "sources": "Sources: NASA JPL, Mars 2020 Landing Press Kit: Landing Site (www.jpl.nasa.gov/news/press_kits/mars_2020/landing/mission/landing_site/); NASA, Welcome to 'Octavia E. Butler Landing' (www.nasa.gov/image-article/welcome-octavia-e-butler-landing/)."
   },
   "mission": {
-    "briefing": "[placeholder] Ten sols on Mars. The Sun sets every sol: lights on to keep driving, or sleep until dawn.",
+    "briefing": "Ten sols at Jezero crater. The Sun sets every sol: lights on to keep driving, or sleep until dawn.",
+    "controls": "W A S D or arrow keys to drive. Space to brake. P to power down (sleep) or power up.",
     "loading": "Loading Jezero crater…"
   },
-  "marsSoon": {
-    "heading": "Titan: coming soon",
-    "body": "[placeholder] The Mars mission is complete. Research points carry forward to Titan technology."
+  "hud": {
+    "endedSurvived": "The rover completed ten sols at Jezero crater.",
+    "lasted": "The rover operated for {days} of {total} sols."
+  },
+  "warnings": {
+    "lowEnergy": "Battery low. Recharge in sunlight, or power down with P.",
+    "cold": "Night cold. The rover is freezing."
   },
   "sol": {
     "hudSol": "Sol {sol} of {total}",
-    "lasted": "[placeholder] Lasted {sols} of {total} sols"
+    "lasted": "The rover operated for {sols} of {total} sols."
   },
   "night": {
     "sunset": "Sunset. Lights on to keep driving, or sleep until dawn.",
-    "dawn": "[placeholder] Dawn. Solar power is back.",
-    "sleeping": "[placeholder] Asleep until dawn",
-    "noLights": "[placeholder] No lights: the rover cannot drive at night.",
-    "lightsOn": "[placeholder] Lights on"
+    "dawn": "Dawn. The solar panel is charging again.",
+    "sleeping": "Asleep until dawn. The rover wakes by itself.",
+    "noLights": "No lights: the rover cannot drive at night. Power down with P to sleep until dawn.",
+    "lightsOn": "Lights on. The battery is draining."
   },
   "storm": {
-    "forecast": "[placeholder] Orbital weather report: a dust storm reaches the site in about a sol.",
-    "started": "[placeholder] Dust storm. Solar power is down to about a third.",
-    "cleared": "[placeholder] The dust storm has cleared.",
-    "credit": "[placeholder]"
+    "forecast": "Orbital weather report: a regional dust storm reaches the site in about {stormLeadSols} sol. Solar income will fall to about {stormSolarPercent}%.",
+    "started": "Dust storm. Solar income is down to about {stormSolarPercent}%.",
+    "cleared": "The dust storm has cleared. Full solar income has returned.",
+    "credit": "The weather report is modeled on the daily global weather maps from the MARCI camera on NASA's Mars Reconnaissance Orbiter. Source: NASA Science, Mars Color Imager (MARCI) for Mars Reconnaissance Orbiter (science.nasa.gov/resource/mars-color-imager-marci-for-mars-reconnaissance-orbiter)."
+  },
+  "debrief": {
+    "failedRound": "The balance is below the pass mark for the next mission, Titan ({minimum}). The round must be restarted. Balance, research points and records return to their values at the start of the Mars round.",
+    "passedRound": "The balance meets the pass mark for the next mission, Titan ({minimum}). The Mars round is complete.",
+    "continue": "Continue"
+  },
+  "causes": {
+    "stuck": "Stuck in sand",
+    "froze": "Froze during the night"
+  },
+  "history": {
+    "survived": "NASA's Opportunity rover was designed for a 90-sol mission on Mars and kept working for more than 14 years, from its landing in January 2004 to its last signal on June 10, 2018.",
+    "froze": "NASA's Spirit rover, embedded in soft soil since 2009, could not tilt itself toward the low winter Sun; without power for its survival heaters it likely became colder inside than in any earlier winter. Its last communication was on March 22, 2010."
+  },
+  "historySources": {
+    "survived": "NASA, NASA's Record-Setting Opportunity Rover Mission on Mars Comes to End (www.nasa.gov/news-release/nasas-record-setting-opportunity-rover-mission-on-mars-comes-to-end)",
+    "froze": "NASA JPL, NASA Concludes Attempts to Contact Mars Rover Spirit (www.jpl.nasa.gov/news/nasa-concludes-attempts-to-contact-mars-rover-spirit/)"
+  },
+  "comingSoon": {
+    "heading": "Titan: coming soon",
+    "body": "The Mars mission is complete. The Titan mission is in development. Research points and the balance are banked for it."
+  },
+  "tutorial": {
+    "designHeading": "Rover design for Mars",
+    "driveHeading": "First drive on Mars",
+    "design": [
+      {
+        "title": "Mission 2: Mars",
+        "body": [
+          "The campaign continues on Mars, on the floor of Jezero crater. The balance carried over from the Moon is {balance}.",
+          "Parts and launch ticket tiers are the same as on the Moon in this version: {tiers}.",
+          "After the mission, the balance must stay at or above the pass mark for Titan ({nextMinimum}), or the Mars round is restarted. A restart returns the balance, research points and records to their values at the start of the Mars round."
+        ]
+      },
+      {
+        "title": "Designing for the night",
+        "body": [
+          "Each sol on Mars ends with a night. The solar panel earns nothing at night and less while the Sun is low, so the battery must carry the rover through every night.",
+          "With lights the rover can keep driving at night, but the lights drain the battery. Without lights it cannot drive at night and can only sleep until dawn.",
+          "Nights are cold everywhere on the map. A heater slows freezing; without one, the rover freezes quickly at night."
+        ]
+      },
+      {
+        "title": "Dust storm",
+        "body": [
+          "One regional dust storm reaches the site during the mission. For about {stormSols} sols, solar income falls to about {stormSolarPercent}%.",
+          "A larger battery, or a rover that can sleep through the storm, keeps the mission going."
+        ]
+      }
+    ],
+    "drive": [
+      {
+        "title": "Sols on Mars",
+        "body": [
+          "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
+          "The mission lasts {minutes} minutes, which represent {sols} sols. Each sol is {daySeconds} s of daylight followed by {nightSeconds} s of night; the night is time-lapsed faster than the day. There is no clock: time is read from the Sun.",
+          "The solar panel earns most with the Sun high, less in the morning and evening, and nothing at night."
+        ]
+      },
+      {
+        "title": "Night: lights on or sleep",
+        "body": [
+          "At sunset a notice reads: \"{sunsetNotice}\"",
+          "Lights on: the rover keeps driving and can still earn milestones, but the lights drain the battery and the panel earns nothing.",
+          "Sleep: power down with P. The battery drains slowly, the rover cannot drive or earn milestones, and it wakes by itself at dawn. A rover that stays awake without driving still uses some power, so sleep is the cheapest choice.",
+          "A rover without lights cannot drive at night. If the battery runs out at night, the mission ends."
+        ]
+      },
+      {
+        "title": "Night cold and damage",
+        "body": [
+          "Every night the cold meter rises, everywhere on the map, and it falls again by day. When it is full, the rover freezes. A heater slows freezing, and nights are milder during the dust storm.",
+          "Hard impacts and ground steeper than {maxSlope}° damage the rover, as on the Moon. Sand ripples are soft ground where the wheels can dig in."
+        ]
+      },
+      {
+        "title": "Dust storm forecast",
+        "body": [
+          "An orbital weather report forecasts the dust storm about {stormLeadSols} sol before it arrives.",
+          "For about {stormSols} sols, solar income falls to about {stormSolarPercent}%. Charge the battery before it arrives, drive less, or sleep through it."
+        ]
+      },
+      {
+        "title": "Instrument and map",
+        "instrument": {
+          "camera": "Camera: C takes a photograph. Photographs count toward milestones at the delta-front viewpoint, and away from the lander with the setting Sun low in the frame: face west as the Sun goes down.",
+          "drill": "Drill: stop the rover, then press F to drill a core sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
+        },
+        "body": [
+          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing."
+        ]
+      }
+    ]
+  },
+  "credits": {
+    "spaceWeather": "Dust storm",
+    "terrainFallback": [
+      "Terrain: USGS Mars 2020 Terrain Relative Navigation HiRISE and CTX elevation models of Jezero crater."
+    ],
+    "imageryFallback": "USGS Mars 2020 Terrain Relative Navigation HiRISE orthomosaic of Jezero crater."
   }
 }

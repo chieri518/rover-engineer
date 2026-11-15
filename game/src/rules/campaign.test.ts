@@ -126,6 +126,20 @@ describe('campaign', () => {
     expect(out.state.completed).toEqual(['moon', 'mars']);
   });
 
+  it('logs each passed mission for the campaign summary, and not a failed one', () => {
+    let s = startRound(newCampaign(testTuning));
+    s = buyRover(s, build, 545);
+    const moon = finishMission(s, { survived: true, secondsLasted: 300, earned: [{ id: 'touchdown' }, { id: 'layers' }] }, data);
+    expect(moon.state.log).toEqual([{ mission: 'moon', outcome: 'survived', secondsLasted: 300, money: 420, rp: 30, milestones: 2 }]);
+    const lost = finishMission(buyRover(moon.state, build, moon.state.balance), { survived: false, cause: 'froze', secondsLasted: 40, earned: [] }, data);
+    expect(lost.failed).toBe(true);
+    expect(lost.state.log).toHaveLength(1);
+    const rolled = finishMission(moon.state, { survived: false, cause: 'destroyed', detail: 'rollover', secondsLasted: 90, earned: [] }, data);
+    expect(rolled.failed).toBe(false);
+    expect(rolled.state.mission).toBe('titan');
+    expect(rolled.state.log!.map((e) => [e.mission, e.outcome])).toEqual([['moon', 'survived'], ['mars', 'rollover']]);
+  });
+
   it('a save from before the campaign advanced moves on to Mars', () => {
     const old = { ...newCampaign(testTuning), completed: ['moon' as const], balance: 900 };
     const s = normalizeCampaign(old);

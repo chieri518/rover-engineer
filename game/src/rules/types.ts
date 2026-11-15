@@ -331,7 +331,14 @@ export interface SharedTextFile {
   causes: Record<DeathCause, string>;
   history: Record<HistoryKey, string>;
   historySources: Record<HistoryKey, string>;
-  marsSoon: Record<'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle', string>;
+  /** Each world's name, for the credits and the campaign summary. */
+  worlds: Record<MissionId, string>;
+  /** After the last playable mission ("Titan: coming soon"): banked RP and the campaign summary. */
+  comingSoon: Record<
+    | 'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle' | 'summaryHeading' | 'colMission' | 'colOutcome'
+    | 'colNet' | 'colRp' | 'colMilestones' | 'completed' | 'records' | 'noLog',
+    string
+  >;
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
     | 'cameraControls' | 'drillControls' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
