@@ -99,7 +99,7 @@ Drive ──► Reach milestones ──► Earn RP and money
 
 - **Driving uses energy.** Heavier rovers use more energy per meter.
 - **Speed depends on the configuration.** The wheels set a base speed, and a heavier rover is slower. A heavy rover reaches fewer places in the mission time.
-- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 12 m/s for a light one, to be tuned). A light build can just reach the dark crater; a heavy one cannot. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts.
+- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 12 m/s for a light one, to be tuned). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation). Measured: a light build (12 m/s) reaches the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts.
 - **Milestones** come from driving and from using equipped instruments. A rover without a drill drives past the ice.
 - **Night (Mars and Titan only).** The player chooses:
   - **Lights on:** keep exploring, but energy drains fast.
