@@ -90,7 +90,7 @@ export const missionScreen: Screen = (game, root) => {
   let stationSetDown: { x: number; z: number } | null = null; // a seismometer station set down this step
   let hydrogenCountdown = 0; // frames until the hydrogen meter is resampled (0: sample now)
   // Relationships met this mission (rules/relationships.ts): each notice shows once per mission. A new
-  // one enters the in-mission notebook at once; the campaign notebook is saved only at mission end.
+  // one enters the in-mission notebook at once; the campaign notebook is saved at once too (game.recordLessons).
   let met: RelationshipEvent[] = [];
   const notebookAtLaunch = [...game.state.notebook];
   let unread = false; // a relationship met since the notebook was last opened
@@ -143,6 +143,8 @@ export const missionScreen: Screen = (game, root) => {
     if (events.length === 0) return [];
     const r = meet(met, events);
     met = r.met;
+    const added = r.fresh.map((e) => e.id).filter((id) => !game.state.notebook.includes(id));
+    if (added.length > 0) game.recordLessons(added); // saved when first met, not only at mission end
     for (const e of r.fresh) {
       const lesson = lessonFor(data.relationships, e);
       if (!lesson) continue;
@@ -152,6 +154,11 @@ export const missionScreen: Screen = (game, root) => {
     }
     return r.fresh;
   };
+  /** The tutorial and the notebook pause the scene and the HUD's lesson timers together. */
+  const pauseMission = (on: boolean) => {
+    scene?.setPaused(on);
+    hud.setPaused(on);
+  };
   // Drive tutorial: opens by itself on the first mission (the scene loads meanwhile); the Help button
   // reopens it. The mission is paused while it is open.
   let tutorial: TutorialHandle | null = null;
@@ -160,10 +167,10 @@ export const missionScreen: Screen = (game, root) => {
     const pages = tutorialPages('drive', data, { mission: game.state.mission, instruments });
     tutorial = openTutorial(root, 'drive', pages, text.tutorial, () => {
       tutorial = null;
-      scene?.setPaused(false);
+      pauseMission(false);
       game.markTutorialSeen('drive');
     });
-    scene?.setPaused(true);
+    pauseMission(true);
   };
   const help = el('button', {
     type: 'button',
@@ -197,11 +204,11 @@ export const missionScreen: Screen = (game, root) => {
       closeKey: NOTEBOOK_KEY,
       onClose: () => {
         notebook = null;
-        scene?.setPaused(false);
+        pauseMission(false);
       },
     });
     setUnread(false);
-    scene?.setPaused(true);
+    pauseMission(true);
   }
   // One HUD button per instrument, in bay order (the same order as the number keys).
   // A switch instrument (one with a standby draw) shows whether it is on.

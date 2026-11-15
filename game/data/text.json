@@ -75,6 +75,7 @@
     "green": "Fine",
     "yellow": "Risk",
     "red": "Will not work",
+    "blocked": "Blocked",
     "hardBlock": "Always checked"
   },
   "notebook": {

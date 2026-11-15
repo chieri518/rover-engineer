@@ -406,6 +406,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .notebook { width: min(620px, 100%); max-height: calc(100vh - 32px); overflow-y: auto; background: var(--panel); border: 1px solid var(--edge); border-top: 3px solid var(--info); border-radius: 8px; padding: 16px 20px; line-height: 1.5; box-shadow: 0 10px 40px rgba(0, 0, 0, 0.55); }
 .notebook-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
 .notebook-head h2 { margin: 4px 0; font-size: 1.2rem; color: var(--info); }
+.notebook:focus { outline: none; }
+.notebook-close-top { margin-left: auto; padding: 2px 10px; font-size: 0.85rem; }
 .notebook-count { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); }
 .notebook-entries { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; }
 .notebook-entries > li { padding: 8px 0; border-bottom: 1px solid var(--line); }

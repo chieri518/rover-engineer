@@ -61,6 +61,10 @@ export class Hud {
   private readonly lessons = el('div', { class: 'hud-lessons', 'aria-live': 'assertive' });
   private readonly lessonQueue: { message: string; tone: 'warn' | 'good' }[] = [];
   private lessonShowing = false;
+  private lessonTimer: number | null = null;
+  private lessonLeftMs = 0;
+  private lessonNode: HTMLElement | null = null;
+  private paused = false;
   private readonly flare = el('div', { class: 'flare-warning', hidden: true });
   private readonly flareText = el('div', {});
   private readonly flareBar = el('div', { class: 'flare-bar-fill' });
@@ -183,13 +187,40 @@ export class Hud {
   private nextLesson(): void {
     const next = this.lessonQueue.shift();
     this.lessonShowing = next !== undefined;
-    if (!next) return;
+    if (!next) {
+      this.lessonNode = null;
+      return;
+    }
     const n = el('div', { class: `hud-notice long ${next.tone}`, 'data-lesson': '' }, next.message);
     this.lessons.replaceChildren(n);
-    window.setTimeout(() => {
-      n.remove();
+    this.lessonNode = n;
+    this.lessonLeftMs = LONG_NOTICE_SECONDS * 1000;
+    if (!this.paused) this.startLessonTimer();
+  }
+
+  private startLessonTimer(): void {
+    this.lessonTimer = window.setTimeout(() => {
+      this.lessonTimer = null;
+      this.lessonNode?.remove();
       this.nextLesson();
-    }, LONG_NOTICE_SECONDS * 1000);
+    }, this.lessonLeftMs);
+    this.lessonStartedAt = performance.now();
+  }
+  private lessonStartedAt = 0;
+
+  /** Pause or resume the lesson timers (the mission is paused by the tutorial or the notebook): the time left is kept. */
+  setPaused(paused: boolean): void {
+    if (paused === this.paused) return;
+    this.paused = paused;
+    if (paused) {
+      if (this.lessonTimer !== null) {
+        window.clearTimeout(this.lessonTimer);
+        this.lessonTimer = null;
+        this.lessonLeftMs = Math.max(0, this.lessonLeftMs - (performance.now() - this.lessonStartedAt));
+      }
+    } else if (this.lessonShowing && this.lessonTimer === null) {
+      this.startLessonTimer();
+    }
   }
 
   /** A standing hint (e.g. "Viewpoint: press C"), or null to hide it. */

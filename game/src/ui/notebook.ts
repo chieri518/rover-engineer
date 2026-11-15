@@ -2,7 +2,9 @@
 // far, each with what happens and why, the ways to solve it, and the real mission behind it.
 // Undiscovered lessons show only as a count, never by name. A modal overlay, opened from the title
 // screen, the desk, and the mission (which pauses while it is open): the rest of the screen is inert,
-// focus stays inside, and Escape (or the notebook key) closes it.
+// focus stays inside, and Escape (or the notebook key) closes it. Keys the overlay does not handle
+// are kept from the screen's own listeners but keep their default action: Space activates the focused
+// button and the arrow keys scroll the dialog.
 import type { GameData } from '../rules/types';
 import { notebookView } from '../rules/relationships';
 import { el, fill } from './dom';
@@ -33,8 +35,10 @@ export function openNotebook(host: HTMLElement, data: GameData, opts: NotebookOp
   let closed = false;
 
   const closeButton = el('button', { type: 'button', class: 'primary notebook-close', onclick: () => close() }, t.close);
+  const headClose = el('button', { type: 'button', class: 'notebook-close-top', onclick: () => close() }, t.close);
   const dialog = el('section', {
     class: 'notebook',
+    tabindex: '-1',
     id: 'notebook-dialog',
     role: 'dialog',
     'aria-modal': 'true',
@@ -43,6 +47,7 @@ export function openNotebook(host: HTMLElement, data: GameData, opts: NotebookOp
     el('div', { class: 'notebook-head' },
       el('h2', { id: 'notebook-title' }, t.heading),
       el('span', { class: 'notebook-count' }, fill(t.count, { found: entries.length, total })),
+      headClose,
     ),
     el('p', { class: 'muted' }, entries.length ? t.intro : t.empty),
     entries.length > 0 && el('ul', { class: 'notebook-entries' },
@@ -70,30 +75,35 @@ export function openNotebook(host: HTMLElement, data: GameData, opts: NotebookOp
       const first = items[0]!;
       const last = items[items.length - 1]!;
       const active = document.activeElement;
-      if (e.shiftKey && (active === first || !dialog.contains(active))) {
+      if (e.shiftKey && (active === first || active === dialog || !dialog.contains(active))) {
         e.preventDefault();
         last.focus();
       } else if (!e.shiftKey && (active === last || !dialog.contains(active))) {
         e.preventDefault();
         first.focus();
       }
-    } else if (!dialog.contains(e.target as Node)) {
-      // The screen's own keys (driving, instruments) do nothing while the notebook is open.
+    } else {
+      // The screen's own keys (driving, instruments) do nothing while the notebook is open. Only the
+      // propagation stops: the browser's default (Space on a button, arrows scrolling) still runs.
       e.stopImmediatePropagation();
     }
   };
+  const onKeyUp = (e: KeyboardEvent) => e.stopImmediatePropagation();
   // Capture phase, so the screen's own key handlers never see these keys while the notebook is open.
   window.addEventListener('keydown', onKey, true);
+  window.addEventListener('keyup', onKeyUp, true);
 
   const others = [...host.children].filter((n): n is HTMLElement => n instanceof HTMLElement && !n.inert);
   for (const n of others) n.inert = true;
   host.append(root);
-  closeButton.focus();
+  dialog.focus({ preventScroll: true }); // opens at the top, not at the Close button below the entries
+  dialog.scrollTop = 0;
 
   function teardown(): boolean {
     if (closed) return false;
     closed = true;
     window.removeEventListener('keydown', onKey, true);
+    window.removeEventListener('keyup', onKeyUp, true);
     for (const n of others) n.inert = false;
     root.remove();
     return true;

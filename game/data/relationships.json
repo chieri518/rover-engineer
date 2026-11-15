@@ -80,7 +80,7 @@
       "review": "red",
       "hardBlock": true,
       "notice": "Permanent shadow ahead: without lights the rover cannot see the ground, so it stops at the edge. Floodlights would let it drive into the dark.",
-      "reviewText": "No lights: the rover cannot enter permanent shadow. Fit lights to enter the dark crater.",
+      "reviewText": "No lights: the rover stops at the edge of permanent shadow and cannot enter the dark crater. Fit lights to go in.",
       "debrief": "Permanent shadow never gets sunlight, so a rover without lights cannot see where it is going and has to stop at the edge. Lights let the rover see the ground in the dark.",
       "answers": [
         "Fit floodlights.",

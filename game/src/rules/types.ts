@@ -296,7 +296,7 @@ export interface TextFile {
     'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
     string
   >;
-  review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'red' | 'hardBlock', string>; // the pre-launch review on the ticket screen
+  review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'red' | 'blocked' | 'hardBlock', string>; // the pre-launch review on the ticket screen
   notebook: Record<
     | 'open' | 'openTitle' | 'openMission' | 'unread' | 'heading' | 'count' | 'intro' | 'empty' | 'answers' | 'source' | 'newBadge' | 'close' | 'closeHint',
     string

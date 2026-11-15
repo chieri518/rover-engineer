@@ -2,7 +2,7 @@
 // then restart round (back to design, snapshot restored) or "Mars: coming soon".
 import type { DraftBuild, GameData } from '../rules/types';
 import {
-  buyRover, finishMission, newCampaign, restartRound, startRound,
+  buyRover, finishMission, newCampaign, recordLessons, restartRound, startRound,
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
 import type { MissionResult } from '../rules/payout';
@@ -108,6 +108,13 @@ export class Game {
   markTutorialSeen(id: TutorialId): void {
     this.tutorialSeen = { ...this.tutorialSeen, [id]: true };
     saveTutorialSeen(this.tutorialSeen);
+  }
+
+  /** Save lessons met mid-mission at once, so a reload or crash does not lose them. Only the notebook changes. */
+  recordLessons(ids: readonly string[]): void {
+    if (!this.campaign) return;
+    const next = recordLessons(this.campaign, ids);
+    if (next !== this.campaign) this.setCampaign(next);
   }
 
   endMission(result: MissionResult, album: AlbumPhoto[] = [], instrumentLog: InstrumentLog | null = null): void {

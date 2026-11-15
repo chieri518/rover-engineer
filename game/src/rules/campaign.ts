@@ -90,3 +90,13 @@ export function finishMission(state: CampaignState, result: MissionResult, data:
   };
   return { state: newState, payout, failed };
 }
+
+/**
+ * A relationship met for the first time: merge it into the campaign's notebook (a lesson is saved when
+ * learned, not only at mission end). Only the notebook changes; balance, RP, records and the snapshot
+ * are untouched. Returns the same state when nothing is new.
+ */
+export function recordLessons(state: CampaignState, ids: readonly string[]): CampaignState {
+  const notebook = addToNotebook(state.notebook, ids);
+  return notebook.length === state.notebook.length ? state : { ...state, notebook };
+}

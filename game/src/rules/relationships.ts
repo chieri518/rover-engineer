@@ -182,18 +182,30 @@ export function buildFacts(parts: Part[]): BuildFacts {
 /** Does a build trigger a relationship? 'risk': it can happen (the entry's review color); 'solved': the build has the answer (green); null: not relevant. */
 export type BuildVerdict = 'risk' | 'solved' | null;
 
+/** A relationship's build check: `solvable` says whether `verdict` can return 'solved' (then the data needs a `reviewSolved` line). */
+export interface BuildPredicate {
+  solvable: boolean;
+  verdict: (b: BuildFacts) => BuildVerdict;
+}
+
 /** Per relationship, keyed by id like the event hooks: whether a build triggers it. */
-export const BUILD_PREDICATES: Record<RelationshipId, (b: BuildFacts) => BuildVerdict> = {
-  'neutron-drill': (b) => (!b.instruments.includes('drill') ? null : b.instruments.includes('neutron') ? 'solved' : 'risk'),
+export const BUILD_PREDICATES: Record<RelationshipId, BuildPredicate> = {
+  'neutron-drill': {
+    solvable: true,
+    verdict: (b) => (!b.instruments.includes('drill') ? null : b.instruments.includes('neutron') ? 'solved' : 'risk'),
+  },
   // Only a held use can be slowed by the cold (mission.ts), and a cold-tolerant part never is.
-  'cold-dark': (b) => (!b.costs.some((c) => c.useSeconds > 0 && !c.coldTolerant) ? null : b.heater ? 'solved' : 'risk'),
-  'xray-cold': (b) => (b.instruments.includes('xray') ? 'risk' : null),
-  'seismometer-quiet': (b) => (b.instruments.includes('seismometer') ? 'risk' : null),
-  'no-lights': (b) => (b.lights ? null : 'risk'),
+  'cold-dark': {
+    solvable: true,
+    verdict: (b) => (!b.costs.some((c) => c.useSeconds > 0 && !c.coldTolerant) ? null : b.heater ? 'solved' : 'risk'),
+  },
+  'xray-cold': { solvable: false, verdict: (b) => (b.instruments.includes('xray') ? 'risk' : null) },
+  'seismometer-quiet': { solvable: false, verdict: (b) => (b.instruments.includes('seismometer') ? 'risk' : null) },
+  'no-lights': { solvable: false, verdict: (b) => (b.lights ? null : 'risk') },
 };
 
-/** The ids whose predicate can say 'solved': their data needs a `reviewSolved` line. */
-export const SOLVABLE_IDS: readonly RelationshipId[] = ['neutron-drill', 'cold-dark'];
+/** The ids whose predicate can say 'solved' (derived from BUILD_PREDICATES). */
+export const SOLVABLE_IDS: readonly RelationshipId[] = (Object.keys(BUILD_PREDICATES) as RelationshipId[]).filter((id) => BUILD_PREDICATES[id].solvable);
 
 export interface ReviewItem {
   id: string;
@@ -214,8 +226,8 @@ export function reviewItems(build: Build, notebook: readonly string[], data: { p
   const known = new Set(notebook);
   return data.relationships.relationships.flatMap((r) => {
     if (!r.hardBlock && !known.has(r.id)) return [];
-    const predicate = BUILD_PREDICATES[r.id as RelationshipId] as ((b: BuildFacts) => BuildVerdict) | undefined;
-    const verdict = predicate?.(facts) ?? null;
+    const predicate = BUILD_PREDICATES[r.id as RelationshipId] as BuildPredicate | undefined;
+    const verdict = predicate?.verdict(facts) ?? null;
     if (!verdict) return [];
     const solved = verdict === 'solved';
     return [{

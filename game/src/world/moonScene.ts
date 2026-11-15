@@ -431,6 +431,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     },
     setPaused(p: boolean) {
       paused = p;
+      if (p) input.clear();
     },
     setFloodlights(on: boolean) {
       if (lamp) lamp.intensity = on ? FLOODLIGHT_INTENSITY : 0;

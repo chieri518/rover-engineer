@@ -3,8 +3,8 @@ import { loadGameData } from '../gameData';
 import type { SeismometerOutcome } from './instruments';
 import type { UseSite } from './mission';
 import {
-  addToNotebook, FIRED_RELATIONSHIPS, LESSON_IDS, lessonFor, meet, metIds, notebookView, onSeismometer, onShadowStop, onUseDone,
-  onUseStart, relationshipProblems, reviewItems, shortUseLines, taughtLessons, type RelationshipEvent,
+  addToNotebook, BUILD_PREDICATES, FIRED_RELATIONSHIPS, LESSON_IDS, lessonFor, meet, metIds, notebookView, onSeismometer, onShadowStop, onUseDone,
+  onUseStart, relationshipProblems, reviewItems, shortUseLines, SOLVABLE_IDS, taughtLessons, type BuildFacts, type RelationshipEvent,
 } from './relationships';
 import type { Build, Relationship, RelationshipsFile } from './types';
 
@@ -164,6 +164,32 @@ describe('pre-launch review', () => {
 
   it('the X-ray spectrometer: helpful, green; cold tolerant, so it does not raise cold and dark', () => {
     expect(review(build({ payload: ['instrument-xray'] }), everything)).toEqual([['xray-cold', 'green']]);
+  });
+});
+
+describe('SOLVABLE_IDS', () => {
+  const all = ['drill', 'neutron', 'xray', 'seismometer', 'camera', 'reflector'] as BuildFacts['instruments'];
+  const facts: BuildFacts[] = [];
+  for (let mask = 0; mask < 1 << all.length; mask++) {
+    for (const heater of [false, true]) {
+      for (const lights of [false, true]) {
+        for (const costs of [[], [{ useSeconds: 5, coldTolerant: false }]]) {
+          facts.push({ instruments: all.filter((_, i) => mask & (1 << i)), costs: costs as BuildFacts['costs'], heater, lights });
+        }
+      }
+    }
+  }
+
+  it('is derived from the predicates, and matches what each predicate can actually return', () => {
+    const canSolve = (Object.keys(BUILD_PREDICATES) as (keyof typeof BUILD_PREDICATES)[])
+      .filter((id) => facts.some((f) => BUILD_PREDICATES[id].verdict(f) === 'solved'));
+    expect([...SOLVABLE_IDS].sort()).toEqual([...canSolve].sort());
+    expect(SOLVABLE_IDS).toEqual(['neutron-drill', 'cold-dark']);
+  });
+
+  it('the no-lights text states the consequence rather than that the rover will not work', () => {
+    const text = file.relationships.find((r) => r.id === 'no-lights')!.reviewText;
+    expect(text).toMatch(/stops at the edge of permanent shadow/);
   });
 });
 

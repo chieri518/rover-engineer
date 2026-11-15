@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buyRover, canStartMission, finishMission, newCampaign, restartRound, startRound } from './campaign';
+import { buyRover, canStartMission, finishMission, newCampaign, recordLessons, restartRound, startRound } from './campaign';
 import { testMilestones, testParts, testTiers, testTuning } from './testData';
 import type { Build, GameData } from './types';
 
@@ -105,5 +105,24 @@ describe('campaign', () => {
     const s = startRound(newCampaign(testTuning));
     s.records.push('x');
     expect(s.snapshot!.records).toEqual([]);
+  });
+});
+
+describe('recordLessons', () => {
+  it('merges new ids into the notebook only, once each, leaving everything else alone', () => {
+    const s = buyRover(startRound(newCampaign(testTuning)), build, 545);
+    const next = recordLessons(s, ['cold-dark', 'no-lights', 'cold-dark']);
+    expect(next.notebook).toEqual(['cold-dark', 'no-lights']);
+    expect({ ...next, notebook: [] }).toEqual({ ...s, notebook: [] });
+    expect(next.snapshot).toBe(s.snapshot);
+    expect(recordLessons(next, ['no-lights', 'xray-cold']).notebook).toEqual(['cold-dark', 'no-lights', 'xray-cold']);
+  });
+
+  it('returns the same state when nothing is new, and finishMission stays idempotent after it', () => {
+    const s = recordLessons(startRound(newCampaign(testTuning)), ['no-lights']);
+    expect(recordLessons(s, ['no-lights'])).toBe(s);
+    expect(recordLessons(s, [])).toBe(s);
+    const out = finishMission(s, { survived: true, secondsLasted: 1, earned: [], relationships: [{ id: 'no-lights' }, { id: 'cold-dark' }] } as never, data);
+    expect(out.state.notebook).toEqual(['no-lights', 'cold-dark']);
   });
 });
