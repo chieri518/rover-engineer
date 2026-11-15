@@ -93,7 +93,7 @@ Check budget ──► Configure rover ──► Buy launch ticket ──► Lan
 
 - If losses push the balance below the next mission's minimum, the mission counts as failed.
 - The player then restarts that round from the design screen.
-- A restart returns everything to a snapshot taken at the start of the round: balance, RP, and records. This keeps the code simple and stops players replaying a round to farm records.
+- A restart returns everything to a snapshot taken at the start of the round: balance, RP, and records. This keeps the code simple and stops players replaying a round to farm records. *(Decided November 15, not built yet:)* the engineering notebook is the exception and survives restarts, so what the player learned in a failed run carries over; see [rover engineering design](rover-engineering-design.md#engineering-notebook).
 
 ## 4. Mission: the inner loop
 
@@ -289,6 +289,8 @@ Seven slots, two options each. For lights and heater, one option is **None**: sk
 | Lights | None, or floodlights. Needed to drive into permanent shadow: without them the rover stops at its edge. |
 | Heater | None, or radioisotope heater units. Slows freezing in the cold. |
 | Instrument | Camera or drill. Decides which milestones the rover can complete. **Changing (decided November 15, not built yet):** this slot becomes a payload bay that holds several instruments. Its rules (mounting points set by the chassis: steel 3, titanium 2; instrument energy use) and the Moon payload of six instruments are decided and described in [rover engineering design](rover-engineering-design.md#4-the-payload-bay). |
+
+**Relationships between parts** *(decided November 15, not built yet)*. Parts affect each other and the mission beyond mass and cost: some need another part, work only in certain conditions, interfere with each other, or wear out. Players discover these in the mission, which explains each one as it happens; an engineering notebook collects them across the campaign, and a pre-launch review at the desk flags the ones already discovered. Design and the per-world lists are in [rover engineering design](rover-engineering-design.md#10-relationships-and-consequences).
 
 ### Mass versus cost
 
