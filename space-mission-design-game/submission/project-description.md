@@ -4,7 +4,7 @@
 > **For the team to check:**
 > - Datasets listed in `game-design.md` §9 but **not** in the current game (ShadowCam, Diviner temperature maps, Moon Mineralogy Mapper, Apollo seismometer data, SVS star maps, LROC/Chandrayaan-2 boulder counts) are deliberately left out. Diviner appears only as a cited history fact. Add any of them only if they are actually built in.
 > - The repo is under the MIT License (`LICENSE`), which is OSI-approved. Make sure the published repository includes that file.
-> - The ice spot, landing point and launch-ticket numbers describe the current provisional defaults (`game-design.md` open questions 1a–1c).
+> - Rechecked after the balance pass (November 15): the Sun window, ice and pass rule are decided; the three winning designs below match `game/data/balance.json`.
 
 # Rover Engineer: Project Description
 
@@ -32,7 +32,7 @@ Choose a part for each of seven slots, from chassis to instrument, while a speci
 
 ### How it answers the challenge
 
-Rover Engineer plays one complete mission, from design and launch through surface operations to debrief, with limited money, mass and energy. A player whose balance falls below the next mission's minimum redesigns and tries again. The core lesson is that subsystems interact: mass alone affects launch price, energy per meter, speed, sinkage and chassis load. Leaving out lights and the heater can earn a cheaper ticket but closes off the dark crater. An automated balance check keeps any single build from being best at everything, because a mission has more than one good design.
+Rover Engineer plays one complete mission, from design and launch through surface operations to debrief, with limited money, mass and energy. A player whose balance falls below the next mission's minimum redesigns and tries again. The core lesson is that subsystems interact: mass alone affects launch price, energy per meter, speed, sinkage and chassis load. Leaving out lights and the heater can earn a cheaper ticket but closes off the dark crater. To reach Mars, the Moon mission must earn more than the rover and ticket cost, and there is more than one way to do it: a light camera scout that photographs the crater rim and Earth, a drill geologist that samples sites across the rim, or a cold-proofed ice hunter that drives into the dark crater for the highest reward and the highest risk. A rover thrown together, or one that never uses its instrument, falls short. An automated balance check keeps any single build from being best at everything.
 
 ### NASA data and what it does in the game
 
