@@ -185,7 +185,7 @@ The real NASA milestone types and rewards behind this design are in [rover-engin
 
 ### Moon parts
 
-Seven slots, two options each. All Moon parts are available from the start, so budget, mass, and size are the only limits. Locked parts first appear on Mars, greyed out with "needs X RP".
+Seven slots, two options each. For lights and heater, one option is **None**: skipping them saves cost, mass, and size (maybe a cheaper ticket) but closes off the dark crater. All Moon parts are available from the start, so budget, mass, and size are the only limits. Locked parts first appear on Mars, greyed out with "needs X RP".
 
 | Slot | What it affects |
 | --- | --- |
@@ -193,8 +193,8 @@ Seven slots, two options each. All Moon parts are available from the start, so b
 | Wheels | Grip, chance of getting stuck, base speed, energy per meter |
 | Power source | Energy income |
 | Battery | Energy storage |
-| Lights | Driving in shadow and in shadowed craters |
-| Heater | Survival in the cold |
+| Lights | None, or floodlights. Needed to drive into permanent shadow. |
+| Heater | None, or radioisotope heater units. Slows freezing in the cold. |
 | Instrument | Camera or drill. Decides which milestones the rover can complete. |
 
 ### Mass versus cost
@@ -246,14 +246,16 @@ Background on real rover parts and trade-offs: [rover-engineering/02](research/r
 
 The map is **bigger than one mission can cover**, so the player feels they could keep exploring the Moon's surface. The site, the play area size, and the landing point are decided. The data sources follow the recommended stack in [rover-engineering/08](research/rover-engineering/08-moon-surface-data.md#recommended-stack).
 
-- **Site:** the de Gerlache crater rim near the south pole. NASA's 5 m elevation tile there covers 16 km × 16 km. It has a permanently shadowed crater floor that ShadowCam has photographed, a real fault scarp linked to a strong moonquake, and it matches the 2025 "de Gerlache Rim" Artemis candidate region.
+- **Site:** the de Gerlache crater rim near the south pole. NASA's 5 m elevation tile there covers 16 km × 16 km. The main de Gerlache crater floor is permanently shadowed but about 10 km from any good rim landing spot, so it is scenery seen from the rim, not a destination. A real fault scarp linked to a strong moonquake, and it matches the 2025 "de Gerlache Rim" Artemis candidate region.
 - **Detailed play area:** about 8 km × 8 km at 5 m per pixel (a 1,600 × 1,600 heightmap), loaded in pieces around the rover. A 5-minute mission covers only part of it. Recommended source: NASA's 2025 sharpened model of the de Gerlache rim.
 - **Distant terrain:** NASA's 20 m polar elevation map out to about 30 km, then 80 m out to about 150 km, so real mountains such as Malapert and Mons Mouton show on the horizon and the player never sees the end of the world.
 - **Ground and obstacles:** textures from LROC's 1 m image mosaic of the site. Small craters and boulders are placed by rules from real crater and boulder counts (almost all boulders under 4 m).
 - **Soil:** based on Apollo 15 rover data. Wheels normally sink 1 to 2 cm, 5 to 7 cm on soft fresh crater rims; above about 20% wheel slip the rover digs in and can get stuck; slopes above about 20° are too steep.
-- **Landing point:** a flat, sunlit spot on the crater rim near the middle of the play area, with Earth in view. These are the same kinds of criteria real landing sites are chosen by. The exact spot is picked when processing the data, using the real slope and sunlight maps. *(Our recommendation, accepted by the team.)*
-  - **Distances:** the rim viewpoint and a boulder field are close by, and the edge of the shadowed crater is farther away. In one 5-minute mission the player can reach some of these, but not all, so choosing a route is part of the puzzle. Exact distances are tuned once rover speeds are set.
+- **Shadowed crater:** a smaller real permanently shadowed crater on the rim's north flank (0.87 km², about 2% average sunlight, flat floor), about 2.9 km drive from landing. It is the game's dark crater and holds the ice candidate. Chosen by the team after the terrain data showed the main floor is out of reach.
+- **Landing point:** a flat, sunlit spot on the crater rim near the middle of the play area, with Earth in view (88.52°S, 67.96°W; sunlit about 66% of the time, Earth visible about 60%). These are the same kinds of criteria real landing sites are chosen by. The exact spot is picked when processing the data, using the real slope and sunlight maps. *(Our recommendation, accepted by the team.)*
+  - **Distances (drive):** rim viewpoint 0.5 km, rocky area 0.3 km, descent into de Gerlache's inner wall 0.9 km, second viewpoint and rocky area about 1.2 to 1.6 km, shadowed crater entry 2.9 km, ice candidate 3.6 km. In one 5-minute mission the player can reach some of these, but not all, so choosing a route is part of the puzzle. Exact distances are tuned once rover speeds are set.
   - **The lander stays on the map** as a landmark the player can navigate by.
+- **Small cold patch:** a tiny real cold spot inside the nearby rocky area also uses the freeze rule. It is an early, low-risk taste of the cold. *(Decided during implementation.)*
 - **Edge:** a "leaving the planned operating area" notice stops the rover at the boundary. Real missions also plan an operating zone.
 - **Why this works:** the Moon is small, so from rover camera height (about 1.7 m) the horizon is only about 2.4 km away. Only high ground shows beyond it, so a large detailed area plus coarse distant terrain looks like one continuous surface.
 
@@ -281,7 +283,7 @@ The starting list. Distances and amounts are game values to balance.
 | Touchdown | Record: first touch | Land on the Moon for the first time | None |
 | Odometer | Capability: coverage | Drive set distances, for example 500 m, 1 km, and 2 km | None |
 | Mapper | Capability: coverage | Reveal a set share of the map | None |
-| Crater descent | Capability: difficulty | Drive into the large crater and back out | None |
+| Crater descent | Capability: difficulty | Drive down de Gerlache's inner wall (at least 150 m below landing) and back out. Not the dark crater. | None |
 | Boulder field | Capability: difficulty | Cross the rocky area | None |
 | Into the dark | Capability: robustness | Enter a shadowed crater and come back out | Lights, heater |
 | Flare survivor | Capability: robustness | Get through a solar flare without damage | None |
@@ -289,7 +291,7 @@ The starting list. Distances and amounts are game values to balance.
 | Crater layers | Scientific: historical formation | Image the old layers exposed in a crater wall | Camera |
 | Regolith sample | Scientific: new information | Drill a soil sample | Drill |
 | Water ice | Scientific: new material, and Record: first discovery | Drill ice inside a shadowed crater | Drill, lights, heater |
-| Earth on the horizon | Pretty picture | Photograph Earth from the surface | Camera |
+| Earth on the horizon | Pretty picture | Photograph Earth from the surface. Earth is only visible from the north side of the rim. | Camera |
 | Rim panorama | Pretty picture | Photograph the view from a crater rim | Camera |
 
 - The Moon has one instrument slot, so **camera or drill** is the Moon's science choice. The camera earns pictures and imaging science; the drill earns samples and the water ice.
