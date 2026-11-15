@@ -125,9 +125,10 @@ describe('milestone triggers', () => {
   it('Flare survivor on a protected flare; Clean run only when surviving without damage', () => {
     const tr = tracker(camera);
     expect(ids(step(tr, at(L.x, L.z), 0, 0, true))).toEqual(['flare-survivor']);
-    expect(ids(tracker(camera).finish(true, 0))).toEqual(['clean-run']);
-    expect(ids(tracker(camera).finish(true, 3))).toEqual([]);
-    expect(ids(tracker(camera).finish(false, 0))).toEqual([]);
+    expect(ids(tracker(camera).finish(true, { impact: 0, quake: 10 }))).toEqual(['clean-run']); // quakes cannot be avoided
+    expect(ids(tracker(camera).finish(true, { impact: 3, quake: 10 }))).toEqual([]);
+    expect(ids(tracker(camera).finish(true, { flare: 1 }))).toEqual([]);
+    expect(ids(tracker(camera).finish(false, {}))).toEqual([]);
   });
 
   it('Water ice is a record: paid once per campaign', () => {

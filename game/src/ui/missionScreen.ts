@@ -22,7 +22,7 @@ import { flareWarningText, noticeText } from '../events';
 import { el, fill } from './dom';
 import { Hud } from './hud';
 import { Minimap } from './minimap';
-import { milestoneCard, missedText } from './milestoneText';
+import { causeText, milestoneCard, missedText } from './milestoneText';
 
 const DEG = 180 / Math.PI;
 const SUN_SAMPLE_STEPS = 12; // recompute sunlight at the rover every 12 physics steps (0.2 s)
@@ -131,11 +131,11 @@ export const missionScreen: Screen = (game, root) => {
     ended = end;
     drillLeft = 0;
     scene?.stopClock();
-    if (tracker) announce(tracker.finish(end.survived, state.damage));
+    if (tracker) announce(tracker.finish(end.survived, state.damageBy));
     const h = text.hud;
     const days = gameDaysElapsed(end.seconds, tuning.mission);
     const lines = [
-      end.survived ? h.endedSurvived : end.detail === 'rollover' ? h.rollover : fill(h.endedFailed, { cause: text.causes[end.cause!] }),
+      end.survived ? h.endedSurvived : fill(h.endedFailed, { cause: causeText(end, text) }),
       fill(h.lasted, { days: end.survived ? tuning.mission.gameDays : days.toFixed(1), total: tuning.mission.gameDays }),
     ];
     const result: MissionResult = {

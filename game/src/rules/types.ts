@@ -1,4 +1,5 @@
 // Types for the JSON files in game/data/. These are the data contract.
+import type { DamageCause } from './damage';
 
 export type Slot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater' | 'instrument';
 export type Instrument = 'camera' | 'drill';
@@ -54,7 +55,8 @@ export type MilestoneTrigger =
   | { type: 'photo'; zone?: string; target?: string }
   | { type: 'drill'; zone?: string }
   | { type: 'event'; event: 'flare' | 'quake'; condition: 'no-damage' }
-  | { type: 'survive'; condition?: 'no-damage' };
+  /** no-damage: no damage from any cause except those listed (moonquakes cannot be avoided). */
+  | { type: 'survive'; condition?: 'no-damage'; except?: DamageCause[] };
 
 export interface MilestoneRequirements {
   slots?: Slot[]; // the part in each slot must have a non-zero capability effect
@@ -257,7 +259,7 @@ export interface TextFile {
   mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
-    | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief' | 'rollover'
+    | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief'
     | 'legendLander' | 'legendViewpoint' | 'legendCrater' | 'legendCold' | 'legendIce',
     string
   >;

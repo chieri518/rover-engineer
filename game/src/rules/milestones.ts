@@ -3,6 +3,7 @@
 // rover's position each step, plus photo and drill actions and flare outcomes; the tracker returns the
 // milestones reached. Required parts are enforced here. Pure: no rendering, no DOM.
 import type { Milestone, MilestoneTuning, Part, Slot } from './types';
+import type { DamageCause } from './damage';
 import type { EarnedMilestone } from './payout';
 import { meetsRequirements } from './rover';
 
@@ -253,11 +254,13 @@ export class MilestoneTracker {
   }
 
   /** The mission has ended. */
-  finish(survived: boolean, damage: number): MilestoneUpdate {
+  finish(survived: boolean, damageBy: Partial<Record<DamageCause, number>>): MilestoneUpdate {
     const u = this.empty();
     this.each('survive', (m) => {
       const tr = m.trigger;
       if (tr.type !== 'survive' || !survived) return;
+      const except = tr.except ?? [];
+      const damage = Object.entries(damageBy).reduce((s, [cause, d]) => s + (except.includes(cause as DamageCause) ? 0 : (d ?? 0)), 0);
       if (tr.condition !== 'no-damage' || damage <= 0) this.fire(m, u);
     });
     return u;
