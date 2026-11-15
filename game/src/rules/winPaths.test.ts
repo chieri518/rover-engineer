@@ -5,7 +5,7 @@ import { loadGameData } from '../gameData';
 import balance from '../../data/balance.json';
 import type { BalanceFile } from './types';
 import { allBuilds, buildLabel } from './balance';
-import { bestPlan, canBuy, runPlan } from './winPaths';
+import { bestPlan, canBuy, crossingAngleDeg, runPlan } from './winPaths';
 import { cheapestBuild } from './rover';
 
 const data = loadGameData();
@@ -52,6 +52,20 @@ describe('win paths: the Moon pass rule rewards intentional design', () => {
     const passing = [...best.values()].filter((r) => r.passes).length;
     expect(passing).toBeGreaterThan(0);
     expect(passing / buyable.length).toBeLessThan(0.35);
+  });
+
+  it('the archetype routes really cross their boulder field: the crossing nodes are well over the Boulder field angle apart', () => {
+    const t = data.tuning.milestones;
+    for (const a of routes.archetypes) {
+      const p = plan(a.plan);
+      for (let i = 1; i < p.stops.length; i++) {
+        const from = routes.nodes.find((n) => n.id === p.stops[i - 1]!.node)!;
+        const to = routes.nodes.find((n) => n.id === p.stops[i]!.node)!;
+        if (from.boulderField && from.boulderField === to.boulderField) {
+          expect(crossingAngleDeg(routes, from, to), `${a.name} ${from.id}>${to.id}`).toBeGreaterThanOrEqual(t.boulderCrossMinAngleDeg + routes.play.crossingMarginDeg);
+        }
+      }
+    }
   });
 
   it('the cheapest build fails on every route', () => {

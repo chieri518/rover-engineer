@@ -356,10 +356,12 @@ export interface BalanceFile {
     flareSeconds: number[]; // when the two flares strike in the analysis (the middle of their windows)
     flareStopSeconds: number; // parked and powered down for each flare
     crossingUphillDeg: number; // grade assumed while crossing a boulder field (soft ground)
+    crossingMarginDeg: number; // a crossing leg's end nodes must be this much more than the Boulder field angle apart (the route leaves the zone early on a chord)
     mistakeMargin: number; // money an archetype keeps above the pass mark, room for one or two mistakes
     mapperBaseShare: number; // explored share at the landing (the reveal circle)
     mapperSharePerKm: number; // explored share added per km of new ground (measured in playtests)
   };
+  boulderFields: { name: string; x: number; z: number }[]; // rocky area centers (terrain.json)
   nodes: RouteNode[];
   legs: RouteLeg[];
   plans: RoutePlan[];

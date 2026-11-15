@@ -49,6 +49,15 @@ function nodeById(routes: BalanceFile, id: string): RouteNode {
   return node;
 }
 
+/** Angle between two nodes of a boulder field, seen from the field's center (degrees). */
+export function crossingAngleDeg(routes: BalanceFile, a: RouteNode, b: RouteNode): number {
+  const c = routes.boulderFields.find((f) => f.name === a.boulderField);
+  if (!c) throw new Error(`unknown boulder field ${a.boulderField}`);
+  const ax = a.x - c.x, az = a.z - c.z, bx = b.x - c.x, bz = b.z - c.z;
+  const cos = (ax * bx + az * bz) / (Math.hypot(ax, az) * Math.hypot(bx, bz));
+  return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
+}
+
 /** Drive a build along a plan and price the result. The build must be able to launch. */
 export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: BalanceFile): PlanRun {
   const t = data.tuning;
@@ -98,7 +107,7 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
     if (!seenLegs.has(key)) newGroundM += via.distanceM;
     seenLegs.add(key);
     const from = nodeById(routes, via.from);
-    if (from.boulderField && from.boulderField === node.boulderField) {
+    if (from.boulderField && from.boulderField === node.boulderField && crossingAngleDeg(routes, from, node) >= mt.boulderCrossMinAngleDeg + play.crossingMarginDeg) {
       crossed = true;
       for (const m of zoneMilestones('boulder-field')) credit(m);
     }
