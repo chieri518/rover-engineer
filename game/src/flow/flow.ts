@@ -128,7 +128,9 @@ export class Game {
     this.world = world;
     const order: MissionId[] = ['moon', 'mars'];
     const fresh = newCampaign(this.data.tuning);
-    this.setCampaign(startRound({ ...fresh, mission: world, completed: order.slice(0, order.indexOf(world)) }));
+    // A debug start skips the earlier missions, so it starts with at least this mission's minimum budget.
+    const balance = Math.max(fresh.balance, this.data.tuning.budget.minimumBudget[world] ?? 0);
+    this.setCampaign(startRound({ ...fresh, balance, mission: world, completed: order.slice(0, order.indexOf(world)) }));
     this.build = {};
     this.outcome = null;
     this.go('design');
