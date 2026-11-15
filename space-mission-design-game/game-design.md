@@ -605,13 +605,25 @@ All *Proposed*. Rewards are interface numbers. Every real fact gets fact-checked
 | Storm survivor | Capability: robustness | Still be running when the dust storm clears | None |
 | Clean run | Capability: robustness | Finish all 10 sols without damage | None |
 | Delta layers | Scientific: historical formation | Image the layered delta front | Camera |
-| Lake sediment sample | Scientific: new information | Drill samples at up to three sites, at least 200 m apart (Moon rule) | Drill |
+| Core sample | Scientific: new information | Drill samples at up to three sites, at least 200 m apart (Moon rule) | Drill |
 | Signs of an ancient lake | Record: first discovery | The first sample drilled at the delta front | Drill |
 | Blue sunset | Pretty picture | Photograph the Sun setting (Martian sunsets look blue; Curiosity, 2015) | Camera |
 | Dust devil | Pretty picture | Photograph a passing dust devil | Camera |
 
 - Air samples start on Mars (Moon milestones), but they need an instrument from Owner A's catalog, so they wait for question 8.
 - Survey leads, fog and discovery work as on the Moon ([Minimap and exploration](#minimap-and-exploration)). New leads would point to the delta front, Séítah and a rocky area.
+
+##### How the Mars milestones work *(decided during implementation, Phase M5, November 15)*
+
+The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta layers, Core sample and Blue sunset. Rules in `game/src/rules/milestones.ts`; triggers, rewards and facts in `game/data/mars/milestones.json`; zone sizes and the sunset band in the `milestones` section of `data/mars/tuning.json`. Money and RP are placeholders (`interface`, Owner A), sized so a run that drives, photographs or drills earns several times what a rover idling at the lander earns.
+
+- **Core sample, renamed from Lake sediment sample** *(approved by the main session)*. Perseverance found that Jezero's crater floor, where the rover lands and drives, is igneous rock; only the delta rocks are lake sediment (JPL, 2022). A drill-anywhere milestone named for lake sediment would teach the wrong thing. The rule is unchanged: up to three sites, at least 200 m from the lander and from each other. Its fact is about Wildcat Ridge, the delta mudstone Perseverance cored in July 2022.
+- **Zones** come from the Mars `terrain.json` features: the delta front (within `zoneRadius_m` of its scarp line), Séítah's outline, and 60 m circles around the delta-layers and sunset viewpoints. The Moon's zones, the Earth photo, the hydrogen signal and the ice are absent on Mars (`hydrogenSignal: false`).
+- **Night drive** counts only the distance driven while it is night, in two stages (100 m and 300 m). A full night of driving covers roughly 150 m. Lights and a heater are required.
+- **Storm survivor** is earned when the dust storm clears while the mission is still running. A rover that sleeps through the storm earns it too, because surviving the storm is the point.
+- **Blue sunset** needs no zone. It counts when the setting Sun (after local noon) is 0° to 10° above the horizon, in the camera frame and not hidden by terrain, and the rover is at least 300 m from the lander. The Sun sets in view of the lander every sol, so, like the Moon's Earth photo, the photo is not free at the start. With the eased Sun near the horizon the window lasts about 6 s per dusk; the band is in data so playtests can widen it. The western sunset viewpoint is simply a good place to take it. Notices say why a photo does not count (Sun too high, too close to the lander).
+- **Odometer** stages are 500 m, 1.5 km and 3 km; **Mapper** is 2.5% of the map. Mars runs last 10 minutes against the Moon's 5.
+- **Survey leads:** the delta front (aimed at the scarp's nearest point, because the front runs for kilometers), Séítah, and the first rocky area in `terrain.json`. The minimap draws the delta front as a line, Séítah as a dashed outline, and Perseverance's landing site as a landmark once discovered; Mars has no cold-zone legend. Lead text is in `data/mars/text.json` → `survey`.
 
 #### Communications
 
