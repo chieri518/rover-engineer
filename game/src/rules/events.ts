@@ -40,6 +40,20 @@ export function flareProtected(poweredDown: boolean, sunlight: number, events: E
   return poweredDown || sunlight < events.flare.shelterSunlight;
 }
 
+/** A flare's strength in X-class units from its GOES class: "X9.3" → 9.3, "M5.0" → 0.5. Unknown → 1. */
+export function flareIntensityX(flareClass: string): number {
+  const m = /^([ABCMX])(\d+(?:\.\d+)?)$/.exec(flareClass.trim());
+  if (!m) return 1;
+  const scale: Record<string, number> = { A: 1e-4, B: 1e-3, C: 1e-2, M: 0.1, X: 1 };
+  return Number(m[2]) * scale[m[1]!]!;
+}
+
+/** Damage to an unprotected rover: the X1 baseline plus damagePerX per X-class unit above X1, never below 0. */
+export function flareDamage(flare: RealFlare, events: EventsFile): number {
+  const f = events.flare;
+  return Math.max(0, f.damage + (f.damagePerX ?? 0) * (flareIntensityX(flare.class) - 1));
+}
+
 /** "2017-09-06" → "6 September 2017" for the warning text. */
 export function formatFlareDate(date: string): string {
   const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];

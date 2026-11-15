@@ -213,6 +213,7 @@ export interface RealFlare {
 export interface EventsFile {
   flare: EventSpec & {
     shelterSunlight: number; // a rover receiving less sunlight than this is sheltered in shadow
+    damagePerX?: number; // extra damage per X-class unit above X1; `damage` is the X1 baseline
     source: string;
     realFlares: RealFlare[];
   };

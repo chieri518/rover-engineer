@@ -8,6 +8,7 @@ import type { Build, GameData } from './types';
 import terrain from '../../public/terrain/terrain.json';
 import { missionSetup, startMission, stepMission, type MissionState } from './mission';
 import { allBuilds as everyBuild, dominatedPairs, evaluateBuild, simulate } from './balance';
+import { flareDamage } from './events';
 
 const data: GameData = loadGameData();
 const allBuilds = () => everyBuild(data);
@@ -96,6 +97,30 @@ describe('game data', () => {
         return e.mass - below.massLimit <= 3 && e.size - below.sizeLimit <= 1;
       });
     expect(near.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it('flare damage grows modestly with the flare class, and a protected rover takes none', () => {
+    const flares = data.events.flare.realFlares;
+    const dmg = (cls: string) => flareDamage({ ...flares[0]!, class: cls }, data.events);
+    expect(dmg('X1.0')).toBe(data.events.flare.damage);
+    expect(dmg('X9.0')).toBeGreaterThan(1.4 * dmg('X1.0'));
+    expect(dmg('X9.0')).toBeLessThan(2.5 * dmg('X1.0'));
+    expect(dmg('X9.3')).toBeGreaterThan(dmg('X3.3'));
+    // The two worst real flares plus the moonquake do not destroy an otherwise undamaged rover.
+    const worst = flares.map((f) => flareDamage(f, data.events)).sort((a, b) => b - a);
+    expect(worst[0]! + worst[1]! + data.events.quake.damage).toBeLessThan(data.tuning.damage.max);
+    // Powered down in full sun, even the strongest flare does nothing.
+    const strongest = [...flares].sort((a, b) => flareDamage(b, data.events) - flareDamage(a, data.events))[0]!;
+    const setup = missionSetup(selectedParts(data.parts.defaultBuild, data.parts), data.tuning, [
+      { kind: 'flare', at: 1, warningAt: 0, flare: strongest },
+    ]);
+    const s = { ...startMission(setup), poweredDown: true };
+    const step = stepMission(s, {
+      dt: 2, distanceM: 0, speedMps: 0, uphillDeg: 0, slopeDeg: 0, sunlight: 1, inColdZone: false, softness: 0,
+      throttling: false, impactMps: 0, upY: 1,
+    }, setup, data.tuning, data.events);
+    expect(step.state.damageBy.flare).toBe(0);
+    expect(step.state.flaresProtected).toBe(1);
   });
 
   it('death penalties are ordered energy < stuck < froze < destroyed', () => {

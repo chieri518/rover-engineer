@@ -8,7 +8,7 @@ import { driveEnergy, solarIncome } from './energy';
 import { impactDamage, overloadDamage, steepSlopeDamage, tiltDeg, type DamageCause } from './damage';
 import { stepFreeze } from './cold';
 import { stepDig, wheelSlip } from './ground';
-import { flareProtected, type MissionEvent } from './events';
+import { flareDamage, flareProtected, type MissionEvent } from './events';
 
 /** What the parts mean for the mission systems. */
 export interface MissionSetup {
@@ -152,7 +152,7 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
     stages[i] = 'done';
     if (ev.kind === 'flare') {
       const safe = flareProtected(prev.poweredDown, s.sunlight, events);
-      const damage = safe ? 0 : events.flare.damage;
+      const damage = safe ? 0 : flareDamage(ev.flare, events);
       hurt('flare', damage);
       if (safe) state.flaresProtected++;
       else state.flaresHarmed++;

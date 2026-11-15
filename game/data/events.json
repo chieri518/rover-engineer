@@ -2,7 +2,8 @@
   "flare": {
     "windowsSeconds": [[60, 120], [180, 260]],
     "warningSeconds": 6,
-    "damage": 30,
+    "damage": 20,
+    "damagePerX": 2.5,
     "shelterSunlight": 0.1,
     "source": "NASA DONKI (Space Weather Database Of Notifications, Knowledge, Information), CCMC, https://ccmc.gsfc.nasa.gov/tools/DONKI/ . The 20 strongest X-class flares recorded from April 2010 to November 14, 2026 (one per day), downloaded once with game/tools/fetch_flares.py on 2026-11-14. Class and peak time are GOES X-ray values as listed in DONKI.",
     "realFlares": [
