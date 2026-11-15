@@ -1,10 +1,11 @@
-// The rover: a Rapier ray-cast vehicle with a placeholder model (box body, four wheels).
+// The rover: a Rapier ray-cast vehicle (box body, four wheels) with a model shaped by its parts (roverModel.ts).
 // Per-build inputs (mass, top speed, grip) come in as RoverParams, built from the parts by
 // rules/drive.ts; handling shared by every build comes from tuning.rover.
 import * as THREE from 'three';
 import type RAPIER from '@dimforge/rapier3d-compat';
 import type { RoverParams } from '../rules/drive';
 import type { Part, RoverHandling } from '../rules/types';
+import { buildRoverModel, roverLook } from './roverModel';
 
 type Rapier = typeof RAPIER;
 
@@ -211,36 +212,10 @@ export class RoverVehicle {
     }
   }
 
-  private buildModel(connectY: number, _parts: Part[]): void {
-    const h = this.handling;
-    const { lengthM: l, widthM: w, heightM: ht } = h.body;
-    const bodyMat = new THREE.MeshLambertMaterial({ color: 0xd8d4c8 });
-    const darkMat = new THREE.MeshLambertMaterial({ color: 0x3a3a3a });
-    const goldMat = new THREE.MeshLambertMaterial({ color: 0xc9a046 });
-    const add = (mesh: THREE.Mesh, parent: THREE.Object3D = this.object) => {
-      mesh.castShadow = true;
-      parent.add(mesh);
-      return mesh;
-    };
-    add(new THREE.Mesh(new THREE.BoxGeometry(l, ht, w), bodyMat));
-    // A mast with a camera head, so heading and scale read at a glance.
-    const mast = add(new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 0.08), darkMat));
-    mast.position.set(l * 0.3, ht / 2 + 0.45, 0);
-    const head = add(new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.14, 0.34), darkMat));
-    head.position.set(l * 0.3, ht / 2 + 0.95, 0);
-    const panel = add(new THREE.Mesh(new THREE.BoxGeometry(l * 0.55, 0.03, w * 0.9), goldMat));
-    panel.position.set(-l * 0.15, ht / 2 + 0.03, 0);
-
-    const tire = new THREE.CylinderGeometry(h.wheelRadiusM, h.wheelRadiusM, 0.22, 20);
-    tire.rotateX(Math.PI / 2); // axle along z
-    const hub = new THREE.BoxGeometry(h.wheelRadiusM * 1.2, h.wheelRadiusM * 0.25, 0.24);
-    for (let i = 0; i < 4; i++) {
-      const wheel = new THREE.Object3D();
-      wheel.position.y = connectY - h.suspension.restLengthM;
-      const spin = new THREE.Object3D();
-      add(new THREE.Mesh(tire, darkMat), spin);
-      add(new THREE.Mesh(hub, bodyMat), spin);
-      wheel.add(spin);
+  private buildModel(connectY: number, parts: Part[]): void {
+    const model = buildRoverModel(this.handling, connectY, roverLook(parts));
+    this.object.add(model.body);
+    for (const { wheel, spin } of model.wheels) {
       this.object.add(wheel);
       this.wheels.push(wheel);
       this.wheelSpin.push(spin);
@@ -250,14 +225,17 @@ export class RoverVehicle {
   dispose(): void {
     this.world.removeRigidBody(this.body);
     const geometries = new Set<THREE.BufferGeometry>();
-    const materials = new Set<THREE.Material>();
+    const materials = new Set<THREE.MeshLambertMaterial>();
     this.object.traverse((obj) => {
       if (obj instanceof THREE.Mesh) {
         geometries.add(obj.geometry);
-        materials.add(obj.material as THREE.Material);
+        materials.add(obj.material as THREE.MeshLambertMaterial);
       }
     });
     geometries.forEach((g) => g.dispose());
-    materials.forEach((m) => m.dispose());
+    materials.forEach((m) => {
+      m.map?.dispose();
+      m.dispose();
+    });
   }
 }

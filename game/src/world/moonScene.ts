@@ -218,6 +218,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   let timeScale = 1;
   let clockRunning = true;
   let paused = false;
+  let orbit: { azimuthDeg: number; distance: number; height: number } | null = null; // development close-up camera
   let shakeLeft = 0;
   let limits: MoonDriveLimits = { allowForward: true, allowReverse: true, speedFactor: 1 };
   const gravityStep = tuning.mission.gravity * tuning.rover.gravityScale * PHYSICS_STEP;
@@ -311,6 +312,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     masks.updateStep(renderer, sun);
 
     chase.update(dt, pos, rover.forward(forward));
+    if (orbit) {
+      const a = (orbit.azimuthDeg * Math.PI) / 180;
+      camera.position.set(pos.x + Math.sin(a) * orbit.distance, pos.y + orbit.height, pos.z - Math.cos(a) * orbit.distance);
+      camera.lookAt(pos.x, pos.y + 0.2, pos.z);
+    }
     if (shakeLeft > 0) {
       shakeLeft = Math.max(0, shakeLeft - dt);
       const a = SHAKE_AMPLITUDE_M * Math.min(1, shakeLeft);
@@ -356,6 +362,10 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       },
       release() {
         input.override = null;
+      },
+      /** Look at the rover from a world azimuth (deg), distance and height (m); null returns to the chase camera. */
+      orbit(view: { azimuthDeg: number; distance: number; height: number } | null) {
+        orbit = view;
       },
       setSpeedBoost(k: number) {
         rover.speedBoost = k;
