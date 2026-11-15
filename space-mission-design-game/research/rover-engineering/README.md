@@ -2,7 +2,7 @@
 
 How planetary rovers are designed, delivered, operated, and kept alive, and the trade-offs behind each choice. This folder supports a game concept in which **the player designs a rover for a mission, a provided spacecraft delivers it, and the player keeps it alive and productive on the surface.** It is written for our team, not for players.
 
-Researched November 14, 2026. About 48,000 words across eight files, with inline sources throughout. General mission engineering (lifecycle, orbits, launch, generic spacecraft subsystems, cost and risk) is in [../mission-engineering/](../mission-engineering/README.md).
+Researched November 14, 2026. About 48,000 words across nine files, with inline sources throughout. General mission engineering (lifecycle, orbits, launch, generic spacecraft subsystems, cost and risk) is in [../mission-engineering/](../mission-engineering/README.md).
 
 ## Reading order
 
@@ -16,6 +16,7 @@ Researched November 14, 2026. About 48,000 words across eight files, with inline
 | [06-milestones-and-sustainment.md](06-milestones-and-sustainment.md) | Milestones NASA measures and how they are rewarded (extended missions, honor awards, the Collier Trophy), the eight pillars of keeping a rover mission going, and game rules: milestone rewards, sustainment rules, a rover health dashboard, and a senior review event | You are designing progression, achievements, or long-term survival rules |
 | [07-nasa-data-for-the-game.md](07-nasa-data-for-the-game.md) | Real NASA datasets for the Moon mission (LRO terrain, sunlight and shadow, Diviner temperatures, M3 ice, moonquakes, DONKI solar flares, star maps), what each adds to play, effort and priority, a recommended site, and an orbital map layers idea | You are building the Moon map or choosing which NASA data to feature |
 | [08-moon-surface-data.md](08-moon-surface-data.md) | Data for the drivable Moon surface: elevation for the play area and horizon, LROC and ShadowCam imagery for textures, rock and crater placement rules, and Apollo 15 soil numbers for driving and getting stuck | You are building the terrain, textures, obstacles, or driving physics |
+| [09-titan-surface-data.md](09-titan-surface-data.md) | Data for the drivable Titan surface: Shangri-La dune sizes and orientation, Selk crater, Dragonfly's landing region and power, light, cold, air, day length, the 2034 season, methane rain and the Huygens site | You are building the Titan terrain, sky, rules or text |
 
 ## Conventions
 

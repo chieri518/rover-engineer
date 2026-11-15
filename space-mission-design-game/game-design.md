@@ -711,13 +711,13 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 #### Site: Shangri-La dunes near Selk crater
 
-*Decided:* the Dragonfly landing region. Dragonfly will land in the interdune areas of the Shangri-La dune field and fly toward Selk, an impact crater about 80 to 90 km across near 7°N, 199°W, where liquid water may once have mixed with organics *(to fact-check)*.
+*Decided:* the Dragonfly landing region. Dragonfly will land in the interdune areas of the Shangri-La dune field and fly toward Selk, an impact crater about 80 km across at 7°N, 199°W, where liquid water may once have mixed with organics ([research 09](research/rover-engineering/09-titan-surface-data.md)). Dragonfly's landing area is a 149 × 72 km ellipse southeast of Selk, and NASA plans about 115 km of travel from the landing site.
 
-- **Terrain modeled on real data.** *Decided:* Titan has no rover-scale elevation model. Cassini's radar mapped the dunes and Selk at hundreds of meters per pixel, and its altimetry and stereo topography are sparse. The play area is generated from published measurements of the Shangri-La dunes (linear dunes roughly west-southwest to east-northeast, about 1 to 2 km wide, 1 to 4 km apart and up to about 100 m high, separated by flat interdune corridors; *to fact-check*), and Selk's rim is placed on the horizon from Cassini maps. The credits and the briefing say "modeled on Cassini data", never "real elevation".
+- **Terrain modeled on real data.** *Decided:* Titan has no rover-scale elevation model. Cassini's radar mapped the dunes and Selk at hundreds of meters per pixel, and its altimetry and stereo topography are sparse. The play area is generated from published measurements of the Shangri-La dunes (linear dunes running west to east, about 1 to 2 km wide, 1 to 4 km apart and up to about 150 m high, separated by flat interdune corridors; the game uses about 100 m; [research 09](research/rover-engineering/09-titan-surface-data.md)), and Selk's rim is placed on the horizon from Cassini maps. The rim is low and broad (about 200 m high, slopes about 3°), so it is a faint line in the haze, not a wall. The credits and the briefing say "modeled on Cassini data", never "real elevation".
 - **Play area.** *Proposed:* 8 km × 8 km at 5 m, the Moon and Mars format, so the loader carries over. A few dunes cross the map; the rover lands on a firm interdune corridor and can follow it or climb over a dune.
 - **Ground.** Dune sand is dark and soft (the Moon's sinkage and slip rules, from a soft-ground mask like Séítah's); interdune ground is brighter and firm. The ground texture is generated to match Cassini's radar and infrared look (dark dunes, bright interdunes), with Huygens-like pebbles near the landing.
 - **Sites** *(Proposed, the pipeline sets real positions)*: the landing corridor, a dune crest viewpoint over the dune field, a dune-crossing route, a bright interdune patch to sample, and a field of Selk ejecta blocks at the edge of the map (the rocky area and the farthest goal).
-- **Gravity** is about one-seventh of Earth's (1.35 m/s²), a little less than the Moon's *(to fact-check)*.
+- **Gravity** is about one-seventh of Earth's (1.35 m/s²), a little less than the Moon's 1.62 m/s² ([research 09](research/rover-engineering/09-titan-surface-data.md)).
 
 #### Time: one Titan day in 15 minutes
 
@@ -725,11 +725,11 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 - **450 s of day, then 450 s of night**, a single cycle.
 - **The mission starts in the morning.** *Proposed:* 150 s after sunrise, matching the Mars start. The player gets about 5 minutes of day, then one 7.5-minute night, then dawn returns for the last 2.5 minutes. Surviving the night to see dawn is the mission's climax.
-- **No clock.** The Sun is a dim disc behind the haze and follows a real path for the site's latitude and season *(season to fact-check: Dragonfly arrives in 2034, around northern winter)*.
+- **No clock.** The Sun is a dim disc behind the haze and follows a real path for the site's latitude and season (Dragonfly arrives in late 2034, in northern winter, when the Sun is about 20° south of Titan's equator, so the noon Sun at the site is about 65° up and to the south; [research 09](research/rover-engineering/09-titan-surface-data.md), our calculation).
 
 #### Light and sky
 
-*Proposed:* daylight at Titan's surface is very dim (on the order of a thousandth of Earth's, *to fact-check*) and scattered by thick orange haze, so there are almost no sharp shadows. The game keeps it readable: a hazy orange-brown sky, soft light, short visibility, a faint Sun. Night is close to black; Saturn is hidden by the haze. Lights are what let the rover see at night.
+*Proposed:* daylight at Titan's surface is very dim (darker than Earth just after sunset; often quoted as about a thousandth of Earth's daylight; [research 09](research/rover-engineering/09-titan-surface-data.md)) and scattered by thick orange haze, so there are almost no sharp shadows. The game keeps it readable: a hazy orange-brown sky, soft light, short visibility, a faint Sun. Night is close to black; Saturn is hidden by the haze. Lights are what let the rover see at night.
 
 #### Power and night
 
@@ -747,7 +747,7 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 - *Proposed:* the freeze meter rises everywhere, all mission, at a constant base rate.
 - Heat sources cut the rate: the radioisotope heater (Moon part), and the rover's own electronics while it is awake. Driving warms a little more than sitting awake.
 - **Sleep cools the rover.** Asleep, only the heater fights the cold, so a long sleep brings the rover close to freezing. Without a heater, a sleeping rover freezes before dawn and an awake one freezes within the mission. This is the Titan trade: sleep saves energy and costs warmth; staying awake keeps warm and costs energy. With the heater, a sleeper survives the night with little margin.
-- Real basis: Dragonfly keeps warm with the waste heat of its MMRTG inside an insulated body ([NASA Dragonfly spacecraft](https://science.nasa.gov/mission/dragonfly/spacecraft-and-instruments/)) *(to fact-check)*.
+- Real basis: Dragonfly keeps warm with the waste heat of its MMRTG inside an insulated body, which gives about 2 kW of heat and about 100 W of electricity ([research 09](research/rover-engineering/09-titan-surface-data.md); the exact watts are *unverified*).
 
 #### Events
 
@@ -755,7 +755,7 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 | Event | What happens | Player response | Real basis |
 | --- | --- | --- | --- |
-| Methane rainstorm | One per mission, forecast 60 s ahead by the lander's weather station. For about 60 s, visibility closes in, photos do not count, and the cold rises faster. | Park near the lander or keep driving blind on a known route; sleep through it (and get colder) | Cassini saw large equatorial storms darken the surface with rain in 2010 *(to fact-check)* |
+| Methane rainstorm | One per mission, forecast 60 s ahead by the lander's weather station. For about 60 s, visibility closes in, photos do not count, and the cold rises faster. | Park near the lander or keep driving blind on a known route; sleep through it (and get colder) | Cassini saw a large equatorial cloud system in late 2010, and more than 500,000 km² of ground darkened afterward, most likely from methane rain ([research 09](research/rover-engineering/09-titan-surface-data.md)) |
 
 #### Titan milestones
 
