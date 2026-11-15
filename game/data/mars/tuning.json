@@ -2,7 +2,7 @@
   "_about": "Mars overlay, deep-merged over data/tuning.json (src/gameData.ts, rules/merge.ts). Keys starting with _ are notes and are dropped; null removes a shared key. Sections not listed here are the Moon's. Types: rules/types.ts Tuning, rules/marsTypes.ts.",
   "_placeholder": "Values listed under a section's _placeholder are stubs for the track named there. Values under _interface are set with Owner A.",
   "mission": {
-    "_note": "Decided: 10 sols in 10 minutes. gameDays counts sols on Mars. gravity: Mars surface gravity, m/s^2.",
+    "_note": "Decided: 10 sols in 10 minutes (sol.sols x sol.secondsPerSol = lengthSeconds). gameDays counts sols on Mars. gravity: Mars surface gravity, m/s^2.",
     "lengthSeconds": 600,
     "gameDays": 10,
     "gravity": 3.71
@@ -17,7 +17,7 @@
     "airGravityScale": 16
   },
   "sun": {
-    "_placeholder": "Stand-in until the rules track (M3) adds the real Jezero Sun path on the sol clock: the lunar model with the Sun fixed near noon at Ls 200 (subsolar longitude = site longitude, solar declination -8.4 deg), so the placeholder world stays lit.",
+    "_placeholder": "Stand-in for code that still reads the lunar model (the mission screen until Integration M6 switches to rules/marsSun.ts marsSunAt on the sol clock): the lunar model with the Sun fixed near noon at Ls 200 (subsolar longitude = site longitude, solar declination -8.4 deg), so the placeholder world stays lit.",
     "startAzimuthDeg": 77.45,
     "degreesPerEarthDay": 0,
     "subsolarLatitudeDeg": -8.4
@@ -31,19 +31,23 @@
     "leads": []
   },
   "sol": {
-    "_note": "Decided (game-design.md, The Mars mission): 10 sols of 60 s, 45 s of day then 15 s of night, season Ls about 200. Owner: rules track (M3).",
+    "_note": "Decided (game-design.md, The Mars mission): 10 sols of 60 s, 45 s of day then 15 s of night, season Ls about 200 (early northern autumn). Rules track (M3): t = 0 is sunrise of sol 1. The Sun follows real local solar time at Jezero (rules/sol.ts, rules/marsSun.ts); the season advances about 0.6 deg of Ls per sol near Ls 200 (Mars24 orbit). horizonRateShare: the Sun moves at 0.25 x its mean day speed at sunrise and sunset (faster at noon and midnight), so 0 to 10 deg of elevation lasts about 5.5 s at sunset and twilight (0 to -8 deg) about 3.5 s.",
     "sols": 10,
     "secondsPerSol": 60,
     "daySeconds": 45,
     "nightSeconds": 15,
-    "solarLongitudeDeg": 200
+    "solarLongitudeDeg": 200,
+    "solarLongitudeDegPerSol": 0.6,
+    "horizonRateShare": 0.25
   },
   "night": {
-    "_placeholder": "Rules track (M3) sets every value here. Interface: freeze rate per night (Owner B) against heater strength and draw (Owner A).",
-    "lightsDrainPerSecond": 1,
-    "sleepDrainPerSecond": 0.1,
+    "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving: lights on 4 (a parked night costs 60, about a fixed panel's whole sol of income), awake without lights 1 (electronics), asleep 0.2 (3 per night). Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
+    "lightsDrainPerSecond": 4,
+    "awakeDrainPerSecond": 1,
+    "sleepDrainPerSecond": 0.2,
     "driveWithoutLights": false,
-    "freezeRatePerSecond": 4,
-    "warmRecoveryPerSecond": 6
+    "freezeRatePerSecond": 8,
+    "warmRecoveryPerSecond": 6,
+    "fullSunElevationDeg": 15
   }
 }

@@ -52,7 +52,7 @@ describe('world data', () => {
   it('Mars overlays the shared data: its own gravity, sols, events and milestones', () => {
     const mars = worldGameData('mars');
     expect(mars.tuning.mission).toEqual({ lengthSeconds: 600, gameDays: 10, gravity: 3.71 });
-    expect(mars.tuning.sol).toEqual({ sols: 10, secondsPerSol: 60, daySeconds: 45, nightSeconds: 15, solarLongitudeDeg: 200 });
+    expect(mars.tuning.sol).toMatchObject({ sols: 10, secondsPerSol: 60, daySeconds: 45, nightSeconds: 15, solarLongitudeDeg: 200 });
     expect(mars.tuning.sol!.daySeconds + mars.tuning.sol!.nightSeconds).toBe(mars.tuning.sol!.secondsPerSol);
     expect(mars.tuning.sol!.sols * mars.tuning.sol!.secondsPerSol).toBe(mars.tuning.mission.lengthSeconds);
     expect(mars.tuning.night).toBeDefined();
