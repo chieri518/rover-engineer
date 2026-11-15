@@ -37,6 +37,21 @@ describe('marsLook', () => {
     expect(lum(sunset.glow)).toBeGreaterThan(lum(sunset.horizon));
   });
 
+  it('a Sun up to about 15° wears a blue halo: at the Sun the sky reads blue, not mauve', () => {
+    for (const el of [1, 5, 10, 15]) {
+      const l = marsLook(el, 0);
+      const atSun = l.horizon.map((v, i) => v * (1 - l.glowReplace) + l.glow[i]!);
+      expect(atSun[2], `${el}°`).toBeGreaterThan(atSun[0]! * 1.25);
+    }
+    expect(marsLook(40, 0).glowReplace).toBe(0); // a high Sun has only the pale day aureole
+  });
+
+  it('a low morning Sun still gives a readable sky, not a gloomy grey-brown one', () => {
+    expect(lum(marsLook(5, 0).horizon)).toBeGreaterThan(lum(marsLook(60, 0).horizon) * 0.35);
+    expect(lum(marsLook(15, 0).horizon)).toBeGreaterThan(lum(marsLook(60, 0).horizon) * 0.6);
+    expect(lum(marsLook(-6, 0).horizon)).toBeLessThan(lum(marsLook(5, 0).horizon) * 0.2); // twilight still darkens
+  });
+
   it('night is dark with stars; day has none', () => {
     const night = marsLook(-25, 0);
     expect(night.stars).toBeGreaterThan(0.95);
@@ -60,7 +75,14 @@ describe('marsLook', () => {
     const clear = marsLook(60, 0);
     const dusty = marsLook(60, 1);
     expect(lum(dusty.sun) / lum(dusty.skyLight)).toBeLessThan((lum(clear.sun) / lum(clear.skyLight)) * 0.5);
-    expect(marsLook(60, 1).fogDensity).toBeGreaterThan(marsLook(60, 0).fogDensity * 10);
+    // Peak storm visibility is a few hundred meters: exp² fog hides 95% of the terrain by ~350 m.
+    const d95 = Math.sqrt(3) / marsLook(60, 1).fogDensity;
+    expect(d95).toBeGreaterThan(250);
+    expect(d95).toBeLessThan(500);
+    expect(Math.sqrt(3) / marsLook(60, 0).fogDensity).toBeGreaterThan(30000);
+    // Sky and horizon merge, and the Sun is a dim smudge.
+    expect(lum(dusty.zenith) / lum(dusty.horizon)).toBeGreaterThan(0.8);
+    expect(dusty.sunDisc).toBeLessThan(0.2);
     expect(marsLook(-25, 1).stars).toBe(0);
   });
 

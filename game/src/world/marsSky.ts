@@ -24,6 +24,7 @@ uniform vec3 zenith;
 uniform vec3 horizon;
 uniform vec3 glow;
 uniform float glowWidth; // radians
+uniform float glowReplace; // share of the sky color the glow replaces at the Sun
 varying vec3 vDir;
 void main() {
   vec3 d = normalize( vDir );
@@ -31,7 +32,8 @@ void main() {
   float a = acos( clamp( dot( d, sunDir ), -1.0, 1.0 ) );
   // A tight aureole plus a wide, faint skirt; flattened toward the horizon at sunset.
   float spread = 1.0 + 1.5 * ( 1.0 - smoothstep( 0.0, 0.35, abs( d.y - sunDir.y ) ) );
-  c += glow * ( exp( -a / ( glowWidth * spread ) ) + 0.12 * exp( -a / ( glowWidth * 4.0 ) ) );
+  float w = exp( -a / ( glowWidth * spread ) );
+  c = c * ( 1.0 - glowReplace * w ) + glow * ( w + 0.12 * exp( -a / ( glowWidth * 4.0 ) ) );
   // Dither so the dark gradients do not band.
   c += ( fract( sin( dot( gl_FragCoord.xy, vec2( 12.9898, 78.233 ) ) ) * 43758.5453 ) - 0.5 ) / 255.0;
   gl_FragColor = vec4( max( c, 0.0 ), 1.0 );
@@ -61,6 +63,7 @@ export class MarsSky {
           horizon: { value: new THREE.Color() },
           glow: { value: new THREE.Color() },
           glowWidth: { value: 0.15 },
+          glowReplace: { value: 0 },
         },
         side: THREE.BackSide,
         depthWrite: false,
@@ -93,6 +96,7 @@ export class MarsSky {
     (u.horizon!.value as THREE.Color).setRGB(...look.horizon);
     (u.glow!.value as THREE.Color).setRGB(...look.glow);
     u.glowWidth!.value = (look.glowWidthDeg * Math.PI) / 180;
+    u.glowReplace!.value = look.glowReplace;
     (this.stars.material as THREE.PointsMaterial).opacity = look.stars;
     this.stars.visible = look.stars > 0.002;
     (this.sunSprite.material as THREE.SpriteMaterial).opacity = look.sunDisc;

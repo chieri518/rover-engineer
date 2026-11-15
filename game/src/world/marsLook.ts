@@ -21,6 +21,8 @@ export interface MarsLook {
   /** Added to the sky around the Sun's direction, falling off over glowWidthDeg. */
   glow: RGB;
   glowWidthDeg: number;
+  /** Share of the sky color the glow replaces at the Sun (0..1): a low Sun's blue halo hides the butterscotch. */
+  glowReplace: number;
   /** Opacity of the Sun's disc, 0..1. */
   sunDisc: number;
   /** Star brightness, 0..1. */
@@ -49,29 +51,43 @@ const SKY_GAMMA = 0.55; // displayed sky brightness ~ (sky light)^gamma: twiligh
 const NIGHT_LIGHT = 0.25; // ambient floor at night: dark enough that the floodlights matter
 const GROUND_BOUNCE = 0.12; // light reflected up by the ground (albedo × a geometry share)
 // Eye adaptation: a dim morning or storm is brightened toward noon (light × (noon / now)^k, at most
-// ADAPT_MAX), as a camera's exposure would, so low-Sun play stays readable; the night floor is not.
-const ADAPT_K = 0.5;
-const ADAPT_MAX = 4;
+// ADAPT_MAX, twice that in a full storm), as a camera's exposure would, so low-Sun and storm play stay
+// readable; the night floor is not.
+const ADAPT_K = 0.55;
+const ADAPT_MAX = 6;
+// The sky dome adapts too, but only while the Sun is up: dawn and dusk skies stay readable instead of
+// going grey-brown, and twilight still darkens toward night.
+const SKY_ADAPT_K = 0.35;
+const SKY_ADAPT_MAX = 2.2;
 
 const SUN_COLOR = srgb(0xfff6ea);
 const DAY_HORIZON = srgb(0xcfa57a); // butterscotch
 const DAY_ZENITH = srgb(0x9c6e4e); // darker, redder overhead
-const DUSK_HORIZON = srgb(0x7d6a62); // grey-brown away from the setting Sun
-const DUSK_ZENITH = srgb(0x3e3640);
-const STORM_HORIZON = srgb(0xb88a5c); // flat ochre haze
-const STORM_ZENITH = srgb(0xa47852);
+const DUSK_HORIZON = srgb(0x9a7a64); // muted brown away from a low Sun
+const DUSK_ZENITH = srgb(0x4a3e44);
+const STORM_HORIZON = srgb(0xb4875a); // flat ochre haze: sky and horizon merge
+const STORM_ZENITH = srgb(0xa98058);
+const STORM_GLOW = srgb(0xe6c8a0); // the Sun as a dim, wide, dusty smudge
 const NIGHT_SKY = srgb(0x05060a);
 const GLOW_DAY = srgb(0xcfd6e2); // pale blue-white aureole around a high Sun
-const GLOW_SUNSET = srgb(0x86a9df); // the blue sunset
+const GLOW_SUNSET = srgb(0x80a2dc); // the blue sunset
 const GLOW_DAY_STRENGTH = 0.12;
-const GLOW_SUNSET_STRENGTH = 0.45;
+const GLOW_SUNSET_STRENGTH = 0.5;
+const GLOW_SUNSET_REPLACE = 0.75; // around a low Sun the blue halo replaces most of the butterscotch
+// The blue glow stays strong up to about 15° (the Blue sunset photo band) and fades to the day aureole by 30°.
+const GLOW_LOW_DEG = 13;
+const GLOW_HIGH_DEG = 30;
+const STORM_GLOW_STRENGTH = 0.18;
+const STORM_GLOW_WIDTH_DEG = 22;
 const GLOW_TWILIGHT_SCALE_DEG = 3.5;
 /** Mean Mars ground color (sRGB hex): the ground material's color, tinting the grayscale HiRISE image. */
 export const MARS_GROUND_HEX = 0x9c7c62;
 const GROUND_TINT = srgb(MARS_GROUND_HEX);
 const FOG_CLEAR = 2.5e-5; // crater rim ~20 km away is hazy but visible
-const FOG_STORM = 1.1e-3; // about two kilometers of visibility
-const STORM_GLOOM = 0.35; // the eye adapts less than fully to a storm: the day stays dim
+// Peak storm: terrain is half hidden at ~190 m and gone by ~350 m (exp² fog), as in the 2018 storm images.
+const FOG_STORM = 5e-3;
+const FOG_STORM_EASE = 0.35; // fog follows storm^0.35 on a log scale: the haze closes in early in the build-up
+const STORM_GLOOM = 0.5; // the eye adapts less than fully to a storm: the day stays dim
 const SKY_LIGHT_SATURATION = 0.6; // sky light on the ground is whiter than the sky looks
 
 function srgb(hex: number): RGB {
@@ -129,7 +145,9 @@ export function marsLook(sunElevationDeg: number, stormIntensity: number): MarsL
 
   // Sky dome: hue by Sun height and storm, brightness by the sky light.
   const day = smoothstep(-4, 14, el);
-  const brightness = Math.min(1.15, Math.pow(skyLight / SKY_REF, SKY_GAMMA));
+  const up = smoothstep(-2, 3, el); // the sky's adaptation fades out through twilight
+  const skyAdapt = 1 + (Math.min(SKY_ADAPT_MAX, Math.pow(SKY_REF / Math.max(skyLight, 1e-9), SKY_ADAPT_K)) - 1) * up * (1 - 0.5 * storm);
+  const brightness = Math.min(1.15, Math.pow(skyLight / SKY_REF, SKY_GAMMA) * Math.max(1, skyAdapt));
   const tint = (dusk: RGB, dayC: RGB, stormC: RGB): RGB => {
     const c = scale(mix(mix(dusk, dayC, day), stormC, storm), brightness);
     return [Math.max(c[0], NIGHT_SKY[0]), Math.max(c[1], NIGHT_SKY[1]), Math.max(c[2], NIGHT_SKY[2])];
@@ -137,17 +155,17 @@ export function marsLook(sunElevationDeg: number, stormIntensity: number): MarsL
   const horizon = tint(DUSK_HORIZON, DAY_HORIZON, STORM_HORIZON);
   const zenith = tint(DUSK_ZENITH, DAY_ZENITH, STORM_ZENITH);
 
-  const high = smoothstep(5, 25, el);
-  const glowStrength =
-    (GLOW_SUNSET_STRENGTH + (GLOW_DAY_STRENGTH - GLOW_SUNSET_STRENGTH) * high) *
-    (el >= 0 ? 1 : Math.exp(el / GLOW_TWILIGHT_SCALE_DEG)) *
-    (1 - 0.85 * storm);
-  const glow = scale(mix(GLOW_SUNSET, GLOW_DAY, high), glowStrength);
+  const high = smoothstep(GLOW_LOW_DEG, GLOW_HIGH_DEG, el);
+  const twilight = el >= 0 ? 1 : Math.exp(el / GLOW_TWILIGHT_SCALE_DEG);
+  const glowStrength = (GLOW_SUNSET_STRENGTH + (GLOW_DAY_STRENGTH - GLOW_SUNSET_STRENGTH) * high) * twilight;
+  // In a storm the blue halo gives way to a wide, dim, dusty smudge around the Sun.
+  const stormGlow = scale(STORM_GLOW, STORM_GLOW_STRENGTH * brightness);
+  const glow = mix(scale(mix(GLOW_SUNSET, GLOW_DAY, high), glowStrength), stormGlow, storm);
 
   // Light on the scene.
   const levelLight = marsLevelLight(el, storm);
   const exposure =
-    MARS_SUN_I0 * Math.min(ADAPT_MAX, Math.pow(LEVEL_REF / Math.max(levelLight, 1e-9), ADAPT_K)) * (1 - STORM_GLOOM * storm);
+    MARS_SUN_I0 * Math.min(ADAPT_MAX * (1 + storm), Math.pow(LEVEL_REF / Math.max(levelLight, 1e-9), ADAPT_K)) * (1 - STORM_GLOOM * storm);
   const sun = [0, 1, 2].map((i) => SUN_COLOR[i]! * direct[i]! * exposure) as RGB;
   const skyMid = mix(horizon, zenith, 0.5);
   const midLum = luminance(skyMid);
@@ -163,10 +181,11 @@ export function marsLook(sunElevationDeg: number, stormIntensity: number): MarsL
     zenith,
     horizon,
     glow,
-    glowWidthDeg: 7 + 5 * high,
-    sunDisc: smoothstep(-0.3, 0.3, el) * (1 - 0.7 * storm),
+    glowWidthDeg: 7 + 5 * high + (STORM_GLOW_WIDTH_DEG - 7 - 5 * high) * storm,
+    glowReplace: GLOW_SUNSET_REPLACE * (1 - high) * twilight * (1 - storm),
+    sunDisc: smoothstep(-0.3, 0.3, el) * (1 - 0.85 * storm),
     stars: (1 - smoothstep(0.01, 0.06, brightness)) * (1 - storm),
-    fogDensity: FOG_CLEAR * Math.pow(FOG_STORM / FOG_CLEAR, storm),
+    fogDensity: FOG_CLEAR * Math.pow(FOG_STORM / FOG_CLEAR, Math.pow(storm, FOG_STORM_EASE)),
     fog: horizon,
   };
 }
