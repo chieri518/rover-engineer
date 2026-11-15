@@ -550,4 +550,4 @@ Every open question from the first draft was settled on November 15, 2026:
 | 6 | Milestones for the new Moon instruments | Not in this scope. Nothing on the Moon level changes yet, including new milestones; that is a later iteration |
 | 7 | Mars and Titan instruments and support hardware | As in [8](#8-instruments-by-world) and [9](#9-other-components-the-bus), a first version to revisit after playtesting; feeds game-design.md open questions 2 and 3 |
 
-**Next:** the technical implementation plan for the payload bay and the four new Moon instruments, once this design is settled.
+**Next:** the [implementation plan](rover-engineering-implementation-plan.md) for the payload bay, the four new Moon instruments, the relationships, the notebook, and the pre-launch review.
