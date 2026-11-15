@@ -139,6 +139,15 @@ export interface Tuning {
     movingSpeedMps: number; // above this speed the rover counts as driving
   };
   explore: { cellM: number; revealRadiusM: number };
+  /** Boulders scattered in the rocky areas (fresh craters): most are small, a few reach maxDiameterM. */
+  boulders: {
+    perRockyArea: number;
+    spreadRadiusFactor: number; // scattered out to rockyArea.radius × this
+    minDiameterM: number;
+    maxDiameterM: number;
+    buriedShare: number; // share of each boulder's height below the ground
+    seed: number;
+  };
   sun: SunTuning;
   earth: { azimuthDeg: number; elevationDeg: number };
   rover: RoverHandling;
@@ -229,7 +238,8 @@ export interface TextFile {
   mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
-    | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief',
+    | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief' | 'rollover'
+    | 'legendLander' | 'legendViewpoint' | 'legendCrater' | 'legendCold',
     string
   >;
   warnings: Record<

@@ -29,6 +29,8 @@ export class RoverVehicle {
   private input: DriveInput = { throttle: 0, steer: 0, brake: false };
   /** Multiplies the top speed (development shortcut only). */
   speedBoost = 1;
+  /** Multiplies the top speed: soft ground and wheel slip slow the rover (set by the mission systems). */
+  speedFactor = 1;
 
   constructor(
     private readonly world: RAPIER.World,
@@ -112,6 +114,33 @@ export class RoverVehicle {
     return this.object.position;
   }
 
+  /** Linear velocity of the body in m/s. */
+  velocity(target = new THREE.Vector3()): THREE.Vector3 {
+    const v = this.body.linvel();
+    return target.set(v.x, v.y, v.z);
+  }
+
+  /** Unit up vector of the chassis in the world. */
+  up(target = new THREE.Vector3()): THREE.Vector3 {
+    return target.set(0, 1, 0).applyQuaternion(this.object.quaternion);
+  }
+
+  /** Slow the body by a factor (0..1 kept per call): a hard stop the drive brakes alone cannot make downhill. */
+  damp(keep: number): void {
+    const v = this.body.linvel();
+    this.body.setLinvel({ x: v.x * keep, y: v.y, z: v.z * keep }, true);
+  }
+
+  /** Roll the rover about its forward axis (development helper for testing rollover). */
+  tipOver(rollDeg: number): void {
+    const r = this.body.rotation();
+    const q = new THREE.Quaternion(r.x, r.y, r.z, r.w).multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), rollDeg * DEG));
+    const t = this.body.translation();
+    this.body.setTranslation({ x: t.x, y: t.y + 1, z: t.z }, true);
+    this.body.setRotation({ x: q.x, y: q.y, z: q.z, w: q.w }, true);
+    this.sync();
+  }
+
   /** How many wheels touch the ground. */
   get wheelsInContact(): number {
     let n = 0;
@@ -130,7 +159,7 @@ export class RoverVehicle {
     const { throttle, steer, brake } = this.input;
     const v = this.speed;
     const m = this.params.massKg;
-    const top = this.params.topSpeed * this.speedBoost;
+    const top = this.params.topSpeed * this.speedBoost * this.speedFactor;
 
     let engine = 0;
     let brakeForce = 0;

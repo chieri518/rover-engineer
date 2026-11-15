@@ -56,6 +56,7 @@ export const testTuning: Tuning = {
     slopeSlipFreeDeg: 10, slipPerUphillDeg: 0.01, softRadiusFactor: 1, softFadeFactor: 1.5, movingSpeedMps: 0.5,
   },
   explore: { cellM: 20, revealRadiusM: 250 },
+  boulders: { perRockyArea: 10, spreadRadiusFactor: 1, minDiameterM: 0.4, maxDiameterM: 2, buriedShare: 0.3, seed: 1 },
   sun: { startAzimuthDeg: 20, degreesPerEarthDay: 12, subsolarLatitudeDeg: -1 },
   earth: { azimuthDeg: 0, elevationDeg: 0.6 },
   rover: {

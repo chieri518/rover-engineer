@@ -99,9 +99,13 @@ export function patchMoonLighting(
     shader.fragmentShader = shader.fragmentShader
       .replace('#include <common>', `#include <common>\n${PARS}`)
       .replace('#include <lights_lambert_pars_fragment>', LAMBERT_PARS)
+      // Terrain shadows mask only the Sun (the directional light), not the rover's floodlights.
       .replace(
         '#include <lights_fragment_begin>',
-        'moonSunVis = moonSunVisibility( vMoonWorld.xz );\n#include <lights_fragment_begin>',
+        THREE.ShaderChunk.lights_fragment_begin.replace(
+          '#if ( NUM_DIR_LIGHTS > 0 ) && defined( RE_Direct )',
+          'moonSunVis = moonSunVisibility( vMoonWorld.xz );\n#if ( NUM_DIR_LIGHTS > 0 ) && defined( RE_Direct )',
+        ),
       );
   };
   material.customProgramCacheKey = () => (lunar ? 'moon-lunar' : 'moon-lambert');

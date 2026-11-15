@@ -72,6 +72,14 @@
     "softFadeFactor": 1.5,
     "movingSpeedMps": 0.5
   },
+  "boulders": {
+    "perRockyArea": 160,
+    "spreadRadiusFactor": 1.1,
+    "minDiameterM": 0.4,
+    "maxDiameterM": 2.6,
+    "buriedShare": 0.35,
+    "seed": 11
+  },
   "explore": {
     "cellM": 20,
     "revealRadiusM": 250

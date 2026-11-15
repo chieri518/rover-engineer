@@ -1,10 +1,12 @@
 // The drivable Moon: terrain, rover, low Sun with moving shadows, sky, and the operating boundary.
-// The mission screen starts it; Phase 4 adds the mission systems on top through onFrame.
+// The mission screen starts it and runs the mission systems on top through onStep and onFrame.
 import * as THREE from 'three';
 import type { GameData } from '../rules/types';
 import type { RoverParams } from '../rules/drive';
 import { skyDirection, sunAt, type SkyDirection } from '../rules/sun';
-import { loadTerrain } from './terrainData';
+import { loadTerrain, type Terrain } from './terrainData';
+import { Boulders } from './boulders';
+import type { SoftArea } from '../rules/ground';
 import { ChunkLayer } from './terrainChunks';
 import { SunMasks } from './sunMask';
 import { createMoonLightUniforms, patchMoonLighting } from './lunarLighting';
@@ -13,6 +15,7 @@ import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { RoverVehicle } from '../rover/vehicle';
 import { KeyboardInput } from '../rover/input';
+import type { DriveInput } from '../rover/vehicle';
 import { ChaseCamera } from '../rover/chaseCamera';
 
 // Rendering look and cost. These are presentation settings, not game rules.
@@ -33,20 +36,58 @@ export interface MoonFrameState {
   sun: SkyDirection;
   position: { x: number; y: number; z: number };
   speed: number;
+  forward: { x: number; y: number; z: number };
   boundaryDistance: number; // meters to the operating boundary
   nearBoundary: boolean;
+}
+
+interface Vec3 { x: number; y: number; z: number }
+
+/** What happened to the rover in one physics step, for the mission systems. */
+export interface MoonStepSample {
+  dt: number; // mission seconds in this step (0 once the clock is stopped)
+  seconds: number;
+  position: Vec3;
+  velocity: Vec3;
+  speed: number; // signed forward speed
+  forward: Vec3;
+  upY: number; // y of the rover's up vector: 1 upright, below 0 upside down
+  deltaV: number; // sudden change in velocity this step, beyond gravity (m/s): impacts
+  input: DriveInput; // what the driver asked for
+}
+
+/** What the mission systems allow for the next physics step. */
+export interface MoonDriveLimits {
+  allowForward: boolean;
+  allowReverse: boolean;
+  speedFactor: number; // multiplies the top speed
+  hardStop?: boolean; // stop the rover now, even downhill (e.g. at the edge of permanent shadow)
 }
 
 export interface MoonSceneOptions {
   container: HTMLElement;
   data: GameData;
   rover: RoverParams;
+  boulderAreas?: SoftArea[];
+  lightRangeM?: number; // floodlights on the rover (0 or undefined: none)
   onFrame?: (state: MoonFrameState) => void;
+  onStep?: (sample: MoonStepSample) => MoonDriveLimits | void;
 }
 
 export interface MoonScene {
+  terrain: Terrain;
+  /** Stop mission time (the Sun stops moving) once the mission has ended. */
+  stopClock(): void;
+  /** Switch the floodlights (if the rover has them). */
+  setFloodlights(on: boolean): void;
+  /** Shake the camera, e.g. for a moonquake. */
+  shake(seconds: number): void;
   dispose(): void;
 }
+
+const SHAKE_AMPLITUDE_M = 0.35;
+const FLOODLIGHT_INTENSITY = 300;
+const HARD_STOP_KEEP = 0.9; // share of horizontal velocity kept per physics step during a hard stop
 
 export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene> {
   const { container, data } = opts;
@@ -128,6 +169,18 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     }
   });
   scene.add(rover.object);
+  let lamp: THREE.SpotLight | null = null;
+  if (opts.lightRangeM) {
+    // Floodlights: what lets the rover see inside permanent shadow. Off until it is dark.
+    lamp = new THREE.SpotLight(0xf4f1ea, FLOODLIGHT_INTENSITY, opts.lightRangeM, 0.6, 0.5, 1.2);
+    lamp.intensity = 0; // intensity, not visibility: a changing light count would recompile every shader
+    lamp.position.set(tuning.rover.body.lengthM / 2, 0.4, 0);
+    lamp.target.position.set(tuning.rover.body.lengthM / 2 + 10, -1.2, 0);
+    rover.object.add(lamp, lamp.target);
+  }
+  const boulders = new Boulders(rapier, world, opts.boulderAreas ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
+  patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, true);
+  scene.add(boulders.mesh);
   const input = new KeyboardInput();
   const chase = new ChaseCamera(camera, (x, z) => terrain.heightAt(x, z));
 
@@ -144,6 +197,18 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   // Mission time drives the Sun.
   let seconds = 0;
   let timeScale = 1;
+  let clockRunning = true;
+  let shakeLeft = 0;
+  let limits: MoonDriveLimits = { allowForward: true, allowReverse: true, speedFactor: 1 };
+  const gravityStep = tuning.mission.gravity * tuning.rover.gravityScale * PHYSICS_STEP;
+  const lastVel = rover.velocity(new THREE.Vector3());
+  const vel = new THREE.Vector3();
+  const up = new THREE.Vector3();
+  const fwd = new THREE.Vector3();
+  const limitInput = (raw: DriveInput): DriveInput => {
+    if ((raw.throttle > 0 && !limits.allowForward) || (raw.throttle < 0 && !limits.allowReverse)) return { ...raw, throttle: 0 };
+    return raw;
+  };
   const sunNow = () => sunAt(seconds, tuning.sun, tuning.mission, site);
   const forward = new THREE.Vector3();
   const placeSun = (sun: SkyDirection) => {
@@ -171,14 +236,40 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     if (frameTimes.length > 120) frameTimes.shift();
     last = now;
 
-    rover.setInput(input.read());
+    const raw = input.read();
     acc += dt;
     let steps = 0;
     while (acc >= PHYSICS_STEP && steps < 5) {
+      rover.setInput(limitInput(raw));
+      rover.speedFactor = limits.speedFactor;
       rover.update(PHYSICS_STEP);
+      if (limits.hardStop) rover.damp(HARD_STOP_KEEP);
       world.step();
       acc -= PHYSICS_STEP;
       steps++;
+      // Mission time follows simulated time, so a slow frame rate cannot cost the rover distance.
+      const stepDt = clockRunning ? PHYSICS_STEP * timeScale : 0;
+      seconds = Math.min(tuning.mission.lengthSeconds, seconds + stepDt);
+      rover.sync();
+      rover.velocity(vel);
+      const deltaV = Math.hypot(vel.x - lastVel.x, vel.y - lastVel.y + gravityStep, vel.z - lastVel.z);
+      lastVel.copy(vel);
+      if (opts.onStep) {
+        const p = rover.position;
+        rover.forward(fwd);
+        const next = opts.onStep({
+          dt: stepDt,
+          seconds,
+          position: { x: p.x, y: p.y, z: p.z },
+          velocity: { x: vel.x, y: vel.y, z: vel.z },
+          speed: rover.speed,
+          forward: { x: fwd.x, y: fwd.y, z: fwd.z },
+          upY: rover.up(up).y,
+          deltaV,
+          input: raw,
+        });
+        if (next) limits = next;
+      }
     }
     if (steps === 5) acc = 0;
     rover.sync();
@@ -186,13 +277,18 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     colliders.update(pos.x, pos.z);
     for (const layer of layers) layer.update(pos.x, pos.z, CHUNK_REBUILDS_PER_FRAME);
 
-    // Mission time follows simulated time, so a slow frame rate cannot cost the rover distance.
-    seconds = Math.min(tuning.mission.lengthSeconds, seconds + steps * PHYSICS_STEP * timeScale);
     const sun = sunNow();
     placeSun(sun);
     masks.updateStep(renderer, sun);
 
     chase.update(dt, pos, rover.forward(forward));
+    if (shakeLeft > 0) {
+      shakeLeft = Math.max(0, shakeLeft - dt);
+      const a = SHAKE_AMPLITUDE_M * Math.min(1, shakeLeft);
+      camera.position.x += (Math.random() - 0.5) * a;
+      camera.position.y += (Math.random() - 0.5) * a;
+      camera.position.z += (Math.random() - 0.5) * a;
+    }
     sky.update(camera, sun);
     renderer.setRenderTarget(null);
     renderer.clear();
@@ -206,6 +302,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       sun,
       position: { x: pos.x, y: pos.y, z: pos.z },
       speed: rover.speed,
+      forward: { x: forward.x, y: forward.y, z: forward.z },
       boundaryDistance,
       nearBoundary: boundaryDistance < tuning.area.warningDistanceM,
     });
@@ -225,6 +322,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       teleport(x: number, z: number, headingDeg: number) {
         colliders.update(x, z);
         rover.teleport(x, fine.sample(x, z), z, headingDeg);
+        rover.velocity(lastVel);
         for (const layer of layers) layer.update(x, z, Infinity);
         chase.reset();
       },
@@ -236,6 +334,12 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       },
       setSpeedBoost(k: number) {
         rover.speedBoost = k;
+      },
+      tipOver(rollDeg = 180) {
+        rover.tipOver(rollDeg);
+      },
+      boulders() {
+        return boulders.list;
       },
       stats() {
         const avg = frameTimes.reduce((a, b) => a + b, 0) / Math.max(frameTimes.length, 1);
@@ -265,11 +369,22 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   }
 
   return {
+    terrain,
+    stopClock() {
+      clockRunning = false;
+    },
+    setFloodlights(on: boolean) {
+      if (lamp) lamp.intensity = on ? FLOODLIGHT_INTENSITY : 0;
+    },
+    shake(secondsToShake: number) {
+      shakeLeft = Math.max(shakeLeft, secondsToShake);
+    },
     dispose() {
       disposed = true;
       cancelAnimationFrame(frame);
       observer.disconnect();
       input.dispose();
+      boulders.dispose();
       rover.dispose();
       world.free();
       for (const layer of layers) layer.dispose();
