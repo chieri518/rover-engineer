@@ -1,5 +1,5 @@
 // Small fixed data for unit tests, so tests do not break when game/data/ is re-tuned.
-import type { Milestone, Part, PartsFile, Tier, Tuning } from './types';
+import type { EventsFile, Milestone, Part, PartsFile, Tier, Tuning } from './types';
 
 const part = (id: string, slot: Part['slot'], cost: number, mass: number, size: number, effects: Part['effects'] = {}): Part => ({
   id, slot, name: id, description: '', cost, mass, size, effects,
@@ -20,6 +20,9 @@ export const testParts: PartsFile = {
     part('camera', 'instrument', 50, 5, 1, { instrument: 'camera' }),
     part('drill', 'instrument', 90, 10, 5, { instrument: 'drill' }),
   ],
+  defaultBuild: {
+    chassis: 'titanium', wheels: 'mesh', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', instrument: 'camera',
+  },
 };
 
 export const testTiers: Tier[] = [
@@ -38,10 +41,21 @@ export const testTuning: Tuning = {
   },
   mass: { referenceMass: 60, speedLossPerKg: 0.006, minSpeedFactor: 0.4, energyGainPerKg: 0.01 },
   speed: { compression: 4 },
-  energy: { slopeEnergyFactor: 0.05 },
-  damage: { max: 100, rockHit: 8, steepSlopePerSecond: 4, overloadPerSecond: 0.2 },
-  cold: { freezeMax: 100, freezeRatePerSecond: 4, heaterReductionPerHeat: 1.5, warmRecoveryPerSecond: 6 },
-  ground: { maxSlopeDegrees: 20, slipLimit: 0.2, stuckSeconds: 4, normalSinkageCm: [1, 2], softRimSinkageCm: [5, 7] },
+  energy: { slopeEnergyFactor: 0.05, lowWarningShare: 0.2 },
+  damage: {
+    max: 100, rockHit: 8, impactMinMps: 3, impactPerMps: 4, impactCooldownSeconds: 0.4,
+    steepSlopePerSecond: 4, overloadPerKgSecond: 0.05, highWarningShare: 0.6, rolloverTiltDeg: 75, rolloverSeconds: 0.6,
+  },
+  cold: {
+    freezeMax: 100, freezeRatePerSecond: 4, heaterReductionPerHeat: 1.5, warmRecoveryPerSecond: 6, warningShare: 0.5,
+    zones: ['shadowedCrater'], zoneSearchRadiusM: 300, noLightsMarginM: 3,
+  },
+  ground: {
+    maxSlopeDegrees: 20, slopeWarningDegrees: 18, slipLimit: 0.2, stuckSeconds: 5, digRecoveryPerSecond: 0.25,
+    normalSinkageCm: [1, 2], softRimSinkageCm: [5, 7], slipPerSinkageCm: 0.03, referenceGrip: 0.55,
+    slopeSlipFreeDeg: 10, slipPerUphillDeg: 0.01, softRadiusFactor: 1, softFadeFactor: 1.5, movingSpeedMps: 0.5,
+  },
+  explore: { cellM: 20, revealRadiusM: 250 },
   sun: { startAzimuthDeg: 20, degreesPerEarthDay: 12, subsolarLatitudeDeg: -1 },
   earth: { azimuthDeg: 0, elevationDeg: 0.6 },
   rover: {
@@ -77,3 +91,19 @@ export const testMilestones: Milestone[] = [
   milestone('layers', 20, 25, { category: 'scientific', requires: { instrument: 'camera' } }),
   milestone('dark', 80, 5, { requires: { slots: ['lights', 'heater'] } }),
 ];
+
+export const testEvents: EventsFile = {
+  flare: {
+    windowsSeconds: [[60, 120], [180, 260]],
+    warningSeconds: 5,
+    damage: 25,
+    shelterSunlight: 0.1,
+    source: 'test',
+    realFlares: [
+      { date: '2017-09-06', peakUtc: '12:02', class: 'X9.3', donkiId: 'a' },
+      { date: '2024-10-03', peakUtc: '12:18', class: 'X9.0', donkiId: 'b' },
+      { date: '2024-05-14', peakUtc: '16:51', class: 'X8.7', donkiId: 'c' },
+    ],
+  },
+  quake: { windowsSeconds: [[90, 240]], warningSeconds: 0, damage: 10, shakeSeconds: 3 },
+};

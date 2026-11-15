@@ -53,9 +53,39 @@
   "mission": {
     "heading": "Mission",
     "briefing": "Fourteen days of daylight. The Sun stays low and circles the horizon.",
-    "controls": "W A S D or arrow keys to drive. Space to brake.",
+    "controls": "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
     "boundary": "Leaving the planned operating area",
     "loading": "Loading terrain…"
+  },
+  "hud": {
+    "energy": "Energy",
+    "damage": "Damage",
+    "cold": "Cold",
+    "sunlit": "Solar panel in sunlight",
+    "shadow": "Solar panel in shadow",
+    "powerDown": "Power down (P)",
+    "powerUp": "Power up (P)",
+    "poweredDown": "Powered down. The rover cannot drive.",
+    "minimap": "Map of the operating area",
+    "endedHeading": "Mission ended",
+    "endedSurvived": "The rover completed fourteen days of lunar daylight.",
+    "endedFailed": "Cause: {cause}.",
+    "lasted": "The rover operated for {days} of {total} days.",
+    "toDebrief": "Continue to debrief"
+  },
+  "warnings": {
+    "lowEnergy": "Battery low. Stop in sunlight to recharge.",
+    "highDamage": "Damage critical. Further damage will destroy the rover.",
+    "cold": "Cold zone. The rover is freezing.",
+    "steepSlope": "Slope {slope}°. Ground steeper than {max}° damages the rover.",
+    "slip": "Wheel slip {slip}%. The wheels are digging in. Reverse or stop.",
+    "noLights": "Permanent shadow ahead. Without lights the rover cannot drive into it.",
+    "poweredDown": "Powered down. The rover cannot drive.",
+    "flareWarning": "Solar flare detected: class {class}, as recorded on {date}. Power down or move into shadow.",
+    "flareHit": "The solar flare struck the rover. Electronics damaged.",
+    "flareSafe": "The solar flare has passed. The rover was protected.",
+    "quake": "Moonquake. The rover was shaken and damaged.",
+    "impact": "Hard impact. The rover was damaged."
   },
   "debrief": {
     "heading": "Mission debrief",

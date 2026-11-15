@@ -14,6 +14,11 @@ export function validateGameData(data: GameData): string[] {
   for (const slot of slots) {
     if (!parts.some((p) => p.slot === slot)) problems.push(`slot ${slot} has no parts`);
   }
+  for (const slot of slots) {
+    const id = data.parts.defaultBuild?.[slot];
+    const part = parts.find((p) => p.id === id);
+    if (!part || part.slot !== slot) problems.push(`default build has no valid part for slot ${slot}`);
+  }
   const tiers = data.tiers.tiers;
   if (tiers.length === 0) problems.push('no ticket tiers');
   for (let i = 1; i < tiers.length; i++) {
@@ -33,6 +38,12 @@ export function validateGameData(data: GameData): string[] {
     if (m.requires.instrument && !parts.some((p) => p.effects.instrument === m.requires.instrument)) {
       problems.push(`milestone ${m.id} requires instrument ${m.requires.instrument}, which no part provides`);
     }
+  }
+  if (data.events.flare.realFlares.length < data.events.flare.windowsSeconds.length) {
+    problems.push('events.json needs at least one real flare per flare window');
+  }
+  for (const [a, b] of [...data.events.flare.windowsSeconds, ...data.events.quake.windowsSeconds]) {
+    if (!(a <= b && b <= data.tuning.mission.lengthSeconds)) problems.push(`event window [${a}, ${b}] is outside the mission`);
   }
   return problems;
 }

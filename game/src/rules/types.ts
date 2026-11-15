@@ -29,6 +29,7 @@ export interface Part {
 export interface PartsFile {
   slots: Slot[];
   parts: Part[];
+  defaultBuild: Build; // what the design screen starts with in a new campaign
 }
 
 export interface Tier {
@@ -95,21 +96,49 @@ export interface Tuning {
   };
   /** Driving is compressed like time: game speed = real speed × compression. Part base speeds are real m/s. */
   speed: { compression: number };
-  energy: { slopeEnergyFactor: number };
-  damage: { max: number; rockHit: number; steepSlopePerSecond: number; overloadPerSecond: number };
+  energy: {
+    slopeEnergyFactor: number; // drive energy grows by this share per degree of uphill grade
+    lowWarningShare: number; // warn when the battery falls below this share of capacity
+  };
+  damage: {
+    max: number;
+    rockHit: number; // damage from a hard impact at impactMinMps
+    impactMinMps: number; // a sudden velocity change below this is not an impact
+    impactPerMps: number; // extra damage per m/s above impactMinMps
+    impactCooldownSeconds: number; // one collision counts once
+    steepSlopePerSecond: number; // while driving on ground steeper than ground.maxSlopeDegrees
+    overloadPerKgSecond: number; // while driving, per kg above the chassis maximum load
+    highWarningShare: number; // warn when damage passes this share of the maximum
+    rolloverTiltDeg: number; // the rover counts as rolled over beyond this tilt...
+    rolloverSeconds: number; // ...held this long
+  };
   cold: {
     freezeMax: number;
-    freezeRatePerSecond: number;
-    heaterReductionPerHeat: number;
-    warmRecoveryPerSecond: number;
+    freezeRatePerSecond: number; // inside a cold zone, without a heater
+    heaterReductionPerHeat: number; // freeze rate removed per heat unit of the heater
+    warmRecoveryPerSecond: number; // outside the cold zones
+    warningShare: number; // warn when the freeze meter passes this share
+    zones: string[]; // terrain.json features whose permanent shadow is a cold zone (feature name or key)
+    zoneSearchRadiusM: number; // how far from the feature point its shadowed patch may start
+    noLightsMarginM: number; // without lights the rover stops this far before permanent shadow, plus its braking distance
   };
   ground: {
-    maxSlopeDegrees: number;
-    slipLimit: number;
-    stuckSeconds: number;
+    maxSlopeDegrees: number; // steeper ground damages a driving rover
+    slopeWarningDegrees: number; // warn from this slope
+    slipLimit: number; // above this slip the wheels dig in (Apollo 15: about 20%)
+    stuckSeconds: number; // digging in for this long leaves the rover stuck for good
+    digRecoveryPerSecond: number; // share of the dig-in meter recovered per second while not digging
     normalSinkageCm: [number, number];
     softRimSinkageCm: [number, number];
+    slipPerSinkageCm: number; // sinkage scales with mass / mass.referenceMass and referenceGrip / grip
+    referenceGrip: number; // sinkage scales with referenceGrip / wheel grip
+    slopeSlipFreeDeg: number; // uphill grades below this add no slip
+    slipPerUphillDeg: number;
+    softRadiusFactor: number; // ground inside rockyArea.radius × this is fully soft (fresh crater rim)
+    softFadeFactor: number; // softness fades to zero at rockyArea.radius × this
+    movingSpeedMps: number; // above this speed the rover counts as driving
   };
+  explore: { cellM: number; revealRadiusM: number };
   sun: SunTuning;
   earth: { azimuthDeg: number; elevationDeg: number };
   rover: RoverHandling;
@@ -159,14 +188,26 @@ export interface RoverHandling {
 }
 
 export interface EventSpec {
-  windowsSeconds: [number, number][];
+  windowsSeconds: [number, number][]; // one event at a random time inside each window
   warningSeconds: number;
   damage: number;
 }
 
+/** A real past solar flare from NASA's DONKI database. */
+export interface RealFlare {
+  date: string; // YYYY-MM-DD (UTC)
+  peakUtc: string; // HH:MM
+  class: string; // GOES X-ray class, e.g. "X9.3"
+  donkiId: string;
+}
+
 export interface EventsFile {
-  flare: EventSpec & { realFlares: { date: string; class: string }[] };
-  quake: EventSpec & { faultDamageMultiplier: number };
+  flare: EventSpec & {
+    shelterSunlight: number; // a rover receiving less sunlight than this is sheltered in shadow
+    source: string;
+    realFlares: RealFlare[];
+  };
+  quake: EventSpec & { shakeSeconds: number };
 }
 
 export interface TextFile {
@@ -186,6 +227,16 @@ export interface TextFile {
   >;
   landing: Record<'heading' | 'briefing', string>;
   mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
+  hud: Record<
+    | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
+    | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief',
+    string
+  >;
+  warnings: Record<
+    | 'lowEnergy' | 'highDamage' | 'cold' | 'steepSlope' | 'slip' | 'noLights' | 'poweredDown'
+    | 'flareWarning' | 'flareHit' | 'flareSafe' | 'quake' | 'impact',
+    string
+  >;
   debrief: Record<'heading' | 'survived' | 'failedRound' | 'passedRound', string>;
   causes: Record<DeathCause, string>;
   history: Record<DeathCause | 'survived', string>;

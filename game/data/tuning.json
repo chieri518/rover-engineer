@@ -31,32 +31,50 @@
     "compression": 4
   },
   "energy": {
-    "slopeEnergyFactor": 0.05
+    "slopeEnergyFactor": 0.05,
+    "lowWarningShare": 0.2
   },
   "damage": {
     "max": 100,
     "rockHit": 8,
+    "impactMinMps": 3,
+    "impactPerMps": 4,
+    "impactCooldownSeconds": 0.4,
     "steepSlopePerSecond": 4,
-    "overloadPerSecond": 0.2
+    "overloadPerKgSecond": 0.05,
+    "highWarningShare": 0.6,
+    "rolloverTiltDeg": 75,
+    "rolloverSeconds": 0.6
   },
   "cold": {
     "freezeMax": 100,
     "freezeRatePerSecond": 4,
     "heaterReductionPerHeat": 1.5,
-    "warmRecoveryPerSecond": 6
+    "warmRecoveryPerSecond": 6,
+    "warningShare": 0.5,
+    "zones": ["shadowedCrater", "Rocky area 1"],
+    "zoneSearchRadiusM": 300,
+    "noLightsMarginM": 3
   },
   "ground": {
     "maxSlopeDegrees": 20,
+    "slopeWarningDegrees": 18,
     "slipLimit": 0.2,
-    "stuckSeconds": 4,
-    "normalSinkageCm": [
-      1,
-      2
-    ],
-    "softRimSinkageCm": [
-      5,
-      7
-    ]
+    "stuckSeconds": 5,
+    "digRecoveryPerSecond": 0.25,
+    "normalSinkageCm": [1, 2],
+    "softRimSinkageCm": [5, 7],
+    "slipPerSinkageCm": 0.03,
+    "referenceGrip": 0.55,
+    "slopeSlipFreeDeg": 10,
+    "slipPerUphillDeg": 0.01,
+    "softRadiusFactor": 1.0,
+    "softFadeFactor": 1.5,
+    "movingSpeedMps": 0.5
+  },
+  "explore": {
+    "cellM": 20,
+    "revealRadiusM": 250
   },
   "sun": {
     "startAzimuthDeg": 17.4,
