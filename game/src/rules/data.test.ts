@@ -13,6 +13,11 @@ import { flareDamage } from './events';
 const data: GameData = loadGameData();
 const allBuilds = () => everyBuild(data);
 const craterM = terrain.features.shadowedCrater.entryPoint.driveDistanceFromLanding_m;
+/** A middle-of-the-road build used as a reference (the old default build). */
+const reference: Build = {
+  chassis: 'chassis-titanium', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
+  lights: 'lights-led', heater: 'heater-rhu', instrument: 'instrument-camera',
+};
 
 describe('game data', () => {
   it('passes validation', () => {
@@ -65,8 +70,8 @@ describe('game data', () => {
     expect(quoteBuild(cheapestBuild(data.parts), data, data.tuning.budget.startingBudget).canLaunch).toBe(true);
   });
 
-  it('the default build fits exactly the Medium ticket, is affordable and not overloaded', () => {
-    const q = quoteBuild(data.parts.defaultBuild, data, data.tuning.budget.startingBudget);
+  it('the reference build fits exactly the Medium ticket, is affordable and not overloaded', () => {
+    const q = quoteBuild(reference, data, data.tuning.budget.startingBudget);
     expect(q.tier?.id).toBe('medium');
     expect(q.canAfford).toBe(true);
     expect(q.overloaded).toBe(false);
@@ -111,7 +116,7 @@ describe('game data', () => {
     expect(worst[0]! + worst[1]! + data.events.quake.damage).toBeLessThan(data.tuning.damage.max);
     // Powered down in full sun, even the strongest flare does nothing.
     const strongest = [...flares].sort((a, b) => flareDamage(b, data.events) - flareDamage(a, data.events))[0]!;
-    const setup = missionSetup(selectedParts(data.parts.defaultBuild, data.parts), data.tuning, [
+    const setup = missionSetup(selectedParts(reference, data.parts), data.tuning, [
       { kind: 'flare', at: 1, warningAt: 0, flare: strongest },
     ]);
     const s = { ...startMission(setup), poweredDown: true };
@@ -164,8 +169,8 @@ describe('game data', () => {
     return s;
   }
 
-  it('energy: driving nonstop in full sun slowly drains the default build; a solar mast about breaks even', () => {
-    const d = data.parts.defaultBuild;
+  it('energy: driving nonstop in full sun slowly drains the reference build; a solar mast about breaks even', () => {
+    const d = reference;
     const capacity = quoteBuild(d, data, 0).drive.batteryCapacity;
     const sun = nonstop(d, 1);
     expect(sun.end?.survived).toBe(true);
@@ -175,8 +180,8 @@ describe('game data', () => {
     expect(Math.abs(mast.income - mast.driveDrain)).toBeLessThan(0.3);
   });
 
-  it('energy: careless play runs out, careful play survives (default build, half sunlight)', () => {
-    const d = data.parts.defaultBuild;
+  it('energy: careless play runs out, careful play survives (reference build, half sunlight)', () => {
+    const d = reference;
     const careless = simulate(d, data, { sunlight: 0.5, driveShare: 1 });
     expect(careless.end.cause).toBe('energy');
     expect(careless.end.seconds).toBeGreaterThan(200);

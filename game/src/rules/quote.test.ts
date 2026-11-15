@@ -38,4 +38,16 @@ describe('build quote', () => {
     expect(q.drive.massKg).toBe(85);
     expect(q.drive.topSpeed).toBeCloseTo(q.drive.realTopSpeed * testTuning.speed.compression, 9);
   });
+
+  it('quotes a draft build: an empty design, and a partial one, report the empty slots', () => {
+    const empty = quoteBuild({}, data, 700);
+    expect(empty.complete).toBe(false);
+    expect(empty.missing).toEqual(testParts.slots);
+    expect(empty.cost).toBe(0);
+    expect(empty.drive.topSpeed).toBe(0);
+    const partial = quoteBuild({ chassis: 'steel', lights: 'no-lights' }, data, 700);
+    expect(partial.missing).toEqual(testParts.slots.filter((s) => s !== 'chassis' && s !== 'lights'));
+    expect(partial.mass).toBe(testParts.parts.find((p) => p.id === 'steel')!.mass);
+    expect(quoteBuild(build, data, 700).complete).toBe(true);
+  });
 });

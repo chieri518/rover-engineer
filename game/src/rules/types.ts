@@ -30,7 +30,6 @@ export interface Part {
 export interface PartsFile {
   slots: Slot[];
   parts: Part[];
-  defaultBuild: Build; // what the design screen starts with in a new campaign
 }
 
 export interface Tier {
@@ -254,7 +253,7 @@ export interface TextFile {
   slots: Record<Slot, string>;
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
-    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources',
+    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar',
     string
   > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
   ticket: Record<
@@ -337,3 +336,5 @@ export interface GameData {
 
 /** A rover build: one part id per slot. */
 export type Build = Record<Slot, string>;
+/** A build on the design screen: a new campaign starts with every slot empty. */
+export type DraftBuild = Partial<Build>;

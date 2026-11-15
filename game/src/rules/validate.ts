@@ -14,11 +14,6 @@ export function validateGameData(data: GameData): string[] {
   for (const slot of slots) {
     if (!parts.some((p) => p.slot === slot)) problems.push(`slot ${slot} has no parts`);
   }
-  for (const slot of slots) {
-    const id = data.parts.defaultBuild?.[slot];
-    const part = parts.find((p) => p.id === id);
-    if (!part || part.slot !== slot) problems.push(`default build has no valid part for slot ${slot}`);
-  }
   const tiers = data.tiers.tiers;
   if (tiers.length === 0) problems.push('no ticket tiers');
   for (let i = 1; i < tiers.length; i++) {

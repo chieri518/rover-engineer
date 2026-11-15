@@ -20,9 +20,6 @@ export const testParts: PartsFile = {
     part('camera', 'instrument', 50, 5, 1, { instrument: 'camera' }),
     part('drill', 'instrument', 90, 10, 5, { instrument: 'drill' }),
   ],
-  defaultBuild: {
-    chassis: 'titanium', wheels: 'mesh', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', instrument: 'camera',
-  },
 };
 
 export const testTiers: Tier[] = [

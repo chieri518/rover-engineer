@@ -1,5 +1,5 @@
-import type { Build, GameData, Tier } from './types';
-import { isChassisOverloaded, roverTotals, selectedParts, type RoverTotals } from './rover';
+import type { DraftBuild, GameData, Slot, Tier } from './types';
+import { chosenParts, isChassisOverloaded, missingSlots, roverTotals, type RoverTotals } from './rover';
 import { explainTier, type TierExplanation } from './tiers';
 import { driveStats, type DriveStats } from './drive';
 
@@ -15,10 +15,14 @@ export interface BuildQuote extends RoverTotals {
   overloaded: boolean;
   maxLoad: number | null; // the chassis maximum load in kg
   drive: DriveStats;
+  missing: Slot[]; // slots with no part chosen yet: totals cover the chosen parts only
+  complete: boolean;
 }
 
-export function quoteBuild(build: Build, data: GameData, balance: number): BuildQuote {
-  const parts = selectedParts(build, data.parts);
+/** Works on a draft build too: the totals then cover the parts chosen so far. */
+export function quoteBuild(build: DraftBuild, data: GameData, balance: number): BuildQuote {
+  const parts = chosenParts(build, data.parts);
+  const missing = missingSlots(build, data.parts);
   const totals = roverTotals(parts);
   const tierWhy = explainTier(totals.mass, totals.size, data.tiers.tiers);
   const tier = tierWhy.tier;
@@ -36,5 +40,7 @@ export function quoteBuild(build: Build, data: GameData, balance: number): Build
     overloaded: isChassisOverloaded(parts),
     maxLoad: parts.find((p) => p.slot === 'chassis')?.effects.maxLoad ?? null,
     drive: driveStats(parts, data.tuning),
+    missing,
+    complete: missing.length === 0,
   };
 }

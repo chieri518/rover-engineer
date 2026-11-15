@@ -1,9 +1,5 @@
 {
   "slots": ["chassis", "wheels", "power", "battery", "lights", "heater", "instrument"],
-  "defaultBuild": {
-    "chassis": "chassis-titanium", "wheels": "wheels-solid", "power": "power-fixed-panel", "battery": "battery-li-ion",
-    "lights": "lights-led", "heater": "heater-rhu", "instrument": "instrument-camera"
-  },
   "parts": [
     { "id": "chassis-steel", "slot": "chassis", "name": "Steel frame", "description": "Cheap and strong, but heavy.", "cost": 60, "mass": 30, "size": 5, "effects": { "maxLoad": 100 } },
     { "id": "chassis-titanium", "slot": "chassis", "name": "Titanium frame", "description": "Light, but expensive, and carries less than steel.", "cost": 150, "mass": 16, "size": 5, "effects": { "maxLoad": 72 } },

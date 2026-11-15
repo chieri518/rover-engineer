@@ -210,6 +210,8 @@ The real NASA milestone types and rewards behind this design are in [rover-engin
 
 Seven slots, two options each. For lights and heater, one option is **None**: skipping them saves cost, mass, and size (maybe a cheaper ticket) but closes off the dark crater. All Moon parts are available from the start, so budget, mass, and size are the only limits. Locked parts first appear on Mars, greyed out with "needs X RP".
 
+**Empty start** *(decided November 15)*. In a new campaign the design screen starts with all seven slots empty, so there is no default build to copy. The rover can go to the launch ticket only once every slot has a part; "No lights" and "No heater" count as choices. While slots are empty, the specification sheet shows the totals of the parts chosen so far, a dash for driving numbers that need a missing part, and a warning listing the empty slots. A restart keeps the last design, so the player can adjust it.
+
 | Slot | What it affects |
 | --- | --- |
 | Chassis | The frame that carries everything. Each option has a cost, a mass, and a maximum load. Example: a steel frame is cheap and heavy; a titanium frame is expensive and light. A frame carrying more than its maximum load takes damage. |

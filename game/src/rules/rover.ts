@@ -1,4 +1,4 @@
-import type { Build, Milestone, Part, PartsFile, Slot } from './types';
+import type { Build, DraftBuild, Milestone, Part, PartsFile, Slot } from './types';
 
 export interface RoverTotals {
   cost: number;
@@ -14,6 +14,21 @@ export function selectedParts(build: Build, catalog: PartsFile): Part[] {
     if (part.slot !== slot) throw new Error(`part ${part.id} does not belong in slot ${slot}`);
     return part;
   });
+}
+
+/** The slots of a draft build that have no part chosen yet, in slot order. */
+export function missingSlots(build: DraftBuild, catalog: PartsFile): Slot[] {
+  return catalog.slots.filter((slot) => !build[slot]);
+}
+
+export function isCompleteBuild(build: DraftBuild, catalog: PartsFile): build is Build {
+  return missingSlots(build, catalog).length === 0;
+}
+
+/** The chosen parts of a draft build, in slot order, skipping empty slots. */
+export function chosenParts(build: DraftBuild, catalog: PartsFile): Part[] {
+  const chosen = Object.fromEntries(catalog.slots.filter((s) => build[s]).map((s) => [s, build[s]!]));
+  return selectedParts(chosen as Build, { ...catalog, slots: catalog.slots.filter((s) => build[s]) });
 }
 
 export function roverTotals(parts: Part[]): RoverTotals {

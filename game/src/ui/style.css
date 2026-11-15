@@ -93,6 +93,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .slots { display: grid; gap: 6px; }
 .slot { display: grid; grid-template-columns: 96px 1fr; align-items: stretch; gap: 8px; border: 0; margin: 0; padding: 0; }
 .slot legend { float: left; padding: 10px 0 0; font-weight: 600; font-size: 0.9rem; }
+.slot-empty { display: none; margin-top: 2px; font-weight: 400; font-size: 0.75rem; color: var(--accent); }
+.slot.empty .slot-empty { display: block; }
 .options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .option { position: relative; display: grid; align-content: start; gap: 2px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
 .option:hover { border-color: #4a4f5c; }

@@ -1,12 +1,13 @@
 // Screen flow: title → design → ticket → landing → mission → debrief,
 // then restart round (back to design, snapshot restored) or "Mars: coming soon".
-import type { Build, GameData } from '../rules/types';
+import type { DraftBuild, GameData } from '../rules/types';
 import {
   buyRover, finishMission, newCampaign, restartRound, startRound,
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
 import type { MissionResult } from '../rules/payout';
 import { quoteBuild } from '../rules/quote';
+import { isCompleteBuild } from '../rules/rover';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 import { loadSettings, saveSettings, type Settings } from '../save/settings';
 import { loadTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen } from '../save/tutorialSeen';
@@ -24,7 +25,8 @@ export type Screen = (game: Game, root: HTMLElement) => void | (() => void);
 
 export class Game {
   campaign: CampaignState | null;
-  build: Build;
+  /** The rover on the design screen. A new campaign starts with every slot empty; a restart keeps the last design. */
+  build: DraftBuild;
   outcome: RoundOutcome | null = null;
   lastResult: MissionResult | null = null;
   /** Photographs from the last mission (not saved: data URLs are too large for localStorage). */
@@ -41,7 +43,7 @@ export class Game {
     private readonly screens: Record<ScreenId, Screen>,
   ) {
     this.campaign = loadCampaign();
-    this.build = this.campaign?.lastBuild ?? data.parts.defaultBuild;
+    this.build = this.campaign?.lastBuild ?? {};
   }
 
   get screen(): ScreenId {
@@ -73,7 +75,7 @@ export class Game {
   newCampaign(): void {
     clearCampaign();
     this.setCampaign(startRound(newCampaign(this.data.tuning)));
-    this.build = this.data.parts.defaultBuild;
+    this.build = {};
     this.outcome = null;
     this.go('design');
   }
@@ -86,9 +88,11 @@ export class Game {
   }
 
   buyTicket(): void {
-    const quote = quoteBuild(this.build, this.data, this.state.balance);
+    const build = this.build;
+    if (!isCompleteBuild(build, this.data.parts)) return;
+    const quote = quoteBuild(build, this.data, this.state.balance);
     if (!quote.canLaunch || !quote.canAfford) return;
-    this.setCampaign(buyRover(this.state, this.build, quote.totalCost));
+    this.setCampaign(buyRover(this.state, build, quote.totalCost));
     this.go('landing');
   }
 

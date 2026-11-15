@@ -61,10 +61,11 @@ export const designScreen: Screen = (game, root) => {
 
   // Part cards: one radio group per slot.
   const cards = new Map<string, HTMLElement>();
+  const fieldsets = new Map<string, HTMLElement>();
   const slots = data.parts.slots.map((slot) => {
     const options = data.parts.parts.filter((p) => p.slot === slot);
-    return el('fieldset', { class: 'slot' },
-      el('legend', {}, text.slots[slot]),
+    const fieldset = el('fieldset', { class: 'slot' },
+      el('legend', {}, text.slots[slot], el('span', { class: 'slot-empty' }, t.slotEmpty)),
       el('div', { class: 'options' },
         ...options.map((part) => {
           const effect = keyEffect(part, data);
@@ -93,6 +94,8 @@ export const designScreen: Screen = (game, root) => {
         }),
       ),
     );
+    fieldsets.set(slot, fieldset);
+    return fieldset;
   });
 
   // Specification sheet.
@@ -135,9 +138,13 @@ export const designScreen: Screen = (game, root) => {
 
   function update(): void {
     for (const [id, card] of cards) card.classList.toggle('selected', Object.values(game.build).includes(id));
+    for (const [slot, fieldset] of fieldsets) fieldset.classList.toggle('empty', !game.build[slot as keyof typeof game.build]);
     const q = quoteBuild(game.build, data, game.state.balance);
     const d = q.drive;
     const why = q.tierWhy;
+    // A draft rover: driving numbers need the parts they come from.
+    const has = (slot: keyof typeof game.build) => Boolean(game.build[slot]);
+    const dash = '—';
 
     sheet.replaceChildren(
       el('h3', {}, 'Mass and size'),
@@ -149,8 +156,8 @@ export const designScreen: Screen = (game, root) => {
 
       el('h3', {}, 'Launch ticket'),
       row('Tier', q.tier ? `${q.tier.name}` : 'None fits', q.tier ? '' : 'bad'),
-      el('p', { class: 'why' }, tierWhyText(why, text),
-        why.saving > 0 ? ` ${fill(t.tierSaving, { tier: why.exceeded!.tier.name, saving: money(why.saving, text) })}` : ''),
+      el('p', { class: 'why' }, q.complete ? tierWhyText(why, text) : t.tierSoFar,
+        q.complete && why.saving > 0 ? ` ${fill(t.tierSaving, { tier: why.exceeded!.tier.name, saving: money(why.saving, text) })}` : ''),
 
       el('h3', {}, 'Cost'),
       row('Parts', money(q.cost, text)),
@@ -162,19 +169,20 @@ export const designScreen: Screen = (game, root) => {
       el('h3', {}, 'Driving'),
       el('div', { class: 'row speed' },
         el('span', { class: 'label' }, 'Max speed'),
-        el('span', { class: 'value' }, `${d.topSpeed.toFixed(1)} m/s (${(d.topSpeed * KMH).toFixed(0)} km/h)`, infoButton),
+        el('span', { class: 'value' }, has('wheels') ? `${d.topSpeed.toFixed(1)} m/s (${(d.topSpeed * KMH).toFixed(0)} km/h)` : dash, infoButton),
       ),
       infoPanel,
-      row('Grip', d.grip.toFixed(2)),
-      row('Drive energy', `${(d.energyPerMeter * 1000).toFixed(0)} energy/km`),
-      row('Battery', `${d.batteryCapacity} energy`),
-      row('Range on battery', `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground`),
-      row('Solar income', `${d.energyIncome.toFixed(1)} energy/s in full sun`),
+      row('Grip', has('wheels') ? d.grip.toFixed(2) : dash),
+      row('Drive energy', has('wheels') ? `${(d.energyPerMeter * 1000).toFixed(0)} energy/km` : dash),
+      row('Battery', has('battery') ? `${d.batteryCapacity} energy` : dash),
+      row('Range on battery', has('wheels') && has('battery') ? `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground` : dash),
+      row('Solar income', has('power') ? `${d.energyIncome.toFixed(1)} energy/s in full sun` : dash),
     );
     renderInfo(q);
 
     warnings.replaceChildren(
       ...[
+        !q.complete && fill(t.slotsEmpty, { slots: q.missing.map((s) => text.slots[s]).join(', ') }),
         !allowed && t.belowMinimum,
         !q.canLaunch && t.overTopTier,
         !q.canAfford && t.overBudget,
@@ -183,7 +191,7 @@ export const designScreen: Screen = (game, root) => {
         .filter((w): w is string => Boolean(w))
         .map((w) => el('li', {}, w)),
     );
-    next.disabled = !allowed || !q.canLaunch || !q.canAfford;
+    next.disabled = !q.complete || !allowed || !q.canLaunch || !q.canAfford;
   }
 
   // Tutorial: opens by itself on the first visit; the Help button reopens it.

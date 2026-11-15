@@ -4,7 +4,7 @@
 import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
 import { buildZones, hydrogenSignal, MilestoneTracker, type MilestoneUpdate, type Point3 } from '../rules/milestones';
-import { selectedParts } from '../rules/rover';
+import { isCompleteBuild, selectedParts } from '../rules/rover';
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
 import { scheduleEvents, seededRng } from '../rules/events';
@@ -43,6 +43,7 @@ export const missionScreen: Screen = (game, root) => {
   let scene: MoonScene | null = null;
 
   // Mission state
+  if (!isCompleteBuild(game.build, data.parts)) throw new Error('the mission needs a complete rover');
   const parts = selectedParts(game.build, data.parts);
   const seed = (Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0;
   const setup = missionSetup(parts, tuning, scheduleEvents(data.events, seededRng(seed)));

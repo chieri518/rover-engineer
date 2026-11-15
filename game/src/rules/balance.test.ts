@@ -52,6 +52,5 @@ describe('balance report', () => {
     const tiers = new Map<string, number>();
     for (const e of evals) tiers.set(e.tier ?? 'NONE', (tiers.get(e.tier ?? 'NONE') ?? 0) + 1);
     console.log('builds per tier', Object.fromEntries(tiers));
-    console.log('default', row(evaluateBuild(data.parts.defaultBuild, data)));
   });
 });
