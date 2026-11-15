@@ -25,6 +25,8 @@
     "slotEmpty": "Not chosen",
     "slotsEmpty": "Select a part for every slot before launch. Still empty: {slots}.",
     "tierSoFar": "Tier for the parts chosen so far. The empty slots will add mass and size.",
+    "previewLabel": "3D view of the rover as built so far. Drag to turn it.",
+    "previewEmpty": "Choose parts to start building",
     "overTopTier": "Exceeds the Large ticket limits. The rover cannot launch.",
     "overBudget": "Total cost exceeds the available budget.",
     "chassisOverloaded": "Total mass exceeds the chassis maximum load. The frame will take damage during the mission.",
