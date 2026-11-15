@@ -711,12 +711,25 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 #### Site: Shangri-La dunes near Selk crater
 
-*Decided:* the Dragonfly landing region. Dragonfly will land in the interdune areas of the Shangri-La dune field and fly toward Selk, an impact crater about 80 to 90 km across near 7°N, 199°W, where liquid water may once have mixed with organics *(to fact-check)*.
+*Decided:* near Dragonfly's landing region, on its route to Selk. Dragonfly will land in the interdune areas of the Shangri-La dune field and fly toward Selk, an impact crater about 80 to 90 km across near 7°N, 199°W, where liquid water may once have mixed with organics *(to fact-check)*.
 
 - **Terrain modeled on real data.** *Decided:* Titan has no rover-scale elevation model. Cassini's radar mapped the dunes and Selk at hundreds of meters per pixel, and its altimetry and stereo topography are sparse. The play area is generated from published measurements of the Shangri-La dunes (linear dunes roughly west-southwest to east-northeast, about 1 to 2 km wide, 1 to 4 km apart and up to about 100 m high, separated by flat interdune corridors; *to fact-check*), and Selk's rim is placed on the horizon from Cassini maps. The credits and the briefing say "modeled on Cassini data", never "real elevation".
 - **Play area.** *Proposed:* 8 km × 8 km at 5 m, the Moon and Mars format, so the loader carries over. A few dunes cross the map; the rover lands on a firm interdune corridor and can follow it or climb over a dune.
 - **Ground.** Dune sand is dark and soft (the Moon's sinkage and slip rules, from a soft-ground mask like Séítah's); interdune ground is brighter and firm. The ground texture is generated to match Cassini's radar and infrared look (dark dunes, bright interdunes), with Huygens-like pebbles near the landing.
 - **Sites** *(Proposed, the pipeline sets real positions)*: the landing corridor, a dune crest viewpoint over the dune field, a dune-crossing route, a bright interdune patch to sample, and a field of Selk ejecta blocks at the edge of the map (the rocky area and the farthest goal).
+- **Where the play area is** *(decided, pipeline and main, November 15)*. Centered at 5.162°N, 161.449°E (198.551°W), 85 km from Selk's center, on the line from Selk to the center of Dragonfly's landing ellipse (3.72°N, 161.8°E, 149 × 72 km; Lorenz et al. 2021). That is about 30 km north of the ellipse, on the route Dragonfly will fly. Selk's rim is about 45 km away to the north-northwest. Its ejecta blanket reaches about one crater radius beyond the rim, so it crosses the north of the map, and the dunes fade out into it. Inside the ellipse, the block field would have to be invented. Titan's curvature hides Selk's rim from the landing (1.6° below the horizon). From the dune crest viewpoint the rim is the skyline, and the haze hides it anyway.
+- **As built** *(pipeline, November 15)*. Dunes run west to east (Radebaugh et al. 2008), 2.6 to 2.8 km apart. Crests stand 75 to 110 m high on bases 0.9 to 1.4 km wide, with wide low plinths around them, and a branch joins Dune 2 in a Y-junction. That is at the low end of Cassini's 100 to 150 m so the flanks stay drivable: at most 17° at 5 m, about 12° on most flanks. Flat, firm interdune corridors about 1.5 km wide lie between the dunes. The landing is at local (-670, -210), 5.1667°N, 161.4344°E, in the corridor between Dune 1 (north) and Dune 2 (south), with a mean slope of 0.4°. Drive distances from the landing, on a 10 m grid with slopes up to 18° and a mild cost for loose sand:
+
+| Site | What it is | Drive |
+| --- | --- | --- |
+| Bright interdune patch (sample) | Sand-free bright flat, radius 90 m, in the landing corridor | 510 m |
+| Dune crossing: start | Foot of Dune 1's saddle, landing corridor | 1,084 m |
+| Dune 1 saddle | 34 m high, firmer sand, max slope 6° on the route | 1,600 m |
+| Dune sea viewpoint | Dune 2 crest, 111 m above the landing, looking north-northwest toward Selk | 1,803 m |
+| Dune crossing: end | North corridor, past Dune 1 | 2,130 m |
+| Selk ejecta field (rocky area, survey lead) | Blocks at the outer edge of Selk's ejecta, radius 260 m, about 41 km from the rim | 3,449 m |
+
+- **Soft ground** *(as built)*. The soft-ground mask is graded and is the authoritative one: loose crest and upper-flank sand 0.85, lower flanks 0.3 to 0.6, plinths, interdunes and ejecta 0, and Dune 1's saddle at most 0.3. Under the Moon's ground rules, a 60 kg reference rover slips 0.16 on flat loose sand, so it gets stuck (0.2) only when it climbs straight up a loose flank steeper than about 14°. The crossing route stays at or below 0.09 and the route to the viewpoint at 0.18. Heavier rovers or weaker wheels sink more. Circles covering the loose sand are also given for the circle rule. Reading the mask directly is better (Integration).
 - **Gravity** is about one-seventh of Earth's (1.35 m/s²), a little less than the Moon's *(to fact-check)*.
 
 #### Time: one Titan day in 15 minutes
