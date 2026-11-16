@@ -28,6 +28,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import numpy as np
+from matplotlib.path import Path as MplPath
 from scipy import ndimage
 from skimage.graph import MCP_Geometric
 from skimage.measure import approximate_polygon, find_contours
@@ -49,10 +50,11 @@ DRAGONFLY_ELLIPSE = (3.72, 161.8)
 # (between the ellipse and Selk, on Dragonfly's route; decided with the main session, Nov 15).
 CENTER_FROM_SELK_M = 85000.0
 # Selk's continuous ejecta reaches about one crater radius beyond the rim (typical of complex craters,
-# Melosh 1989). Its edge is put through this local point (the NW of the play area) so the ejecta
-# field is at the north map edge; 82.3 km from Selk's center = 1.06 radii beyond the rim.
-EJECTA_EDGE_POINT = (-1800.0, -2500.0)
-EJECTA_EDGE_WIDTH = 450.0  # m, half-width of the dune-to-ejecta transition
+# Melosh 1989). Its edge is put through this local point, just north of Dune 1 at the crossing, so the
+# ejecta field is a short drive from the landing (battery-only budget, ~1.5 km per mission; T3); the edge
+# is then about 82.6 km from Selk's center = 1.07 radii beyond the rim.
+EJECTA_EDGE_POINT = (-1300.0, -1990.0)
+EJECTA_EDGE_WIDTH = 250.0  # m, half-width of the dune-to-ejecta transition
 
 # ---- Grids ----------------------------------------------------------------------
 PLAY_HALF, PLAY_RES = 4000.0, 5.0
@@ -81,6 +83,8 @@ PLINTH_SHARE = 0.10  # plinth height as a share of the crest height
 LOOSE_SAND = 0.85
 UNION_K = 30.0  # m: blend width where two dunes merge
 VIEW_MAX_SLIP = 0.18  # the Dune sea viewpoint must be reachable with wheel slip below this (Moon limit 0.2)
+VIEW_DRIVE_M = (850, 1050)
+CORRIDOR_INSET_M = 70.0  # crossing start and end lie at least this far inside their corridor mask  # drive distance to the Dune sea viewpoint (battery-only budget, T3)
 
 
 @dataclass
@@ -147,20 +151,22 @@ class Dune:
 def play_dunes():
     """The dunes that cross the play area (hand-placed rows, Cassini dimensions)."""
     return [
-        # D1: the dune between the landing corridor and Selk's ejecta. Lower than the others: dunes
-        # taper toward Selk (Radebaugh et al. 2008; Lorenz et al. 2021). A low saddle at x = -1200
-        # is the crossing route (linear dunes have low, firmer saddles and junctions along their crests).
-        Dune("Dune 1", z0=-1500, H=75, W=640, xa=-16000, xb=11000, meander=[(110, 7300, 0.4), (35, 2600, 2.0)],
-             hmod=[(0.10, 4100, 1.1)], wmod=(0.08, 5300, 0.3), saddle=(-1200, 0.55, 380)),
-        # D2: the big dune south of the landing corridor (100 m, the Dune sea viewpoint).
-        Dune("Dune 2", z0=1300, H=95, W=660, xa=-20000, xb=14000, meander=[(130, 8100, 2.2), (40, 2900, 0.7)],
+        # D1: the last dune before Selk's ejecta, smaller than the others: dunes taper toward Selk
+        # (Radebaugh et al. 2008; Lorenz et al. 2021). It bends about 11 deg to run along the ejecta edge
+        # (dunes divert along obstacles). A low saddle at x = -1300 is the crossing route (linear dunes
+        # have low, firmer saddles and junctions along their crests). Its crest is the Dune sea viewpoint.
+        Dune("Dune 1", z0=-1800, H=50, W=380, xa=-16000, xb=11000, slope=-0.2,
+             meander=[(60, 7300, 0.4), (25, 2600, 2.0)],
+             hmod=[(0.10, 4100, 1.1)], wmod=(0.06, 5300, 0.3), saddle=(-1300, 0.5, 300)),
+        # D2: the big dune south of the landing corridor.
+        Dune("Dune 2", z0=700, H=95, W=660, xa=-20000, xb=14000, meander=[(130, 8100, 2.2), (40, 2900, 0.7)],
              hmod=[(0.10, 5200, 4.0)], wmod=(0.08, 6100, 1.7)),
         # Branch: a younger dune joining Dune 2 from the west-southwest (a Y-junction, common in
         # Titan's dune fields; Radebaugh et al. 2008, Lorenz et al. 2006).
-        Dune("Branch", z0=1800, H=55, W=450, xa=-9500, xb=2000, tip=1300, slope=-0.22,
+        Dune("Branch", z0=1320, H=55, W=450, xa=-9500, xb=2000, tip=1300, slope=-0.245,
              meander=[(50, 3700, 1.3)], hmod=[(0.10, 3100, 0.2)]),
         # D3: the next dune south; only its northern flank is on the map.
-        Dune("Dune 3", z0=4050, H=100, W=700, xa=-18000, xb=20000, meander=[(120, 9000, 5.1), (35, 2700, 3.3)],
+        Dune("Dune 3", z0=3300, H=100, W=700, xa=-18000, xb=20000, meander=[(120, 9000, 5.1), (35, 2700, 3.3)],
              hmod=[(0.12, 4700, 2.5)]),
     ]
 
@@ -169,11 +175,11 @@ def ring_dunes(rng, half):
     """More rows of dunes for the distant rings (seeded), spaced 2.2-3.4 km, 8-30 km long."""
     out = []
     rows = []
-    z = -1500.0
+    z = -1800.0
     while z > -half - 3000:
         z -= rng.uniform(2200, 3400)
         rows.append(z)
-    z = 4050.0
+    z = 3300.0
     while z < half + 3000:
         z += rng.uniform(2200, 3400)
         rows.append(z)
@@ -237,7 +243,7 @@ def main():
     def ejecta_weight(X, Z):
         s = np.hypot(X - sx, Z - sz)
         th = np.arctan2(X - sx, Z - sz) * selk_dist  # arc length along the edge (m)
-        wob = 260 * np.sin(th / 2900 + 1.0) + 160 * np.sin(th / 1100 + 2.5)
+        wob = 120 * np.sin(th / 2900 + 1.0) + 80 * np.sin(th / 1100 + 2.5)
         return smoothstep(r_edge + EJECTA_EDGE_WIDTH, r_edge - EJECTA_EDGE_WIDTH, s - wob), s
 
     dunes = play_dunes()
@@ -294,7 +300,7 @@ def main():
         return rc(x, z, DRIVE_RES, h10)
 
     # ---- 4. Landing: the flattest firm spot in the corridor between Dune 1 and Dune 2 ---------------
-    target = (-700.0, -250.0)
+    target = (-1300.0, -1000.0)
     mean75 = ndimage.uniform_filter(sl_w, 15)
     max45 = ndimage.maximum_filter(sl_w, 9)
     near_dune = ndimage.maximum_filter(core_w, 61) > 0.02  # within 150 m of any dune core
@@ -437,7 +443,8 @@ def main():
     dune_crests = {
         "description": "Linear dunes running roughly west to east, with flat, firm interdune corridors between "
                        "them. Each line is a dune crest; within zoneRadius_m of a line counts as on the crest. "
-                       "Crests are loose sand (soft ground); the lower flanks and wide plinths are firmer.",
+                       "Crests are loose sand (soft ground); the lower flanks and wide plinths are firmer. Dune 1, "
+                       "the smallest, bends to about 80 deg to run along the edge of Selk's ejecta.",
         "orientation_deg": 90,
         "zoneRadius_m": CREST_ZONE_RADIUS,
         "lines": lines,
@@ -452,10 +459,18 @@ def main():
     xs_ = d1.saddle[0]
     cz, _ = d1.crest(np.array([xs_]))
     crest_pt = nearest_ok(xs_, float(cz[0]), np.ones_like(firm10), 60)
-    south_ok = firm10 & (z10g > crest_pt[1]) & (lab[::k, ::k] == land_lab)
-    north_ok = firm10 & (z10g < crest_pt[1]) & (ej10 < 0.5)
-    from_pt = nearest_ok(crest_pt[0], crest_pt[1] + 300, south_ok, 1500)
-    to_pt = nearest_ok(crest_pt[0], crest_pt[1] - 300, north_ok, 1500)
+    # Both ends sit well inside their corridor (the outlines are simplified by up to ~30 m; T5 needs >= 30 m).
+    deep10 = (ndimage.distance_transform_edt(lab > 0) * PLAY_RES)[::k, ::k] >= CORRIDOR_INSET_M
+    south_ok = firm10 & deep10 & (z10g > crest_pt[1]) & (lab[::k, ::k] == land_lab)
+    north_ok = firm10 & deep10 & (z10g < crest_pt[1])
+    from_pt = nearest_ok(crest_pt[0], crest_pt[1] + 400, south_ok, 1500)
+    to_pt = nearest_ok(crest_pt[0], crest_pt[1] - 400, north_ok, 1500)
+    for pt in (from_pt, to_pt):
+        owner = next(c for c in corridors if c["name"] == names[lab[rc(*pt)]])
+        ring_ = MplPath(np.array(owner["outlineLocal_xz"], dtype=float))
+        probe = [(pt[0] + 30 * math.cos(a), pt[1] + 30 * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 16)]
+        if not ring_.contains_points([pt, *probe]).all():
+            raise SystemExit(f"crossing point {pt} is less than 30 m inside {owner['name']}'s outline")
     mcp2 = MCP_Geometric(cost)
     mcp2.find_costs([rc10(*from_pt)])
     leg1 = np.array(mcp2.traceback(rc10(*crest_pt)))
@@ -470,43 +485,44 @@ def main():
     crossing = {
         "name": "Dune 1 saddle crossing",
         "description": "The easiest way over Dune 1: a low saddle in its crest with firmer sand. It leads from the "
-                       "landing corridor to the north corridor and on to Selk's ejecta.",
+                       "landing corridor to the north side, where Selk's ejecta begins.",
         "fromCorridor": site("Crossing start", *from_pt, "Firm interdune ground at the foot of Dune 1's saddle"),
         "crestPoint": site("Dune 1 saddle", *crest_pt, "Lowest point of Dune 1's crest near the landing "
                            "(generated; linear dunes have saddles and junctions along their crests)"),
-        "toCorridor": site("Crossing end", *to_pt, "Firm interdune ground north of Dune 1"),
+        "toCorridor": site("Crossing end", *to_pt, "Firm ground north of Dune 1, at the edge of Selk's ejecta"),
         "pathLocal_xz": [[round(float(a)), round(float(b))] for a, b in approximate_polygon(route_xz, tolerance=8)],
         "maxSlope_deg": round(route_slope, 1),
         "maxSoftness": round(route_soft, 2),
         "source": "Least-cost route on the 10 m drive grid (slope and loose-sand cost) over the generated terrain",
     }
 
-    # Dune sea viewpoint: the highest point of Dune 2's crest within 2.5 km of the landing that a careful
-    # driver reaches with wheel slip below VIEW_MAX_SLIP on the least-cost route.
-    d2 = dunes[1]
-    xs = np.arange(-2500, 2600, 20.0)
-    cz, _ = d2.crest(xs)
+    # Dune sea viewpoint: the highest point of Dune 1's crest that a careful driver reaches (wheel slip below
+    # VIEW_MAX_SLIP on the least-cost route) in VIEW_DRIVE_M of driving. It looks south over the dune field.
+    xs = np.arange(-PLAY_HALF + 300, PLAY_HALF - 300, 20.0)
+    cz, dzx = d1.crest(xs)
     cands = []
-    for x_, z_ in zip(xs, cz):
-        if math.hypot(x_ - land_x, z_ - land_z) > 2500:
-            continue
+    for x_, z_, g_ in zip(xs, cz, dzx):
         r_, c_ = rc10(x_, z_)
-        if reach[r_, c_]:
-            cands.append((float(z10[r_, c_]), float(x_), float(z_)))
+        if not reach[r_, c_] or abs(x_ - xs_) < 400:
+            continue
+        p_ = trace(x_, z_)
+        if VIEW_DRIVE_M[0] <= path_len(p_) <= VIEW_DRIVE_M[1]:
+            cands.append((float(z10[r_, c_]), float(x_), float(z_), float(g_)))
     best = None
-    for hgt, x_, z_ in sorted(cands, reverse=True):
+    for hgt, x_, z_, g_ in sorted(cands, reverse=True):
         if slip_along(trace(x_, z_)) <= VIEW_MAX_SLIP:
-            best = (hgt, x_, z_)
+            best = (hgt, x_, z_, g_)
             break
     if best is None:
-        raise SystemExit("no Dune 2 crest point is reachable within the slip limit")
+        raise SystemExit("no Dune 1 crest point is reachable within the slip limit and drive range")
     vx, vz = nearest_ok(best[1], best[2], np.ones_like(firm10), 40)
-    look = unit(sx - vx, sz - vz)
+    look = unit(-best[3], 1.0)  # perpendicular to the crest, toward the south
     viewpoint = site("Dune sea viewpoint", vx, vz,
-                     "Picked by this pipeline: the highest reachable point of Dune 2's crest within 2.5 km of the "
-                     "landing", kind="duneCrest", lookToward=look)
-    viewpoint["note"] = ("Looks north-northwest across the landing corridor and Dune 1 toward Selk; the crest is "
-                         f"{viewpoint['elevation_m'] - landing['elevation_m']:.0f} m above the landing.")
+                     "Picked by this pipeline: the highest point of Dune 1's crest reached with care in "
+                     f"{VIEW_DRIVE_M[0]}-{VIEW_DRIVE_M[1]} m of driving", kind="duneCrest", lookToward=look)
+    viewpoint["note"] = ("Looks south across the landing corridor to Dune 2, the branch dune and Dune 3; the crest "
+                         f"is {viewpoint['elevation_m'] - landing['elevation_m']:.0f} m above the landing. Selk's "
+                         "ejecta lies behind, to the north.")
 
     # Bright interdune sample patch: sand-free flat in the landing corridor, 500-800 m east of the landing.
     flat10 = firm10 & (s10 < 2) & (ndimage.maximum_filter(core10, 21) < 0.02) & (lab[::k, ::k] == land_lab)
@@ -519,13 +535,14 @@ def main():
                   radius_m=90, description="A bright, sand-free interdune flat: firm ground, with organic sand "
                   "blown in from the dunes. A good first drill site.")
 
-    # Selk ejecta field: block-strewn ejecta at the north map edge (the farthest goal).
+    # Selk ejecta field: block-strewn ejecta just past Dune 1 (the farthest goal), centered where the
+    # ejecta is complete (weight > 0.97) nearest to 700 m north of the saddle.
     ej_ok = (ej10 > 0.97) & (s10 < 8)
-    ex_, ez_ = nearest_ok(-1900, -3150, ej_ok, 1200)
+    ex_, ez_ = nearest_ok(crest_pt[0], crest_pt[1] - 700, ej_ok, 1200)
     rocky = [site("Selk ejecta field", ex_, ez_,
                   "Selk's ejecta blanket is intact, rough and radar-bright, rich in water ice (Lorenz et al. 2021; "
                   "Cassini RADAR and radiometry); the block field itself is generated",
-                  radius_m=260, description="Blocks and rough ground thrown out by the Selk impact, at the outer "
+                  radius_m=200, description="Blocks and rough ground thrown out by the Selk impact, at the outer "
                   "edge of its ejecta blanket, about %d km from the rim. Water ice and organics may have mixed "
                   "here when the crater formed." % round((math.hypot(ex_ - sx, ez_ - sz) - SELK_DIAMETER_KM * 500) / 1000))]
 
@@ -736,7 +753,7 @@ def main():
                 f"{DRIVE_MAX_SLOPE:.0f} deg, with a mild cost for loose sand; straight-line distances are also given.",
                 f"Dune crests stand {min(l['heightRange_m'][0] for l in lines if l['name'] != 'Branch')}-"
                 f"{max(l['height_m'] for l in lines)} m (Cassini: 100-150 m in Belet, up to ~150 m) on bases "
-                "0.9-1.4 km wide plus plinths, kept at the low end so the flanks stay drivable (max slope "
+                "0.75-1.4 km wide plus plinths, kept at the low end so the flanks stay drivable (max slope "
                 f"{sl_w.max():.0f} deg at 5 m; Cassini clinometry gives ~10 deg flanks). The Dune 1 saddle is "
                 f"{crossing['crestPoint']['elevation_m'] - crossing['fromCorridor']['elevation_m']:.0f} m high.",
                 f"Soft ground with the Moon's ground tuning: a reference rover (60 kg, grip 0.55) slips "

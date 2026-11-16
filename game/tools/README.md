@@ -186,10 +186,13 @@ schema is in the Titan build log).
    2021). That is about 30 km north of the ellipse, on Dragonfly's route to Selk.
    Heights are meters above the interdune floor at the origin, minus the
    curvature drop.
-2. **Dunes.** Linear dunes run west to east (Radebaugh et al. 2008), 2.6 to
-   2.8 km apart. Crests stand 75 to 110 m high on bases 0.9 to 1.4 km wide, with
-   wide, low plinths around them. A branch joins Dune 2 in a Y-junction. Dune 1
-   has a low, firmer saddle, which is the crossing route.
+2. **Dunes.** Linear dunes run west to east (Radebaugh et al. 2008), 2.2 to
+   3.3 km apart. Crests stand 85 to 110 m high on bases 1.3 to 1.4 km wide, with
+   wide, low plinths around them. A branch joins Dune 2 in a Y-junction. Dune 1,
+   the last dune before Selk's ejecta, is smaller (about 50 m high, 0.75 km
+   wide) and bends to run along the ejecta edge. Its low, firmer saddle is the
+   crossing route. The landing sits just south of Dune 1, so every site is
+   within about 1.3 km of driving (the battery-only budget).
 3. **Soft ground.** `soft-ground.png` is graded: loose crest and upper-flank sand
    0.85, lower flanks 0.3 to 0.6, plinths, interdunes and ejecta 0. Under the
    Moon's ground rules, a reference rover gets stuck only if it climbs straight
