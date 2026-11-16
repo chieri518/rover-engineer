@@ -86,11 +86,11 @@ export function validateGameData(data: GameData): string[] {
   problems.push(...instrumentTuningProblems(data));
   problems.push(...siteProblems(data));
   problems.push(...relationshipProblems(data.relationships, ids));
-  const { flare, quake, duststorm } = data.events;
+  const { flare, quake, duststorm, rainstorm } = data.events;
   if (flare && flare.realFlares.length < flare.windowsSeconds.length) {
     problems.push('events.json needs at least one real flare per flare window');
   }
-  for (const [a, b] of [...(flare?.windowsSeconds ?? []), ...(quake?.windowsSeconds ?? []), ...(duststorm?.windowsSeconds ?? [])]) {
+  for (const [a, b] of [...(flare?.windowsSeconds ?? []), ...(quake?.windowsSeconds ?? []), ...(duststorm?.windowsSeconds ?? []), ...(rainstorm?.windowsSeconds ?? [])]) {
     if (!(a <= b && b <= data.tuning.mission.lengthSeconds)) problems.push(`event window [${a}, ${b}] is outside the mission`);
   }
   return problems;

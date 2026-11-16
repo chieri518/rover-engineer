@@ -1,0 +1,15 @@
+{
+  "_about": "Titan overlay, deep-merged over data/events.json. Solar flares and moonquakes stay on the Moon (null removes them). Types: rules/types.ts EventsFile, rules/titanTypes.ts RainstormSpec.",
+  "flare": null,
+  "quake": null,
+  "rainstorm": {
+    "_placeholder": "Rules (T3), placeholders. One methane rainstorm per mission: a random start in 240 to 600 s (late day to deep night), forecast 60 s ahead by the lander's weather station, 60 s long, building up and dying down over 10 s (rules/storm.ts scheduleRainstorm, stormIntensity). At full strength the base freeze rate is x freezeFactor (+0.18/s), so every rover cools faster; photos do not count from start to end. Visibility is the renderer's (look.fog with scene.setStorm(intensity)), so there is no visibility factor.",
+    "windowsSeconds": [[240, 600]],
+    "warningSeconds": 60,
+    "durationSeconds": 60,
+    "rampSeconds": 10,
+    "freezeFactor": 1.5,
+    "blocksPhotos": true,
+    "source": "Cassini saw a large equatorial cloud system in late 2010, and over 500,000 km2 of ground darkened afterward, most likely from methane rain (Turtle et al. 2011, Science 331:1414)."
+  }
+}

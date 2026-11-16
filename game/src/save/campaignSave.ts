@@ -2,8 +2,10 @@
 // unavailable (private mode, blocked site data); it just will not remember the campaign.
 // The format is the CampaignState as it is (key v1). Saves from every build load: older ones have no
 // `log` (the campaign summary then lists only later missions), and a save with the Moon completed but
-// still on mission 'moon' is moved on to Mars by normalizeCampaign when the game starts.
+// still on mission 'moon' is moved on to Mars by normalizeCampaign when the game starts. Round stats
+// (for the campaign dashboard) are optional: older saves have none, and entries that are not stats are dropped.
 import { isCampaignStep, type CampaignState } from '../rules/campaign';
+import { isRoundStats } from '../rules/roundStats';
 
 const KEY = 'rover-engineer.campaign.v1';
 
@@ -34,7 +36,8 @@ function looksLikeCampaign(value: unknown): value is Omit<CampaignState, 'notebo
 /** A save from before the engineering notebook has none: it starts empty. Entries that are not ids are dropped. */
 function withNotebook(v: Omit<CampaignState, 'notebook'> & { notebook?: unknown }): CampaignState {
   const notebook = Array.isArray(v.notebook) ? v.notebook.filter((id): id is string => typeof id === 'string') : [];
-  return { ...v, notebook };
+  const { stats, ...rest } = v as typeof v & { stats?: unknown };
+  return { ...rest, notebook, ...(Array.isArray(stats) ? { stats: stats.filter(isRoundStats) } : {}) };
 }
 
 export function loadCampaign(store: KeyValueStore | null = defaultStore()): CampaignState | null {

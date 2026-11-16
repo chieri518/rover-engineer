@@ -228,3 +228,56 @@ Later runs take about a minute.
 | `distant-far.png` | 1001², 16-bit | 200 km square at 200 m |
 | `albedo.jpg` | 1601², 8-bit JPEG | HiRISE orthomosaic, shading removed |
 | `terrain.json`, `texture.json` | | Frame, decoding, landing, features, sources |
+
+## Titan: Shangri-La dunes near Selk (`build_terrain_titan.py`, `build_texture_titan.py`)
+
+```sh
+.venv/bin/python build_terrain_titan.py --preview /tmp/titan-preview.png
+.venv/bin/python build_texture_titan.py --preview /tmp/titan-texture.png
+```
+
+Titan has no rover-scale elevation model, so this terrain is **modeled on
+Cassini data, not measured**. A seeded generator (identical output on every run,
+about 30 s, nothing downloaded) builds it from published measurements. Every
+parameter cites its source in the script and in `terrain.json` `sources`.
+Credits say "modeled on Cassini data", never "real elevation". Shared helpers
+are in `titan_common.py`; the Moon and Mars scripts are not used. The outputs go
+to `game/public/terrain/titan/` in the Mars file set, plus Titan features (the
+schema is in the Titan build log).
+
+1. **Frame.** Azimuthal equidistant on the Titan sphere (R = 2574.73 km), with
+   longitudes east. The center is 85 km from Selk's center (IAU: 7.0 N, 161.0 E,
+   80 km), on the line toward Dragonfly's landing-ellipse center (Lorenz et al.
+   2021). That is about 30 km north of the ellipse, on Dragonfly's route to Selk.
+   Heights are meters above the interdune floor at the origin, minus the
+   curvature drop.
+2. **Dunes.** Linear dunes run west to east (Radebaugh et al. 2008), 2.2 to
+   3.3 km apart. Crests stand 85 to 110 m high on bases 1.3 to 1.4 km wide, with
+   wide, low plinths around them. A branch joins Dune 2 in a Y-junction. Dune 1,
+   the last dune before Selk's ejecta, is smaller (about 50 m high, 0.75 km
+   wide) and bends to run along the ejecta edge. Its low, firmer saddle is the
+   crossing route. The landing sits just south of Dune 1, so every site is
+   within about 1.3 km of driving (the battery-only budget).
+3. **Soft ground.** `soft-ground.png` is graded: loose crest and upper-flank sand
+   0.85, lower flanks 0.3 to 0.6, plinths, interdunes and ejecta 0. Under the
+   Moon's ground rules, a reference rover gets stuck only if it climbs straight
+   up a loose flank steeper than about 14°. Circles covering the loose sand are
+   written too, for the circle-based rule.
+4. **Selk.** The edge of Selk's ejecta (about one crater radius beyond the rim)
+   crosses the north of the map, and the dunes fade out into it. The far ring
+   shows Selk at its true position (rim +200 m, floor -150 m).
+5. **Texture.** Grayscale albedo, not shaded: dark dunes, bright interdunes,
+   mottled ejecta with bright blocks, a bright sample patch, and Huygens-like
+   pebble speckle around the landing.
+6. **Intermediate.** `raw/titan/units.npz` (git-ignored) carries the dune and
+   ejecta units from the terrain script to the texture script.
+
+| File | Size | Content |
+| --- | --- | --- |
+| `heightmap.png` | 1601², 16-bit | Play area heights, 5 m |
+| `slope.png` | 1601², 8-bit | Slope, degrees = value / 4 |
+| `soft-ground.png` | 1601², 8-bit | Dune sand, softness = value / 255 (graded) |
+| `distant-near.png` | 1001², 16-bit | 50 km square at 50 m (generated dunes, Selk ejecta) |
+| `distant-far.png` | 1001², 16-bit | 200 km square at 200 m (with Selk crater) |
+| `albedo.jpg` | 1601², 8-bit JPEG | Generated ground albedo |
+| `terrain.json`, `texture.json` | | Frame, decoding, landing, features, sources |

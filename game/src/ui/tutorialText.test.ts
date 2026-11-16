@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import type { Instrument } from '../rules/types';
-import { missionVars, tutorialPages } from './tutorialText';
+import { introPages, missionVars, tutorialPages } from './tutorialText';
 import { fill } from './dom';
 
 const data = loadGameData();
@@ -86,6 +86,28 @@ describe('tutorial text', () => {
   });
 });
 
+describe('Welcome to REL intro and briefing lines', () => {
+  it('has three intro pages with the Moon budget and pass mark filled from the data', () => {
+    const pages = introPages(data);
+    expect(pages.length).toBe(3);
+    for (const p of pages) for (const s of [p.title, ...p.paragraphs]) expect(s).not.toMatch(/\{\w+\}/);
+    const all = pages.flatMap((p) => p.paragraphs).join('\n');
+    expect(all).toContain(`the budget is $${data.tuning.budget.startingBudget}k`);
+    expect(all).toContain(`the pass mark is $${data.tuning.budget.minimumBudget.mars}k`);
+    expect(all).not.toMatch(/research point|\bRP\b/);
+  });
+
+  it('fills the mission briefing on every world', () => {
+    for (const world of ['moon', 'mars', 'titan'] as const) {
+      const d = loadGameData(world);
+      expect(fill(d.text.mission.briefing, missionVars(d))).not.toMatch(/\{\w+\}/);
+    }
+    expect(fill(data.text.mission.briefing, missionVars(data))).toContain(`${data.tuning.mission.gameDays} days`);
+    const mars = loadGameData('mars');
+    expect(fill(mars.text.mission.briefing, missionVars(mars))).toContain(`${mars.tuning.sol!.sols} sols`);
+  });
+});
+
 describe('Mars tutorial and briefing text', () => {
   const mars = loadGameData('mars');
   const all = (pages: { title: string; paragraphs: string[] }[]) => pages.flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
@@ -118,7 +140,7 @@ describe('Mars tutorial and briefing text', () => {
     const c = mars.text.campaign!;
     const vars = missionVars(mars);
     for (const line of c.newOnMars) expect(fill(line, vars)).not.toMatch(unfilled);
-    for (const s of [c.kicker, c.sameParts, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
+    for (const s of [mars.text.story.kicker, c.sameParts, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
       expect(s).not.toMatch(unfilled);
     }
     expect(mars.text.comingSoon.heading).toBe('Titan: coming soon');

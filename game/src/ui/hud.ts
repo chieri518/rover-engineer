@@ -3,7 +3,8 @@
 // readouts: the neutron spectrometer's hydrogen meter, the Earth-in-view light for the laser
 // retroreflector, and the seismometer station's moonquake trace.
 // No clock: time reads only from the Sun and shadows. On Mars a sol line ("Sol 3 of 10") and the night
-// state (asleep, lights on) sit under the sunlight line.
+// state (asleep, lights on) sit under the sunlight line. Titan words the panel line itself (almost no
+// solar power), reuses the sol line for day or night, and shows a banner while the rover sleeps.
 import type { TextFile } from '../rules/types';
 import { el } from './dom';
 
@@ -14,6 +15,7 @@ export interface HudMeters {
   freeze: number; // 0..1
   sunlight: number; // 0..1
   poweredDown: boolean;
+  panelText?: string; // replaces the sunlight line's words (Titan: almost no solar power)
 }
 
 const NOTICE_SECONDS = 4;
@@ -75,6 +77,7 @@ export class Hud {
   private readonly flareBar = el('div', { class: 'flare-bar-fill' });
   private readonly flash = el('div', { class: 'flare-flash' });
   private readonly hint = el('div', { class: 'hud-hint', hidden: true });
+  private readonly banner = el('div', { class: 'hud-banner', hidden: true, role: 'status' });
   private readonly cards = el('div', { class: 'milestone-cards', 'aria-live': 'polite' });
   private readonly hydrogen;
   private readonly earthLight = el('div', { class: 'earth-light', hidden: true });
@@ -108,7 +111,7 @@ export class Hud {
         this.power,
         extra,
       ),
-      el('div', { class: 'hud-center' }, this.flare, this.warnings, this.lessons, this.notices, this.hint),
+      el('div', { class: 'hud-center' }, this.banner, this.flare, this.warnings, this.lessons, this.notices, this.hint),
       this.cards,
       this.flash,
     );
@@ -119,8 +122,8 @@ export class Hud {
     this.energy.set(m.energy / m.capacity, `${Math.round(m.energy)} / ${m.capacity}`, m.energy / m.capacity < 0.2);
     this.damage.set(m.damage, `${Math.round(m.damage * 100)}%`, m.damage >= 0.6);
     this.cold.set(m.freeze, `${Math.round(m.freeze * 100)}%`, m.freeze >= 0.5);
-    this.sun.textContent = m.sunlight > 0.5 ? h.sunlit : h.shadow;
-    this.sun.classList.toggle('shadow', m.sunlight <= 0.5);
+    this.sun.textContent = m.panelText ?? (m.sunlight > 0.5 ? h.sunlit : h.shadow);
+    this.sun.classList.toggle('shadow', m.panelText !== undefined || m.sunlight <= 0.5);
     this.power.textContent = m.poweredDown ? h.powerUp : h.powerDown;
     this.power.classList.toggle('active', m.poweredDown);
   }
@@ -176,6 +179,12 @@ export class Hud {
     this.trace.replaceChildren(el('span', {}, this.text.instruments.quakeTrace), svg);
     this.trace.classList.toggle('noisy', quality === 'noisy');
     this.trace.hidden = false;
+  }
+
+  /** A standing banner at the top of the view (Titan: "Sleeping · time speeds up"), or null to hide it. */
+  setBanner(message: string | null): void {
+    this.banner.hidden = message === null;
+    if (message !== null && this.banner.textContent !== message) this.banner.textContent = message;
   }
 
   /** Standing warnings, already worded. Rebuilt only when they change. */
@@ -296,6 +305,7 @@ export class Hud {
     this.setWarnings([]);
     this.setHint(null);
     this.setFlareWarning(null, 0);
+    this.setBanner(null);
     this.power.disabled = true;
     button.focus();
     return button;

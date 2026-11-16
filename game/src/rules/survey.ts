@@ -2,16 +2,19 @@
 // bearing and distance to an area, never an exact spot), and how far the map is zoomed out. Sites come
 // from terrain.json features (passed in as plain data); sizes and leads from tuning.survey and
 // tuning.minimap. Mars adds the delta front (a scarp line), Séítah (an outline), its viewpoints and
-// Perseverance's landing site. The Moon's sites.json sites (young craters, cold traps, the rolled boulder,
-// the hidden hydrogen) are appended after those; a hidden site is never found by the reveal circle, only by
-// revealSite when its milestone is earned. Pure: no rendering, no DOM.
+// Perseverance's landing site. Titan adds its dune crests (lines), interdune corridors (outlines), the
+// sample patch and Selk crater (a landmark far off the map: its lead is a bearing only). The Moon's
+// sites.json sites (young craters, cold traps, the rolled boulder, the hidden hydrogen) are appended after
+// those; a hidden site is never found by the reveal circle, only by revealSite when its milestone is earned.
+// Pure: no rendering, no DOM.
 import type { ResolvedSite } from './sites';
 import type { MilestoneTuning, SurveyTuning, Tuning } from './types';
 
 export interface Point { x: number; z: number }
 
-/** delta-front: Mars's scarp line; region: Séítah; landmark: Perseverance's landing site. */
+/** delta-front: Mars's scarp line; region: Séítah; landmark: Perseverance's landing site, Selk. Titan: dune-crest, corridor, sample-patch. */
 export type SiteKind = 'viewpoint' | 'rocky-area' | 'crater-wall' | 'shadowed-crater' | 'delta-front' | 'region' | 'landmark'
+  | 'dune-crest' | 'corridor' | 'sample-patch'
   | 'young-crater' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen';
 
 export type SiteArea =
@@ -44,6 +47,11 @@ export interface SurveyFeatures {
   seitah?: { name: string; outlineLocal_xz: [number, number][] };
   viewpoints?: { name: string; local: Point }[];
   perseveranceLanding?: { name: string; local: Point };
+  // Titan (rules/titanTypes.ts TitanTerrainFeatures)
+  duneCrests?: { zoneRadius_m: number; lines: { name: string; crestLocal_xz: [number, number][] }[] };
+  interdunes?: { corridors: { name: string; outlineLocal_xz: [number, number][] }[] };
+  samplePatch?: { name: string; local: Point; radius_m: number };
+  selk?: { name: string; centerLocal: Point; diameter_km: number };
 }
 
 /**
@@ -63,10 +71,16 @@ export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCrater
     ...(wall ? [{ key: 'craterDescent', name: wall.name, kind: 'crater-wall', area: circle(wall.local.x, wall.local.z, m.photoZoneRadiusM), discovered: false } satisfies Site] : []),
     ...(dark ? [{ key: 'shadowedCrater', name: shadowedCraterName, kind: 'shadowed-crater', area: { kind: 'polygon', points: dark.outlineLocal_xz }, discovered: false } satisfies Site] : []),
     // Mars: sized like its milestone zones (the delta front's zone radius, Séítah's outline, viewpoint circles).
-    ...(f.viewpoints ?? []).map((v): Site => ({ key: v.name, name: v.name, kind: 'viewpoint', area: circle(v.local.x, v.local.z, m.photoZoneRadiusM), discovered: false })),
+    ...(f.viewpoints ?? []).map((v, i): Site => ({ key: v.name, alias: `viewpoints.${i}`, name: v.name, kind: 'viewpoint', area: circle(v.local.x, v.local.z, m.photoZoneRadiusM), discovered: false })),
     ...(f.deltaFront ? [{ key: 'deltaFront', name: f.deltaFront.name, kind: 'delta-front', area: { kind: 'path', points: f.deltaFront.scarpLocal_xz, r: f.deltaFront.zoneRadius_m }, discovered: false } satisfies Site] : []),
     ...(f.seitah ? [{ key: 'seitah', name: f.seitah.name, kind: 'region', area: { kind: 'polygon', points: f.seitah.outlineLocal_xz }, discovered: false } satisfies Site] : []),
     ...(f.perseveranceLanding ? [{ key: 'perseveranceLanding', name: f.perseveranceLanding.name, kind: 'landmark', area: circle(f.perseveranceLanding.local.x, f.perseveranceLanding.local.z, 0), discovered: false } satisfies Site] : []),
+    // Titan: sized like its milestone zones (crest zone radius, corridor outlines, the patch's radius).
+    ...(f.duneCrests?.lines ?? []).map((l, i): Site => ({ key: `duneCrests.${i}`, name: `${l.name} crest`, kind: 'dune-crest', area: { kind: 'path', points: l.crestLocal_xz, r: f.duneCrests!.zoneRadius_m }, discovered: false })),
+    ...(f.interdunes?.corridors ?? []).map((c, i): Site => ({ key: `interdunes.${i}`, name: c.name, kind: 'corridor', area: { kind: 'polygon', points: c.outlineLocal_xz }, discovered: false })),
+    ...(f.samplePatch ? [{ key: 'samplePatch', name: f.samplePatch.name, kind: 'sample-patch', area: circle(f.samplePatch.local.x, f.samplePatch.local.z, f.samplePatch.radius_m), discovered: false } satisfies Site] : []),
+    // Selk's center is tens of km off the map, so it is never discovered; its lead is a bearing to the rim.
+    ...(f.selk ? [{ key: 'selk', name: f.selk.name, kind: 'landmark', area: circle(f.selk.centerLocal.x, f.selk.centerLocal.z, (f.selk.diameter_km * 1000) / 2), discovered: false } satisfies Site] : []),
     ...sites.flatMap(siteFromSpec(m)),
   ];
 }
