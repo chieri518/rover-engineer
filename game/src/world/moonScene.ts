@@ -19,6 +19,7 @@ import { MarsSky } from './marsSky';
 import { MARS_GROUND_HEX, marsLook, type MarsLook } from './marsLook';
 import { TitanRain, TitanSky } from './titanSky';
 import { titanLook, type TitanLook } from './titanLook';
+import { TitanBeams } from './titanBeams'; // titan-fx: beams
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
@@ -301,6 +302,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     lamp.target.position.set(tuning.rover.body.lengthM / 2 + 10, titanLamp ? -titanLamp.targetDrop : mars ? -MARS_FLOODLIGHT.targetDrop : -1.2, 0);
     rover.object.add(lamp, lamp.target);
   }
+  // titan-fx: beams
+  const beams = titanTuning?.beams && lamp ? new TitanBeams(rover.object, lamp, opts.lightRangeM!, titanTuning.floodlight, titanTuning.beams, tuning.rover.body, (x, z) => fine.sample(x, z)) : null;
   const stations: THREE.Group[] = [];
   let currentTopSpeed = opts.rover.topSpeed;
   const patchObject = (object: THREE.Object3D) => {
@@ -475,6 +478,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     }
     sky.update(camera, sun);
     if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, look.rainStreaks, look.rainColor);
+    beams?.update(paused ? 0 : dt, sun.elevationDeg, storm, look?.fogDensity ?? 0); // titan-fx: beams
     draw();
 
     const boundaryDistance = limit - Math.max(Math.abs(pos.x), Math.abs(pos.z));
@@ -655,6 +659,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       input.dispose();
       boulders.dispose();
       rain?.dispose();
+      beams?.dispose(); // titan-fx: beams
       rover.dispose();
       lander.dispose();
       world.free();
