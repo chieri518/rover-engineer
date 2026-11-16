@@ -2,11 +2,15 @@
 
 The working design for **Rover Engineer**, our entry to the Space Mission Design Game challenge. It is written for our team, not for players.
 
-Last updated November 14, 2026. The official brief is in [challenge brief](challenge-brief.md). Background research is in [landscape research](research/landscape-precedents-and-judging.md), [mission-engineering/](research/mission-engineering/README.md), and [rover-engineering/](research/rover-engineering/README.md).
+Last updated November 15, 2026. The official brief is in [challenge brief](challenge-brief.md). Background research is in [landscape research](research/landscape-precedents-and-judging.md), [mission-engineering/](research/mission-engineering/README.md), and [rover-engineering/](research/rover-engineering/README.md).
 
 **How to read this doc.** Everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). All open items are collected in [Open questions](#2-open-questions).
 
-**Recent changes (November 14, 2026):** mission play times shortened to 5 / 10 / 15 minutes; the Moon map is now bigger than one mission can cover; game name, agency, and tone chosen; Moon site (de Gerlache rim), play area size, landing point, NASA datasets, minimap, optional history facts, and mass-based speed decided; no clock; seventh part slot (chassis); launch ticket tiers.
+**Mars draft (November 15, 2026, Owner B):** the Mars lesson, site (Jezero crater), time (10 sols, 60 s each), night, cold, events, and milestones are drafted in [The Mars mission](#the-mars-mission). Items the team plan says to decide together are marked for Owner A to confirm.
+
+**Recent changes (November 15, 2026, playtest fixes):** the minimap starts zoomed in and widens as the rover explores, hides unexplored ground and undiscovered sites, and points to orbital survey leads; the map resets on every try; the rover no longer flies over bumps (time-lapse gravity while its wheels are in the air).
+
+**Earlier changes (November 14, 2026):** mission play times shortened to 5 / 10 / 15 minutes; the Moon map is now bigger than one mission can cover; game name, agency, and tone chosen; Moon site (de Gerlache rim), play area size, landing point, NASA datasets, minimap, optional history facts, and mass-based speed decided; no clock; seventh part slot (chassis); launch ticket tiers.
 
 ## Contents
 
@@ -64,12 +68,13 @@ The design screen is a **constraint puzzle**. On the Moon it is simply mass vers
 
 | # | Question | Notes |
 | --- | --- | --- |
-| 2 | Mars and Titan constraints | The team has a list to evaluate |
-| 3 | The RP unlock tree | Which parts and map layers unlock, at which thresholds |
-| 4 | Mars and Titan random events | Not discussed |
-| 5 | Mission length in game time | *Proposed:* Mars 20 sols, Titan 1 Titan day |
-| 6 | Data and communications as a resource? | *Proposed:* not on the Moon, a real constraint on Mars. At the south pole Earth dips below the horizon, which could later become a contact blackout. |
+| 2 | Mars and Titan constraints | Mars: energy through day and night, decided by Owner B (Owner A to confirm); see [The Mars mission](#the-mars-mission). Titan: open. |
+| 3 | The RP unlock tree | Which parts and map layers unlock, at which thresholds (Owner A) |
+| 4 | Mars and Titan random events | Mars: *Proposed:* dust storm and dust devils, marsquake optional. Titan: not discussed. |
+| 5 | Mission length in game time | Mars: 10 sols at 60 s each, decided by Owner B (Owner A to confirm). Titan: *Proposed:* 1 Titan day. |
+| 6 | Data and communications as a resource? | **Decided:** not on the Moon; a real constraint on Mars, designed later and not in the first Mars build. At the south pole Earth dips below the horizon, which could later become a contact blackout. |
 | 7 | Two-player mode | Later |
+| 8 | Mars parts, ticket tiers, budget | Owner A: the Mars part catalog (power source, heater, air-sample instrument?), Mars ticket tiers, whether 780 stays the pass mark, and whether Mars ends on "Titan: coming soon" |
 
 ## 3. Campaign: the outer loop
 
@@ -105,7 +110,7 @@ Drive ──► Reach milestones ──► Earn RP and money
 
 - **Driving uses energy.** Heavier rovers use more energy per meter.
 - **Speed depends on the configuration.** The wheels set a base speed, and a heavier rover is slower. A heavy rover reaches fewer places in the mission time.
-- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 13 m/s for a light one on wire-mesh wheels). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation). Measured before the balance pass: a light build (12 m/s) reached the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. *Balance pass (November 15):* wire-mesh wheels now model 3.3 m/s of real driving (11.9 km/h, inside the Apollo LRV's 9 to 13 km/h), so a light build drives 13.2 m/s; this keeps the dark crater reachable with good, not perfect, driving. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts.
+- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 13 m/s for a light one on wire-mesh wheels). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation), and 16 times faster while its wheels are off the ground (see [Ride over bumps](#ride-over-bumps)). Measured before the balance pass: a light build (12 m/s) reached the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. *Balance pass (November 15):* wire-mesh wheels now model 3.3 m/s of real driving (11.9 km/h, inside the Apollo LRV's 9 to 13 km/h), so a light build drives 13.2 m/s; this keeps the dark crater reachable with good, not perfect, driving. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts.
 - **Milestones** come from driving and from using equipped instruments. A rover without a drill drives past the ice.
 - **Night (Mars and Titan only).** The player chooses:
   - **Lights on:** keep exploring, but energy drains fast.
@@ -151,6 +156,16 @@ The rules live in `game/src/rules/` and every number in `game/data/tuning.json` 
 - **Flares.** Two per mission, at random times in set windows, each a real past X-class flare from NASA DONKI named by class and date. The warning shows 6 s ahead. The rover is protected if it is powered down (the HUD toggle or P) or in shadow when the flare hits. Powered down, the rover cannot drive but its panel still charges.
 - **Moonquakes.** One per mission at a random time; the camera shakes. There is no fault location in the terrain data yet, so quakes do the same damage everywhere.
 
+#### Ride over bumps
+
+*Decided November 15, 2026 (playtest fix).* At the compressed speeds, crests and boulders threw a light rover into the air. In a physics-only test (the game's own vehicle, terrain and boulders, driven at full throttle over 18 km: the archetype routes, crossings of both rocky areas, and straight drives from the lander), a mesh-wheel build at 13.2 m/s spent 13.7 s in the air, with hops up to 1.6 s long and 2.7 m high.
+
+- **Fix: time-lapse gravity in the air.** A true time-lapse of a real drive at 4 times the speed scales accelerations by 16. On the ground gravity stays at 4 times lunar (`rover.gravityScale`): at 16 the rover could not climb more than about 5°, and grip, slopes and getting stuck would all change. While wheels are off the ground, the rover falls at 16 times lunar gravity (`rover.airGravityScale`, applied in proportion to the share of wheels off the ground), so a hop is as short and low as the same bump would give a real rover at real speed. On the ground nothing changes: top speeds, slopes, grip, climbing, getting stuck and rollover behave as before.
+- **Measured on the same 18 km:** time in the air 13.7 s to 2.5 s, longest hop 1.57 s to 0.37 s, highest 2.7 m to 1.0 m. Average speed and the archetype route times are unchanged (the ice route takes 261 s either way). No rollovers and no new places to get stuck. The heavy build (6.8 m/s) spent 1.3 s in the air before and none now.
+- **Options tried and rejected:** more gravity on the ground (at 6 times lunar the light rover tilted to 74° on a boulder field, next to the 75° rollover limit, and climbing gets harder); stiffer or more strongly damped suspension (little effect on hops); smoothing the terrain collider (the physics would no longer match the visible ground and the heights the milestones use). An upper limit on upward speed was not needed.
+- **Side effect:** a light rover can no longer jump out of the steep inner wall of Rocky area 1's crater on momentum; like heavier builds, it leaves by a gentler side. The archetype routes do not cross the crater's middle.
+- **Real basis:** the Apollo Lunar Roving Vehicle did leave the ground briefly over bumps at its 10 to 13 km/h, and the Apollo 16 "Grand Prix" film shows its wheels in the air. The game's remaining hops are of that kind: brief and low.
+
 Real causes of rover loss and survival tactics: [rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#hazard-and-anomaly-catalog) and [rover-engineering/06](research/rover-engineering/06-milestones-and-sustainment.md#how-rover-missions-are-sustained).
 
 ## 5. Time on each world
@@ -160,7 +175,7 @@ Missions get longer with each destination, and the player should feel that time 
 | Mission | Play time | Game time covered | One local day equals | Day and night |
 | --- | --- | --- | --- | --- |
 | Moon | 5 min | 14 Earth days (one lunar daylight period) | about 21 s per Earth day | All daylight |
-| Mars | 10 min | *Proposed:* 20 sols (about 20.5 Earth days) | 30 s per sol | Day and night every sol |
+| Mars | 10 min | 10 sols (about 10.3 Earth days); Owner A to confirm | 60 s per sol: 45 s of day, 15 s of night | Day and night every sol; night is time-lapsed three times faster than day |
 | Titan | 15 min | *Proposed:* 1 Titan day (about 16 Earth days) | The whole mission: about 7.5 min of light, then 7.5 min of dark | Always cold; one long day and one long night |
 
 **Real basis**
@@ -237,11 +252,11 @@ Moon minimum (520), starting budget (750), part costs, ticket tiers, death penal
 
 **Archetypes** (model estimate; pass mark 780):
 
-| Archetype | Build | Cost + ticket | Route | Milestones | Final | Without using the instrument |
-| --- | --- | --- | --- | --- | --- | --- |
-| Camera scout | steel, mesh, fixed panel, NiH2, no lights, no heater, camera | 330 + Medium 120 = 450 | Down the de Gerlache wall (photo), straight up to Rocky area 1, across it, Rim viewpoint 1 (photo), wait there for Earth (photo after 238 s) | Crater layers, Crater descent, Boulder field, Rim panorama, Earth, Mapper, Odometer ×3, Flare survivor | 990 (+210) | 740 (fails) |
-| Drill geologist | steel, mesh, fixed panel, Li-ion, no lights, no heater, drill | 430 + Medium 120 = 550 | North: Rocky area 1 (sample), across it, Rim viewpoint 1 (sample), Rim viewpoint 2 (sample) | Regolith ×3, Boulder field, Mapper, Odometer ×3, Flare survivor | 880 (+100) | 580 (fails) |
-| Ice hunter | titanium, mesh, fixed panel, Li-ion, lights, heater, drill | 615 + Medium 120 = 735 | Straight to the dark crater, sample at the edge, find and drill the ice (about 293 s) | Water ice, Regolith ×2, Mapper, Odometer ×3, Clean run, Flare survivor | 895 (+115); 545 if the ice is not found | 345 (fails) |
+| Archetype | Build | Cost + ticket | Route | Survey leads that start it | Milestones | Final | Without using the instrument |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Camera scout | steel, mesh, fixed panel, NiH2, no lights, no heater, camera | 330 + Medium 120 = 450 | Down the de Gerlache wall (photo), straight up to Rocky area 1, across it, Rim viewpoint 1 (photo), wait there for Earth (photo after 238 s) | Layered wall exposure, then Boulder field (Rim viewpoint 1 appears while crossing) | Crater layers, Crater descent, Boulder field, Rim panorama, Earth, Mapper, Odometer ×3, Flare survivor | 990 (+210) | 740 (fails) |
+| Drill geologist | steel, mesh, fixed panel, Li-ion, no lights, no heater, drill | 430 + Medium 120 = 550 | North: Rocky area 1 (sample), across it, Rim viewpoint 1 (sample), Rim viewpoint 2 (sample) | Boulder field (any third site 200 m on counts; Rim viewpoint 2 is found by driving) | Regolith ×3, Boulder field, Mapper, Odometer ×3, Flare survivor | 880 (+100) | 580 (fails) |
+| Ice hunter | titanium, mesh, fixed panel, Li-ion, lights, heater, drill | 615 + Medium 120 = 735 | Straight to the dark crater, sample at the edge, find and drill the ice (about 293 s) | Permanent shadow | Water ice, Regolith ×2, Mapper, Odometer ×3, Clean run, Flare survivor | 895 (+115); 545 if the ice is not found | 345 (fails) |
 
 Other designs also pass in the model, for example a camera build on titanium and mesh wheels doing the scout route, or a drill build with a NiH2 battery sampling the crater wall, the boulder field and the rim. 33 of 115 affordable builds can pass with their best route (17 of 63 camera builds, 16 of 52 drill builds); none pass by idling, wandering or a short trip.
 
@@ -259,6 +274,22 @@ Other designs also pass in the model, for example a camera build on titanium and
 | Random B (cheapest parts) | wandered | stuck in soft ground at a boulder field at 127 s | 373, fails |
 
 The browser runs found one model error, now fixed: the boulder-field crossing point on the north side sat short of the 90° the Boulder field rule needs (a route leaves the circle early, on a chord). The crossing point is now 112° round from the entry, which passed in the browser, and the model only credits a crossing whose end points are at least 105° apart (a test checks the archetype routes). For players this is the existing rule: cross the boulder field to its far side, not just clip its edge.
+
+**Browser re-check after the playtest fixes** (November 15: exploring minimap with fog and survey leads, and time-lapse gravity in the air; headless Chrome, real game flow, the same autopilot, starting each time from an unexplored map):
+
+| Run | Result in the browser | Final | How the route is found on the fogged map |
+| --- | --- | --- | --- |
+| Camera scout | survived; Crater layers, Crater descent, Rim panorama, Earth, Odometer ×3, Clean run, Flare survivor (this route's crossing does not count as Boulder field) | 880, passes | Wall: lead 1. Boulder field: lead 2. Rim viewpoint 1 appears on the map while driving to the field. |
+| Drill geologist (wide crossing) | survived; Regolith ×3, Boulder field, Odometer ×2, Clean run, Flare survivor | 870, passes | Boulder field: lead 2, found at 9 s. Rim viewpoint 1 found at 24 s. Rim viewpoint 2 has no lead and showed up about 250 m before arrival. |
+| Drill geologist (older north route) | survived; no Boulder field (the autopilot's crossing is not credited, as before the fixes) | 740, fails | |
+| Ice hunter, two runs | survived both; crater edge at 259 s and 264 s, ice drilled at 285 s and 291 s, 16 and 36 energy left; the second run missed Into the dark | 895 and 845, both pass | Permanent shadow: lead 3 the whole way; the crater was found about 200 m before its edge. |
+| Idle | survived at the lander | 510, fails | |
+| Random wanderer (titanium, solid, panel, Li-ion, lights, heater, camera) | survived; Rim panorama, Crater layers, Odometer ×2, Clean run, Flare survivor | 555, fails | |
+
+- The ice stays the tight path: the two runs differed by 5 s and 50 money.
+- The camera scout's first runs ended at 710: the autopilot stopped to recharge at 12% energy when it reached Rim viewpoint 1 at about 285 s and missed both photos. A player takes the photos first; the run that did so passed with 880. No money was retuned.
+- Hops in these runs: at most one hop of 0.26 m per run, 0.1 s long. No rollovers, no rover stuck.
+- Map reset confirmed: the wanderer found 3 sites on its first try. After Restart round, the second try started with no sites found and all three leads open.
 
 **Builds without a plan** (best route in the model). Examples that fail, and why:
 
@@ -333,7 +364,7 @@ Background on real rover parts and trade-offs: [rover-engineering/02](research/r
 | Shadowed craters | Very cold zones that may hold water ice. High risk, high reward. |
 | Events | Solar flares and moonquakes |
 | Core puzzle | Mass versus cost |
-| Minimap | Very simple: the rover's position, the area explored so far, and markers for craters and viewpoint zones. Orbital data layers unlock later with RP. |
+| Minimap | Simple, and built for exploring: it starts zoomed in on the lander and widens as the rover explores; unexplored ground is hidden and sites appear only once discovered; orbital survey leads give bearings, not markers. See [Minimap and exploration](#minimap-and-exploration). Orbital data layers unlock later with RP. |
 
 ### Map
 
@@ -351,6 +382,27 @@ The map is **bigger than one mission can cover**, so the player feels they could
 - **Small cold patch:** a tiny real cold spot inside the nearby rocky area also uses the freeze rule. It is an early, low-risk taste of the cold. *(Decided during implementation.)*
 - **Edge:** a "leaving the planned operating area" notice stops the rover at the boundary. Real missions also plan an operating zone.
 - **Why this works:** the Moon is small, so from rover camera height (about 1.7 m) the horizon is only about 2.4 km away. Only high ground shows beyond it, so a large detailed area plus coarse distant terrain looks like one continuous surface.
+
+### Minimap and exploration
+
+*Decided November 15, 2026 (playtest fix).* The first minimap showed the whole 8 km area under a light fog, with every crater and viewpoint marked from the start, so players saw every site at once and had little reason to explore. Now the map grows with the rover's own survey.
+
+- **Zoom.** The map starts zoomed in on the lander, about 700 m across (`minimap.startSpanM`). It widens smoothly to fit everything explored so far, and each discovered site whole (the dark crater is larger than the reveal circle), plus a 100 m margin (`minimap.marginM`), so the rover always has some ground around it. It never zooms back in during a mission; a long drive north ends with a map a few kilometers across.
+- **Fog.** Unexplored ground is hidden. The rover reveals a circle around itself on the same 20 m grid the Mapper milestone counts (`explore`), so Mapper is unchanged. *Reveal radius kept at 250 m* (`explore.revealRadiusM`): every site is hidden at the start (the nearest, Rim viewpoint 1 and Rocky area 1, are about 490 m away), the ground ahead still shows at driving speed, and Mapper's 1.8% and the balance model stay valid.
+- **Sites appear when discovered.** Viewpoints, rocky areas (boulder fields), the de Gerlache wall descent point and the dark crater's outline are drawn only once the rover's reveal circle touches them: the 60 m viewpoint or wall zone, the boulder spread (1.1 times the crater radius), or the crater's permanent-shadow outline. A notice names each newly found site. The lander is always shown. The ice spot is never marked.
+- **Bearings, not markers: orbital survey leads.** The landing briefing lists three leads from orbital data, each a rough direction and distance from the lander. Real missions plan their drives on orbital maps the same way; NASA planned VIPER's routes on Lunar Reconnaissance Orbiter elevation and illumination data.
+  - While a lead's area is undiscovered, an arrow on the minimap's edge points from the rover toward the area's center, and a list under the minimap gives its current direction and distance. Once the rover discovers the area, the arrow goes and the site itself appears.
+  - Leads point to areas, not exact spots: the direction is one of 16 compass points and the distance is rounded (to 0.1 km below 1 km, to 0.5 km above) and measured to the near edge of the area.
+  - Each winning archetype has a starting direction:
+
+| Lead | Orbital source | Area | From the lander | Starts |
+| --- | --- | --- | --- | --- |
+| Layered wall exposure | LROC images | de Gerlache wall descent | about 0.7 km south-southwest | Camera scout: Crater layers, Crater descent |
+| Boulder field | LROC images | Rocky area 1 | about 0.3 km west-northwest | Drill geologist and camera scout: Boulder field, samples. Rim viewpoint 1 is about 280 m beyond the field's center, so it shows up while crossing. |
+| Permanent shadow | LOLA illumination maps | the dark crater | about 3 km north | Ice hunter |
+
+  - Rim viewpoint 2 and Rocky area 2 have no lead; they are found by driving. The leads, the rounding and the area sizes are in `survey` in `tuning.json`; their text is in `text.json` → `survey`.
+- **Map memory: reset each try.** Every mission starts with an unexplored map, including a restart after a failed round. The explored area and discovered sites are not saved, which matches the restart snapshot rule: a restarted round starts as new. The leads stay the same on every try.
 
 ### Sun and shadows
 
@@ -427,7 +479,7 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
   - Flat-speed simulation on the real route (3.3 km): arrives at 275 s, drill done at 278 s, 5% energy left.
   - Real browser drive: ice zone at 277 s, drilled at 287 s, survived with 47 energy, after a flare and a moonquake.
   - The ice is reachable, with about 20 s to search. With the old Sun start (17.4°), the same build runs out of energy at about 250 s.
-- **Mapper** is 1.8% of the map. Measured in playtests with full-throttle drives: a light build drove 3.2 km and revealed 2.8% (Mapper at about 2.2 km); the default build drove 2.0 km before its battery ran out and revealed 1.84%. The share grows about 0.77% per km of new ground.
+- **Mapper** is 1.8% of the map, counted on the explored grid; the minimap's zoom and fog are display only (see [Minimap and exploration](#minimap-and-exploration)). Measured in playtests with full-throttle drives: a light build drove 3.2 km and revealed 2.8% (Mapper at about 2.2 km); the default build drove 2.0 km before its battery ran out and revealed 1.84%. The share grows about 0.77% per km of new ground.
 - **Clean run** ignores moonquake damage, because every mission has one quake and nothing can prevent its damage. Any other damage (impacts, slopes, overload, flares) loses it. The milestone notice says so.
 - **Records** (Touchdown, Water ice) pay once per campaign. A record already held still shows in the debrief, without a reward. A restart restores the records list from the round snapshot, so records from a failed round can be earned again.
 - **Mission history setting** (title screen → Settings; on by default, saved in the browser). When on, each milestone pop-up shows its real fact (staged milestones on the first stage only), the debrief lists the facts, and the debrief compares the rover's fate with a real rover's. Every fact has a source in `milestones.json` or `text.json`; the debrief shows the comparison's source.
@@ -470,9 +522,100 @@ Not data files: low Sun and moving shadows and Earth bobbing near the horizon co
 
 The Moon teaches one trade-off. Mars and Titan add more intricate ones about what to put on the rover and which capabilities to enable. The team has a list of candidate constraints to evaluate (question 2). Already decided:
 
-- **Mars** adds day and night, which brings in the lights-on or sleep choice.
+- **Mars** adds day and night, which brings in the lights-on or sleep choice. See [The Mars mission](#the-mars-mission).
 - **Titan** is always cold.
 - Each world has its own random events.
+
+### The Mars mission
+
+*Owner B draft, November 15, 2026.* Items marked decided were decided by Owner B on November 15. The lesson and the mission length are joint decisions in [team-plan.md](team-plan.md#decide-together), so Owner A still needs to confirm them. *Proposed* items are suggestions. Mars parts, unlock tree, ticket tiers and budget belong to Owner A (question 8). Rewards and rates marked "interface" are set together.
+
+**Lesson: energy through day and night.** *Decided (Owner A to confirm).* The Moon teaches mass versus cost. Mars adds a sunlight budget that changes every sol: the Sun sets, nights are cold, and dust dims the panels. Every Mars constraint hangs off this lesson: the night (lights on or sleep), the night cold (the heater), dust and dust storms (solar income), and, through Owner A's part list, solar panels versus a radioisotope power source. Mass versus cost still applies.
+
+| Element | Design |
+| --- | --- |
+| Length | 10 minutes of play covering 10 sols |
+| Site | Jezero crater floor, east of the ancient river delta |
+| Day and night | 45 s of day and 15 s of night every sol |
+| Cold | Every night, everywhere on the map |
+| Events | *Proposed:* one dust storm, dust devils |
+| Core puzzle | Getting through the night: battery, power source, heater, lights |
+| Communications | A real Mars constraint, designed later; not in the first Mars build |
+
+#### Site: Jezero crater
+
+*Decided:* one fixed site, the one with the clearest and widest data. That is Jezero, where Perseverance landed in 2021.
+
+- **Why Jezero.** USGS made a single seamless 1 m HiRISE elevation model of the landing area for Mars 2020's Terrain Relative Navigation: about 21 km × 21 km (21,400 × 21,488 px, 1.8 GB), all from HiRISE stereo and tied to MOLA. It comes with a 25 cm HiRISE image mosaic and a 20 m CTX elevation model around it. All are public domain and on the [USGS Mars 2020 TRN data release](https://www.usgs.gov/data/mars-2020-terrain-relative-navigation-hirise-dtm-mosaic). Gale's merged 1 m elevation model covers a bigger box (about 57 km × 33 km), but it uses HiRISE only where stereo exists and fills the rest with CTX, HRSC and MOLA, so detail is uneven.
+- **Detailed play area.** *Proposed:* 8 km × 8 km at 5 m, resampled from the 1 m model. This is the Moon's size and format, so the terrain pipeline and the loader carry over.
+- **Distant terrain.** The rest of the HiRISE model, then CTX 20 m, then MOLA, so the rim of the 45 km crater rings the horizon. From rover camera height the Mars horizon is about 3.4 km away.
+- **Ground imagery.** The HiRISE 25 cm mosaic, resampled.
+- **Landing point.** *Proposed:* a flat spot on the crater floor near Perseverance's 2021 landing site (Octavia E. Butler Landing, 18.4447°N, 77.4508°E), picked by the pipeline from the real slope map, with the delta front and Séítah inside the play area. REL lands near the site, not on it.
+- **Sites to place** (*Proposed*; the pipeline measures the distances): the delta front, whose layered cliffs record an ancient lake; Séítah, a ridged rock unit with sand ripples (soft ground); and rocky areas on the crater floor (boulder fields, as on the Moon).
+- **Soft ground.** The sand ripples use the Moon's sinkage and slip rules. Spirit was stuck in sand at "Troy" in 2009 ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#terrain-sand-rocks-slopes)).
+- **Season.** *Proposed:* early northern autumn (Ls about 200), the start of the dust storm season, so a storm is realistic. At 18°N, day and night are close to equal then.
+
+#### Time: 10 sols in 10 minutes
+
+*Decided (Owner A to confirm the length).* This replaces the earlier proposal of 20 sols at 30 s: 20 nights of 15 s would ask the lights-on-or-sleep question every 30 seconds.
+
+- **60 s per sol:** 45 s of day (dawn to dusk), then 15 s of night. Night is time-lapsed three times faster than day. Like the Moon's speed compression, this is a game-feel choice: real rovers sleep through most of the night. Night adds up to 150 s per mission.
+- **The player sits through the night.** There is no skip.
+- **No clock,** as on the Moon. The Sun follows the real path for Jezero's latitude and the chosen season.
+
+#### Night: lights on or sleep
+
+*Decided:* the player sits through each night and chooses between:
+
+- **Lights on:** keep driving and earning, but the lights and heater drain the battery fast and there is no solar income.
+- **Sleep:** *Proposed:* the same power-down toggle (P) the Moon uses for flares. Energy drains slowly and no milestones are earned. The rover wakes at dawn by itself.
+- **No lights:** *Proposed:* the rover cannot drive at night. It can only sleep or sit still, the same rule as the Moon's permanent-shadow edge.
+- At dusk a notice reads: "Sunset. Lights on to keep driving, or sleep until dawn." An empty battery at night ends the mission as out of energy, the Moon rule.
+
+#### Cold at night
+
+*Decided:* the heater matters on Mars. Nights reach about −70 to −90 °C ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#atmosphere-temperature-and-wind)).
+
+- *Proposed:* every night, the freeze meter rises everywhere on the map (the Moon's cold-zone rule, applied map-wide) and recovers by day. An unheated rover freezes before its first dawn; a heater slows freezing enough to last the night. So a heater is effectively needed on Mars, and the trade becomes which heater: for example, radioisotope units (mass and cost) or an electric heater that draws on the battery at night (Owner A).
+- *Proposed:* freezing is slower during the dust storm, because airborne dust keeps nights milder (JPL, 2018 storm).
+- Interface: the freeze rate per night (Owner B) against heater strength and draw (Owner A).
+
+#### Dust and events
+
+All *Proposed*. Solar flares and moonquakes stay on the Moon.
+
+| Event | What happens | Player response | Real basis |
+| --- | --- | --- | --- |
+| Dust on the panels | Solar income falls a little every sol as dust settles (compressed, as time is) | Plan for less power later, or rely on a radioisotope source | Dust settles steadily on real panels ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#dust-devils-and-cleaning-events)) |
+| Dust storm | One regional storm per mission, announced a sol ahead by an orbital weather report. For about 2 sols solar income falls to about a third, nights are milder, and more dust settles. | Charge up beforehand, sleep through it, drive less | 2018: Opportunity's power fell from 645 Wh to 22 Wh per sol in 10 days. MRO's MARCI camera maps Mars weather daily. |
+| Dust devil | A random devil sweeps past and cleans the panels | A free power boost; a camera can photograph it | Spirit's power jumped about 50% in one day in 2005 |
+| Marsquake (optional) | The Moon's quake rule reused | As on the Moon | InSight recorded marsquakes, including a magnitude 4.7 in 2022 |
+
+#### Mars milestones
+
+All *Proposed*. Rewards are interface numbers. Every real fact gets fact-checked before it goes into `text.json`.
+
+| Milestone | Category | How to earn it | Equipment |
+| --- | --- | --- | --- |
+| Touchdown | Record: first touch | Land on Mars for the first time | None |
+| Odometer | Capability: coverage | Drive set distances | None |
+| Mapper | Capability: coverage | Reveal a set share of the map | None |
+| Sand crossing | Capability: difficulty | Cross Séítah's sand ripples without getting stuck | None |
+| Night drive | Capability: robustness | Drive a set distance at night | Lights, heater |
+| Storm survivor | Capability: robustness | Still be running when the dust storm clears | None |
+| Clean run | Capability: robustness | Finish all 10 sols without damage | None |
+| Delta layers | Scientific: historical formation | Image the layered delta front | Camera |
+| Lake sediment sample | Scientific: new information | Drill samples at up to three sites, at least 200 m apart (Moon rule) | Drill |
+| Signs of an ancient lake | Record: first discovery | The first sample drilled at the delta front | Drill |
+| Blue sunset | Pretty picture | Photograph the Sun setting (Martian sunsets look blue; Curiosity, 2015) | Camera |
+| Dust devil | Pretty picture | Photograph a passing dust devil | Camera |
+
+- Air samples start on Mars (Moon milestones), but they need an instrument from Owner A's catalog, so they wait for question 8.
+- Survey leads, fog and discovery work as on the Moon ([Minimap and exploration](#minimap-and-exploration)). New leads would point to the delta front, Séítah and a rocky area.
+
+#### Communications
+
+*Decided:* data and communications are a real constraint on Mars: delay to Earth, bandwidth through relay orbiter passes, and possibly science that counts only once it is sent home. It is a design decision for now and is not built in the first Mars version.
 
 ### Build order
 

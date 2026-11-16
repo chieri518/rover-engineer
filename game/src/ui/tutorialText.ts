@@ -31,6 +31,7 @@ export function tutorialPages(
     sampleSpacing: tuning.milestones.sampleSpacingM,
     sunlit: text.hud.sunlit,
     shadow: text.hud.shadow,
+    revealRadius: tuning.explore.revealRadiusM,
   };
   return t[id].map((page) => {
     const instrumentLine = opts.instrument ? page.instrument?.[opts.instrument] : undefined;

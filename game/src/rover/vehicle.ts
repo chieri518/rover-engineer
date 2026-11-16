@@ -32,6 +32,9 @@ export class RoverVehicle {
   speedBoost = 1;
   /** Multiplies the top speed: soft ground and wheel slip slow the rover (set by the mission systems). */
   speedFactor = 1;
+  /** Extra downward acceleration applied in the last update while wheels were off the ground (m/s²). */
+  airDownAccel = 0;
+  private readonly gravity: number;
 
   constructor(
     private readonly world: RAPIER.World,
@@ -42,6 +45,7 @@ export class RoverVehicle {
     parts: Part[] = [],
   ) {
     const h = handling;
+    this.gravity = -world.gravity.y;
     const { lengthM: l, widthM: w, heightM: ht } = h.body;
     this.body = world.createRigidBody(
       rapier.RigidBodyDesc.dynamic()
@@ -70,18 +74,29 @@ export class RoverVehicle {
       [-h.wheelBaseM / 2, h.wheelTrackM / 2],
       [-h.wheelBaseM / 2, -h.wheelTrackM / 2],
     ];
-    corners.forEach(([x, z], i) => {
+    corners.forEach(([x, z]) => {
       this.controller.addWheel({ x, y: connectY, z }, { x: 0, y: -1, z: 0 }, { x: 0, y: 0, z: 1 }, h.suspension.restLengthM, h.wheelRadiusM);
+    });
+    this.applyHandling();
+    this.setParams(params);
+    this.buildModel(connectY, parts);
+    this.teleport(start.x, start.y, start.z, start.headingDeg);
+  }
+
+  /** Apply the shared handling (suspension, gravity scale). Called once; again after a development retune. */
+  applyHandling(): void {
+    const h = this.handling;
+    this.body.setGravityScale(h.gravityScale, true);
+    this.body.setAngularDamping(h.angularDamping);
+    for (let i = 0; i < 4; i++) {
+      this.controller.setWheelSuspensionRestLength(i, h.suspension.restLengthM);
       this.controller.setWheelSuspensionStiffness(i, h.suspension.stiffness);
       this.controller.setWheelSuspensionCompression(i, h.suspension.compression);
       this.controller.setWheelSuspensionRelaxation(i, h.suspension.relaxation);
       this.controller.setWheelMaxSuspensionTravel(i, h.suspension.maxTravelM);
       this.controller.setWheelMaxSuspensionForce(i, 1e6);
       this.controller.setWheelSideFrictionStiffness(i, h.sideFrictionStiffness);
-    });
-    this.setParams(params);
-    this.buildModel(connectY, parts);
-    this.teleport(start.x, start.y, start.z, start.headingDeg);
+    }
   }
 
   /** Change the per-build inputs (Phase 3: from the selected parts). */
@@ -185,6 +200,13 @@ export class RoverVehicle {
     const targetSteer = steer * maxSteer;
     const rate = h.steerRateDegPerSecond * DEG * dt;
     this.steer += Math.max(-rate, Math.min(rate, targetSteer - this.steer));
+
+    // Wheels off the ground: pull the body down harder, so a hop over a bump stays as short as it would
+    // be for a real rover at real speed (time runs ×4, so a true time-lapse scales accelerations by ×16).
+    // On the ground gravity stays at gravityScale, so slopes, grip and climbing are unchanged.
+    const off = 4 - this.wheelsInContact; // contacts from the last controller update
+    this.airDownAccel = Math.max(0, (h.airGravityScale - h.gravityScale) * this.gravity * (off / 4));
+    if (this.airDownAccel > 0) this.body.applyImpulse({ x: 0, y: -m * this.airDownAccel * dt, z: 0 }, true);
 
     for (let i = 0; i < 4; i++) {
       this.controller.setWheelEngineForce(i, engine / 4);

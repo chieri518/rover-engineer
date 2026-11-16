@@ -145,6 +145,9 @@ export interface Tuning {
     movingSpeedMps: number; // above this speed the rover counts as driving
   };
   explore: { cellM: number; revealRadiusM: number };
+  /** The minimap's zoom: it starts at startSpanM and widens to fit the explored area plus marginM. */
+  minimap: { startSpanM: number; marginM: number; maxSpanM: number };
+  survey: SurveyTuning;
   /** Boulders scattered in the rocky areas (fresh craters): most are small, a few reach maxDiameterM. */
   boulders: {
     perRockyArea: number;
@@ -185,6 +188,14 @@ export interface MilestoneTuning {
   hydrogenModerateWithinM: number; // ..."moderate" within this one, "weak" farther away
 }
 
+/** Orbital survey leads: rough bearings to areas of interest, given at the landing briefing. */
+export interface SurveyTuning {
+  /** site: a terrain.json feature key (craterDescent, shadowedCrater) or feature name (Rocky area 1). */
+  leads: { id: string; site: string }[];
+  roundKmBelow1: number; // lead distances under 1 km are rounded to this many km...
+  roundKmAbove1: number; // ...and longer ones to this many
+}
+
 /** The Sun's path over the mission. Azimuths follow terrain.json: from local -z, turning toward +x. */
 export interface SunTuning {
   startAzimuthDeg: number; // subsolar longitude at mission start
@@ -216,11 +227,16 @@ export interface RoverHandling {
   maxLateralAccelMps2: number; // steering lock shrinks with speed so a full turn stays below this
   steerRateDegPerSecond: number;
   /**
-   * Gravity on the rover body as a multiple of lunar gravity. Driving is compressed ~4× like time;
-   * a true time-lapse would also scale accelerations by 4² = 16. A smaller factor keeps the rover
-   * on the ground at compressed speeds while keeping some lunar float.
+   * Gravity on the rover body on the ground, as a multiple of lunar gravity. Driving is compressed ~4×
+   * like time; a true time-lapse would also scale accelerations by 4² = 16, which would stop the rover
+   * climbing. airGravityScale applies the time-lapse value while the wheels are off the ground.
    */
   gravityScale: number;
+  /**
+   * Gravity scale while all four wheels are off the ground (in between for one to three wheels off).
+   * 16 = the time-lapse value: a hop over a bump lasts and rises as it would for a real rover at real speed.
+   */
+  airGravityScale: number;
   angularDamping: number;
 }
 
@@ -265,6 +281,14 @@ export interface TextFile {
     string
   >;
   landing: Record<'heading' | 'briefing', string>;
+  survey: Record<
+    | 'heading' | 'intro' | 'lead' | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName' | 'loading',
+    string
+  > & {
+    leads: Record<string, { name: string; source: string }>; // by lead id in tuning.survey
+    compass: string[]; // 16 points from north, full words
+    compassShort: string[]; // 16 points from north, abbreviated
+  };
   mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'

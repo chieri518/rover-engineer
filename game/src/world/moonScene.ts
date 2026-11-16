@@ -225,7 +225,6 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   let orbit: { azimuthDeg: number; distance: number; height: number } | null = null; // development close-up camera
   let shakeLeft = 0;
   let limits: MoonDriveLimits = { allowForward: true, allowReverse: true, speedFactor: 1 };
-  const gravityStep = tuning.mission.gravity * tuning.rover.gravityScale * PHYSICS_STEP;
   const lastVel = rover.velocity(new THREE.Vector3());
   const vel = new THREE.Vector3();
   const up = new THREE.Vector3();
@@ -255,6 +254,30 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   };
   const ndc = new THREE.Vector3();
 
+  // Airborne statistics for tuning the ride over bumps (development only).
+  const air = { steps: 0, airSteps: 0, partSteps: 0, run: 0, longestS: 0, hops: 0, maxRiseMps: 0, maxClearM: 0, maxDeltaV: 0, distM: 0 };
+  let airLast: { x: number; z: number } | null = null;
+  const recordAir = (vy: number, dv: number) => {
+    const c = rover.wheelsInContact;
+    const p = rover.position;
+    if (Math.abs(rover.speed) < 1) return; // only while driving
+    air.steps++;
+    if (airLast) air.distM += Math.hypot(p.x - airLast.x, p.z - airLast.z);
+    airLast = { x: p.x, z: p.z };
+    air.maxDeltaV = Math.max(air.maxDeltaV, dv);
+    if (c < 4) air.partSteps++;
+    if (c === 0) {
+      air.airSteps++;
+      if (air.run === 0) air.hops++;
+      air.run++;
+      air.longestS = Math.max(air.longestS, air.run * PHYSICS_STEP);
+      air.maxRiseMps = Math.max(air.maxRiseMps, vy);
+      const h = tuning.rover;
+      const ride = h.body.heightM / 2 - 0.12 + h.suspension.restLengthM + h.wheelRadiusM;
+      air.maxClearM = Math.max(air.maxClearM, p.y - fine.sample(p.x, p.z) - ride);
+    } else air.run = 0;
+  };
+
   // Frame-time samples for performance checks.
   const frameTimes: number[] = [];
   let acc = 0;
@@ -277,6 +300,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       rover.setInput(limitInput(raw));
       rover.speedFactor = limits.speedFactor;
       rover.update(PHYSICS_STEP);
+      const airStep = rover.airDownAccel * PHYSICS_STEP; // extra pull while wheels are off the ground
       if (limits.hardStop) rover.damp(HARD_STOP_KEEP);
       world.step();
       acc -= PHYSICS_STEP;
@@ -286,8 +310,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       seconds = Math.min(tuning.mission.lengthSeconds, seconds + stepDt);
       rover.sync();
       rover.velocity(vel);
-      const deltaV = Math.hypot(vel.x - lastVel.x, vel.y - lastVel.y + gravityStep, vel.z - lastVel.z);
+      const deltaV = Math.hypot(vel.x - lastVel.x, vel.y - lastVel.y + tuning.mission.gravity * tuning.rover.gravityScale * PHYSICS_STEP + airStep, vel.z - lastVel.z);
       lastVel.copy(vel);
+      if (import.meta.env.DEV) recordAir(vel.y, deltaV);
       if (opts.onStep) {
         const p = rover.position;
         rover.forward(fwd);
@@ -373,6 +398,21 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       },
       setSpeedBoost(k: number) {
         rover.speedBoost = k;
+      },
+      /** Airborne statistics while driving since the last reset (wheel contact per physics step). */
+      air() {
+        return { ...air, airShare: air.airSteps / Math.max(1, air.steps), partShare: air.partSteps / Math.max(1, air.steps), hopsPerKm: air.hops / Math.max(0.001, air.distM / 1000) };
+      },
+      resetAir() {
+        Object.assign(air, { steps: 0, airSteps: 0, partSteps: 0, run: 0, longestS: 0, hops: 0, maxRiseMps: 0, maxClearM: 0, maxDeltaV: 0, distM: 0 });
+        airLast = null;
+      },
+      /** Retune the shared handling live (development only), e.g. { airGravityScale: 16 } or { suspension: {...} }. */
+      tune(patch: Partial<typeof tuning.rover>) {
+        const h = tuning.rover as unknown as Record<string, unknown>;
+        for (const [k, v] of Object.entries(patch)) h[k] = typeof v === 'object' && v ? { ...(h[k] as object), ...v } : v;
+        rover.applyHandling();
+        return tuning.rover;
       },
       tipOver(rollDeg = 180) {
         rover.tipOver(rollDeg);
