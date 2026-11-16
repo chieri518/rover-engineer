@@ -76,7 +76,7 @@
   "debrief": {
     "failedRound": "The balance is below the pass mark for the next mission, Titan ({minimum}). The round must be restarted. Balance, research points and records return to their values at the start of the Mars round.",
     "passedRound": "The balance meets the pass mark for the next mission, Titan ({minimum}). The Mars round is complete.",
-    "continue": "Continue"
+    "continue": "Continue to Titan"
   },
   "causes": {
     "stuck": "Stuck in sand",

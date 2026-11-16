@@ -76,6 +76,8 @@ export interface SolTuning {
   horizonRateShare?: number;
   /** The mission starts this many seconds after sunrise of sol 1 (the Sun about 15° up), not at sunrise. */
   startSecondsIntoDay?: number;
+  /** Titan: a "sunset soon" notice this many seconds before the first sunset (absent: no notice). */
+  sunsetWarningSeconds?: number;
 }
 
 /** Night: lights on or sleep, and the map-wide night cold. Owner: rules (M3). */

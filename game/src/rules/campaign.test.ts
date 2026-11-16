@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buyRover, canStartMission, finishMission, newCampaign, nextMission, normalizeCampaign, recordLessons, restartRound, startRound } from './campaign';
+import { buyRover, canStartMission, finishMission, isPlayable, newCampaign, nextMission, normalizeCampaign, recordLessons, restartRound, startRound } from './campaign';
 import { testMilestones, testParts, testTiers, testTuning } from './testData';
 import type { Build, GameData } from './types';
 
@@ -107,10 +107,13 @@ describe('campaign', () => {
     expect(s.snapshot!.records).toEqual([]);
   });
 
-  it('runs Moon, then Mars, then the Titan end marker', () => {
+  it('runs Moon, then Mars, then Titan, then the end marker', () => {
     expect(nextMission('moon')).toBe('mars');
     expect(nextMission('mars')).toBe('titan');
-    expect(nextMission('titan')).toBeNull();
+    expect(nextMission('titan')).toBe('complete');
+    expect(nextMission('complete')).toBeNull();
+    expect(isPlayable('titan')).toBe(true);
+    expect(isPlayable('complete')).toBe(false);
   });
 
   it('a passed Moon round moves the campaign to Mars with a fresh restart snapshot', () => {
@@ -145,12 +148,26 @@ describe('campaign', () => {
     expect(restarted.records).toEqual(['touchdown']);
   });
 
-  it('a passed Mars round ends the campaign at the Titan marker', () => {
+  it('a passed Mars round moves the campaign to Titan with a fresh restart snapshot', () => {
     const s = startRound({ ...newCampaign(testTuning), mission: 'mars' as const, completed: ['moon' as const], balance: 1000 });
     const out = finishMission(s, { survived: true, secondsLasted: 600, earned: [] }, data);
     expect(out.failed).toBe(false);
     expect(out.state.mission).toBe('titan');
     expect(out.state.completed).toEqual(['moon', 'mars']);
+    expect(out.state.snapshot).toEqual({ balance: out.state.balance, rp: out.state.rp, records: [] });
+  });
+
+  it('a passed Titan round ends the campaign at the end marker; a Titan restart restores the Titan snapshot', () => {
+    const s = startRound({ ...newCampaign(testTuning), mission: 'titan' as const, completed: ['moon' as const, 'mars' as const], balance: 900 });
+    const out = finishMission(s, { survived: true, secondsLasted: 900, earned: [] }, data);
+    expect(out.failed).toBe(false);
+    expect(out.state.mission).toBe('complete');
+    expect(out.state.completed).toEqual(['moon', 'mars', 'titan']);
+    expect(out.state.log!.map((e) => e.mission)).toEqual(['titan']);
+    const lost = finishMission(buyRover(s, build, 900), { survived: false, cause: 'froze', secondsLasted: 500, earned: [] }, data);
+    expect(lost.failed).toBe(true); // below the final mark (testData: 0)
+    expect(lost.state.mission).toBe('titan');
+    expect(restartRound(lost.state).balance).toBe(900);
   });
 
   it('logs each passed mission for the campaign summary, and not a failed one', () => {
@@ -174,6 +191,17 @@ describe('campaign', () => {
     expect(s.snapshot).toEqual({ balance: 900, rp: 0, records: [] });
     const current = startRound(newCampaign(testTuning));
     expect(normalizeCampaign(current)).toBe(current);
+  });
+
+  it('a save at the old Titan end marker is now the Titan round', () => {
+    const old = { ...newCampaign(testTuning), mission: 'titan' as const, completed: ['moon' as const, 'mars' as const], balance: 950 };
+    const s = normalizeCampaign(old);
+    expect(s.mission).toBe('titan');
+    expect(isPlayable(s.mission)).toBe(true);
+    expect(s.snapshot).toEqual({ balance: 950, rp: 0, records: [] });
+    expect(normalizeCampaign(s)).toBe(s);
+    const finished = { ...newCampaign(testTuning), mission: 'complete' as const, completed: ['moon' as const, 'mars' as const, 'titan' as const] };
+    expect(normalizeCampaign(finished)).toBe(finished);
   });
 });
 

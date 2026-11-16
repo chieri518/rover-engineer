@@ -5,7 +5,7 @@
   "title": {
     "heading": "Rover Engineer",
     "subtitle": "REL — Rover Exploration Laboratory",
-    "kicker": "Campaign · The Moon, then Mars",
+    "kicker": "Campaign · The Moon, Mars and Titan",
     "coverCaption": "De Gerlache crater rim, lunar south pole. The Sun skims the horizon; Earth hangs low in the north.",
     "newCampaign": "Start new campaign",
     "continueCampaign": "Continue campaign"
@@ -256,7 +256,8 @@
   },
   "worlds": {
     "moon": "The Moon: de Gerlache crater rim, lunar south pole",
-    "mars": "Mars: Jezero crater"
+    "mars": "Mars: Jezero crater",
+    "titan": "Titan: Shangri-La dunes"
   },
   "comingSoon": {
     "heading": "Next mission: coming soon",

@@ -59,6 +59,7 @@ export const ticketScreen: Screen = (game, root) => {
       el('p', {}, t.briefing),
       el('p', { class: 'muted' }, t.tierRule),
       text.campaign && el('p', { class: 'muted' }, text.campaign.ticketNote),
+      text.titanCampaign && el('p', { class: 'muted world-warning' }, text.titanCampaign.solarNote),
       el('div', { class: 'rover-line' },
         row('Rover mass', `${q.mass} kg`),
         row('Rover size', `${q.size}`),

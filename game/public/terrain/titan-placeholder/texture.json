@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "generated": "2026-11-15",
+  "generator": "game/scripts/make-titan-placeholder.mjs",
+  "placeholder": true,
+  "playArea": {
+    "file": "albedo.png",
+    "encoding": "8-bit grayscale PNG",
+    "size_px": [
+      1601,
+      1601
+    ],
+    "pixel_m": 5,
+    "grid": "Same grid as heightmap.png: pixel (col, row) is centered on heightmap vertex (col, row), i.e. x = (col - 800) * 5, z = (row - 800) * 5. Row 0 = -z (north), column 0 = -x."
+  },
+  "source": {
+    "dataset": "Placeholder procedural ground texture (not real data)",
+    "credit": "Rover Engineer team"
+  }
+}

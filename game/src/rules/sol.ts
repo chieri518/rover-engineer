@@ -19,9 +19,20 @@ const DEG = Math.PI / 180;
 /** Mars's obliquity (axial tilt), degrees. */
 export const MARS_OBLIQUITY_DEG = 25.19;
 
+/**
+ * Titan's obliquity to the Sun, degrees: Titan orbits in Saturn's equatorial plane with its axis about
+ * normal to it, so its seasons follow Saturn's tilt (26.73°, NASA Saturn fact sheet).
+ */
+export const TITAN_OBLIQUITY_DEG = 26.73;
+
+/** Solar declination at solar longitude Ls for a planet with this obliquity, degrees: sin δ = sin ε sin Ls. */
+export function solarDeclinationDeg(solarLongitudeDeg: number, obliquityDeg: number): number {
+  return Math.asin(Math.sin(obliquityDeg * DEG) * Math.sin(solarLongitudeDeg * DEG)) / DEG;
+}
+
 /** Solar declination on Mars at solar longitude Ls, degrees. */
 export function marsSolarDeclinationDeg(solarLongitudeDeg: number): number {
-  return Math.asin(Math.sin(MARS_OBLIQUITY_DEG * DEG) * Math.sin(solarLongitudeDeg * DEG)) / DEG;
+  return solarDeclinationDeg(solarLongitudeDeg, MARS_OBLIQUITY_DEG);
 }
 
 /** Hour angle of sunrise and sunset (Sun's centre on the horizon), degrees. 180 = polar day, 0 = polar night. */
@@ -62,14 +73,15 @@ function warp(u: number, edge: number): number {
 
 /**
  * The sol clock after `seconds` of play. Mission time 0 is startSecondsIntoDay after sunrise of sol 1.
- * Needs the site latitude for the real day length.
+ * Needs the site latitude for the real day length, and the world's obliquity for the season (Mars by
+ * default; Titan passes TITAN_OBLIQUITY_DEG, its one day is a single "sol" of 900 s).
  */
-export function solClock(seconds: number, sol: SolTuning, latitudeDeg: number): SolState {
+export function solClock(seconds: number, sol: SolTuning, latitudeDeg: number, obliquityDeg = MARS_OBLIQUITY_DEG): SolState {
   const t = solClockSeconds(seconds, sol);
   const clockIndex = Math.floor(t / sol.secondsPerSol);
   const index = Math.min(clockIndex, sol.sols - 1); // the mission's last seconds (the dawn after the last night) stay on the last sol
   const into = t - clockIndex * sol.secondsPerSol;
-  const declinationDeg = marsSolarDeclinationDeg(solarLongitudeAt(t, sol));
+  const declinationDeg = solarDeclinationDeg(solarLongitudeAt(t, sol), obliquityDeg);
   const h0 = sunriseHourAngleDeg(latitudeDeg, declinationDeg);
   const nightSpan = 360 - 2 * h0;
 

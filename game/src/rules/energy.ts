@@ -17,6 +17,11 @@ export function solarIncome(energyIncome: number, sunlight: number, dt: number):
   return energyIncome * Math.min(Math.max(sunlight, 0), 1) * dt;
 }
 
+/** Constant-power income over dt seconds (PartEffects.constantPower): day and night, asleep or awake, regardless of the Sun. */
+export function constantPowerIncome(constantPower: number, dt: number): number {
+  return Math.max(0, constantPower) * dt;
+}
+
 /** How far the battery alone drives on flat ground (game meters). Shown on the design screen. */
 export function flatRangeM(batteryCapacity: number, energyPerMeter: number): number {
   return energyPerMeter > 0 ? batteryCapacity / energyPerMeter : Infinity;

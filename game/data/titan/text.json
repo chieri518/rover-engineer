@@ -1,0 +1,303 @@
+{
+  "_about": "Titan overlay, deep-merged over data/text.json (arrays replace). Owners: campaign and screens (T4) everything here except survey and instruments (milestones and survey, T5) and day, rain and cold (integration, T6). Titan sections: rules/titanTypes.ts TitanTextSections; the campaign section reuses the Mars shape (rules/marsTypes.ts MarsCampaignText), so its 'New on Titan' lines are in campaign.newOnMars. {placeholders} come from missionVars() in src/ui/tutorialText.ts. Every real fact cites its source (campaign.sources, titanCampaign.dragonflySource).",
+  "_placeholder": "Strings still marked [placeholder] are stubs for the owning track; real facts are fact-checked by research (R).",
+  "partText": {
+    "_about": "Titan wording for the shared parts, by part id; numbers stay the Moon's. Matches the Titan rules: almost no solar power, always-on cold, no driving at night without lights.",
+    "wheels-solid": {
+      "description": "Cheap and heavy. Lower grip in soft dune sand."
+    },
+    "power-fixed-panel": {
+      "description": "A flat panel. Almost no power at Titan: the thick haze lets through very little sunlight."
+    },
+    "power-solar-mast": {
+      "description": "Twice the fixed panel's solar income, which is still almost nothing at Titan. Light, expensive and bulky."
+    },
+    "lights-none": {
+      "description": "Saves cost, mass, and space. The rover cannot drive at night."
+    },
+    "lights-led": {
+      "description": "Lets the rover keep driving through the long night, at a high battery cost."
+    },
+    "heater-none": {
+      "description": "Saves cost, mass, and space. The rover freezes in Titan's constant cold."
+    },
+    "heater-rhu": {
+      "description": "Steady heat from decaying isotopes. Slows freezing in Titan's constant cold, even while the rover sleeps."
+    },
+    "battery-nih2": {
+      "description": "Proven and cheap. Stores the most, but heavy. At Titan the battery is the energy budget."
+    },
+    "battery-li-ion": {
+      "description": "Light, but expensive and stores less. At Titan the battery is the energy budget."
+    },
+    "instrument-drill": {
+      "name": "Sample drill",
+      "description": "Collects samples of the surface: dune sand and water ice, the kinds of ground where Titan's organic material may collect. Heavier and bulkier than the camera."
+    }
+  },
+  "design": {
+    "speedInfo": [
+      "The mission compresses one Titan day, about 16 Earth days, into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
+      "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
+      "Robotic rovers drive far slower. NASA's Curiosity and Perseverance rovers on Mars have a top speed of about 4 cm/s (0.15 km/h) on flat ground. Dragonfly, the real Titan mission, will fly instead of driving."
+    ]
+  },
+  "landing": {
+    "heading": "Landing: Shangri-La dunes",
+    "briefing": "The lander has touched down on a firm interdune corridor in the Shangri-La dune field on Titan, Saturn's largest moon. The rover is deploying."
+  },
+  "ticket": {
+    "briefing": "REL secures a spot for the rover on the next launch to Titan. The lander will set it down on a firm interdune corridor in the Shangri-La dunes."
+  },
+  "campaign": {
+    "kicker": "Mission 3 · Titan, Shangri-La dunes",
+    "carryOver": "Balance carried over from Mars: {balance}.",
+    "passMark": "This is the last mission: after it, the balance must stay at or above the final mark, {minimum}.",
+    "sameParts": "Parts and launch ticket tiers are the same as on the Moon in this version.",
+    "ticketNote": "The launch ticket tiers are the same as for the Moon in this version.",
+    "perseverance": "",
+    "newHeading": "New on Titan",
+    "newOnMars": [
+      "One Titan day: about {dayLeftMinutes} minutes of daylight, then a {nightMinutes}-minute night, then dawn for the last {dawnMinutes} minutes.",
+      "No useful sunlight: solar panels give almost no power, so the battery is the energy budget for the whole mission.",
+      "Always cold: the cold never lets up, day or night. Awake, the electronics and the heater keep the rover warm; asleep, in the rain, or without a heater, it cools.",
+      "Night: keep the lights on to drive, or sleep with P. Sleeping saves energy and makes time pass {nightClockRate} times faster, but the rover cools.",
+      "Methane rain: the lander's weather station forecasts the rainstorm about {rainWarningSeconds} s ahead."
+    ],
+    "sourcesLabel": "Landing briefing",
+    "sources": "Sources: NASA Science, Titan: Facts (science.nasa.gov/saturn/moons/titan/facts/); NASA NSSDC, Saturnian Satellite Fact Sheet (nssdc.gsfc.nasa.gov/planetary/factsheet/saturniansatfact.html); NASA Science, Dragonfly (science.nasa.gov/mission/dragonfly/); IAU Gazetteer of Planetary Nomenclature, Selk (planetarynames.wr.usgs.gov/Feature/14334); Lorenz, R.D., et al. (2021), Selection and characteristics of the Dragonfly landing site near Selk crater, Titan, Planet. Sci. J. 2:24 (doi.org/10.3847/PSJ/abd08f); Titan's surface light rendered from Huygens DISR data (free-astro.org/titan/)."
+  },
+  "mission": {
+    "briefing": "One Titan day in the Shangri-La dunes. The battery is the energy budget, and the cold never lets up.",
+    "controls": "W A S D or arrow keys to drive. Space to brake. P to power down (sleep) or power up.",
+    "loading": "Loading the Shangri-La dunes…",
+    "loadFailed": "Titan failed to load: {error}"
+  },
+  "hud": {
+    "endedSurvived": "The rover lasted through the Titan night to see the dawn.",
+    "lasted": "The rover operated for {days} of {total} Titan days."
+  },
+  "warnings": {
+    "lowEnergy": "Battery low. Power down with P to save energy.",
+    "cold": "The rover is freezing in the Titan cold."
+  },
+  "debrief": {
+    "passedRound": "The Titan mission is complete. It was the last mission of the campaign.",
+    "failedRound": "The balance is below the final mark ({minimum}). The Titan round must be restarted. Balance, research points and records return to their values at the start of the Titan round.",
+    "continue": "Finish the campaign"
+  },
+  "comingSoon": {
+    "_about": "The Campaign complete screen (screen id 'complete'). Its extra strings are in titanCampaign.complete.",
+    "heading": "Campaign complete",
+    "body": "All three missions are done: the Moon, Mars and Titan. Research points and the final balance are banked.",
+    "balance": "Final balance: {balance}"
+  },
+  "tutorial": {
+    "designHeading": "Rover design for Titan",
+    "driveHeading": "First drive on Titan",
+    "design": [
+      {
+        "title": "Mission 3: Titan",
+        "body": [
+          "The campaign ends on Titan, Saturn's largest moon, in the Shangri-La dune field. The balance carried over from Mars is {balance}.",
+          "Parts and launch ticket tiers are the same as on the Moon in this version: {tiers}.",
+          "This is the last mission. After it, the balance must stay at or above the final mark ({nextMinimum}), or the Titan round is restarted. A restart returns the balance, research points and records to their values at the start of the Titan round."
+        ]
+      },
+      {
+        "title": "No useful sunlight",
+        "body": [
+          "Titan's thick orange haze lets very little sunlight reach the ground. Solar panels give almost no power there, so in this version the rover runs on its battery alone.",
+          "The battery is the energy budget for the whole mission. Driving, staying awake and the lights all draw on it, and nothing refills it. The specification sheet shows the range on one battery.",
+          "Every rover still needs a part in the power slot. At Titan the cheaper panel does as well as the mast: both earn almost nothing."
+        ]
+      },
+      {
+        "title": "Always cold",
+        "body": [
+          "Titan is about −179 °C, day and night, everywhere on the map. The cold never lets up: when the cold meter is full, the rover freezes.",
+          "Awake, the rover's own electronics and a heater keep it warm, and the cold meter stays low. Asleep, only the heater fights the cold, so the rover cools. Rain cools every rover faster. Without a heater, the rover freezes before the mission ends.",
+          "Lights let the rover drive through the long night, at a high battery cost. Without lights it can only wait or sleep until dawn."
+        ]
+      }
+    ],
+    "drive": [
+      {
+        "title": "One Titan day",
+        "body": [
+          "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
+          "The mission lasts {minutes} minutes and covers one Titan day, about 16 Earth days. It starts in the morning: about {dayLeftMinutes} minutes of daylight, then a {nightMinutes}-minute night, then dawn for the last {dawnMinutes} minutes. There is no clock: the Sun is a faint disc behind the haze.",
+          "Dark dune sand is soft, and the wheels can dig in. The bright interdune corridors are firm."
+        ]
+      },
+      {
+        "title": "Energy and the long night",
+        "body": [
+          "The energy bar is the battery, and the panel adds almost nothing. When it reaches zero, the mission ends.",
+          "At sunset, choose. Lights on: the rover keeps driving, at a high battery cost. Sleep: power down with P; the battery drains slowly and the rover wakes by itself at dawn. A rover without lights cannot drive at night.",
+          "Asleep at night, time passes {nightClockRate} times faster, so the long night goes by quickly."
+        ]
+      },
+      {
+        "title": "Sleep saves energy, but the rover cools",
+        "body": [
+          "The cold never lets up. Awake, the electronics and the heater keep the rover warm, and driving adds a little more heat. Asleep, in the rain, or without a heater, the rover cools and the cold meter climbs.",
+          "Watch the cold meter while the rover sleeps. Power up with P to warm it again, at an energy cost.",
+          "Hard impacts and ground steeper than {maxSlope}° damage the rover, as on the Moon."
+        ]
+      },
+      {
+        "title": "Methane rainstorm",
+        "body": [
+          "One methane rainstorm crosses the site during the mission. The lander's weather station forecasts it about {rainWarningSeconds} s ahead, and it lasts about {rainSeconds} s.",
+          "In the rain, visibility closes in, photographs do not count, and the cold rises faster. Park on known ground, or keep to a route the rover has already driven."
+        ]
+      },
+      {
+        "title": "Instruments and map",
+        "instrument": {
+          "camera": "Camera: {key} (or its button) takes a photograph. The Dune sea photograph counts from a dune crest viewpoint, looking out over the dune field.",
+          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other. A first sample in the Selk ejecta field is a record."
+        },
+        "body": [
+          "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
+          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it.",
+          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing."
+        ]
+      }
+    ]
+  },
+  "credits": {
+    "terrainFallback": [
+      "Terrain modeled on Cassini data (NASA/JPL-Caltech/ASI, Cassini RADAR): dune sizes and spacing from Radebaugh et al. (2008), Icarus 194, 690-703, and Lorenz et al. (2006), Science 312, 724-727; Selk crater and the Dragonfly landing site from Lorenz et al. (2021), Planet. Sci. J. 2:24, and the IAU Gazetteer of Planetary Nomenclature. The dunes are generated, not real elevation."
+    ],
+    "imageryFallback": "Ground texture: generated, modeled on Cassini radar and infrared images (NASA/JPL-Caltech/ASI) and the Huygens surface images (ESA/NASA/JPL/University of Arizona).",
+    "spaceWeather": "Methane rainstorm"
+  },
+  "survey": {
+    "_owner": "T5. Lead ids match data/titan/tuning.json survey.leads. Directions and distances are computed, so the text names none. Lead texts fact-checked by research (R).",
+    "_sources": "Interdunes: Lorenz et al. 2021, Planet. Sci. J. 2:24; Radebaugh et al. 2008, Icarus 194:690. Dunes: Radebaugh et al. 2008. Selk and its ejecta: Lorenz et al. 2021 (Cassini RADAR and radiometry); IAU Gazetteer of Planetary Nomenclature, Selk.",
+    "intro": "Cassini radar maps show areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: radar maps of Titan locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
+    "leads": {
+      "patch": {
+        "name": "Bright interdune patch",
+        "source": "Cassini radar suggests firm, sand-free flats between some of the dunes, probably bedrock or ice. Dragonfly's scientists picked flats like these for landing."
+      },
+      "crest": {
+        "name": "Dune crest viewpoint",
+        "source": "Cassini radar shows the dunes as long dark stripes. From a dune crest, the rover can look out across the dune field."
+      },
+      "ejecta": {
+        "name": "Selk ejecta field",
+        "source": "Cassini radar shows rough ground around Selk crater, and its microwave data point to water ice in the ejecta thrown out by the impact."
+      },
+      "selk": {
+        "name": "Selk crater rim",
+        "source": "The crater Dragonfly will fly toward, about 80 km across. Its low rim is beyond the horizon and hidden by haze."
+      }
+    },
+    "legendRocky": "Ejecta field",
+    "legendDelta": "Dune crest",
+    "legendRegion": "Interdune corridor"
+  },
+  "instruments": {
+    "_owner": "T5: Titan instrument notices. Rain blocking photos is rain.photoBlocked (T6).",
+    "photoNoZone": "Photograph added to the album. Milestones count only on a dune crest.",
+    "viewpointHint": "{name}: a view over the dune sea. Press {key} to take a photograph.",
+    "captionDay": "{place}, Titan day {day}",
+    "captionSurface": "Shangri-La dunes",
+    "drillDone": "Surface sample collected."
+  },
+  "day": {
+    "_owner": "Integration (T6): the day and night notices and HUD lines on Titan. The lander does not recharge the rover, so nothing here sends it back to base.",
+    "sunset": "Sunset. The long Titan night begins: lights on to keep driving, or press P to sleep until dawn.",
+    "sunsetNoLights": "Sunset. Without lights the rover cannot drive in the long Titan night. Press P to sleep until dawn.",
+    "sunsetSoon": "The Sun is setting: the long Titan night begins in about {seconds} s.",
+    "dawn": "Dawn over the dunes. The rover made it through the Titan night.",
+    "dawnWoke": "Dawn over the dunes. The rover wakes up: it made it through the Titan night.",
+    "hudDay": "Titan day",
+    "hudNight": "Titan night",
+    "lightsOn": "Lights on. The battery is draining fast.",
+    "noLights": "No lights: the rover cannot drive at night. Press P to sleep until dawn.",
+    "sleepFastForward": "Sleeping · time runs {nightClockRate}× faster until dawn",
+    "sleepingDay": "Powered down. Press P to power up.",
+    "panelDay": "Solar panel: almost no power in the haze",
+    "panelNight": "Solar panel: no power at night"
+  },
+  "rain": {
+    "_owner": "Integration (T6), except credit (campaign and screens, T4).",
+    "forecast": "Lander weather station: methane rain in about {rainWarningSeconds} s. Photographs will not count while it falls, and the cold will bite harder.",
+    "forecastBar": "Methane rain in {seconds} s",
+    "started": "Methane rain for about {rainSeconds} s. Visibility is down, photographs do not count, and the rover cools faster.",
+    "cleared": "The methane rain has cleared.",
+    "photoBlocked": "Photograph added to the album, but photographs do not count in the methane rain.",
+    "credit": "The methane rain is modeled on Cassini's observations. Cassini saw a large equatorial cloud system in late 2010, and over 500,000 km2 of ground darkened afterward, most likely from methane rain (Turtle et al. 2011, Science 331:1414)."
+  },
+  "cold": {
+    "_owner": "Integration (T6).",
+    "warning": "Titan cold: the rover is freezing.",
+    "sleepCools": "Asleep, only the heater keeps the rover warm. It is cooling."
+  },
+  "titanCampaign": {
+    "_about": "Campaign and screens (T4): the solar warning on the design and ticket screens, the landing facts and Selk, the Dragonfly debrief, and the Campaign complete screen. Type: rules/titanTypes.ts TitanCampaignText.",
+    "solarNote": "Solar panels give almost no power at Titan. In this version the rover runs on its battery alone.",
+    "solarIncome": "Solar income at Titan {income} energy/s (almost none)",
+    "factsHeading": "Titan in a few facts",
+    "facts": [
+      "Titan is Saturn's largest moon. Its air is thick and mostly nitrogen: the pressure at the ground is about 1.5 times Earth's.",
+      "It is about −179 °C, day and night. Methane, a gas on Earth, can fall as rain here.",
+      "Gravity is 1.35 m/s², about one-seventh of Earth's and a little less than the Moon's.",
+      "Orange haze lets through little sunlight. Daytime at the ground is darker than Earth just after sunset."
+    ],
+    "selk": "The site is near Dragonfly's landing region, on its route to Selk, an impact crater about 80 km across where liquid water may once have mixed with organic material. Selk's center is about {distance} km {direction} of the lander, hidden in the haze.",
+    "dragonflyHeading": "The real mission flies",
+    "dragonfly": [
+      "NASA is sending a spacecraft to this region, and it will not drive. Dragonfly is a rotorcraft: a lander with eight rotors that flies from site to site.",
+      "Titan's thick air and low gravity make flying easier than driving there. A flight can cover many kilometers in under an hour and passes over the dunes instead of crossing soft sand.",
+      "Dragonfly is nuclear-powered. A radioisotope generator charges its battery during the long Titan night, and the generator's waste heat keeps the inside warm.",
+      "Launch is planned for no earlier than July 2028, with arrival at Titan in late 2034. Over its mission it will fly toward Selk crater."
+    ],
+    "compareHeading": "Your rover and Dragonfly",
+    "colRover": "Your rover",
+    "colDragonfly": "Dragonfly",
+    "compare": [
+      {
+        "label": "Vehicle",
+        "rover": "{wheels}, driving",
+        "dragonfly": "Rotorcraft, flying"
+      },
+      {
+        "label": "Power",
+        "rover": "{battery}, {capacity} energy; almost no solar power",
+        "dragonfly": "Radioisotope generator charging a battery"
+      },
+      {
+        "label": "Keeping warm",
+        "rover": "{heater}, and its own electronics while awake",
+        "dragonfly": "Waste heat from the generator, inside an insulated body"
+      },
+      {
+        "label": "Dunes",
+        "rover": "Drives over soft sand or follows the corridors",
+        "dragonfly": "Flies over them"
+      }
+    ],
+    "lesson": "The right vehicle depends on the world. On the Moon and Mars, wheels work well. On Titan, thick air and low gravity favor flight.",
+    "dragonflySource": "Sources: NASA Science, Dragonfly (science.nasa.gov/mission/dragonfly/); NASA Science, Dragonfly: Spacecraft and Instruments (science.nasa.gov/mission/dragonfly/spacecraft-and-instruments/); NASA Science, Radioisotope Power Systems missions (science.nasa.gov/radioisotope-power-systems-missions/); Lorenz, R.D., et al. (2021), Planet. Sci. J. 2:24 (doi.org/10.3847/PSJ/abd08f).",
+    "complete": {
+      "kicker": "Campaign · The Moon, Mars and Titan",
+      "startEnd": "The campaign started with {start} and ended with {balance}.",
+      "totalRow": "Campaign total",
+      "lessonsHeading": "What each world asked of the rover",
+      "lessons": [
+        "The Moon: mass against cost. Every kilogram and every unit of size counted toward the launch ticket.",
+        "Mars: a sunlight budget that changed every sol, with cold nights and a dust storm.",
+        "Titan: no useful sunlight, a fixed battery budget and constant cold. The real mission there flies."
+      ]
+    }
+  },
+  "causes": {
+    "stuck": "Stuck in dune sand",
+    "froze": "Froze in the Titan cold"
+  }
+}
