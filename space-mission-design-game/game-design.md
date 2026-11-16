@@ -1035,6 +1035,15 @@ Not planned for now: two-player mode and randomly generated maps.
 | Build preview *(decided November 15)* | The design screen shows the rover being assembled in 3D, live, as in a vehicle editor: part list on the left, a large viewport in the middle, the specification sheet on the right (on narrow screens the viewport becomes a strip above the parts and the sheet). The rover stands on a lit turntable in a dark assembly bay with a faint cyan grid. Only chosen parts appear; empty slots show nothing, and parts chosen before the chassis float where they would mount. A new or changed part drops into place with a brief cyan flash. The turntable turns slowly and the player can drag to rotate it; there are no labels. Reduced motion: no turning by itself and instant swaps. Without WebGL the viewport is hidden and the desk works as before. Presentation only: the preview uses the same model as the mission, and the complete rover looks the same in both. |
 | Real facts | **Optional.** A "Mission history" setting, on by default, that players who just want to play can turn off. When on: a one-sentence real fact on each milestone pop-up, and a debrief comparing the rover's fate with a real rover's. Tutorial text is always shown. The same optional pattern is used for other extra learning, such as the real-speed pop-up on the design screen. |
 
+### Sound *(decided November 16)*
+
+Quiet and spacious: the sound sits behind the game and never competes with it. Presentation only; no game rule depends on it.
+
+- **Made in the browser.** Music and sound effects are synthesized live with the Web Audio API: no audio files, no downloads. Audio starts on the player's first click or key press (browsers require it) and pauses while the tab is hidden. Without Web Audio the game plays silently.
+- **Music.** Original ambient music: slow pads and drones, sparse tones picked at random from a scale, gentle filtered noise and a long reverb. It evolves endlessly with no loop seam. One mood per place, crossfading on screen changes: the menus and the design, ticket, landing and debrief screens share a calm theme; the Moon mission is sparse, cold, high and empty; Mars is warmer, with soft wind that rises in a dust storm; Titan is low and murky, with methane rain heard while it rains.
+- **Effects.** The rover's motor hum follows its speed, with a soft crunch from the wheels on the ground (on the Moon, with no air, the hum is muffled, as if felt through the chassis). Subtle button clicks, part added and removed on the design screen, a launch sound. A chime on each milestone, and a cue per instrument (camera shutter, drill whir, spectrometer blip, seismometer ping, station set down). Warnings are clear but soft: low battery, damage and impacts, cold, flares, moonquakes, storms and rain. They sound once when they start, never on repeat.
+- **Controls.** Separate Music and Effects volume sliders on the Settings screen (defaults: music 25%, effects 60%), and a mute toggle in the mission HUD; the M key mutes or unmutes anywhere. All are saved with the other settings.
+
 ## 12. Tech stack and fit with the brief
 
 | Part | Choice | Why |
