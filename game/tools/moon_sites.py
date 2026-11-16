@@ -32,7 +32,12 @@ COLD_MIN_AREA = 2000.0  # m^2 (P1)
 COLD_HORIZON_MAX_AREA = 0.1e6  # m^2: the 5 m horizon check runs for patches smaller than this
 COLD_HORIZON_STEP = 10.0  # m between horizon-check samples
 COLD_HORIZON_AZ_STEP = 1.0  # deg
-SUBSOLAR_LAT_MAX = 1.54  # deg, the Sun's largest distance from the equator over the 18.6-year cycle
+# Physical constants for the permanent-shadow check (not game tuning, so not read from tuning.json):
+# the Moon's spin axis is tilted 1.54 deg to the ecliptic, so over the 18.6-year cycle the subsolar latitude
+# stays within +/-1.54 deg (the value Mazarico et al. 2011 use for the LOLA PSR maps). tuning.json's
+# sun.subsolarLatitudeDeg is the one value the game picked for its mission; site_features() warns if it ever
+# leaves this range. The Sun's angular radius is 0.267 deg (SUN_RADIUS_TAN in src/world/terrainData.ts).
+SUBSOLAR_LAT_MAX = 1.54  # deg
 SUN_RADIUS_DEG = 0.267
 
 CRATER_MAX_DIST = 1600.0  # m (P2)
@@ -60,8 +65,16 @@ DIRS = [("north", "North"), ("ne", "NE"), ("east", "East"), ("se", "SE"),
         ("south", "South"), ("sw", "SW"), ("west", "West"), ("nw", "NW")]
 
 
+def nanround(a, fn, nd=3):
+    """fn over the non-NaN values of a, rounded; None if all are NaN (no data in the LOLA map)."""
+    a = a[np.isfinite(a)]
+    return round(float(fn(a)), nd) if a.size else None
+
+
 def compass(dx, dz):
-    """8-point compass sector of a direction in the local frame (azimuth from -z toward +x)."""
+    """8-point compass sector of a direction in the local frame (azimuth from -z toward +x). Local -z points
+    to polar-stereographic +Y (longitude 0, roughly toward Earth), not to geographic north: at the south
+    pole every direction is north. The plan's names ("East crater") use the same convention."""
     az = (math.degrees(math.atan2(dx, -dz)) + 360) % 360
     return DIRS[int(((az + 22.5) % 360) // 45)]
 
@@ -108,6 +121,7 @@ class Window:
         return float((c - self.half) * RES), float((r - self.half) * RES)
 
     def outline(self, field, level, mask, max_pts=48):
+        field = np.nan_to_num(field)
         cs = measure.find_contours(np.where(ndimage.binary_dilation(mask, iterations=3), field, 0), level)
         if not cs:
             return []
@@ -129,8 +143,10 @@ def max_sun_elevation(az_deg, lat_deg, lon_deg):
 
 
 def horizon_psr(w: Window, mask):
-    """5 m horizon check: sample points (every COLD_HORIZON_STEP m) around the patch where terrain hides the
-    whole Sun disc at every azimuth, for the highest Sun of the 18.6-year cycle."""
+    """5 m horizon check: sample points (every COLD_HORIZON_STEP m) where terrain hides the whole Sun disc at
+    every azimuth, for the highest Sun of the 18.6-year cycle. The samples cover the patch and 40 m around it
+    (the 5 m shadow can reach past the 60 m map's patch): permanentShadowArea_m2 counts all of them,
+    insidePatch_m2 only those inside the patch."""
     rows, cols = np.nonzero(ndimage.binary_dilation(mask, iterations=int(40 / RES)))
     x0, x1 = w.X[0, cols.min()], w.X[0, cols.max()]
     z0, z1 = w.Z[rows.min(), 0], w.Z[rows.max(), 0]
@@ -149,15 +165,22 @@ def horizon_psr(w: Window, mask):
         ht = w.terrain._march(x, z, eye, d, t, 0.0)
         margin = np.minimum(margin, np.degrees(np.arctan(ht)) - el)
     psr = margin > 0
-    if not psr.any():
-        return {"permanentShadowArea_m2": 0, "centroidLocal": None, "sampling_m": COLD_HORIZON_STEP}
-    return {"permanentShadowArea_m2": int(psr.sum() * COLD_HORIZON_STEP ** 2),
-            "centroidLocal": {"x": round(float(x[psr].mean())), "z": round(float(z[psr].mean()))},
+    ri = np.clip(np.round(z / RES).astype(int) + w.half, 0, w.n - 1)
+    ci = np.clip(np.round(x / RES).astype(int) + w.half, 0, w.n - 1)
+    inside = mask[ri, ci]
+    cell = COLD_HORIZON_STEP ** 2
+    return {"permanentShadowArea_m2": int(psr.sum() * cell),
+            "insidePatch_m2": int((psr & inside).sum() * cell),
+            "searchedAround_m": 40,
+            "centroidLocal": ({"x": round(float(x[psr].mean())), "z": round(float(z[psr].mean()))}
+                              if psr.any() else None),
             "sampling_m": COLD_HORIZON_STEP}
 
 
 def cold_traps(w: Window, psr_native):
     """psr_native(mask) -> number of native 60 m PSR pixels (fraction >= 0.5) whose centers fall in mask."""
+    from skimage.draw import polygon as fill_polygon
+
     lab, n = ndimage.label(w.psr >= 0.5, structure=np.ones((3, 3)))
     ex = w.existing
     rocky1 = next((f for f in ex.get("rockyAreas") or [] if f["name"] == "Rocky area 1"), None)
@@ -168,14 +191,26 @@ def cold_traps(w: Window, psr_native):
         area = float(m.sum() * RES * RES)
         if area < COLD_MIN_AREA:
             continue
-        cx, cz = float(w.X[m].mean()), float(w.Z[m].mean())
-        it = {"x": cx, "z": cz, "mask": m, "area": area}
-        if shadow and m[w.rc(shadow["centroidLocal"]["x"], shadow["centroidLocal"]["z"])]:
-            it.update(id="cold-trap-shadowed-crater", name="Shadowed crater")
-        elif rocky1 and math.hypot(cx - rocky1["local"]["x"], cz - rocky1["local"]["z"]) <= rocky1["radius_m"]:
-            it.update(id="cold-trap-rocky-area-1", name="Rocky area 1 cold patch")
-        out.append(it)
+        out.append({"x": float(w.X[m].mean()), "z": float(w.Z[m].mean()), "mask": m, "area": area})
+    # Special sites: each fixed id goes to the one patch that overlaps the existing feature most.
+    special = []
+    if shadow and shadow.get("outlineLocal_xz"):
+        poly = np.array(shadow["outlineLocal_xz"], float)
+        zone = np.zeros_like(w.psr, bool)
+        rr, cc = fill_polygon(poly[:, 1] / RES + w.half, poly[:, 0] / RES + w.half, zone.shape)
+        zone[rr, cc] = True
+        special.append(("cold-trap-shadowed-crater", "Shadowed crater", zone))
+    if rocky1:
+        zone = np.hypot(w.X - rocky1["local"]["x"], w.Z - rocky1["local"]["z"]) <= rocky1["radius_m"]
+        special.append(("cold-trap-rocky-area-1", "Rocky area 1 cold patch", zone))
+    for sid, sname, zone in special:
+        free = [it for it in out if not it.get("id")]
+        overlap = [int((it["mask"] & zone).sum()) for it in free]
+        if overlap and max(overlap) > 0:
+            free[int(np.argmax(overlap))].update(id=sid, name=sname)
     name_by_direction(out, w.land, "cold-trap", "{} cold trap")
+    ids = [it["id"] for it in out]
+    assert len(ids) == len(set(ids)), f"duplicate cold trap ids: {ids}"
     feats = []
     for it in sorted(out, key=lambda it: math.hypot(it["x"] - w.land[0], it["z"] - w.land[1])):
         m = it["mask"]
@@ -188,13 +223,13 @@ def cold_traps(w: Window, psr_native):
              "centroidLocal": f["local"],
              "outlineLocal_xz": w.outline(w.psr, 0.5, m),
              "area_m2": round(it["area"]),
-             "maxPsrFraction": round(float(w.psr[m].max()), 2),
+             "maxPsrFraction": nanround(w.psr[m], np.nanmax, 2),
              "sourcePixels60m": psr_native(m),
              "distanceFromLanding_m": f["distanceFromLanding_m"],
              "driveDistanceFromLanding_m": dl,
              "drivePoint": {"x": dp[0], "z": dp[1]} if dp else None,
-             "avgIllumination": round(float(w.ill[m].mean()), 3),
-             "earthVisibility": round(float(w.ear[m].mean()), 3),
+             "avgIllumination": nanround(w.ill[m], np.nanmean),
+             "earthVisibility": nanround(w.ear[m], np.nanmean),
              "horizonCheck5m": horizon_psr(w, m) if small else None}
         feats.append(f)
     return feats
@@ -240,7 +275,7 @@ def crater_shape(w: Window, r, c, hs1, lin):
     rs = np.arange(0, 33, dtype=float)  # 0 to 160 m in 5 m steps
     rr = r + np.outer(rs, -np.cos(ang))
     cc = c + np.outer(rs, np.sin(ang))
-    hp = ndimage.map_coordinates(w.ht, [rr, cc], order=1)
+    hp = ndimage.map_coordinates(w.ht, [rr, cc], order=1, mode="nearest")
     # The azimuth mean of a plane at radius r equals its center value, so this profile ignores the regional slope.
     m = ndimage.uniform_filter1d(hp.mean(axis=1), 3, mode="nearest") - hp[0, 0]
     k = int(np.argmax(m[3:19])) + 3  # rim radius 15 to 90 m
@@ -253,7 +288,7 @@ def crater_shape(w: Window, r, c, hs1, lin):
     regional = math.degrees(math.atan(math.hypot(coef[1], coef[2]) / (k2 * RES)))
     rim = hp[k] - (A @ coef - coef[0]) * k / k2
     comp = float((rim - hp[0, 0] > 0.5 * depth).mean()) if depth > 0 else 0.0
-    slp = ndimage.map_coordinates(w.sl, [rr[:k + 1], cc[:k + 1]], order=1)
+    slp = ndimage.map_coordinates(w.sl, [rr[:k + 1], cc[:k + 1]], order=1, mode="nearest")
     ej = None
     if lin is not None:
         nn = 4 * k + 1
@@ -435,11 +470,11 @@ def low_light_patches(w: Window, traps):
             "outlineLocal_xz": w.outline(q.astype(float), 0.5, q),
             "area_m2": round(it["area"]),
             "innerPoint": f["local"], "innerRadius_m": round(it["innerR"]),
-            "avgIllumination": round(float(w.ill[q].mean()), 3),
-            "minIllumination": round(float(w.ill[q].min()), 3),
+            "avgIllumination": nanround(w.ill[q], np.nanmean),
+            "minIllumination": nanround(w.ill[q], np.nanmin),
             "meanSlope_deg": round(float(s[q].mean()), 1),
-            "maxPsrFraction": round(float(w.psr[q].max()), 2),
-            "earthVisibility": round(float(w.ear[q].mean()), 3),
+            "maxPsrFraction": nanround(w.psr[q], np.nanmax, 2),
+            "earthVisibility": nanround(w.ear[q], np.nanmean),
             "distanceFromLanding_m": f["distanceFromLanding_m"],
             "driveDistanceFromLanding_m": dl,
             "drivePoint": {"x": dp[0], "z": dp[1]} if dp else None,
@@ -452,7 +487,23 @@ def low_light_patches(w: Window, traps):
 # =============================================================================
 
 
+def check_tuning():
+    """Warn if the game's mission Sun ever leaves the range the permanent-shadow check assumes."""
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "data" / "tuning.json"
+    try:
+        sub = json.loads(path.read_text())["sun"]["subsolarLatitudeDeg"]
+    except (OSError, KeyError, ValueError):
+        return
+    if abs(sub) > SUBSOLAR_LAT_MAX + 1e-9:
+        print(f"[moon_sites] warning: tuning.json sun.subsolarLatitudeDeg {sub} is outside +/-{SUBSOLAR_LAT_MAX}; "
+              "the game's Sun can light ground the permanent-shadow check calls dark", flush=True)
+
+
 def site_features(w: Window, psr_native):
+    check_tuning()
     traps = cold_traps(w, psr_native)
     craters = young_craters(w)
     tracks = boulder_tracks(w, craters)
@@ -462,7 +513,10 @@ def site_features(w: Window, psr_native):
         "game/tools/moon_sites.py; added for review by the pipeline owner.",
         "coldTraps: LOLA 60 m PSR fraction >= 0.5 (bilinear to 5 m), at least 2,000 m^2. Patches of one or two "
         "60 m source pixels (sourcePixels60m) are at the map's resolution limit; horizonCheck5m repeats the test on "
-        "the game's 5 m heights (whole Sun disc hidden at every azimuth for the highest Sun of the 18.6-year cycle).",
+        "the game's 5 m heights (whole Sun disc hidden at every azimuth for the highest Sun of the 18.6-year cycle): "
+        "permanentShadowArea_m2 counts the patch and 40 m around it, insidePatch_m2 only the patch.",
+        "Compass names and ids use the local frame: 'north' is local -z (toward longitude 0 and Earth), not "
+        "geographic north.",
         "youngCraters: depressions with a raised rim in the 5 m DEM. freshness 'fresh' means depth/diameter >= 0.08 "
         "and an inner wall of at least 30 deg; ejectaAlbedoRatio is the rim-to-2R ring over the 2.5R-4R ring in "
         "albedo.jpg (LROC NAC, shading removed; > 1 is brighter ejecta).",

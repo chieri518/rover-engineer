@@ -82,8 +82,11 @@ NEW_NODES = [
      "attrs": {"coldTrap": "cold-trap-rocky-area-1"}},
     {"id": "hydrogen", "list": "lowLightPatches", "feature": "low-light-nw", "at": "innerPoint",
      "attrs": {"lowLightPatch": "low-light-nw"}},
-    # The Earth-facing bench between the lander and the East cluster (plan: 300 to 450 m out): the most
-    # level ground (mean slope under 5 deg over 45 m) east of the lander at that range, Earth 6.4 deg clear.
+    # The Earth-facing bench (plan: 300 to 450 m out, toward the East cluster). Picked by hand with this rule:
+    # among 5 m cells 300 to 450 m from the landing with x greater than the landing's (the East side) and a
+    # mean slope under 5 deg over 45 m (slope.png, 9 x 9 mean), the one where Earth's center (tuning.json
+    # earth) stands highest above the terrain horizon from 1 m up. Only a strip at (-465..-455, 120..165)
+    # passes; (-460, 130) is 304 m ESE with Earth 6.4 deg clear. It is south of the line to East crater.
     {"id": "eastBench", "point": {"x": -460, "z": 130}, "attrs": {"note": "Earth-facing bench, East cluster"}},
 ]
 
@@ -240,11 +243,13 @@ class DriveGrid:
         self.half = n // 2
         gy, gx = np.gradient(self.z10, DRIVE_RES)
         self.slope = np.degrees(np.arctan(np.hypot(gx, gy)))
+        # Cold cells sample cold-mask.png at 5 m pixel (2r, 2c), i.e. at the cell's nominal position, so they
+        # sit 2.5 m from the averaged heights' true center (in x and z). Kept: it reproduces balance.json.
         cold = terrain.cold[::k, ::k][:n, :n] >= 0.5
         self.cold = cold
         base = 1.0 + SLOPE_WEIGHT * (self.slope / DRIVE_MAX_SLOPE) ** 2
         base[self.slope > DRIVE_MAX_SLOPE] = np.inf
-        m = int(EDGE_MARGIN / DRIVE_RES) // 2
+        m = int(EDGE_MARGIN / DRIVE_RES)
         base[:m, :] = base[-m:, :] = np.inf
         base[:, :m] = base[:, -m:] = np.inf
         self.cost_dark = base  # shadow allowed

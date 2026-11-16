@@ -639,7 +639,8 @@
       "On the de Gerlache side of the play area 43% of the ground is steeper than 20 deg at 20 m scale, but routes exist: the lowest drivable point on that side is at 165 m (landing is 1537 m).",
       "The de Gerlache crater floor PSR is NOT inside the play area: its nearest point is 9.7 km from the landing point. The shadowed crater used here is a smaller real PSR on the rim's outer flank.",
       "Moon sites features (coldTraps, youngCraters, boulderTrackCandidates, lowLightPatches) come from game/tools/moon_sites.py; added for review by the pipeline owner.",
-      "coldTraps: LOLA 60 m PSR fraction >= 0.5 (bilinear to 5 m), at least 2,000 m^2. Patches of one or two 60 m source pixels (sourcePixels60m) are at the map's resolution limit; horizonCheck5m repeats the test on the game's 5 m heights (whole Sun disc hidden at every azimuth for the highest Sun of the 18.6-year cycle).",
+      "coldTraps: LOLA 60 m PSR fraction >= 0.5 (bilinear to 5 m), at least 2,000 m^2. Patches of one or two 60 m source pixels (sourcePixels60m) are at the map's resolution limit; horizonCheck5m repeats the test on the game's 5 m heights (whole Sun disc hidden at every azimuth for the highest Sun of the 18.6-year cycle): permanentShadowArea_m2 counts the patch and 40 m around it, insidePatch_m2 only the patch.",
+      "Compass names and ids use the local frame: 'north' is local -z (toward longitude 0 and Earth), not geographic north.",
       "youngCraters: depressions with a raised rim in the 5 m DEM. freshness 'fresh' means depth/diameter >= 0.08 and an inner wall of at least 30 deg; ejectaAlbedoRatio is the rim-to-2R ring over the 2.5R-4R ring in albedo.jpg (LROC NAC, shading removed; > 1 is brighter ejecta).",
       "boulderTrackCandidates: placements, not detections (3 m boulders and their tracks are below the data's resolution). local is the foot where the ground levels off, wallTop the top of the run.",
       "lowLightPatches: average illumination < 15%, outside permanent shadow, slope < 15 deg (heights smoothed over ~20 m), within 1 km. innerPoint is the point farthest inside the patch."
@@ -888,6 +889,8 @@
         "earthVisibility": 0.084,
         "horizonCheck5m": {
           "permanentShadowArea_m2": 60100,
+          "insidePatch_m2": 51300,
+          "searchedAround_m": 40,
           "centroidLocal": {
             "x": -1209,
             "z": -254
@@ -1114,6 +1117,8 @@
         "earthVisibility": 0.343,
         "horizonCheck5m": {
           "permanentShadowArea_m2": 7400,
+          "insidePatch_m2": 2200,
+          "searchedAround_m": 40,
           "centroidLocal": {
             "x": -142,
             "z": 109
@@ -1340,6 +1345,8 @@
         "earthVisibility": 0.0,
         "horizonCheck5m": {
           "permanentShadowArea_m2": 900,
+          "insidePatch_m2": 800,
+          "searchedAround_m": 40,
           "centroidLocal": {
             "x": -973,
             "z": 899
@@ -1566,6 +1573,8 @@
         "earthVisibility": 0.326,
         "horizonCheck5m": {
           "permanentShadowArea_m2": 1900,
+          "insidePatch_m2": 800,
+          "searchedAround_m": 40,
           "centroidLocal": {
             "x": 1165,
             "z": 521
@@ -1792,6 +1801,8 @@
         "earthVisibility": 0.132,
         "horizonCheck5m": {
           "permanentShadowArea_m2": 36200,
+          "insidePatch_m2": 26900,
+          "searchedAround_m": 40,
           "centroidLocal": {
             "x": 513,
             "z": -2339
@@ -2114,6 +2125,8 @@
         "earthVisibility": 0.001,
         "horizonCheck5m": {
           "permanentShadowArea_m2": 8500,
+          "insidePatch_m2": 4800,
+          "searchedAround_m": 40,
           "centroidLocal": {
             "x": -3548,
             "z": -426
@@ -2340,6 +2353,8 @@
         "earthVisibility": 0.126,
         "horizonCheck5m": {
           "permanentShadowArea_m2": 46900,
+          "insidePatch_m2": 40800,
+          "searchedAround_m": 40,
           "centroidLocal": {
             "x": -3771,
             "z": -806
@@ -2885,6 +2900,8 @@
         "earthVisibility": 0.047,
         "horizonCheck5m": {
           "permanentShadowArea_m2": 12300,
+          "insidePatch_m2": 5600,
+          "searchedAround_m": 40,
           "centroidLocal": {
             "x": 2443,
             "z": 1646

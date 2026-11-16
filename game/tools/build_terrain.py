@@ -586,8 +586,8 @@ def main():
              "elevation_m": round(float(z_w[r, c]), 1),
              "distanceFromLanding_m": round(math.hypot(x - land_x, z - land_z)),
              "slope_deg": round(float(sl_w[r, c]), 1),
-             "avgIllumination": round(float(ill_w[r, c]), 3),
-             "earthVisibility": round(float(ear_w[r, c]), 3)}
+             "avgIllumination": None if np.isnan(ill_w[r, c]) else round(float(ill_w[r, c]), 3),
+             "earthVisibility": None if np.isnan(ear_w[r, c]) else round(float(ear_w[r, c]), 3)}
         f.update(extra)
         return f
 
@@ -627,7 +627,8 @@ def main():
     if albedo is not None and albedo.shape != ht_w.shape:
         albedo = None
     heights = HeightTerrain(Grid(ht_w, PLAY_RES), Grid(near_t, NEAR_RES), Grid(far_t, FAR_RES), psr_w)
-    win = moon_sites.Window(ht_w, sl_w, np.nan_to_num(psr_w), np.nan_to_num(ill_w), np.nan_to_num(ear_w), albedo,
+    # NaN (no data in a LOLA map) stays NaN: moon_sites skips it instead of reading it as dark or unshadowed.
+    win = moon_sites.Window(ht_w, sl_w, psr_w, ill_w, ear_w, albedo,
                             (land_x, land_z), point5, drive_near, heights, ps_to_latlon(X0, Y0),
                             {"rockyAreas": rocky, "shadowedCrater": shadow})
     site_feats, site_notes = moon_sites.site_features(win, psr_native)
