@@ -13,7 +13,7 @@ export const MASTER = {
 
 /** The bus gains at a slider's 100%; a slider maps to its bus by volumeGain (a squared curve). */
 export const BUS = {
-  musicMax: 0.55,
+  musicMax: 0.9,
   effectsMax: 0.9,
 };
 
@@ -103,14 +103,14 @@ export const MOTOR = {
   idleHz: 46,
   topHz: 128, // at top speed
   effortHz: 8, // added while the throttle is held
-  idleGain: 0.05,
-  speedGain: 0.16,
-  effortGain: 0.05,
+  idleGain: 0.03,
+  speedGain: 0.08,
+  effortGain: 0.025,
   cutoffHz: [500, 1500] as [number, number], // lowpass at idle and at top speed
   moonCutoffHz: [220, 420] as [number, number], // no air on the Moon: muffled, felt through the chassis
   moonGain: 0.75,
   whineGain: 0.12, // a faint gear whine at 3x the motor pitch, relative to the hum
-  crunchGain: 0.09,
+  crunchGain: 0.06,
   crunchHz: 1800,
   moonCrunchHz: 700,
   crunchGrainHz: [3, 14] as [number, number], // grit rate at a crawl and at top speed
@@ -128,7 +128,7 @@ export const WEATHER = {
 /** One-shot effects. */
 export const SFX = {
   maxVoices: 10, // more at once are dropped
-  click: 0.05,
+  click: 0.12,
   part: 0.09,
   launch: 0.22,
   chime: 0.1,
