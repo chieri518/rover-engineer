@@ -19,6 +19,7 @@ import { MarsSky } from './marsSky';
 import { MARS_GROUND_HEX, marsLook, type MarsLook } from './marsLook';
 import { TitanRain, TitanSky } from './titanSky';
 import { titanLook, type TitanLook } from './titanLook';
+import { startTitanGround } from './titanGround'; // titan-fx: ground
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
@@ -313,6 +314,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   const boulders = new Boulders(rapier, world, opts.boulderAreas ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
   patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, photometry);
   scene.add(boulders.mesh);
+  const titanGround = titan ? await startTitanGround({ scene, uniforms: lightUniforms, tuning, world: opts.world, landing, groundAt: (x, z) => fine.sample(x, z) }) : null; // titan-fx: ground
   const earthAzimuthRad = (tuning.earth.azimuthDeg * Math.PI) / 180;
   const input = new KeyboardInput();
   const chase = new ChaseCamera(camera, (x, z) => terrain.heightAt(x, z));
@@ -474,6 +476,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       camera.position.z += (Math.random() - 0.5) * a;
     }
     sky.update(camera, sun);
+    titanGround?.update(pos); // titan-fx: ground
     if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, look.rainStreaks, look.rainColor);
     draw();
 
@@ -654,6 +657,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       observer.disconnect();
       input.dispose();
       boulders.dispose();
+      titanGround?.dispose(); // titan-fx: ground
       rain?.dispose();
       rover.dispose();
       lander.dispose();
