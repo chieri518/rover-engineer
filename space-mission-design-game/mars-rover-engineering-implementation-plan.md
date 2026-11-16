@@ -493,8 +493,8 @@ Small, and it settles two open items from the merge on its own, so it can ship b
 - `SupportSlot`, `Build.support`, `parts.supportSlots` per world (Mars overlay); `selectedParts`, `isCompleteBuild`, `missingSlots`, the quote and the tier check include support parts.
 - `needs` on instrument parts; `payloadProblems` and the desk enforce it; the Mars X-ray overlay.
 - Build preview and rover model: the RTG fins at the back, the deployable arrays as wings, the mast with a head, the arm folded at the front.
-- Build enumeration: `allBuilds` per world, with support slots, for the affordability data test (no Mars `winPaths` model; see MS13 in the sites plan).
-- *Revised:* a data test that every reference build in [Affordability](#affordability-check-revised) can launch (under the Mars tiers, once designed), and that reports which relationship answers can be bought below 780. The known failures (M14) are listed, not asserted, until the balance patch.
+- Build enumeration: `allBuildsWithSupport` (`rules/builds.ts`) per world, with support slots, for the affordability data test (no Mars `winPaths` model; see MS13 in the sites plan).
+- *Revised:* a data test that every reference build in [Affordability](#affordability-check-revised) can launch (under the Mars tiers, once designed), and that reports which relationship answers can be bought below 780. The known failures (M14) are listed, not asserted, until the balance patch. *Built:* the test asserts only that the reference builds and relationship answers can launch; spends and launch shares are reported, not asserted (the winPaths balance model is retired; Mars balance is by hand).
 
 **Done when:** a Mars rover can be built with each new part, the spec sheet's night budget changes with the power source and heater, and the Moon desk is unchanged.
 

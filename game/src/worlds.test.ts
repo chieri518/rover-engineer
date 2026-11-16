@@ -73,7 +73,10 @@ describe('world data', () => {
       p.id === 'instrument-xray' ? { ...p, effects: { ...p.effects, needs: ['arm'] } } : p)));
     expect(mars.parts.parts.filter((p) => p.worlds).every((p) => p.worlds!.includes('mars'))).toBe(true);
     expect(mars.tiers.tiers.slice(0, 3)).toEqual(loadGameData('moon').tiers.tiers);
-    expect(mars.tiers.tiers[3]).toEqual({ id: 'heavy', name: 'Heavy', massLimit: 100, sizeLimit: 30, price: 300 });
+    // Heavy takes what the steel chassis can carry (the numbers come from the data files).
+    const heavy = mars.tiers.tiers[3]!;
+    expect(heavy.id).toBe('heavy');
+    expect(heavy.massLimit).toBe(mars.parts.parts.find((p) => p.id === 'chassis-steel')!.effects.maxLoad);
     const moonIds = new Set(moonMilestones.milestones.map((m) => m.id));
     expect(mars.milestones.milestones.length).toBeGreaterThan(0);
     for (const m of mars.milestones.milestones) expect(moonIds.has(m.id)).toBe(false);

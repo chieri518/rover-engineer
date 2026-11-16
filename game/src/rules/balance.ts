@@ -1,6 +1,6 @@
 // Offline balance evaluator: every build's cost, ticket, speed and energy, plus Pareto dominance.
 // Used by data.test.ts (balance targets) and balance.test.ts (the report). Pure.
-import type { Build, BusSlot, GameData, Part, SupportSlot } from './types';
+import type { Build, BusSlot, GameData, Part } from './types';
 import { quoteBuild } from './quote';
 import { selectedParts } from './rover';
 import { instrumentsOf, mountingPoints } from './payload';
@@ -36,17 +36,13 @@ const SHORT: Record<string, string> = {
   'heater-none': '-', 'heater-rhu': 'H',
   'instrument-camera': 'cam', 'instrument-drill': 'drill', 'instrument-neutron': 'neut',
   'instrument-xray': 'xray', 'instrument-seismometer': 'seis', 'instrument-reflector': 'refl',
-  'wheels-grouser': 'grouser', 'power-arrays': 'arrays', 'power-rtg': 'RTG', 'battery-large': 'big', 'heater-electric': 'E',
-  'arm-none': '-', 'arm-robotic': 'arm', 'mast-none': '-', 'mast-remote': 'mastS',
-  'instrument-weather': 'wx', 'instrument-radar': 'radar', 'instrument-laser': 'laser', 'instrument-organics': 'org',
 };
 
 const short = (id: string) => SHORT[id] ?? id;
 
-export function buildLabel(build: Build, slots: BusSlot[], supportSlots: SupportSlot[] = []): string {
+export function buildLabel(build: Build, slots: BusSlot[]): string {
   const bay = build.payload.length ? build.payload.map(short).join('+') : 'empty';
-  const support = supportSlots.map((s) => short(build.support?.[s] ?? '-'));
-  return [...slots.map((s) => short(build[s])), ...support, bay].join(' ');
+  return [...slots.map((s) => short(build[s])), bay].join(' ');
 }
 
 /** Every subset of the instrument parts, each part at most once, in catalog order (the empty bay first). */
@@ -56,30 +52,7 @@ function payloadSubsets(instruments: Part[]): string[][] {
   return subsets.sort((a, b) => a.length - b.length);
 }
 
-/**
- * The support parts a bay calls for, on a world that offers support slots (Mars): in each support slot
- * the part that provides it when an instrument in the bay needs it, and the cheapest part ("No arm")
- * otherwise. Support hardware nothing needs is left out of the enumeration (Mars M12 analysis: it only
- * adds cost and mass). Undefined on a world without support slots.
- */
-export function supportFor(payload: string[], data: GameData): Build['support'] {
-  const slots = data.parts.supportSlots ?? [];
-  if (slots.length === 0) return undefined;
-  const needs = new Set(payload.flatMap((id) => data.parts.parts.find((p) => p.id === id)?.effects.needs ?? []));
-  const support: NonNullable<Build['support']> = {};
-  for (const slot of slots) {
-    const options = data.parts.parts.filter((p) => p.slot === slot);
-    const chosen = needs.has(slot) ? options.find((p) => p.effects[slot]) : [...options].sort((a, b) => a.cost - b.cost)[0];
-    if (chosen) support[slot] = chosen.id;
-  }
-  return support;
-}
-
-/**
- * Every build: each mix of bus parts, with each payload that fits its chassis (the empty bay included).
- * On a world with support slots (Mars), each bay gets the support hardware it needs and nothing more
- * (supportFor), so the count stays the bus mixes times the bays.
- */
+/** Every build: each mix of bus parts, with each payload that fits its chassis (the empty bay included). */
 export function allBuilds(data: GameData): Build[] {
   let buses: Partial<Build>[] = [{}];
   for (const slot of data.parts.slots) {
@@ -87,13 +60,9 @@ export function allBuilds(data: GameData): Build[] {
     buses = buses.flatMap((b) => options.map((o) => ({ ...b, [slot]: o.id })));
   }
   const bays = payloadSubsets(data.parts.parts.filter((p) => p.slot === 'instrument'));
-  const support = new Map(bays.map((bay) => [bay, supportFor(bay, data)]));
   return buses.flatMap((bus) => {
     const points = mountingPoints(data.parts.parts.filter((p) => p.id === bus.chassis));
-    return bays.filter((bay) => bay.length <= points).map((payload) => {
-      const s = support.get(payload);
-      return (s ? { ...bus, payload, support: s } : { ...bus, payload }) as Build;
-    });
+    return bays.filter((bay) => bay.length <= points).map((payload) => ({ ...bus, payload }) as Build);
   });
 }
 
@@ -103,7 +72,7 @@ export function evaluateBuild(build: Build, data: GameData): BuildEval {
   const d = q.drive;
   return {
     build,
-    label: buildLabel(build, data.parts.slots, data.parts.supportSlots),
+    label: buildLabel(build, data.parts.slots),
     cost: q.cost,
     mass: q.mass,
     size: q.size,

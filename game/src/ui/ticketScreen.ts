@@ -51,6 +51,14 @@ export const ticketScreen: Screen = (game, root) => {
     );
   });
 
+  const warnings: string[] = [
+    ...(!q.tier ? [text.design.overTopTier] : []),
+    ...(q.payloadProblems.some((p) => p.kind !== 'needs') ? [text.design.bayOverCapacity] : []),
+    ...missingSupportWarnings(q.payloadProblems, data),
+    ...(q.canLaunch && !q.canAfford ? [text.design.overBudget] : []),
+    ...(q.overloaded ? [text.design.chassisOverloaded] : []),
+  ];
+
   const row = (label: string, value: string, cls = '') =>
     el('div', { class: `row ${cls}` }, el('span', { class: 'label' }, label), el('span', { class: 'value' }, value));
 
@@ -82,11 +90,7 @@ export const ticketScreen: Screen = (game, root) => {
         row('Balance now', money(game.state.balance, text)),
         row('Balance after purchase', money(q.remaining, text), q.remaining < 0 ? 'bad' : ''),
       ),
-      !q.tier && el('ul', { class: 'warnings' }, el('li', {}, text.design.overTopTier)),
-      q.payloadProblems.some((p) => p.kind !== 'needs') && el('ul', { class: 'warnings' }, el('li', {}, text.design.bayOverCapacity)),
-      ...missingSupportWarnings(q.payloadProblems, data).map((w) => el('ul', { class: 'warnings' }, el('li', {}, w))),
-      q.canLaunch && !q.canAfford && el('ul', { class: 'warnings' }, el('li', {}, text.design.overBudget)),
-      q.overloaded && el('ul', { class: 'warnings' }, el('li', {}, text.design.chassisOverloaded)),
+      warnings.length > 0 && el('ul', { class: 'warnings' }, ...warnings.map((w) => el('li', {}, w))),
       reviewSection,
       el('p', { class: 'note' }, text.moneyNote),
       el('div', { class: 'actions' },

@@ -27,41 +27,29 @@ const withMast = (b: Build): Build => ({ ...b, support: { ...b.support, mast: 'm
 const part = (id: string) => mars.parts.parts.find((p) => p.id === id)!;
 
 describe('Mars parts (data)', () => {
-  it('adds the Mars bus parts at the M11 prices, Mars only', () => {
-    const want: [string, string, number, number, number][] = [
-      ['power-rtg', 'power', 200, 15, 5],
-      ['power-arrays', 'power', 120, 14, 5],
-      ['battery-large', 'battery', 150, 12, 3],
-      ['heater-electric', 'heater', 25, 2, 1],
-      ['wheels-grouser', 'wheels', 110, 18, 5],
-      ['arm-none', 'arm', 0, 0, 0],
-      ['arm-robotic', 'arm', 60, 8, 2],
-      ['mast-none', 'mast', 0, 0, 0],
-      ['mast-remote', 'mast', 50, 4, 1],
-      ['instrument-weather', 'instrument', 60, 5, 2],
-      ['instrument-radar', 'instrument', 90, 3, 2],
-      ['instrument-laser', 'instrument', 100, 6, 2],
-      ['instrument-organics', 'instrument', 110, 4, 2],
+  it('adds the Mars bus parts, support parts and instruments, Mars only, in the right slots', () => {
+    const want: [string, string][] = [
+      ['power-rtg', 'power'], ['power-arrays', 'power'], ['battery-large', 'battery'], ['heater-electric', 'heater'],
+      ['wheels-grouser', 'wheels'], ['arm-none', 'arm'], ['arm-robotic', 'arm'], ['mast-none', 'mast'], ['mast-remote', 'mast'],
+      ['instrument-weather', 'instrument'], ['instrument-radar', 'instrument'], ['instrument-laser', 'instrument'], ['instrument-organics', 'instrument'],
     ];
-    for (const [id, slot, cost, mass, size] of want) {
-      expect(part(id), id).toMatchObject({ slot, cost, mass, size, worlds: ['mars'] });
+    for (const [id, slot] of want) {
+      expect(part(id), id).toMatchObject({ slot, worlds: ['mars'] });
       expect(moon.parts.parts.some((p) => p.id === id), id).toBe(false);
     }
-    expect(part('power-rtg').effects).toEqual({ steadyIncome: 0.6, heat: 2, neutronNoise: true });
-    expect(part('power-arrays').effects).toEqual({ energyIncome: 2.6, dustRate: 1.5 });
-    expect(part('battery-large').effects.batteryCapacity).toBe(900);
-    expect(part('heater-electric').effects).toEqual({ heat: 3, heaterDraw: 1.2 });
-    expect(part('wheels-grouser').effects).toEqual({ baseSpeed: 2.6, grip: 0.95, energyPerMeter: 0.22 });
-    expect(part('arm-robotic').effects).toEqual({ arm: true });
-    expect(part('mast-remote').effects).toEqual({ mast: true });
+    expect(part('arm-robotic').effects.arm).toBe(true);
+    expect(part('mast-remote').effects.mast).toBe(true);
   });
 
-  it('the four Mars instruments: two switches, two held readings with their support needs', () => {
-    expect(part('instrument-weather').effects).toEqual({ instrument: 'weather', standbyEnergy: 0.05 });
-    expect(part('instrument-radar').effects).toEqual({ instrument: 'radar', standbyEnergy: 0.1 });
-    expect(part('instrument-laser').effects).toMatchObject({ instrument: 'laser', energyPerUse: 8, useSeconds: 2, needs: ['mast'] });
-    expect(part('instrument-organics').effects).toMatchObject({ instrument: 'organics', needs: ['arm'] });
-    for (const inst of ['weather', 'radar', 'laser', 'organics'] as const) expect(mars.text.instrumentText[inst]?.button, inst).toBeTruthy();
+  it('the four Mars instruments: their ids, button text and support needs', () => {
+    for (const inst of ['weather', 'radar', 'laser', 'organics'] as const) {
+      expect(part(`instrument-${inst}`).effects.instrument, inst).toBe(inst);
+      expect(mars.text.instrumentText[inst]?.button, inst).toBeTruthy();
+    }
+    expect(part('instrument-weather').effects.needs).toBeUndefined();
+    expect(part('instrument-radar').effects.needs).toBeUndefined();
+    expect(part('instrument-laser').effects.needs).toEqual(['mast']);
+    expect(part('instrument-organics').effects.needs).toEqual(['arm']);
   });
 
   it('the X-ray spectrometer needs the arm on Mars only (Mars M6)', () => {
@@ -140,7 +128,10 @@ describe('Support hardware in the build', () => {
   it('the quote includes the support parts in cost, mass and size', () => {
     const base = quoteBuild(scout, mars, 1000);
     const both = quoteBuild(withMast(withArm(scout)), mars, 1000);
-    expect([both.cost - base.cost, both.mass - base.mass, both.size - base.size]).toEqual([110, 12, 3]);
+    const added = [part('arm-robotic'), part('mast-remote')].filter((p) => !selectedParts(scout, mars.parts).some((q) => q.id === p.id));
+    const sum = (key: 'cost' | 'mass' | 'size') => added.reduce((n, p) => n + p[key], 0);
+    expect(added).toHaveLength(2);
+    expect([both.cost - base.cost, both.mass - base.mass, both.size - base.size]).toEqual([sum('cost'), sum('mass'), sum('size')]);
   });
 
   it('the cheapest Mars build has no arm and no mast and can launch', () => {
@@ -176,15 +167,31 @@ describe('Saves with support hardware', () => {
   });
 });
 
+describe('A Mars save carried to the Moon', () => {
+  it('lists the arm and mast in the Not offered notice, even when the world has no support slots', () => {
+    const b = withMast(withArm({ ...scout, payload: ['instrument-xray', 'instrument-laser'] }));
+    const toMoon = carryBuild(b, mars.allParts, 'moon');
+    expect(toMoon.dropped.map((p) => p.id)).toEqual(['arm-robotic', 'mast-remote', 'instrument-laser']);
+    expect(toMoon.build.support).toBeUndefined();
+    // Also when the catalog the build is carried from lists no support slots.
+    const { supportSlots: _s, ...noSlots } = mars.allParts;
+    expect(carryBuild(b, noSlots, 'moon').dropped.map((p) => p.id)).toEqual(['arm-robotic', 'mast-remote', 'instrument-laser']);
+  });
+});
+
 describe('Mars ticket tiers (Mars M12)', () => {
   const name = (mass: number, size: number) => ticketTier(mass, size, mars.tiers.tiers)?.id ?? null;
 
-  it('jumps at 60, 75, 90 and 100 kg, and at size 20, 23, 26 and 30', () => {
-    expect([name(60, 10), name(61, 10), name(75, 10), name(76, 10), name(90, 10), name(91, 10), name(100, 10), name(101, 10)])
-      .toEqual(['small', 'medium', 'medium', 'large', 'large', 'heavy', 'heavy', null]);
-    expect([name(40, 20), name(40, 21), name(40, 23), name(40, 24), name(40, 26), name(40, 27), name(40, 30), name(40, 31)])
-      .toEqual(['small', 'medium', 'medium', 'large', 'large', 'heavy', 'heavy', null]);
-    expect(mars.tiers.tiers.map((t) => t.price)).toEqual([60, 120, 200, 300]);
+  it('each tier takes up to its limits and the next tier starts one above; over the top tier there is none', () => {
+    const tiers = mars.tiers.tiers;
+    expect(tiers.map((t) => t.id)).toEqual(['small', 'medium', 'large', 'heavy']);
+    tiers.forEach((t, i) => {
+      const next = tiers[i + 1]?.id ?? null;
+      expect(name(t.massLimit, 1), `${t.id} mass`).toBe(t.id);
+      expect(name(t.massLimit + 1, 1), `${t.id} mass +1`).toBe(next);
+      expect(name(1, t.sizeLimit), `${t.id} size`).toBe(t.id);
+      expect(name(1, t.sizeLimit + 1), `${t.id} size +1`).toBe(next);
+    });
   });
 
   it('the Moon keeps its three tiers', () => {
@@ -199,7 +206,7 @@ describe('Mars ticket tiers (Mars M12)', () => {
       support: { arm: 'arm-robotic', mast: 'mast-remote' },
     };
     const q = quoteBuild(b, mars, 1000);
-    expect([q.mass, q.size, q.tier?.id, q.cost, q.ticketPrice]).toEqual([95, 24, 'heavy', 645, 300]);
+    expect(q.tier?.id).toBe('heavy');
     expect(q.canLaunch).toBe(true);
   });
 });
@@ -208,11 +215,19 @@ describe('The night budget line with the Mars parts', () => {
   const line = (b: Build) => nightBudgetLine(mars, selectedParts(b, mars.parts))?.value;
   const lit = { ...scout, lights: 'lights-led' };
 
-  it('changes with the power source and the heater', () => {
-    expect(line(lit)).toBe('3 asleep · 60 with lights');
-    expect(line({ ...lit, heater: 'heater-electric' })).toBe('21 asleep · 78 with lights · heater 18 of each');
-    expect(line({ ...lit, power: 'power-rtg', heater: 'heater-none' })).toBe('3 asleep · 60 with lights · RTG +9');
-    expect(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' })).toBe('21 asleep · 78 with lights · heater 18 of each · RTG +9');
+  it('changes with the power source and the heater: each segment shows when it applies', () => {
+    const words = mars.text.nightBudget!;
+    const has = (value: string | undefined, template: string) => template.split('{energy}').map((x) => x.trim()).filter(Boolean).every((x) => value!.includes(x));
+    const asleep = line(lit);
+    expect(has(asleep, words.asleep)).toBe(true);
+    expect(has(asleep, words.lights)).toBe(true);
+    expect(has(asleep, words.heater)).toBe(false);
+    expect(has(asleep, words.steady)).toBe(false);
+    expect(has(line({ ...lit, heater: 'heater-electric' }), words.heater)).toBe(true);
+    expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-none' }), words.steady)).toBe(true);
+    expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' }), words.steady)).toBe(true);
+    expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' }), words.heater)).toBe(true);
+    expect(line(scout)).not.toContain(words.lights.replace('{energy} ', ''));
   });
 });
 

@@ -220,9 +220,13 @@ export function catalogFor(catalog: PartsFile, world: MissionId): PartsFile {
  */
 export function carryBuild(saved: unknown, allParts: PartsFile, world: MissionId): { build: DraftBuild; dropped: Part[] } {
   const known = upgradeSavedBuild(saved, allParts);
+  // Support ids come from the raw save too, so a Mars save carried to a world without support slots still names them.
+  const raw = typeof saved === 'object' && saved !== null ? (saved as Record<string, unknown>).support : undefined;
+  const rawSupport = typeof raw === 'object' && raw !== null ? Object.values(raw).filter((v): v is string => typeof v === 'string') : [];
   const ids = [
     ...allParts.slots.flatMap((s) => known[s] ?? []),
     ...supportSlotsOf(allParts).flatMap((s) => known.support?.[s] ?? []),
+    ...rawSupport,
     ...(known.payload ?? []),
   ];
   const dropped = [...new Set(ids)].flatMap((id) => allParts.parts.find((p) => p.id === id && !offeredOn(p, world)) ?? []);
