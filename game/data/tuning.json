@@ -162,7 +162,7 @@
     "youngCraterEjectaFactor": 1.5,
     "boulderTrackPhotoRangeM": 80,
     "documentedSampleRangeM": 15,
-    "hydrogenZoneRadiusM": 60
+    "hydrogenZoneRadiusM": 35
   },
   "instruments": {
     "coldSlowdown": 2,

@@ -82,9 +82,11 @@ function boulderHash(b: Boulder): number {
  * The rock type an X-ray reading finds at a boulder: picked by weight, seeded by the boulder's
  * position, so the same boulder always reads the same rock. A boulder at a site whose `rockSuite`
  * names a suite in tuning reads from that suite; any other boulder reads the fallback `rocks` list.
+ * `sites` is required (data.sites.sites; Mars passes its empty list): without it every site boulder
+ * would silently read the fallback list, and the rolled boulder would never read its rare rock.
  */
-export function rockTypeFor(b: Boulder, t: InstrumentTuning['xray'], sites?: readonly SiteSpec[]): string {
-  const suiteId = b.site ? sites?.find((s) => s.id === b.site)?.rockSuite : undefined;
+export function rockTypeFor(b: Boulder, t: InstrumentTuning['xray'], sites: readonly SiteSpec[]): string {
+  const suiteId = b.site ? sites.find((s) => s.id === b.site)?.rockSuite : undefined;
   const rocks = (suiteId && t.suites.find((s) => s.id === suiteId)?.rocks) || t.rocks;
   const total = rocks.reduce((s, r) => s + r.weight, 0);
   let pick = boulderHash(b) * total;

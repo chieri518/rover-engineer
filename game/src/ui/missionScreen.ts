@@ -4,11 +4,12 @@
 // Mars adds the sol clock, the real Sun, night (lights on or sleep) and the dust storm (ui/marsMission.ts).
 import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
-import { buildZones, MilestoneTracker, PHOTO_ZONE_IDS, type MilestoneUpdate, type Point3, type SunPhoto, type Zone } from '../rules/milestones';
+import { buildZones, MilestoneTracker, PHOTO_ZONE_IDS, type FramedBoulder, type MilestoneUpdate, type Point3, type SunPhoto, type Zone } from '../rules/milestones';
 import { isCompleteBuild, selectedParts } from '../rules/rover';
 import { instrumentForKey, instrumentKeys, instrumentsOf } from '../rules/payload';
 import type { Instrument } from '../rules/types';
-import { scatterBoulders, type Boulder } from '../rules/boulders';
+import { scatterBoulders, scatterSiteBoulders, type Boulder } from '../rules/boulders';
+import { resolveSites, type ResolvedSite, type SiteFeatures } from '../rules/sites';
 import {
   emptyInstrumentLog, emptySeismometerTrack, hydrogenReading, rockTypeFor, stepSeismometer, xrayTarget,
   type InstrumentLog, type SeismometerOutcome, type TrackPoint,
@@ -94,6 +95,7 @@ export const missionScreen: Screen = (game, root) => {
   // The new instruments: what they need from the world, and what they recorded (the debrief's log).
   let boulders: Boulder[] = [];
   let zones: Zone[] = [];
+  let siteList: ResolvedSite[] = []; // the Moon's sites.json sites on the map (none on Mars)
   let earthAbove = false; // Earth above the terrain horizon from the rover (reflector light and deploy check)
   let hydrogen = 0; // the neutron spectrometer's live reading
   const log: InstrumentLog = emptyInstrumentLog(instruments);
@@ -329,6 +331,21 @@ export const missionScreen: Screen = (game, root) => {
     if (lines.fastShadow) hud.notify(fill(ti.useFastShadow, said), 'good');
     return true;
   };
+  /**
+   * The boulders a photo would show: within the farthest boulder photo range, inside the frame and not
+   * hidden by terrain (scene.inFrame on the boulder's top). No light is needed, as for every photo.
+   */
+  const framedBoulders = (): FramedBoulder[] => {
+    if (!scene || !ctx || !roverPos) return [];
+    const range = Math.max(mt.boulderTrackPhotoRangeM, mt.documentedSampleRangeM);
+    const out: FramedBoulder[] = [];
+    boulders.forEach((b, index) => {
+      if (Math.hypot(b.x - roverPos!.x, b.z - roverPos!.z) > range) return;
+      const top = { x: b.x, y: ctx!.terrain.heightAt(b.x, b.z) + b.radius, z: b.z };
+      if (scene!.inFrame(top, mt.photoFrameMargin)) out.push({ index, x: b.x, z: b.z, ...(b.rolled ? { rolled: true } : {}) });
+    });
+    return out;
+  };
   /** The boulder within the X-ray spectrometer's reach, if any. */
   const currentBoulder = () => (roverPos ? xrayTarget(roverPos, boulders, tuning.instruments.xray) : null);
   /** The rover is inside the dark crater (the shadowed-crater zone). */
@@ -342,7 +359,7 @@ export const missionScreen: Screen = (game, root) => {
     const earth = earthInSky && scene.inView(earthDir, mt.photoFrameMargin);
     const lit = earthInSky ? earthLit() : 0;
     const sun = sunPhoto();
-    const u = tracker.photo(roverPos, earth, lit, sun);
+    const u = tracker.photo(roverPos, earth, lit, sun, framedBoulders());
     const places = tracker.zones
       .filter((z) => PHOTO_ZONE_IDS.includes(z.id) && tracker!.currentZones().includes(z))
       .map((z) => z.name);
@@ -385,11 +402,13 @@ export const missionScreen: Screen = (game, root) => {
     const index = site.boulder;
     const boulder = index === null ? undefined : boulders[index];
     if (index === null || !boulder) return hud.notify(ti.xrayNoTarget);
-    const id = rockTypeFor(boulder, tuning.instruments.xray);
+    const id = rockTypeFor(boulder, tuning.instruments.xray, data.sites.sites);
     const rock = text.rocks[id] ?? { name: id, elements: '' };
     const again = log.rocks.find((r) => r.boulder === index);
     hud.notify(again ? fill(ti.xrayAgain, { rock: rock.name }) : fill(ti.xrayResult, { rock: rock.name, elements: rock.elements }), 'good');
     if (!again) log.rocks.push({ boulder: index, rock: id });
+    // Rock collection, Rare rock, and the boulder Documented sample photographs.
+    if (tracker && roverPos) announce(tracker.reading('xray', roverPos, { target: 'boulder', rock: id, boulder: index }));
   };
 
   /** A station's hold is done: it is on the ground, the rover is lighter and drops the part. */
@@ -400,6 +419,9 @@ export const missionScreen: Screen = (game, root) => {
     const button = instrumentButtons.get(inst);
     if (button) button.disabled = true;
     buttonLabels.get(inst)!.textContent = ti.deployedButton;
+    // Laser ranging site and Science station: where it went down and whether Earth was in view (the
+    // reflector cannot be set down without it). The too-close second press is Phase 5's HUD.
+    if (tracker) announce(tracker.deploy(inst, at, earthAbove));
     if (inst === 'reflector') {
       log.reflectorPlaced = true;
       hud.notify(ti.reflectorDeployed, 'good');
@@ -429,6 +451,9 @@ export const missionScreen: Screen = (game, root) => {
     }
     const { quality, closestM } = o.record;
     log.quake = quality;
+    // Moonquake record and Clean seismogram: the station's record, with where it was set down.
+    const at = seismometer.deployedAt;
+    if (tracker) announce(tracker.record('seismometer', 'quake', quality, at ? { x: at.x, z: at.z } : undefined));
     hud.showQuakeTrace(quality);
     // A noisy record is the seismometer's lesson: the first time, its notice replaces the short line.
     const fresh = relate(onSeismometer(o), { closest: Math.round(closestM) });
@@ -559,6 +584,8 @@ export const missionScreen: Screen = (game, root) => {
         distanceM: state.distanceM,
         exploredShare: exploredShare(explored),
         flareSurvived: step.notices.some((n) => n.kind === 'flare-hit' && n.protected),
+        switchedOn: state.standbyOn, // the neutron spectrometer's transects
+        poweredDown: state.poweredDown,
         ...(marsNow ? { night: marsNow.clock.isNight, stormActive: marsNow.stormPhase === 'active' } : {}),
       }));
       for (const n of step.notices) if (n.kind === 'instrument-done') finishUse(n.instrument, n.site);
@@ -704,10 +731,22 @@ export const missionScreen: Screen = (game, root) => {
   // Load three, Rapier and the terrain only when the mission starts, so the menus stay light.
   void Promise.all([import('../world/moonScene'), import('../world/terrainData'), import('../world/terrainMasks')])
     .then(async ([{ startMoonScene }, terrainData, { loadTerrainMasks }]) => {
-      const [terrain, masks] = await Promise.all([terrainData.loadTerrain(game.world), loadTerrainMasks(tuning, game.world)]);
+      const [terrain, masks] = await Promise.all([terrainData.loadTerrain(game.world), loadTerrainMasks(tuning, game.world, data.sites.sites)]);
       if (disposed) return;
       ctx = { terrain, masks, sunVisibility: terrainData.sunVisibility, horizonMarginTan: terrainData.horizonMarginTan, groundEyeM: terrainData.GROUND_EYE_M };
-      boulders = scatterBoulders(masks.softAreas, tuning.boulders); // the same boulders the scene draws
+      // The Moon's sites (sites.json, empty on Mars): their zones, boulders and the rolled boulder's track.
+      siteList = resolveSites(data.sites.sites, masks.info.features as SiteFeatures);
+      // A rocky area's boulders belong to its site (same center), which picks their rock suite.
+      const rockySite = (a: { x: number; z: number }) => {
+        const r = siteList.find((x) => x.kind === 'rocky-area' && Math.hypot(x.center.x - a.x, x.center.z - a.z) < 1);
+        return r ? { site: r.id } : {};
+      };
+      // Rocky-area boulders first (their scatter order and places stay), then the young craters' and the
+      // rolled boulder. The scene draws this same list.
+      boulders = [
+        ...scatterBoulders(masks.boulderAreas.map((a) => ({ ...a, ...rockySite(a) })), tuning.boulders),
+        ...scatterSiteBoulders(siteList, tuning.boulders),
+      ];
       explored = createExplored(terrain.fine.extent * 2, tuning.explore);
       if (WORLDS[game.world].sky === 'mars') {
         const se = terrain.info.sunAndEarth;
@@ -725,7 +764,8 @@ export const missionScreen: Screen = (game, root) => {
         data,
         rover: roverParams(parts, tuning),
         parts,
-        boulderAreas: masks.boulderAreas,
+        boulders,
+        boulderTrack: siteList.find((x) => x.kind === 'rolled-boulder')?.track ?? null,
         lightRangeM: parts.reduce((m, p) => Math.max(m, p.effects.lightRange ?? 0), 0),
         ...(mars ? { sunAt: mars.sunAt } : {}),
         onStep,
@@ -745,7 +785,7 @@ export const missionScreen: Screen = (game, root) => {
         deltaFront: f.deltaFront,
         seitah: f.seitah,
         viewpoints: f.viewpoints,
-      }, mt);
+      }, mt, { sites: siteList, neutron: tuning.instruments.neutron });
       tracker = new MilestoneTracker(data.milestones.milestones, parts, zones, mt);
       announce(tracker.land());
     })
@@ -790,6 +830,12 @@ export const missionScreen: Screen = (game, root) => {
       photo: takePhoto,
       drill: startDrill,
       boulders: () => boulders,
+      /** The Moon's sites as placed (sites.json resolved on the terrain) and every zone with its key. */
+      sites: () => siteList.map((x) => ({ id: x.id, kind: x.kind, center: x.center, radiusM: x.radiusM, track: x.track })),
+      zones: () => zones.map((z) => ({ key: z.key, id: z.id, shape: z.shape })),
+      /** The boulders a photo would show now (index, rolled), and whether the rover is in a cold zone. */
+      framed: framedBoulders,
+      cold: () => (ctx && roverPos ? ctx.masks.inColdZone(roverPos.x, roverPos.z) : null),
       use: useInstrument,
       resetMaxImpact() {
         maxImpact = 0;

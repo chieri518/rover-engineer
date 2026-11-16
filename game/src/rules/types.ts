@@ -572,7 +572,7 @@ export interface MoonPipelineFeatures {
     id?: string;
     name?: string;
     local?: FeaturePoint;
-    wallTopLocal?: FeaturePoint;
+    wallTop?: FeaturePoint; // the top of the run the boulder rolled down (its track runs from here to local)
     youngCrater?: string | null; // the young crater it lies in, if any
   }[];
   /** P4: ground outside permanent shadow with average illumination under 15% and slope under 15°, within 1 km. */
@@ -580,6 +580,7 @@ export interface MoonPipelineFeatures {
     id?: string;
     name?: string;
     centroidLocal?: FeaturePoint;
+    innerPoint?: FeaturePoint; // the point farthest inside the patch (the centroid of a curved patch can lie near its edge)
     outlineLocal_xz?: number[][]; // [x, z] pairs (number[][] as JSON gives it)
     area_m2?: number;
     avgIllumination?: number;

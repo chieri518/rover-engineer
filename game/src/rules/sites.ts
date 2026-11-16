@@ -23,10 +23,11 @@ export interface ResolvedSite {
   center: Point;
   radiusM?: number; // craters, rocky areas and cold traps without an outline
   outline?: [number, number][]; // the dark crater's permanent-shadow outline, or a pipeline cold trap's
+  track?: { from: Point; to: Point }; // the rolled boulder's track: from the wall top down to the foot where it rests (center)
   spec: SiteSpec;
 }
 
-type Geometry = Pick<ResolvedSite, 'center' | 'radiusM' | 'outline'>;
+type Geometry = Pick<ResolvedSite, 'center' | 'radiusM' | 'outline' | 'track'>;
 
 const at = (p: { x: number; z: number } | undefined): Point | null => (p ? { x: p.x, z: p.z } : null);
 /** An outline as [x, z] pairs (JSON gives number[][]). */
@@ -53,11 +54,16 @@ function fromPipeline(site: SiteSpec, f: SiteFeatures): Geometry | null {
       return { center, ...(radiusM !== undefined ? { radiusM } : {}) };
     }
     case 'boulderTrackCandidates': {
-      const center = at(f.boulderTrackCandidates?.find((x) => x.id === ref.id)?.local);
-      return center ? { center } : null;
+      const c = f.boulderTrackCandidates?.find((x) => x.id === ref.id);
+      const center = at(c?.local);
+      const top = at(c?.wallTop);
+      if (!center) return null;
+      return top ? { center, track: { from: top, to: center } } : { center };
     }
     case 'lowLightPatches': {
-      const center = at(f.lowLightPatches?.find((x) => x.id === ref.id)?.centroidLocal);
+      // The point farthest inside the patch: a curved patch's centroid can lie near its edge.
+      const c = f.lowLightPatches?.find((x) => x.id === ref.id);
+      const center = at(c?.innerPoint) ?? at(c?.centroidLocal);
       return center ? { center } : null;
     }
   }

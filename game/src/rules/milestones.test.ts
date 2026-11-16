@@ -243,11 +243,18 @@ const docs: Build = { ...camera, chassis: 'chassis-steel', payload: ['instrument
 const stations: Build = { ...camera, chassis: 'chassis-steel', payload: ['instrument-seismometer', 'instrument-reflector'] };
 const nt = data.tuning.instruments.neutron;
 
+/** The East cold trap's westernmost outline point (its zone is the pipeline's polygon plus the edge). */
+const eastWest = (): [number, number] => {
+  const s = zone('cold-trap:east-cold-trap').shape;
+  if (s.kind !== 'polygon') throw new Error('East cold trap should be the pipeline outline');
+  return s.points.reduce((a, q) => (q[0] < a[0] ? q : a));
+};
+
 describe('site zones: membership at the edges', () => {
   it('builds one zone per site: cold traps, ejecta rings, the hidden hydrogen and the ice signal', () => {
     const keys = (id: string) => zones.filter((z) => z.id === id).map((z) => z.key);
     expect(keys('cold-trap')).toEqual(['cold-trap:rocky-area-1-cold-patch', 'cold-trap:east-cold-trap', 'cold-trap:south-cold-trap', 'cold-trap:dark-crater']);
-    expect(keys('young-crater')).toEqual(['young-crater:rocky-area-1', 'young-crater:rocky-area-2', 'young-crater:nw-crater', 'young-crater:east-crater', 'young-crater:west-crater']);
+    expect(keys('young-crater')).toEqual(['young-crater:rocky-area-1', 'young-crater:rocky-area-2', 'young-crater:nw-crater', 'young-crater:east-crater', 'young-crater:se-crater']);
     expect(keys('hydrogen-anomaly')).toEqual(['hydrogen-anomaly:hidden-hydrogen']);
     expect(keys('ice-signal')).toEqual(['ice-signal']);
     // Mars and the old callers: no sites, no site zones.
@@ -255,12 +262,14 @@ describe('site zones: membership at the edges', () => {
   });
 
   it('a cold trap is its outline plus the survey edge', () => {
+    // The pipeline's outline; due west of its westernmost point the distance to the outline is exact.
     const z = zone('cold-trap:east-cold-trap');
-    const r = site('east-cold-trap').radiusM!;
-    expect(zoneContains(z, out('east-cold-trap', r + t.coldTrapEdgeM - 0.1))).toBe(true);
-    expect(zoneContains(z, out('east-cold-trap', r + t.coldTrapEdgeM + 0.1))).toBe(false);
-    expect(distanceToOutline(z, out('east-cold-trap', r - 1))).toBe(0);
-    expect(distanceToOutline(z, out('east-cold-trap', r + 10))).toBeCloseTo(10);
+    const [wx, wz] = eastWest();
+    expect(zoneContains(z, at(wx - t.coldTrapEdgeM + 0.1, wz))).toBe(true);
+    expect(zoneContains(z, at(wx - t.coldTrapEdgeM - 0.1, wz))).toBe(false);
+    const c = site('east-cold-trap').center;
+    expect(distanceToOutline(z, at(c.x, c.z))).toBe(0);
+    expect(distanceToOutline(z, at(wx - 10, wz))).toBeCloseTo(10);
   });
 
   it('the dark crater counts as a cold trap: its permanent-shadow outline plus the edge', () => {
@@ -321,10 +330,10 @@ function drive(tr: MilestoneTracker, a: Point3, b: Point3, odo: { m: number }, o
 }
 
 describe('transect: an unbroken switched-on drive that touches the zone', () => {
-  const east = site('east-cold-trap').center;
-  const edge = site('east-cold-trap').radiusM! + t.coldTrapEdgeM;
-  // A line that passes 10 m inside the zone edge, tangent to its outline.
-  const pass = (from: number, to: number) => [at(east.x - (edge - 10), east.z + from), at(east.x - (edge - 10), east.z + to)] as const;
+  const [wx, wz] = eastWest();
+  const edge = t.coldTrapEdgeM;
+  // A north-south line 15 m west of the East cold trap's westernmost point: 10 m inside the zone edge there.
+  const pass = (from: number, to: number) => [at(wx - (edge - 10), wz + from), at(wx - (edge - 10), wz + to)] as const;
 
   it('Cold trap survey: 50 m switched on, passing within the edge, counts once the drive reaches 50 m', () => {
     const tr = tracker(neutron);
@@ -339,7 +348,7 @@ describe('transect: an unbroken switched-on drive that touches the zone', () => 
     const off = tracker(neutron);
     expect(drive(off, ...pass(-50, 60), { m: 0 }).reached).toEqual([]);
     const far = tracker(neutron);
-    expect(drive(far, at(east.x - edge - 5, east.z - 50), at(east.x - edge - 5, east.z + 60), { m: 0 }, { on: ['neutron'] }).reached).toEqual([]);
+    expect(drive(far, at(wx - edge - 5, wz - 50), at(wx - edge - 5, wz + 60), { m: 0 }, { on: ['neutron'] }).reached).toEqual([]);
     expect(drive(tracker(camera), ...pass(-50, 60), { m: 0 }, { on: ['neutron'] }).reached).toEqual([]); // no spectrometer, no milestone
   });
 
@@ -348,14 +357,23 @@ describe('transect: an unbroken switched-on drive that touches the zone', () => 
     const odo = { m: 0 };
     drive(tr, ...pass(-10, 20), odo, { on: ['neutron'] }); // 30 m, through the zone
     drive(tr, ...pass(20, 30), odo); // switched off
-    expect(drive(tr, ...pass(30, 60), odo, { on: ['neutron'] }).reached).toEqual([]); // 30 m since, touching: not yet
-    expect(drive(tr, ...pass(60, 85), odo, { on: ['neutron'] }).reached).toEqual(['cold-trap-survey']); // 55 m
+    expect(drive(tr, ...pass(30, 0), odo, { on: ['neutron'] }).reached).toEqual([]); // 30 m since, back through the zone: not yet
+    expect(drive(tr, ...pass(0, -25), odo, { on: ['neutron'] }).reached).toEqual(['cold-trap-survey']); // 55 m
 
     const paused = tracker(neutron);
     const o2 = { m: 0 };
     drive(paused, ...pass(-10, 20), o2, { on: ['neutron'] }); // 30 m
     drive(paused, pass(20, 20)[0], pass(20, 20)[0], o2, { poweredDown: true }); // a flare: powered down
     expect(drive(paused, ...pass(20, 45), o2, { on: ['neutron'] }).reached).toEqual(['cold-trap-survey']); // 55 m in all
+
+    // Powered down with the spectrometer still switched on (state.standbyOn keeps it): the count pauses
+    // and is kept, it neither grows nor starts again.
+    const on = tracker(neutron);
+    const o3 = { m: 0 };
+    drive(on, ...pass(-10, 20), o3, { on: ['neutron'] }); // 30 m, through the zone
+    expect(drive(on, ...pass(20, 60), o3, { on: ['neutron'], poweredDown: true }).reached).toEqual([]); // paused: the odometer does not move
+    expect(drive(on, ...pass(60, 75), o3, { on: ['neutron'] }).reached).toEqual([]); // 45 m: not yet
+    expect(drive(on, ...pass(75, 85), o3, { on: ['neutron'] }).reached).toEqual(['cold-trap-survey']); // 55 m
   });
 
   it('stages by distinct cold trap: the same one twice is one stage, a second one is stage 2', () => {
@@ -513,6 +531,19 @@ describe('record and deploy: the stations', () => {
     const close = tracker(stations);
     close.deploy('seismometer', near, true); // too close to the lander to count
     expect(ids(close.deploy('reflector', { x: near.x + 90, z: near.z }, true))).toEqual(['laser-ranging-site']);
+  });
+
+  it('only the first deploy of a station counts: a station set down near the lander blocks its milestones', () => {
+    // A station cannot be picked up again, so the tracker keeps the first place it went down; a repeat
+    // call (which the mission never makes) is ignored rather than moving it.
+    const tr = tracker(stations);
+    expect(ids(tr.deploy('reflector', near, true))).toEqual([]); // inside the near-lander zone
+    expect(ids(tr.deploy('reflector', away, true))).toEqual([]); // the repeat does not move it out
+    expect(ids(tr.deploy('seismometer', { x: near.x + 50, z: near.z }, false))).toEqual([]); // the pair needs the reflector outside too
+    const first = tracker(stations);
+    expect(ids(first.deploy('reflector', away, true))).toEqual(['laser-ranging-site']);
+    expect(ids(first.deploy('reflector', near, true))).toEqual([]); // already earned; the repeat changes nothing
+    expect(ids(first.deploy('seismometer', { x: away.x + 50, z: away.z }, false))).toEqual(['science-station']); // still outside, from the first deploy
   });
 
   it('a rover missing one station is not credited for the pair, and is told which part was missing', () => {

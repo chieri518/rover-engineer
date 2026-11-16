@@ -176,7 +176,7 @@ describe('survey: sites.json sites', () => {
     const data = loadGameData();
     const feats = terrain.features;
     const real = buildSites(feats as unknown as SurveyFeatures, data.tuning.milestones, data.text.survey.shadowedCraterName, resolveSites(data.sites.sites, feats));
-    const names = ['East crater', 'NW crater', 'West crater', 'East cold trap', 'South cold trap', 'Rocky area 1 cold patch', 'Rolled boulder', 'Hydrogen-rich ground'];
+    const names = ['East crater', 'NW crater', 'SE crater', 'East cold trap', 'South cold trap', 'Rocky area 1 cold patch', 'Rolled boulder', 'Hydrogen-rich ground'];
     for (const n of names) {
       const s = real.find((x) => x.name === n);
       expect(s, n).toBeDefined();

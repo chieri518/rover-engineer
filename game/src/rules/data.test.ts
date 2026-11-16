@@ -416,9 +416,10 @@ describe('Moon sites and milestones data (Phase 2)', () => {
     const site = (id: string) => sites.find((s) => s.id === id)!;
     const broken = withSites([
       ...sites.filter((s) => !['east-crater', 'rolled-boulder', 'east-cold-trap'].includes(s.id)),
-      { ...site('east-crater'), radiusM: undefined, rockSuite: 'granite' },
+      // A provisional crater without a radius (as before the pipeline confirmed it), and a site with no position at all.
+      { ...site('east-crater'), pipeline: undefined, provisional: true, local: { x: -240, z: -130 }, radiusM: undefined, rockSuite: 'granite' },
       { ...site('rolled-boulder'), within: 'east-cold-trap' },
-      { ...site('east-cold-trap'), provisional: false },
+      { ...site('east-cold-trap'), pipeline: undefined },
       { ...site('east-cold-trap'), id: 'nw-crater' },
     ]);
     expect(validateGameData(broken)).toEqual([
@@ -430,11 +431,13 @@ describe('Moon sites and milestones data (Phase 2)', () => {
     ]);
   });
 
-  it('sites match the real terrain.json: features exist, cold zones resolve, provisional candidates are accepted', () => {
+  it('sites match the real terrain.json: features exist, cold zones resolve, every new place is a pipeline feature', () => {
     expect(siteTerrainProblems(data, terrain.features)).toEqual([]);
-    // Every provisional site is one of the five new places, and each has a candidate position.
-    expect(data.sites.sites.filter((s) => s.provisional).map((s) => s.id)).toEqual([
-      'nw-crater', 'east-crater', 'west-crater', 'rolled-boulder', 'hidden-hydrogen', 'east-cold-trap', 'south-cold-trap',
+    // Phase 4: the pipeline produced every new place, so none is provisional any more.
+    expect(data.sites.sites.filter((s) => s.provisional).map((s) => s.id)).toEqual([]);
+    expect(data.sites.sites.filter((s) => s.pipeline).map((s) => `${s.id}=${s.pipeline!.id}`)).toEqual([
+      'nw-crater=young-crater-nw', 'east-crater=young-crater-east', 'se-crater=young-crater-se', 'rolled-boulder=boulder-track-1',
+      'hidden-hydrogen=low-light-nw', 'rocky-area-1-cold-patch=cold-trap-rocky-area-1', 'east-cold-trap=cold-trap-east', 'south-cold-trap=cold-trap-south',
     ]);
   });
 
@@ -442,8 +445,9 @@ describe('Moon sites and milestones data (Phase 2)', () => {
     // The pipeline lists as the checks see them: a cold trap list with one id, and no young crater list yet.
     const features = { ...terrain.features, coldTraps: [{ id: 'ct-east', name: 'East cold trap', centroidLocal: { x: -132, z: 122 } }], youngCraters: undefined };
     const sites = data.sites.sites;
-    const east = sites.find((s) => s.id === 'east-cold-trap')!;
-    const south = sites.find((s) => s.id === 'south-cold-trap')!;
+    // Provisional stand-ins for the two cold traps (as they were before the pipeline produced them).
+    const east: SiteSpec = { id: 'east-cold-trap', kind: 'cold-trap', name: 'East cold trap', provisional: true, local: { x: -132, z: 122 }, radiusM: 26 };
+    const south: SiteSpec = { id: 'south-cold-trap', kind: 'cold-trap', name: 'South cold trap', provisional: true, local: { x: -972, z: 902 }, radiusM: 26 };
     const ra1 = sites.find((s) => s.id === 'rocky-area-1')!;
     const check = (changed: SiteSpec[], zones = data.tuning.cold.zones) =>
       siteTerrainProblems({ ...withSites(changed), tuning: { ...data.tuning, cold: { ...data.tuning.cold, zones } } }, features as never);

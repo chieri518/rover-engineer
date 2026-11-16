@@ -7,9 +7,9 @@ import type { GameData, Part } from '../rules/types';
 import type { RoverParams } from '../rules/drive';
 import { skyDirection, sunAt, type SkyDirection } from '../rules/sun';
 import { horizonMarginTan, loadTerrain, type Terrain } from './terrainData';
-import { Boulders } from './boulders';
+import { Boulders, type Boulder } from './boulders';
+import { createBoulderTrack, disposeBoulderTrack } from './boulderTrack';
 import { Lander } from './lander';
-import type { SoftArea } from '../rules/ground';
 import { ChunkLayer } from './terrainChunks';
 import { SunMasks } from './sunMask';
 import { ALBEDO_MEAN, createMoonLightUniforms, patchMoonLighting, type Photometry } from './lunarLighting';
@@ -89,7 +89,10 @@ export interface MoonSceneOptions {
   data: GameData;
   rover: RoverParams;
   parts?: Part[]; // the selected parts, for the rover model
-  boulderAreas?: SoftArea[];
+  /** The boulders to draw (rocky-area scatter plus the site boulders); colliders are made for each. */
+  boulders?: readonly Boulder[];
+  /** The rolled boulder's track: `from` the top of the wall, `to` the foot where the boulder rests. Mars: none. */
+  boulderTrack?: { from: { x: number; z: number }; to: { x: number; z: number } } | null;
   lightRangeM?: number; // floodlights on the rover (0 or undefined: none)
   onFrame?: (state: MoonFrameState) => void;
   onStep?: (sample: MoonStepSample) => MoonDriveLimits | void;
@@ -117,6 +120,12 @@ export interface MoonScene {
   capture(maxWidth: number): string;
   /** Is a body in this sky direction above the terrain horizon seen from the camera, and inside the frame? */
   inView(dir: SkyDirection, frameMargin: number): boolean;
+  /**
+   * Is this world point in front of the camera, inside the frame (|ndc| <= frameMargin) and not hidden by
+   * terrain? The line of sight is marched every 2 m; terrain more than 0.3 m above it hides the point,
+   * except in the last 3 m before the point (a boulder's own hollow).
+   */
+  inFrame(p: { x: number; y: number; z: number }, frameMargin: number): boolean;
   dispose(): void;
 }
 
@@ -265,9 +274,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       }
     });
   };
-  const boulders = new Boulders(rapier, world, opts.boulderAreas ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
+  const boulders = new Boulders(rapier, world, opts.boulders ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
   patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, photometry);
   scene.add(boulders.mesh);
+  const trackMesh = opts.boulderTrack ? createBoulderTrack(opts.boulderTrack, fine, lightUniforms, photometry, groundColor) : null;
+  if (trackMesh) scene.add(trackMesh);
   const earthAzimuthRad = (tuning.earth.azimuthDeg * Math.PI) / 180;
   const input = new KeyboardInput();
   const chase = new ChaseCamera(camera, (x, z) => terrain.heightAt(x, z));
@@ -575,6 +586,20 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       const inFrame = ndc.z < 1 && Math.abs(ndc.x) <= frameMargin && Math.abs(ndc.y) <= frameMargin;
       return inFrame && horizonMarginTan(terrain, c.x, c.z, c.y, dir) > 0;
     },
+    inFrame(p, frameMargin) {
+      ndc.set(p.x, p.y, p.z).project(camera);
+      if (ndc.z >= 1 || Math.abs(ndc.x) > frameMargin || Math.abs(ndc.y) > frameMargin) return false;
+      const c = camera.position;
+      const dx = p.x - c.x;
+      const dy = p.y - c.y;
+      const dz = p.z - c.z;
+      const dist = Math.hypot(dx, dy, dz);
+      for (let d = 2; d < dist - 3; d += 2) {
+        const k = d / dist;
+        if (terrain.heightAt(c.x + dx * k, c.z + dz * k) > c.y + dy * k + 0.3) return false;
+      }
+      return true;
+    },
     deploy(instrument, params, parts) {
       // To the rover's left (-z in the chassis frame), where the chase camera sees it.
       const left = new THREE.Vector3(0, 0, -1).applyQuaternion(rover.object.quaternion);
@@ -606,6 +631,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       observer.disconnect();
       input.dispose();
       boulders.dispose();
+      if (trackMesh) disposeBoulderTrack(trackMesh);
       rover.dispose();
       lander.dispose();
       world.free();

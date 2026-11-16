@@ -9,7 +9,8 @@
     "speedShare": 0.9,
     "reserveShare": 0.1,
     "flareSeconds": [90, 220],
-    "flareStopSeconds": 8, "quakeSeconds": 165,
+    "flareStopSeconds": 8,
+    "quakeSeconds": 165,
     "crossingUphillDeg": 4,
     "mistakeMargin": 50,
     "mapperBaseShare": 0.003,
@@ -72,7 +73,7 @@
     },
     {
       "id": "rocky1East",
-      "zones": ["young-crater:rocky-area-1"],
+      "zones": ["young-crater:rocky-area-1", "young-crater:nw-crater"],
       "x": -955,
       "z": -215,
       "fromLandingM": 308,

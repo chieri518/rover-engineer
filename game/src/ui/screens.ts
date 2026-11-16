@@ -76,7 +76,7 @@ const landing: Screen = (game, root) => {
   const landmark = el('p', { hidden: true });
   void import('../world/terrainMasks')
     .then(async ({ loadTerrainMasks }) => {
-      const masks = await loadTerrainMasks(data.tuning, game.world);
+      const masks = await loadTerrainMasks(data.tuning, game.world, data.sites.sites);
       const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName);
       const lines = briefingLines(buildLeads(sites, data.tuning.survey), masks.info.landing.local, data);
       leads.replaceChildren(...lines.map((l) => el('li', {}, l)));

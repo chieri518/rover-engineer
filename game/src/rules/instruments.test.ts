@@ -71,17 +71,22 @@ describe('neutron spectrometer: cold trap edges and the hydrogen anomaly (real s
     craterDescent: f.craterDescent,
   }, data.tuning.milestones, { sites, neutron: n });
   const read = (p: { x: number; z: number }) => hydrogenReading(p, false, sz, n);
+  // The East cold trap is the pipeline's permanent-shadow outline (a polygon) plus the survey edge.
   const east = sz.find((z) => z.key === 'cold-trap:east-cold-trap')!;
-  if (east.shape.kind !== 'circle') throw new Error('east cold trap should be a circle');
-  const { x: ex, z: ez } = east.shape;
-  const outline = east.shape.r - (east.edgeM ?? 0);
-  const eastAt = (d: number) => ({ x: ex + outline + d, z: ez });
+  if (east.shape.kind !== 'polygon') throw new Error('east cold trap should be the pipeline outline');
+  const eastPts = east.shape.points;
+  const [emx, emz] = eastPts.reduce((a, q) => (q[0] > a[0] ? q : a));
+  const eastAt = (d: number) => ({ x: emx + d, z: emz }); // due east of its easternmost outline point
 
   it('a cold trap reads the cold background to its outline, then ramps down to the noise floor', () => {
-    expect(read({ x: ex, z: ez })).toBe(n.coldBackground);
+    const c = sites.find((x) => x.id === 'east-cold-trap')!.center;
+    expect(read(c)).toBe(n.coldBackground);
     expect(read(eastAt(0))).toBeCloseTo(n.coldBackground);
-    expect(read(eastAt(n.edgeRampM / 2))).toBeCloseTo((n.coldBackground + n.noiseFloor) / 2);
-    expect(read(eastAt(n.edgeRampM))).toBe(n.noiseFloor);
+    const half = eastAt(n.edgeRampM / 2);
+    const d = distanceToOutline(east, half);
+    expect(d).toBeCloseTo(n.edgeRampM / 2, 0);
+    expect(read(half)).toBeCloseTo(n.coldBackground + ((n.noiseFloor - n.coldBackground) * d) / n.edgeRampM);
+    expect(read(eastAt(n.edgeRampM + 1))).toBe(n.noiseFloor);
     expect(read(eastAt(n.edgeRampM * 2))).toBe(n.noiseFloor);
   });
 
@@ -126,9 +131,17 @@ describe('neutron spectrometer: cold trap edges and the hydrogen anomaly (real s
     // A cold trap and an anomaly on the same spot: the anomaly's peak beats the cold background.
     const both = [...sz, { ...east, key: 'cold-trap:test', shape: { kind: 'circle' as const, x: z.shape.x, z: z.shape.z, r: 30 + (east.edgeM ?? 0) } }];
     expect(hydrogenReading({ x: z.shape.x, z: z.shape.z }, false, both, n)).toBe(n.anomalyPeak);
-    // Just past the cold trap outline, the anomaly's reading is higher than the ramp's.
-    const p = { x: z.shape.x + 40, z: z.shape.z };
-    expect(hydrogenReading(p, false, both, n)).toBeGreaterThan(hydrogenReading(p, false, sz.filter((q) => q.id !== 'cold-trap' || q.key !== 'cold-trap:test'), n) - 1e-9);
+    // 10 m past the anomaly zone's edge (and 10 m + r - 30 past the test trap's outline) both apply:
+    // the meter shows the anomaly's outer segment, which is above the trap's edge ramp there.
+    const r = z.shape.r;
+    const d = r + 10;
+    const anomaly = n.anomalyEdge + ((n.noiseFloor - n.anomalyEdge) * (d - r)) / (n.anomalyRangeM - r);
+    const ramp = Math.max(n.noiseFloor, n.coldBackground + ((n.noiseFloor - n.coldBackground) * (d - 30)) / n.edgeRampM);
+    expect(anomaly).toBeGreaterThan(ramp);
+    expect(hydrogenReading({ x: z.shape.x + d, z: z.shape.z }, false, both, n)).toBeCloseTo(anomaly, 9);
+    // Inside the test trap, beyond the anomaly's reach, the cold background shows.
+    const far = [...sz, { ...east, key: 'cold-trap:far', shape: { kind: 'circle' as const, x: z.shape.x + 1000, z: z.shape.z, r: 30 + (east.edgeM ?? 0) } }];
+    expect(hydrogenReading({ x: z.shape.x + 1000, z: z.shape.z }, false, far, n)).toBe(n.coldBackground);
   });
 });
 
@@ -147,16 +160,16 @@ describe('X-ray spectrometer: boulders and rock types', () => {
 
   it('a boulder always reads the same rock, and the rocks follow their weights', () => {
     const b = { x: 123.4, z: -56.7, radius: 0.8 };
-    expect(rockTypeFor(b, x)).toBe(rockTypeFor({ ...b }, x));
+    expect(rockTypeFor(b, x, [])).toBe(rockTypeFor({ ...b }, x, []));
     const many = scatterBoulders([{ x: 0, z: 0, radiusM: 200 }], { ...testTuning.boulders, perRockyArea: 4000 });
-    const common = many.filter((m) => rockTypeFor(m, x) === 'common').length / many.length;
+    const common = many.filter((m) => rockTypeFor(m, x, []) === 'common').length / many.length;
     expect(common).toBeGreaterThan(0.7);
     expect(common).toBeLessThan(0.8); // weight 3 of 4
   });
 
   it('the real boulder fields hold several of the placeholder rock types', () => {
     const areas = f.rockyAreas.map((a) => ({ x: a.local.x, z: a.local.z, radiusM: a.radius_m }));
-    const rocks = new Set(scatterBoulders(areas, data.tuning.boulders).map((b) => rockTypeFor(b, it_.xray)));
+    const rocks = new Set(scatterBoulders(areas, data.tuning.boulders).map((b) => rockTypeFor(b, it_.xray, [])));
     expect(rocks.size).toBe(it_.xray.rocks.length);
     for (const r of it_.xray.rocks) expect(data.text.rocks[r.id]?.name).toBeTruthy();
   });
