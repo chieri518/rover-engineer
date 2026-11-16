@@ -651,7 +651,7 @@ Phase 1 can ship alone. Phases 2 and 3 ship together (the power parts are the po
 | 5a to 5d | `4a473bd`, `9f8c6cd`, `89ed980`, `7fd6a62`; decisions `b24cb8d` |
 | 6a to 6d | `61d9a86`, `4d0e10b`, `7009a17`, `0aabb8b`; decisions `d6e052f`; review fixes `b389521` |
 | 7 | `6cb831d`, browser run `1bc811a` (no MP5 legs and no Mars balance data file: balance by hand) |
-| 8 | `a3f4b0f` (how-to lines), `6fd4fb1` (tutorial), `b961641` (credits), `e7dd5c9` (playtest checklist), and the docs commit that marks the pieces built |
+| 8 | `a3f4b0f` (how-to lines), `6fd4fb1` (tutorial), `b961641` (credits), `e7dd5c9` (playtest checklist), docs `02c1850` |
 
 **Sequential, and why:**
 
