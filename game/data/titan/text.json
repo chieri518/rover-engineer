@@ -134,23 +134,33 @@
     "captionSurface": "Shangri-La dunes"
   },
   "day": {
-    "_placeholder": "T6.",
-    "sunset": "[placeholder] Sunset. The long Titan night begins: lights on to keep driving, or sleep until dawn.",
-    "dawn": "[placeholder] Dawn over the dunes.",
-    "sleepFastForward": "[placeholder] Asleep. Time passes faster until dawn."
+    "_owner": "Integration (T6): the day and night notices and HUD lines on Titan. The lander does not recharge the rover, so nothing here sends it back to base.",
+    "sunset": "Sunset. The long Titan night begins: lights on to keep driving, or press P to sleep until dawn.",
+    "sunsetNoLights": "Sunset. Without lights the rover cannot drive in the long Titan night. Press P to sleep until dawn.",
+    "dawn": "Dawn over the dunes. The rover made it through the Titan night.",
+    "dawnWoke": "Dawn over the dunes. The rover wakes up: it made it through the Titan night.",
+    "hudDay": "Titan day",
+    "hudNight": "Titan night",
+    "lightsOn": "Lights on. The battery is draining fast.",
+    "noLights": "No lights: the rover cannot drive at night. Press P to sleep until dawn.",
+    "sleepFastForward": "Sleeping · time speeds up until dawn",
+    "sleepingDay": "Powered down. Press P to power up.",
+    "panelDay": "Solar panel: almost no power in the haze",
+    "panelNight": "Solar panel: no power at night"
   },
   "rain": {
-    "_placeholder": "T6.",
-    "forecast": "[placeholder] Weather station: methane rain in about a minute.",
-    "started": "[placeholder] Methane rain. Visibility is down and the cold bites harder.",
-    "cleared": "[placeholder] The methane rain has cleared.",
-    "photoBlocked": "[placeholder] Photographs do not count in the rain.",
+    "_owner": "Integration (T6), except credit (campaign and screens, T4).",
+    "forecast": "Lander weather station: methane rain in about a minute. Photographs will not count while it falls, and the cold will bite harder.",
+    "forecastBar": "Methane rain in {seconds} s",
+    "started": "Methane rain. Visibility is down, photographs do not count, and the rover cools faster.",
+    "cleared": "The methane rain has cleared.",
+    "photoBlocked": "Photograph added to the album, but photographs do not count in the methane rain.",
     "credit": "[placeholder: T4]"
   },
   "cold": {
-    "_placeholder": "T6.",
-    "warning": "[placeholder] The rover is freezing in the Titan cold.",
-    "sleepCools": "[placeholder] Asleep, only the heater keeps the rover warm."
+    "_owner": "Integration (T6).",
+    "warning": "Titan cold: the rover is freezing.",
+    "sleepCools": "Asleep, only the heater keeps the rover warm. It is cooling."
   },
   "titanCampaign": {
     "_placeholder": "T4.",

@@ -234,10 +234,15 @@ export interface TitanLookTuning {
 // Titan reuses the Mars section shapes (MarsTextSections) where they fit; these are the Titan additions.
 
 export interface TitanTextSections {
-  /** Day and night notices (T6). */
-  day: Record<'sunset' | 'dawn' | 'sleepFastForward', string>;
-  /** Methane rain (T6). */
-  rain: Record<'forecast' | 'started' | 'cleared' | 'photoBlocked' | 'credit', string>;
+  /** Day and night notices and HUD lines (T6). */
+  day: Record<
+    | 'sunset' | 'sunsetNoLights' | 'dawn' | 'dawnWoke'
+    | 'hudDay' | 'hudNight' | 'lightsOn' | 'noLights' | 'sleepFastForward' | 'sleepingDay'
+    | 'panelDay' | 'panelNight',
+    string
+  >;
+  /** Methane rain (T6; `credit` is T4's). `forecastBar` fills {seconds}. */
+  rain: Record<'forecast' | 'forecastBar' | 'started' | 'cleared' | 'photoBlocked' | 'credit', string>;
   /** Always-on cold (T6). */
   cold: Record<'warning' | 'sleepCools', string>;
   /** Campaign and screens (T4): the Mars → Titan transition, the Dragonfly debrief, Campaign complete. */
