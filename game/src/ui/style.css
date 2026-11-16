@@ -410,7 +410,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .title-scrim { background: linear-gradient(0deg, rgba(4, 7, 14, 0.92) 0%, rgba(4, 7, 14, 0.62) 42%, rgba(4, 7, 14, 0) 66%); }
   .panel.title-panel { padding: 20px; }
   .title-panel .actions { margin-top: 18px; }
-  @media (prefers-reduced-motion: reduce) {
+}
+@media (prefers-reduced-motion: reduce) {
   .title-cover-canvas { transition: none; }
 }
 
