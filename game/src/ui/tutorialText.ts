@@ -1,5 +1,5 @@
 // Tutorial pages with their {name} placeholders filled from the game data (no DOM, so it is testable).
-import { nextMission } from '../rules/campaign';
+import { isPlayable, nextMission } from '../rules/campaign';
 import type { GameData, Instrument, CampaignStep } from '../rules/types';
 import type { TutorialId } from '../save/tutorialSeen';
 import { fill, money } from './dom';
@@ -14,7 +14,7 @@ export function tutorialPages(
   data: GameData,
   opts: { mission: CampaignStep; instruments: Instrument[]; balance?: number }, // instruments: the payload bay, in bay order
 ): TutorialPageText[] {
-  const { text, tuning, tiers } = data;
+  const { text, tiers } = data;
   const t = text.tutorial;
   const list = tiers.tiers;
   const vars: Record<string, string | number> = {
@@ -24,7 +24,7 @@ export function tutorialPages(
       .map((tier) => fill(t.tierItem, { name: tier.name, mass: tier.massLimit, size: tier.sizeLimit, price: money(tier.price, text) }))
       .join(t.tierJoin),
     top: list[list.length - 1]?.name ?? '',
-    nextMinimum: money(tuning.budget.minimumBudget[nextMission(opts.mission) ?? opts.mission], text),
+    nextMinimum: nextMinimum(opts.mission, data),
   };
   return t[id].map((page) => {
     // One line per carried instrument, with its mission key (bay order).
@@ -44,11 +44,19 @@ export function tutorialPages(
  * The mission's numbers for {placeholders} in tutorial and briefing text: the Moon's, and on Mars the
  * sol clock, the night and the dust storm (the Mars keys are 0 on the Moon, whose text does not use them).
  */
+/** The next mission's minimum budget (the pass mark); empty after the last mission, which passes on survival. */
+function nextMinimum(mission: CampaignStep, data: GameData): string {
+  const next = nextMission(mission);
+  return next && isPlayable(next) ? money(data.tuning.budget.minimumBudget[next], data.text) : '';
+}
+
 export function missionVars(data: GameData): Record<string, string | number> {
   const { text, tuning, events } = data;
   const sol = tuning.sol;
   const perSol = sol?.secondsPerSol || 1;
   const storm = events.duststorm;
+  const rain = events.rainstorm;
+  const minutes = (seconds: number) => +(Math.max(0, seconds) / 60).toFixed(1);
   return {
     minutes: +(tuning.mission.lengthSeconds / 60).toFixed(1),
     days: tuning.mission.gameDays,
@@ -69,5 +77,12 @@ export function missionVars(data: GameData): Record<string, string | number> {
     stormSols: storm ? +(storm.durationSeconds / perSol).toFixed(1) : 0,
     stormSolarPercent: storm ? Math.round(storm.solarFactor * 100) : 0,
     sunsetNotice: text.night?.sunset ?? '',
+    // Titan: one day with the mission starting after sunrise, the sleep fast-forward and the rainstorm.
+    dayLeftMinutes: sol ? minutes(sol.daySeconds - (sol.startSecondsIntoDay ?? 0)) : 0,
+    nightMinutes: sol ? minutes(sol.nightSeconds) : 0,
+    dawnMinutes: sol ? minutes(tuning.mission.lengthSeconds - sol.daySeconds - sol.nightSeconds + (sol.startSecondsIntoDay ?? 0)) : 0,
+    nightClockRate: tuning.sleep?.nightClockRate ?? 1,
+    rainWarningSeconds: rain?.warningSeconds ?? 0,
+    rainSeconds: rain?.durationSeconds ?? 0,
   };
 }

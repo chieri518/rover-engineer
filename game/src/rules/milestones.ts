@@ -3,9 +3,13 @@
 // rover's position each step, plus photo and drill actions and flare outcomes; the tracker returns the
 // milestones reached. Required parts are enforced here. Mars adds its own zones (delta front, delta
 // layers and sunset viewpoints, Séítah), night driving, the dust storm and the sunset photo; the Moon's
-// zones, Earth photo and hydrogen signal simply never apply there. Pure: no rendering, no DOM.
+// zones, Earth photo and hydrogen signal simply never apply there. Titan adds dune crests, corridors, the
+// dune-crest viewpoint, the sample patch and the Selk ejecta field (rules/titanMilestones.ts), Dune crossing,
+// Dawn and photos blocked by rain. Pure: no rendering, no DOM.
 import type { BusSlot, Instrument, Milestone, MilestoneTuning, Part } from './types';
 import type { MarsMilestoneTuning, MarsViewpointKind } from './marsTypes';
+import type { TitanViewpointKind } from './titanTypes';
+import { buildTitanZones, DuneCrossing, type TitanMilestoneFeatures } from './titanMilestones';
 import type { DamageCause } from './damage';
 import { milestoneStages, type EarnedMilestone } from './payout';
 import { meetsRequirements } from './rover';
@@ -14,7 +18,7 @@ export interface Point { x: number; z: number }
 export interface Point3 { x: number; y: number; z: number }
 
 /** terrain.json features the milestone zones read: the Moon's own features are absent on Mars, and Mars's on the Moon. */
-export interface MilestoneFeatures {
+export interface MilestoneFeatures extends TitanMilestoneFeatures {
   landing: Point3;
   rimViewpoints?: { name: string; local: Point; lookToward: Point }[];
   rockyAreas: { name: string; local: Point; radius_m: number }[];
@@ -23,22 +27,25 @@ export interface MilestoneFeatures {
   // Mars (rules/marsTypes.ts MarsTerrainFeatures)
   deltaFront?: { name: string; scarpLocal_xz: [number, number][]; zoneRadius_m: number };
   seitah?: { name: string; outlineLocal_xz: [number, number][] };
-  viewpoints?: { name: string; local: Point; kind: MarsViewpointKind }[];
+  viewpoints?: { name: string; local: Point; kind: MarsViewpointKind | TitanViewpointKind }[];
+  // Titan (rules/titanTypes.ts TitanTerrainFeatures): duneCrests, interdunes, samplePatch (TitanMilestoneFeatures)
 }
 
 /** Zone ids that milestones.json triggers refer to. */
 /**
- * Every zone buildZones makes, the Moon's then Mars's (marsTypes.ts MarsZoneId); milestone triggers may
- * name only these (validate.ts checks). buildZones's own zone literals fail to typecheck if one is missing.
+ * Every zone buildZones makes, the Moon's, then Mars's (marsTypes.ts MarsZoneId), then Titan's
+ * (titanTypes.ts TitanZoneId); milestone triggers may name only these (validate.ts checks).
+ * buildZones's own zone literals fail to typecheck if one is missing.
  */
 export const ZONE_IDS = [
   'large-crater', 'boulder-field', 'shadowed-crater', 'crater-wall', 'ice-spot', 'rim-viewpoint', 'near-lander',
   'delta-front', 'delta-layers', 'seitah', 'sunset-viewpoint',
+  'dune-crest', 'dune-crest-viewpoint', 'interdune-sample', 'ejecta-field', 'interdune-corridor',
 ] as const;
 export type ZoneId = (typeof ZONE_IDS)[number];
 
 /** Zones where a photograph is of a place (its caption names the zone). */
-export const PHOTO_ZONE_IDS: readonly ZoneId[] = ['rim-viewpoint', 'crater-wall', 'delta-layers', 'sunset-viewpoint'];
+export const PHOTO_ZONE_IDS: readonly ZoneId[] = ['rim-viewpoint', 'crater-wall', 'delta-layers', 'sunset-viewpoint', 'dune-crest-viewpoint', 'dune-crest'];
 
 export type ZoneShape =
   | { kind: 'circle'; x: number; z: number; r: number }
@@ -81,9 +88,11 @@ export function buildZones(f: MilestoneFeatures, t: MilestoneTuning): Zone[] {
   });
   if (f.seitah) zones.push({ id: 'seitah', key: 'seitah', name: f.seitah.name, shape: { kind: 'polygon', points: f.seitah.outlineLocal_xz } });
   (f.viewpoints ?? []).forEach((v, i) => zones.push({
-    id: v.kind === 'deltaLayers' ? 'delta-layers' : 'sunset-viewpoint', key: `viewpoint-${i}`, name: v.name,
+    id: v.kind === 'deltaLayers' ? 'delta-layers' : v.kind === 'duneCrest' ? 'dune-crest-viewpoint' : 'sunset-viewpoint',
+    key: `viewpoint-${i}`, name: v.name,
     shape: { kind: 'circle', x: v.local.x, z: v.local.z, r: t.photoZoneRadiusM },
   }));
+  zones.push(...buildTitanZones(f, t));
   // Ground the lander's engine plume disturbed: drill samples here do not count.
   zones.push({
     id: 'near-lander', key: 'near-lander', name: 'Lander',
@@ -190,7 +199,10 @@ export interface StepInput {
   /** Mars: it is night now (dusk to dawn; rules/sol.ts solClock().isNight). Distance driven while true counts for Night drive. */
   night?: boolean;
   /** Mars: the dust storm is active now (rules/storm.ts stormPhase() === 'active'). Storm survivor fires when it clears. */
+  /** Titan: the methane rain is active now (rules track T3). */
   stormActive?: boolean;
+  /** Titan: rain blocks photos now (the rain is active and events.rainstorm.blocksPhotos). Photos then count for nothing. */
+  photosBlocked?: boolean;
 }
 
 /** Mars: the Sun as the camera saw it when a photo was taken, for Blue sunset. */
@@ -223,6 +235,9 @@ export class MilestoneTracker {
   private lastDistanceM: number | null = null;
   private nightM = 0; // distance driven at night this mission
   private stormWasActive = false;
+  private wasNight = false; // Titan Dawn: night ended while the mission ran
+  private blocked = false; // Titan: rain blocks photos (from the last step)
+  private readonly duneCrossing = new DuneCrossing();
 
   constructor(
     private readonly catalog: Milestone[],
@@ -275,6 +290,11 @@ export class MilestoneTracker {
     return this.zones.filter((z) => this.inside.has(z.key));
   }
 
+  /** Titan: whether rain blocks photos now (from the last step), for the notice. */
+  photosBlocked(): boolean {
+    return this.blocked;
+  }
+
   /** Distance driven at night so far this mission (Mars). */
   nightDistanceM(): number {
     return this.nightM;
@@ -288,6 +308,9 @@ export class MilestoneTracker {
     if (input.night) this.nightM += driven;
     const stormCleared = this.stormWasActive && !input.stormActive;
     this.stormWasActive = input.stormActive ?? false;
+    const dawn = this.wasNight && !input.night;
+    this.wasNight = input.night ?? false;
+    this.blocked = input.photosBlocked ?? false;
     const exited: { zone: Zone; entry: Point | null }[] = [];
     for (const zone of this.zones) {
       const was = this.inside.has(zone.key);
@@ -300,6 +323,10 @@ export class MilestoneTracker {
         this.inside.delete(zone.key);
       }
     }
+    // Titan: Dune crossing, from one corridor to another over a crest.
+    const corridor = this.zones.find((z) => z.id === 'interdune-corridor' && this.inside.has(z.key));
+    const onCrest = this.zones.some((z) => z.id === 'dune-crest' && this.inside.has(z.key));
+    const duneCrossed = this.duneCrossing.step(corridor?.key ?? null, onCrest);
     for (const m of this.catalog) {
       const tr = m.trigger;
       if (tr.type === 'distance') {
@@ -321,6 +348,10 @@ export class MilestoneTracker {
         this.fire(m, u, tr.meters.filter((d) => this.nightM >= d).length);
       } else if (tr.type === 'storm-survive') {
         if (stormCleared) this.fire(m, u);
+      } else if (tr.type === 'dune-crossing') {
+        if (duneCrossed) this.fire(m, u);
+      } else if (tr.type === 'dawn') {
+        if (dawn) this.fire(m, u);
       }
     }
     return u;
@@ -336,17 +367,19 @@ export class MilestoneTracker {
   /**
    * A photograph from the rover's position. `earthInView`: Earth is above the horizon and in frame;
    * `earthLit`: the sunlit share of Earth's disc (rules/sun.ts earthLitShare). The Earth photo needs both.
-   * `sun` (Mars): the Sun as the camera saw it, for the sunset photo.
+   * `sun` (Mars): the Sun as the camera saw it, for the sunset photo. Titan: nothing counts while rain blocks
+   * photos, and a 'dune-crest' photo also counts at the dune-crest viewpoint (it stands on a crest).
    */
   photo(p: Point3, earthInView: boolean, earthLit: number, sun?: SunPhoto): MilestoneUpdate {
     const u = this.empty();
+    if (this.blocked) return u;
     const zones = this.zones.filter((z) => zoneContains(z, p, this.inside.has(z.key)));
     this.each('photo', (m) => {
       const tr = m.trigger;
       if (tr.type !== 'photo') return;
       const counts = tr.target === 'earth' ? this.earthPhotoCounts(p, earthInView, earthLit)
         : tr.target === 'sunset' ? !!sun && this.sunsetBlocker(p, sun) === null
-          : zones.some((z) => z.id === tr.zone);
+          : zones.some((z) => z.id === tr.zone || (tr.zone === 'dune-crest' && z.id === 'dune-crest-viewpoint'));
       if (counts) this.fire(m, u);
     });
     return u;

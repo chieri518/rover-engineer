@@ -1,5 +1,6 @@
 import type { DeathCause, Milestone, Tuning } from './types';
 import type { RelationshipEvent } from './relationships';
+import type { RoundMeasure } from './roundStats';
 
 export interface EarnedMilestone {
   id: string;
@@ -13,6 +14,7 @@ export interface MissionResult {
   secondsLasted: number;
   earned: EarnedMilestone[];
   relationships?: RelationshipEvent[]; // relationships met, once each, in the order met; missing: none
+  measure?: RoundMeasure; // what the mission measured, for the round stats; missing: no stats recorded
 }
 
 export interface PaidMilestone {
