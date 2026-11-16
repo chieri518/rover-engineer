@@ -35,6 +35,10 @@ describe('Titan mission wording (T6)', () => {
     expect(tm.sleepBanner(night, true)).toContain(`${titan.tuning.sleep!.nightClockRate}×`);
   });
 
+  it('never claims the cold meter rises all mission (awake with a heater stays warm, T8)', () => {
+    expect(JSON.stringify(titan.text)).not.toMatch(/rises all (mission|the time)/i);
+  });
+
   it('never sends the rover back to the lander to recharge', () => {
     const all = JSON.stringify([titan.text.day, titan.text.rain, titan.text.cold]);
     expect(all).not.toMatch(/recharg|return to (the )?(base|lander)/i);

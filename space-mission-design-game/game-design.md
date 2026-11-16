@@ -765,8 +765,8 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 *Decided:* Titan is always cold, about 94 K (−179 °C), day and night.
 
-- *Proposed:* the freeze meter rises everywhere, all mission, at a constant base rate.
-- Heat sources cut the rate: the radioisotope heater (Moon part), and the rover's own electronics while it is awake. Driving warms a little more than sitting awake.
+- *Proposed:* the cold never lets up: a constant base freeze rate pushes on the rover everywhere, all mission.
+- Heat sources cut the rate: the radioisotope heater (Moon part), and the rover's own electronics while it is awake. Driving warms a little more than sitting awake. Awake with a heater, the heat outweighs the cold and the meter stays at 0 (intended: staying awake keeps the rover warm). Asleep, in the rain, or without a heater, the rover cools and the meter climbs. The player text says this, not that the meter "rises all mission" *(Phase T8)*.
 - **Sleep cools the rover.** Asleep, only the heater fights the cold, so a long sleep brings the rover close to freezing. Without a heater, a sleeping rover freezes before dawn and an awake one freezes within the mission. This is the Titan trade: sleep saves energy and costs warmth; staying awake keeps warm and costs energy. With the heater, a sleeper survives the night with little margin.
 - Real basis: Dragonfly keeps warm with the waste heat of its MMRTG inside an insulated body, which gives about 2 kW of heat and about 100 W of electricity ([research 09](research/rover-engineering/09-titan-surface-data.md); the exact watts are *unverified*).
 

@@ -3,6 +3,9 @@
   "_placeholder": "Strings still marked [placeholder] are stubs for the owning track; real facts are fact-checked by research (R).",
   "partText": {
     "_about": "Titan wording for the shared parts, by part id; numbers stay the Moon's. Matches the Titan rules: almost no solar power, always-on cold, no driving at night without lights.",
+    "wheels-solid": {
+      "description": "Cheap and heavy. Lower grip in soft dune sand."
+    },
     "power-fixed-panel": {
       "description": "A flat panel. Almost no power at Titan: the thick haze lets through very little sunlight."
     },
@@ -26,7 +29,18 @@
     },
     "battery-li-ion": {
       "description": "Light, but expensive and stores less. At Titan the battery is the energy budget."
+    },
+    "instrument-drill": {
+      "name": "Sample drill",
+      "description": "Collects samples of the surface: dune sand and water ice, the kinds of ground where Titan's organic material may collect. Heavier and bulkier than the camera."
     }
+  },
+  "design": {
+    "speedInfo": [
+      "The mission compresses one Titan day, about 16 Earth days, into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
+      "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
+      "Robotic rovers drive far slower. NASA's Curiosity and Perseverance rovers on Mars have a top speed of about 4 cm/s (0.15 km/h) on flat ground. Dragonfly, the real Titan mission, will fly instead of driving."
+    ]
   },
   "landing": {
     "heading": "Landing: Shangri-La dunes",
@@ -46,7 +60,7 @@
     "newOnMars": [
       "One Titan day: about {dayLeftMinutes} minutes of daylight, then a {nightMinutes}-minute night, then dawn for the last {dawnMinutes} minutes.",
       "No useful sunlight: solar panels give almost no power, so the battery is the energy budget for the whole mission.",
-      "Always cold: the cold meter rises all mission, everywhere. The heater and the rover's own electronics slow it; asleep, only the heater does.",
+      "Always cold: the cold never lets up, day or night. Awake, the electronics and the heater keep the rover warm; asleep, in the rain, or without a heater, it cools.",
       "Night: keep the lights on to drive, or sleep with P. Sleeping saves energy and makes time pass {nightClockRate} times faster, but the rover cools.",
       "Methane rain: the lander's weather station forecasts the rainstorm about {rainWarningSeconds} s ahead."
     ],
@@ -101,8 +115,8 @@
       {
         "title": "Always cold",
         "body": [
-          "Titan is about −179 °C, day and night. The cold meter rises all mission, everywhere on the map. When it is full, the rover freezes.",
-          "A heater slows freezing. The rover's own electronics also keep it warm while it is awake, and a little more while it drives. Asleep, only the heater fights the cold. Without a heater, the rover freezes before the mission ends.",
+          "Titan is about −179 °C, day and night, everywhere on the map. The cold never lets up: when the cold meter is full, the rover freezes.",
+          "Awake, the rover's own electronics and a heater keep it warm, and the cold meter stays low. Asleep, only the heater fights the cold, so the rover cools. Rain cools every rover faster. Without a heater, the rover freezes before the mission ends.",
           "Lights let the rover drive through the long night, at a high battery cost. Without lights it can only wait or sleep until dawn."
         ]
       }
@@ -127,8 +141,8 @@
       {
         "title": "Sleep saves energy, but the rover cools",
         "body": [
-          "The cold meter rises all the time. Awake, the electronics slow it, and driving slows it a little more. Asleep, only the heater slows it, so the meter climbs faster.",
-          "Watch the cold meter while the rover sleeps. Power up with P to slow the cooling again, at an energy cost.",
+          "The cold never lets up. Awake, the electronics and the heater keep the rover warm, and driving adds a little more heat. Asleep, in the rain, or without a heater, the rover cools and the cold meter climbs.",
+          "Watch the cold meter while the rover sleeps. Power up with P to warm it again, at an energy cost.",
           "Hard impacts and ground steeper than {maxSlope}° damage the rover, as on the Moon."
         ]
       },
