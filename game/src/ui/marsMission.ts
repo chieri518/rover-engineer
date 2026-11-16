@@ -1,7 +1,8 @@
 // The Mars parts of the mission screen: the sol clock and the real Jezero Sun, the night (lights on or
 // sleep), the dust storm, and their HUD words. The rules decide (rules/mission.ts marsStatus and
 // MissionStep.marsNotices); this module only words them. The Moon never creates one.
-import type { GameData } from '../rules/types';
+import type { GameData, Part } from '../rules/types';
+import { nightBudget, partPower } from '../rules/energy';
 import type { Rng } from '../rules/events';
 import { marsSetup, marsStatus, type MarsNotice, type MarsSetup, type MarsStatus, type MissionSetup, type MissionState } from '../rules/mission';
 import { marsSunAt } from '../rules/marsSun';
@@ -65,4 +66,27 @@ export class MarsMission {
   noLightsWarning(m: MarsStatus, poweredDown: boolean, hasLights: boolean): string | null {
     return m.clock.isNight && !poweredDown && !hasLights ? this.night.noLights : null;
   }
+}
+
+/**
+ * The desk's night budget line (Mars M15): what one night costs this build asleep and parked awake with the
+ * lights on (with the electric heater's share of each), and an RTG's income over the night. Null where
+ * there is no night (the Moon); a dash until the power, lights and heater are chosen.
+ */
+export function nightBudgetLine(data: GameData, parts: Part[]): { label: string; value: string } | null {
+  const { night, sol } = data.tuning;
+  const t = data.text.nightBudget;
+  if (!night || !sol || !t) return null;
+  const label = fill(t.label, { seconds: sol.nightSeconds });
+  if (!(['power', 'lights', 'heater'] as const).every((slot) => parts.some((p) => p.slot === slot))) return { label, value: '—' };
+  const hasLights = parts.some((p) => (p.effects.lightRange ?? 0) > 0); // as rules/mission.ts missionSetup
+  const b = nightBudget(partPower(parts), hasLights, night, sol.nightSeconds);
+  const energy = (x: number) => String(Number(x.toFixed(1)));
+  const items = [
+    fill(t.asleep, { energy: energy(b.asleep) }),
+    b.withLights !== null && fill(t.lights, { energy: energy(b.withLights) }),
+    b.heater > 0 && fill(t.heater, { energy: energy(b.heater) }),
+    b.steady > 0 && fill(t.steady, { energy: energy(b.steady) }),
+  ].filter((x): x is string => Boolean(x));
+  return { label, value: items.join(t.separator) };
 }

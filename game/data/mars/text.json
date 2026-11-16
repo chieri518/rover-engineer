@@ -18,6 +18,15 @@
   "ticket": {
     "briefing": "REL secures a spot for the rover on the next commercial launch to Mars. The lander will set it down on the floor of Jezero crater."
   },
+  "nightBudget": {
+    "_note": "The spec sheet's night budget line (Mars M15): one night's energy for this build, asleep and parked awake with the lights on, the electric heater's share of each, and an RTG's income over the night. Numbers from data (rules/energy.ts nightBudget). Shown once power, lights and heater are chosen.",
+    "label": "Night energy ({seconds} s)",
+    "asleep": "{energy} asleep",
+    "lights": "{energy} with lights",
+    "heater": "heater {energy} of each",
+    "steady": "RTG +{energy}",
+    "separator": " · "
+  },
   "design": {
     "notOffered": "Not offered on Mars: {parts}.",
     "speedInfo": [

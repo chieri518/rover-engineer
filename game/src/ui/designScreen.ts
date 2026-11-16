@@ -15,6 +15,7 @@ import { tierWhyText } from './tierText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
 import { missionVars, tutorialPages } from './tutorialText';
+import { nightBudgetLine } from './marsMission';
 
 const KMH = 3.6;
 
@@ -310,6 +311,7 @@ export const designScreen: Screen = (game, root) => {
     const has = (slot: keyof typeof game.build) => Boolean(game.build[slot]);
     const bayOver = q.payloadProblems.some((p) => p.kind === 'over-capacity');
     const dash = '—';
+    const nightLine = nightBudgetLine(data, chosen); // Mars only (null on the Moon)
 
     sheet.replaceChildren(
       el('h3', {}, 'Mass and size'),
@@ -342,6 +344,7 @@ export const designScreen: Screen = (game, root) => {
       row('Grip', has('wheels') ? d.grip.toFixed(2) : dash),
       row('Drive energy', has('wheels') ? `${(d.energyPerMeter * 1000).toFixed(0)} energy/km` : dash),
       row('Battery', has('battery') ? `${d.batteryCapacity} energy` : dash),
+      ...(nightLine ? [row(nightLine.label, nightLine.value)] : []),
       row('Range on battery', has('wheels') && has('battery') ? `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground` : dash),
       row(t.instrumentEnergy, instrumentEnergyText()),
       row('Solar income', has('power') ? `${d.energyIncome.toFixed(1)} energy/s in full sun` : dash),
