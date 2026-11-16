@@ -755,7 +755,7 @@ export const missionScreen: Screen = (game, root) => {
         marsNow = mars.status(state, setup);
       }
       minimap = new Minimap(terrain.fine, masks, terrain.fine.extent - tuning.area.boundaryInsetM, text, tuning.minimap, mars ? MARS_RELIEF : undefined);
-      sites = buildSites(masks.info.features, mt, text.survey.shadowedCraterName);
+      sites = buildSites(masks.info.features, mt, text.survey.shadowedCraterName, siteList);
       leads = buildLeads(sites, tuning.survey);
       hud.root.append(minimap.root);
       const started = await startMoonScene({

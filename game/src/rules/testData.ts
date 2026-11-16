@@ -57,6 +57,7 @@ export const testTuning: Tuning = {
     slopeSlipFreeDeg: 10, slipPerUphillDeg: 0.01, softRadiusFactor: 1, softFadeFactor: 1.5, movingSpeedMps: 0.5,
   },
   explore: { cellM: 20, revealRadiusM: 250 },
+  boulderTrack: { widthM: 2.8, tileLengthM: 14, stepAlongM: 1, pointsAcross: 7, liftM: 0.04, stopShortM: 2.5, brighten: 1.7 },
   minimap: { startSpanM: 700, marginM: 100, maxSpanM: 8000 },
   survey: {
     leads: [{ id: 'boulders', site: 'Rocky area 1' }, { id: 'shadow', site: 'shadowedCrater' }],
@@ -92,6 +93,7 @@ export const testTuning: Tuning = {
     craterDescentDepthM: 150, craterDescentExitDepthM: 100, albumMax: 12, photoFrameMargin: 0.85,
     sampleMinDistanceM: 200, sampleSpacingM: 200, earthPhotoMinLit: 0.25, earthPhotoMinDistanceM: 300,
     coldTrapEdgeM: 25, youngCraterEjectaFactor: 1.5, boulderTrackPhotoRangeM: 80, documentedSampleRangeM: 15, hydrogenZoneRadiusM: 60,
+    photoLosStepM: 2, photoLosClearanceM: 0.3, photoLosTailM: 3,
   },
   instruments: {
     coldSlowdown: 2,

@@ -10,6 +10,7 @@ import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
 import { azimuthDeg, buildLeads, buildSites, compassPoint } from '../rules/survey';
+import { resolveSites, type SiteFeatures } from '../rules/sites';
 import { nextMission, type MissionLogEntry } from '../rules/campaign';
 import { briefingLines, kmText } from './surveyText';
 import { missionVars } from './tutorialText';
@@ -77,7 +78,8 @@ const landing: Screen = (game, root) => {
   void import('../world/terrainMasks')
     .then(async ({ loadTerrainMasks }) => {
       const masks = await loadTerrainMasks(data.tuning, game.world, data.sites.sites);
-      const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName);
+      const placed = resolveSites(data.sites.sites, masks.info.features as SiteFeatures); // the Moon's sites.json sites (none on Mars)
+      const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName, placed);
       const lines = briefingLines(buildLeads(sites, data.tuning.survey), masks.info.landing.local, data);
       leads.replaceChildren(...lines.map((l) => el('li', {}, l)));
       if (lines.length === 0) for (const n of [leadsHeading, leadsIntro, leads]) n.remove(); // no leads for this world yet

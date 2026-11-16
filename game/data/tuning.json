@@ -87,6 +87,15 @@
     "cellM": 20,
     "revealRadiusM": 250
   },
+  "boulderTrack": {
+    "widthM": 2.8,
+    "tileLengthM": 14,
+    "stepAlongM": 1,
+    "pointsAcross": 7,
+    "liftM": 0.04,
+    "stopShortM": 2.5,
+    "brighten": 1.7
+  },
   "minimap": {
     "startSpanM": 700,
     "marginM": 100,
@@ -96,7 +105,8 @@
     "leads": [
       { "id": "layers", "site": "craterDescent" },
       { "id": "boulders", "site": "Rocky area 1" },
-      { "id": "shadow", "site": "shadowedCrater" }
+      { "id": "shadow", "site": "shadowedCrater" },
+      { "id": "youngCrater", "site": "east-crater" }
     ],
     "roundKmBelow1": 0.1,
     "roundKmAbove1": 0.5
@@ -162,7 +172,10 @@
     "youngCraterEjectaFactor": 1.5,
     "boulderTrackPhotoRangeM": 80,
     "documentedSampleRangeM": 15,
-    "hydrogenZoneRadiusM": 35
+    "hydrogenZoneRadiusM": 35,
+    "photoLosStepM": 2,
+    "photoLosClearanceM": 0.3,
+    "photoLosTailM": 3
   },
   "instruments": {
     "coldSlowdown": 2,

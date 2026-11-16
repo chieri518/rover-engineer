@@ -209,6 +209,16 @@ export interface Tuning {
     movingSpeedMps: number; // above this speed the rover counts as driving
   };
   explore: { cellM: number; revealRadiusM: number };
+  /** The rolled boulder's track decal (world/boulderTrack.ts): a ribbon draped on the terrain. */
+  boulderTrack: {
+    widthM: number;
+    tileLengthM: number; // the texture repeats along the track every this many meters
+    stepAlongM: number; // mesh rows along the track
+    pointsAcross: number; // mesh points across the track
+    liftM: number; // above the terrain, against z-fighting
+    stopShortM: number; // the track ends this far before the boulder's center
+    brighten: number; // the decal's tone relative to the ground color
+  };
   /** The minimap's zoom: it starts at startSpanM and widens to fit the explored area plus marginM. */
   minimap: { startSpanM: number; marginM: number; maxSpanM: number };
   survey: SurveyTuning;
@@ -291,6 +301,12 @@ export interface MilestoneTuning {
   boulderTrackPhotoRangeM: number; // Boulder track: the rolled boulder in frame from within this distance
   documentedSampleRangeM: number; // Documented sample: a boulder read this mission, in frame from within this distance
   hydrogenZoneRadiusM: number; // the hidden hydrogen zone: a circle this wide around its site; the meter reads neutron.anomalyEdge at its edge
+  // A boulder photo's line of sight (world/moonScene.ts inFrame): the terrain is sampled every photoLosStepM
+  // from the camera, must stay photoLosClearanceM below the sight line, and the last photoLosTailM before the
+  // boulder are not tested (the ground it rests on).
+  photoLosStepM: number;
+  photoLosClearanceM: number;
+  photoLosTailM: number;
 }
 
 /** Orbital survey leads: rough bearings to areas of interest, given at the landing briefing. */
@@ -402,9 +418,15 @@ export interface SharedTextFile {
   >; // the engineering notebook
   landing: Record<'heading' | 'briefing', string>;
   survey: Record<
-    | 'heading' | 'intro' | 'lead' | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName' | 'loading',
+    | 'heading' | 'intro' | 'lead' | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName' | 'loading'
+    | 'foundNote' // {name}, {note}: a found site with its note (siteNotes, else siteKindNotes)
+    | 'siteLineDocumented', // with the camera and the X-ray spectrometer aboard, at young craters and rocky areas: {documentedRange}
     string
   > & {
+    siteNotes: Record<string, string>; // by sites.json id: what the site is, after "Located: {name}, "
+    siteKindNotes: Partial<Record<SiteKind, string>>; // the same by site kind, for a site with no note of its own
+    /** By site kind, then instrument: what that instrument can do there, shown only for instruments aboard. {photoRange} */
+    siteLines: Partial<Record<SiteKind, Partial<Record<Instrument, string>>>>;
     leads: Record<string, { name: string; source: string }>; // by lead id in tuning.survey
     compass: string[]; // 16 points from north, full words
     compassShort: string[]; // 16 points from north, abbreviated
@@ -413,7 +435,8 @@ export interface SharedTextFile {
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
     | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief'
-    | 'legendLander' | 'legendViewpoint' | 'legendCrater' | 'legendCold',
+    | 'legendLander' | 'legendViewpoint' | 'legendCrater' | 'legendCold'
+    | 'legendYoungCrater' | 'legendColdTrap' | 'legendRolledBoulder' | 'legendHydrogen' | 'legendDone', // the Moon sites (Moon sites plan, Phase 5)
     string
   >;
   warnings: Record<
@@ -447,8 +470,10 @@ export interface SharedTextFile {
     | 'captionEarth' | 'captionDay' | 'captionSurface'
     | 'holding' | 'useMoving' | 'usePoweredDown' | 'useBusy' | 'useNoEnergy' | 'useSlowCold' | 'useFastShadow' | 'useDeployed'
     | 'useNoEarth' | 'useNoBoulder' | 'standbyLowEnergy' | 'standbyOff' | 'standbyOn' | 'standbyAutoOff' | 'deployedButton'
-    | 'hydrogenMeter' | 'earthLight' | 'earthInView' | 'earthHidden' | 'xrayResult' | 'xrayAgain' | 'xrayNoTarget' | 'seismometerDeployed' | 'reflectorDeployed'
-    | 'quakeClean' | 'quakeNoisy' | 'quakeMissed' | 'quakeTrace' | 'boulderHint' | 'neutronHint',
+    | 'hydrogenMeter' | 'earthLight' | 'earthInView' | 'earthHidden' | 'earthInViewTooClose' | 'xrayResult' | 'xrayAgain' | 'xrayNoTarget' | 'seismometerDeployed' | 'reflectorDeployed'
+    | 'quakeClean' | 'quakeNoisy' | 'quakeMissed' | 'quakeTrace' | 'boulderHint' | 'neutronHint'
+    | 'stationTooCloseHint' | 'stationConfirm' | 'stationPlacedTooClose' // stations inside the near-lander zone: {name} {distance} {key} {seconds}
+    | 'xrayNewType', // Rock collection's count after a reading of a new rock type: {count} {total}
     string
   >;
   /** Per instrument: HUD button, controls line, refusal when not carried, and the history fact shown on first use. */

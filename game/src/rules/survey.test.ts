@@ -20,7 +20,7 @@ const t = testTuning.survey;
 
 describe('survey: sites', () => {
   it('sizes sites like the milestone zones', () => {
-    const sites = buildSites(features, m, 'Dark crater');
+    const sites = buildSites(features, m, 'Dark crater', []);
     expect(sites.map((s) => s.kind)).toEqual(['viewpoint', 'rocky-area', 'crater-wall', 'shadowed-crater']);
     const rocky = sites[1]!.area;
     expect(rocky.kind === 'circle' && rocky.r).toBeCloseTo(200 * m.boulderCrossRadiusFactor);
@@ -30,14 +30,14 @@ describe('survey: sites', () => {
   it('measures the distance to the near edge, zero inside', () => {
     expect(distanceToArea({ kind: 'circle', x: 0, z: 0, r: 100 }, { x: 300, z: 0 })).toBeCloseTo(200);
     expect(distanceToArea({ kind: 'circle', x: 0, z: 0, r: 100 }, { x: 50, z: 0 })).toBe(0);
-    const poly = buildSites(features, m, 'Dark crater')[3]!.area;
+    const poly = buildSites(features, m, 'Dark crater', [])[3]!.area;
     expect(distanceToArea(poly, { x: 0, z: 0 })).toBeCloseTo(3000);
     expect(distanceToArea(poly, { x: 0, z: -3500 })).toBe(0);
     expect(areaCenter(poly)).toEqual({ x: 0, z: -3500 });
   });
 
   it('discovers a site once the reveal circle touches it, once only', () => {
-    const sites = buildSites(features, m, 'Dark crater');
+    const sites = buildSites(features, m, 'Dark crater', []);
     expect(discover(sites, { x: 0, z: 0 }, 250)).toEqual([]); // nothing within 250 m of the start
     const found = discover(sites, { x: 0, z: -200 }, 250); // viewpoint zone edge 240 m away
     expect(found.map((s) => s.name)).toEqual(['Rim viewpoint 1']);
@@ -67,7 +67,7 @@ describe('survey: leads', () => {
   });
 
   it('points a lead at its area and drops leads whose site is missing', () => {
-    const sites = buildSites(features, m, 'Dark crater');
+    const sites = buildSites(features, m, 'Dark crater', []);
     const leads = buildLeads(sites, { ...t, leads: [...t.leads, { id: 'nowhere', site: 'No such site' }] });
     expect(leads.map((l) => l.id)).toEqual(['boulders', 'shadow']);
     const b = leadBearing(leads[1]!, { x: 0, z: 0 }, t);
@@ -77,7 +77,9 @@ describe('survey: leads', () => {
 
   it('gives every game lead a site, a name and a distinct direction from the lander', () => {
     const data = loadGameData();
-    const sites = buildSites(terrain.features as unknown as SurveyFeatures, data.tuning.milestones, data.text.survey.shadowedCraterName);
+    // The Moon's sites.json sites too: the Young crater lead points at East crater.
+    const placed = resolveSites(data.sites.sites, terrain.features as never);
+    const sites = buildSites(terrain.features as unknown as SurveyFeatures, data.tuning.milestones, data.text.survey.shadowedCraterName, placed);
     const leads = buildLeads(sites, data.tuning.survey);
     expect(leads).toHaveLength(data.tuning.survey.leads.length);
     const landing = terrain.landing.local;
@@ -126,7 +128,7 @@ describe('survey: sites.json sites', () => {
     rs('hh', 'hidden-hydrogen', { x: -1000, z: 1000 }),
   ];
   const sites = buildSites(features, m, 'Dark crater', resolved);
-  const base = buildSites(features, m, 'Dark crater');
+  const base = buildSites(features, m, 'Dark crater', []);
   const find = (id: string) => sites.find((s) => s.siteId === id);
 
   it('keeps the existing sites first and adds one per sized sites.json site', () => {

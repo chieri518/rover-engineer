@@ -45,8 +45,11 @@ export interface SurveyFeatures {
   perseveranceLanding?: { name: string; local: Point };
 }
 
-/** Sites sized like the milestone zones: viewpoint and wall zones, the boulder spread, the shadow outline. */
-export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCraterName: string, sites: readonly ResolvedSite[] = []): Site[] {
+/**
+ * Sites sized like the milestone zones: viewpoint and wall zones, the boulder spread, the shadow outline.
+ * `sites` (the resolved sites.json sites, [] on Mars) is required so no caller silently drops the Moon's new sites.
+ */
+export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCraterName: string, sites: readonly ResolvedSite[]): Site[] {
   const circle = (x: number, z: number, r: number): SiteArea => ({ kind: 'circle', x, z, r });
   const { craterDescent: wall, shadowedCrater: dark } = f;
   return [

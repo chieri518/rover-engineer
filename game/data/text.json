@@ -99,7 +99,7 @@
   },
   "survey": {
     "heading": "Orbital survey leads",
-    "intro": "Orbital data show three areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
+    "intro": "Orbital data show four areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
     "lead": "{name}: about {distance} km {direction}. {source}",
     "leads": {
       "layers": {
@@ -113,11 +113,46 @@
       "shadow": {
         "name": "Permanent shadow",
         "source": "LOLA illumination maps show a crater floor that never receives direct sunlight. Cold traps like this may hold water ice."
+      },
+      "youngCrater": {
+        "name": "Young crater",
+        "source": "LOLA topography shows a small, deep crater with a sharp rim and steep inner walls: a young crater, not yet worn down by later small impacts."
       }
     },
     "hudHeading": "Survey leads",
     "hudLead": "{name}: {distance} km {direction}",
     "found": "Located: {name}. It is now on the map.",
+    "foundNote": "Located: {name}, {note}",
+    "siteNotes": {
+      "nw-crater": "an old, worn crater with boulders scattered around it.",
+      "east-crater": "a young crater with steep walls and fresh boulders.",
+      "se-crater": "a young crater with a sharp rim and fresh boulders."
+    },
+    "siteKindNotes": {
+      "rocky-area": "a fresh crater ringed by boulders.",
+      "young-crater": "a small crater with boulders around it.",
+      "cold-trap": "a small, very cold patch of ground.",
+      "rolled-boulder": "a large boulder at the foot of the crater wall, with a track up the slope behind it.",
+      "hidden-hydrogen": "where the neutron spectrometer reads more hydrogen than in the cold traps."
+    },
+    "siteLines": {
+      "rocky-area": {
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "drill": "Drill: sample the rock thrown out around it."
+      },
+      "young-crater": {
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "drill": "Drill: sample the rock thrown out around it."
+      },
+      "rolled-boulder": {
+        "xray": "X-ray spectrometer: read its rock.",
+        "camera": "Camera: photograph it from within {photoRange} m."
+      },
+      "cold-trap": {
+        "neutron": "Neutron spectrometer: switch it on and drive near or through it."
+      }
+    },
+    "siteLineDocumented": "Camera: photograph a boulder after reading it, from within {documentedRange} m.",
     "legendLead": "Survey lead",
     "shadowedCraterName": "Permanently shadowed crater",
     "loading": "Loading orbital survey data.",
@@ -183,6 +218,11 @@
     "legendViewpoint": "Viewpoint",
     "legendCrater": "Crater",
     "legendCold": "Permanent shadow",
+    "legendYoungCrater": "Young crater",
+    "legendColdTrap": "Cold trap",
+    "legendRolledBoulder": "Rolled boulder",
+    "legendHydrogen": "Hydrogen-rich ground",
+    "legendDone": "All earned here",
     "lasted": "The rover operated for {days} of {total} days.",
     "toDebrief": "Continue to debrief"
   },
@@ -332,6 +372,11 @@
     "earthLight": "Earth",
     "earthInView": "Earth in view",
     "earthHidden": "Earth hidden",
+    "earthInViewTooClose": "Earth in view · too close to the lander",
+    "stationTooCloseHint": "{name}: too close to the lander to count. Set it down more than {distance} m from the lander to earn its milestones.",
+    "stationConfirm": "{name}: too close to the lander to count. Press {key} again within {seconds} s to set it down here anyway.",
+    "stationPlacedTooClose": "{name} set down within {distance} m of the lander: it works, but earns no milestones here.",
+    "xrayNewType": "New type: {count} of {total}.",
     "xrayResult": "X-ray reading: {rock}. {elements}.",
     "xrayAgain": "X-ray reading: {rock}, the same as the last reading of this boulder.",
     "xrayNoTarget": "X-ray reading lost: no boulder was in reach when it started.",
