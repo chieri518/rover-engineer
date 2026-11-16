@@ -83,7 +83,7 @@ export function notReached(
   return groupMilestones(list, bay).flatMap((g) => g.milestones);
 }
 
-/** Rock types read this mission out of all the types the rock suites hold (total 0: no suites, as on Mars). */
+/** Rock types read this mission out of all the types the rock suites hold (total 0 when the world has no rock suites). */
 export function rockTypeTally(rocksRead: readonly { rock: string }[], xray: InstrumentTuning['xray']): { count: number; total: number } {
   return { count: new Set(rocksRead.map((r) => r.rock)).size, total: rockTypeTotal(xray) };
 }

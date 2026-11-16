@@ -40,6 +40,7 @@
     "perSiteKind": { "knob": 15, "seitah-edge": 40, "delta-foot": 40 },
     "perSite": { "east-crater": 60 },
     "floodBoulderDiameterM": 2.5,
+    "maxSlopeDeg": 18,
     "slopeTargetShare": 0.25
   },
   "milestones": {

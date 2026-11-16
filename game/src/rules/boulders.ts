@@ -47,7 +47,7 @@ export type SoftTest = (x: number, z: number) => boolean;
  * Mars boulder tuning not yet in rules/types.ts (Mars step 5c asks for it): site boulders avoid ground
  * steeper than this, so the rover can drive up to every contact target. Absent: no slope test.
  */
-type SiteBoulderTuning = Tuning['boulders'] & { maxSlopeDeg?: number };
+type SiteBoulderTuning = Tuning['boulders'];
 
 /** What the world can tell about the ground at a point (world/terrainMasks.ts), for placeBoulders. */
 export interface BoulderGround {

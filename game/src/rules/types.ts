@@ -277,6 +277,7 @@ export interface Tuning {
     perSite?: Record<string, number>; // by sites.json id: replaces its kind's count (East crater: 60)
     floodBoulderDiameterM?: number; // the one flood boulder (sites.json kind flood-boulder)
     slopeTargetShare?: number; // share of each young crater's and knob's boulders put on terrain.json slopeTargets cells (10 to 18°, level ground beside)
+    maxSlopeDeg?: number; // no site boulder on ground steeper than this (the world's slope; Mars step 5c)
     spreadRadiusFactor: number; // scattered out to rockyArea.radius × this
     minDiameterM: number;
     maxDiameterM: number;

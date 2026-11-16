@@ -159,7 +159,8 @@ describe('Mars boulders: the world\'s ground masks', () => {
   });
 
   it('applies no slope test without maxSlopeDeg, and none at all on the Moon', () => {
-    expect(placeBoulders(rocky, sites, mars.tuning, mf, { slopeAt })).toEqual(all);
+    const noLimit = { ...mars.tuning, boulders: { ...mars.tuning.boulders, maxSlopeDeg: undefined } };
+    expect(placeBoulders(rocky, sites, noLimit, mf, { slopeAt })).toEqual(placeBoulders(rocky, sites, noLimit, mf));
     expect(siteBoulderBlocked(moonTerrain.features as never, moon.tuning, { slopeAt })).toBeUndefined();
     const blocked = siteBoulderBlocked(mf, steep, { softAt, slopeAt })!;
     expect([blocked(580, 0), blocked(-600, 0), blocked(0, -2000)]).toEqual([true, true, false]);
