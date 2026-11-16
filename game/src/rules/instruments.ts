@@ -15,22 +15,29 @@ const ramp = (d: number, len: number, a: number, b: number): number => a + (b - 
 /**
  * The neutron spectrometer's live hydrogen reading, 0 to 1. Hydrogen in the top meter of soil cuts
  * the neutrons escaping the surface, which is what the meter senses. The reading is the highest of:
- * - the noise floor, on ordinary ground;
+ * - the noise floor, on ordinary ground (raised by `rtgFloorRise` on a noisy rover, see below);
  * - a cold trap (any `cold-trap` zone, the dark crater's included): the cold background inside its
  *   outline, falling in a straight line to the noise floor over `edgeRampM` outside it;
  * - the hidden hydrogen spot (a `hydrogen-anomaly` zone): `anomalyPeak` at its center, `anomalyEdge`
  *   at the zone edge, then down to the noise floor at `anomalyRangeM`;
  * - the dark crater's ice signal: inside its outline the reading is at least the cold background and
- *   rises toward the hidden ice spot, from 0 at `iceRangeM` to 1 at the spot's center.
+ *   rises toward the hidden ice spot, from 0 at `iceRangeM` to 1 at the spot's center;
+ * - Mars (Mars step 5b): inside a zone named in `unitReadings` (Séítah, the delta foot), that value.
+ *   Mars has no cold traps, dark crater or ice spot, so only the floor, the units and the hidden
+ *   hydrated ground apply there.
  * `jitter` (0..1, 0.5 = none) wobbles the reading by up to ± t.jitter, so the meter looks live; the
- * mission screen passes a random number.
+ * mission screen passes a random number (tests pass a fixed one).
+ * `noisy`: the rover carries a part with `neutronNoise` (the RTG, hasNeutronNoise; C6, MS4). Its own
+ * neutrons raise the floor by `rtgFloorRise` (signals above the raised floor read as before) and the
+ * wobble is ± `rtgJitter` instead of ± jitter. Where the tuning has no RTG values (the Moon) it changes
+ * nothing. A search cost only: the zones and milestones do not read the meter.
  */
-export function hydrogenReading(p: Point, inColdZone: boolean, zones: Zone[], t: InstrumentTuning['neutron'], jitter = 0.5): number {
+export function hydrogenReading(p: Point, inColdZone: boolean, zones: Zone[], t: InstrumentTuning['neutron'], jitter = 0.5, noisy = false): number {
   const crater = zones.find((z) => z.id === 'shadowed-crater');
   const ice = zones.find((z) => z.id === 'ice-spot');
   const p3 = { x: p.x, y: 0, z: p.z };
   const inCrater = crater ? zoneContains(crater, p3) : false;
-  let base = t.noiseFloor;
+  let base = t.noiseFloor + (noisy ? (t.rtgFloorRise ?? 0) : 0);
   if (inColdZone || inCrater) {
     base = Math.max(base, t.coldBackground);
     if (inCrater && ice?.shape.kind === 'circle') {
@@ -39,7 +46,10 @@ export function hydrogenReading(p: Point, inColdZone: boolean, zones: Zone[], t:
     }
   }
   for (const z of zones) {
-    if (z.id === 'cold-trap') {
+    const unit = t.unitReadings?.[z.id];
+    if (unit !== undefined) {
+      if (unit > base && zoneContains(z, p3)) base = unit;
+    } else if (z.id === 'cold-trap') {
       const d = distanceToOutline(z, p);
       if (d < t.edgeRampM) base = Math.max(base, ramp(d, t.edgeRampM, t.coldBackground, t.noiseFloor));
     } else if (z.id === 'hydrogen-anomaly' && z.shape.kind === 'circle') {
@@ -49,7 +59,13 @@ export function hydrogenReading(p: Point, inColdZone: boolean, zones: Zone[], t:
       else if (d < t.anomalyRangeM) base = Math.max(base, ramp(d - r, t.anomalyRangeM - r, t.anomalyEdge, t.noiseFloor));
     }
   }
-  return Math.min(1, Math.max(0, base + (jitter * 2 - 1) * t.jitter));
+  const wobble = noisy && t.rtgJitter !== undefined ? t.rtgJitter : t.jitter;
+  return Math.min(1, Math.max(0, base + (jitter * 2 - 1) * wobble));
+}
+
+/** True when a part among these carries `neutronNoise` (the RTG): pass it as hydrogenReading's `noisy`. */
+export function hasNeutronNoise(parts: readonly Part[]): boolean {
+  return parts.some((p) => p.effects.neutronNoise === true);
 }
 
 /** The boulder the X-ray spectrometer would read: the nearest whose surface is within reach. */
@@ -85,8 +101,11 @@ function boulderHash(b: Boulder): number {
  * The rock type an X-ray reading finds at a boulder: picked by weight, seeded by the boulder's
  * position, so the same boulder always reads the same rock. A boulder at a site whose `rockSuite`
  * names a suite in tuning reads from that suite; any other boulder reads the fallback `rocks` list.
- * `sites` is required (data.sites.sites; Mars passes its empty list): without it every site boulder
- * would silently read the fallback list, and the rolled boulder would never read its rare rock.
+ * `sites` is required (data.sites.sites, on either world): without it every site boulder would
+ * silently read the fallback list, and the rare boulders (the Moon's rolled boulder, Mars's flood
+ * boulder, whose suite holds only flood conglomerate) would never read their rare rock. On Mars each
+ * site names one of the six suites (data/mars/tuning.json); a boulder with no site reads the fallback,
+ * Máaz basalt. The laser reads the same rock as the X-ray; the organics spectrometer reads none.
  */
 export function rockTypeFor(b: Boulder, t: InstrumentTuning['xray'], sites: readonly SiteSpec[]): string {
   const suiteId = b.site ? sites.find((s) => s.id === b.site)?.rockSuite : undefined;
@@ -296,10 +315,22 @@ export function stationPress(
 
 /**
  * How many rock types the X-ray spectrometer can find: the distinct rocks across the site suites, the
- * total in the readout's "New type: 3 of 5". 0 with no suites (no line is shown).
+ * total in the readout's "New type: 3 of 5" (the Moon) or "New type: n of 6" (Mars). 0 with no suites
+ * (no line is shown).
  */
 export function rockTypeTotal(t: InstrumentTuning['xray']): number {
   return new Set(t.suites.flatMap((s) => s.rocks.map((r) => r.id))).size;
+}
+
+/**
+ * The readout's second line after a reading finds `rock`: "New type: count of total" when it is a type
+ * not in `readBefore` (the rock types already read this mission, repeats allowed), else null. Null too
+ * with no suites (total 0). Pure; the HUD fills ti.xrayNewType with it.
+ */
+export function newRockType(readBefore: readonly string[], rock: string, t: InstrumentTuning['xray']): { count: number; total: number } | null {
+  const total = rockTypeTotal(t);
+  if (total === 0 || readBefore.includes(rock)) return null;
+  return { count: new Set(readBefore).size + 1, total };
 }
 
 // ---------------------------------------------------------------------------------------------------
