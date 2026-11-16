@@ -88,6 +88,12 @@ export interface MoonSceneOptions {
   world: WorldId;
   /** Where the Sun is after `seconds` of mission time. Default: the lunar model (rules/sun.ts sunAt). */
   sunAt?: (seconds: number) => SkyDirection;
+  /**
+   * Mission seconds that pass in `wallDt` seconds of physics at mission time `seconds` (Titan: the sleep
+   * fast-forward, rules/titan.ts titanMissionDelta). Default: the same as the physics time. Physics always
+   * runs at wall time.
+   */
+  missionDelta?: (wallDt: number, seconds: number) => number;
   data: GameData;
   rover: RoverParams;
   parts?: Part[]; // the selected parts, for the rover model
@@ -392,7 +398,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       acc -= PHYSICS_STEP;
       steps++;
       // Mission time follows simulated time, so a slow frame rate cannot cost the rover distance.
-      const stepDt = clockRunning ? PHYSICS_STEP * timeScale : 0;
+      const wallDt = PHYSICS_STEP * timeScale;
+      const stepDt = clockRunning ? (opts.missionDelta ? opts.missionDelta(wallDt, seconds) : wallDt) : 0;
       seconds = Math.min(tuning.mission.lengthSeconds, seconds + stepDt);
       rover.sync();
       rover.velocity(vel);
