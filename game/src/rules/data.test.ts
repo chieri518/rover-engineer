@@ -323,12 +323,14 @@ describe('Moon sites and milestones data (Phase 2)', () => {
   });
   const withSites = (sites: SiteSpec[]): GameData => ({ ...data, sites: { sites } });
 
-  it('has the twelve new milestones with their starting rewards, each with a how-to line, fact and source', () => {
+  // Phase 6 balance: the station milestones were lowered (Moonquake record 80 → 60, Clean seismogram 40 → 30,
+  // Laser ranging site 50 → 40) so two short stops near the lander with the stations still fail.
+  it('has the twelve new milestones with their rewards, each with a how-to line, fact and source', () => {
     const rewards = NEW.map((id) => [id, byId(id).money, byId(id).rp]);
     expect(rewards).toEqual([
       ['cold-trap-survey', 50, 8], ['hidden-hydrogen', 100, 20], ['ice-deposit-located', 200, 30], ['rock-collection', 40, 8],
       ['rare-rock', 100, 30], ['boulder-track', 40, 10], ['documented-sample', 40, 10], ['fresh-ejecta-sample', 50, 15],
-      ['moonquake-record', 80, 20], ['clean-seismogram', 40, 10], ['laser-ranging-site', 50, 15], ['science-station', 50, 10],
+      ['moonquake-record', 60, 20], ['clean-seismogram', 30, 10], ['laser-ranging-site', 40, 15], ['science-station', 50, 10],
     ]);
     expect(data.milestones.milestones.filter((m) => m.record).map((m) => m.id)).toEqual(['touchdown', 'water-ice', 'rare-rock', 'science-station']);
     for (const m of data.milestones.milestones) expect(m.howTo?.length, m.id).toBeGreaterThan(0);

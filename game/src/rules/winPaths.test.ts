@@ -40,13 +40,15 @@ describe('win paths: the Moon pass rule rewards intentional design', () => {
     expect(passing.length).toBeGreaterThanOrEqual(3);
     expect(new Set(passing.map((a) => a.plan)).size).toBe(passing.length);
     expect(new Set(passing.map((a) => label(a.build))).size).toBe(passing.length);
-    expect(new Set(passing.map((a) => a.build.payload.join('+'))).size).toBe(2);
+    // Every Moon instrument is the main job of at least one passing archetype.
+    const used = new Set(passing.flatMap((a) => a.build.payload));
+    for (const p of data.parts.parts.filter((x) => x.slot === 'instrument')) expect(used.has(p.id), p.id).toBe(true);
   });
 
   it('an archetype that ignores its purpose fails: the same build and route without using the instrument', () => {
     for (const a of routes.archetypes) {
       const p = plan(a.plan);
-      const blind = { ...p, stops: p.stops.map(({ use: _use, ...stop }) => stop) };
+      const blind = { ...p, stops: p.stops.map(({ use: _use, standby: _standby, ...stop }) => stop) };
       expect(runPlan(a.build, blind, data, routes).passes, a.name).toBe(false);
     }
   });
@@ -57,6 +59,8 @@ describe('win paths: the Moon pass rule rewards intentional design', () => {
     expect(passing / buyable.length).toBeLessThan(0.35);
   });
 
+  // A leg inside one field is either a crossing the model credits, well over the Boulder field angle, or clearly
+  // not one (the Near prospector's cold patch to hidden hydrogen leg), never in between.
   it('the archetype routes really cross their boulder field: the crossing nodes are well over the Boulder field angle apart', () => {
     const t = data.tuning.milestones;
     for (const a of routes.archetypes) {
@@ -65,7 +69,8 @@ describe('win paths: the Moon pass rule rewards intentional design', () => {
         const from = routes.nodes.find((n) => n.id === p.stops[i - 1]!.node)!;
         const to = routes.nodes.find((n) => n.id === p.stops[i]!.node)!;
         if (from.boulderField && from.boulderField === to.boulderField) {
-          expect(crossingAngleDeg(routes, from, to), `${a.name} ${from.id}>${to.id}`).toBeGreaterThanOrEqual(t.boulderCrossMinAngleDeg + routes.play.crossingMarginDeg);
+          const angle = crossingAngleDeg(routes, from, to);
+          if (angle > t.boulderCrossMinAngleDeg - routes.play.crossingMarginDeg) expect(angle, `${a.name} ${from.id}>${to.id}`).toBeGreaterThanOrEqual(t.boulderCrossMinAngleDeg + routes.play.crossingMarginDeg);
         }
       }
     }
@@ -77,6 +82,19 @@ describe('win paths: the Moon pass rule rewards intentional design', () => {
     const empty = buyable.filter((b) => b.payload.length === 0);
     expect(empty.length).toBeGreaterThan(0);
     for (const b of empty) expect(best.get(label(b))!.finalBalance, label(b)).toBeLessThanOrEqual(pass - routes.play.mistakeMargin);
+  });
+
+  // Carrying only the reflector is carrying an instrument for one cheap milestone: it fails even with its best route.
+  it('a rover with only the reflector fails, even with its best route', () => {
+    const lone = buyable.filter((b) => b.payload.length === 1 && b.payload[0] === 'instrument-reflector');
+    expect(lone.length).toBeGreaterThan(0);
+    for (const b of lone) {
+      const r = best.get(label(b))!;
+      expect(r.passes, `${label(b)} ${r.plan}`).toBe(false);
+    }
+    // The best of them does set the reflector down: the model's plans give it the chance.
+    const top = lone.map((b) => best.get(label(b))!).sort((a, b) => b.finalBalance - a.finalBalance)[0]!;
+    expect(top.earned.map((e) => e.id)).toContain('laser-ranging-site');
   });
 
   it('the cheapest build fails on every route', () => {
@@ -132,7 +150,7 @@ describe('win paths: the plan runs follow the instrument rules', () => {
   it('a switched-on neutron spectrometer draws energy through the mission rules, and costs the plan', () => {
     const geo = archetype('Drill geologist');
     const b: Build = { ...geo.build, payload: ['instrument-drill', 'instrument-neutron'] };
-    const p = plan(geo.plan);
+    const p = { ...plan(geo.plan), stops: plan(geo.plan).stops.map(({ standby: _standby, ...stop }) => stop) };
     const on: RoutePlan = { ...p, id: `${p.id}-neutron`, stops: [{ node: 'landing', standby: ['neutron'] }, ...p.stops] };
     const off = runPlan(b, p, data, routes);
     const run = runPlan(b, on, data, routes);
@@ -188,6 +206,44 @@ describe('win paths: the plan runs follow the instrument rules', () => {
   });
 });
 
+describe('win paths: the Moon sites archetypes (Phase 6)', () => {
+  it('each new archetype earns its own instruments\' milestones on its route', () => {
+    const ids = (name: string) => {
+      const a = archetype(name);
+      return Object.fromEntries(runPlan(a.build, plan(a.plan), data, routes).earned.map((e) => [e.id, e.stages ?? 1]));
+    };
+    expect(ids('Rock hound')).toMatchObject({ 'rock-collection': 3, 'rare-rock': 1, 'boulder-track': 1, 'documented-sample': 1, 'rim-panorama': 1, 'earth-on-horizon': 1 });
+    expect(ids('Station keeper')).toMatchObject({ 'science-station': 1, 'laser-ranging-site': 1, 'moonquake-record': 1, 'clean-seismogram': 1, 'rock-collection': 3, 'rare-rock': 1 });
+    expect(ids('Near prospector')).toMatchObject({ 'cold-trap-survey': 2, 'hidden-hydrogen': 1, 'rock-collection': 3, 'rare-rock': 1 });
+  });
+
+  // Decided in Phase 0: the Station keeper's Clean seismogram is credited only for a route that stays away from the
+  // stations through the whole moonquake window, so it does not depend on when the quake comes.
+  it('the Station keeper\'s record is clean wherever the moonquake falls in its window', () => {
+    const a = archetype('Station keeper');
+    const [from, to] = data.events.quake!.windowsSeconds[0]!;
+    for (let at = from; at <= to; at += 5) {
+      const r = runPlan(a.build, plan(a.plan), data, { ...routes, play: { ...routes.play, quakeSeconds: at } });
+      expect(r.earned.map((e) => e.id), `quake at ${at}s`).toContain('clean-seismogram');
+    }
+  });
+
+  // Decided in Phase 6: the far neutron route (the plan's Dark prospector) is an example, not an archetype. On steel
+  // it reaches the crater edge after about 295 s, below the energy needed to switch the spectrometer on; on titanium
+  // the build needs the Medium ticket (size 21), so even with every milestone of the route it ends below the pass mark.
+  it('the far neutron route does not pass: the Dark prospector example fails on steel and on titanium', () => {
+    const dark = (chassis: string): Build => ({ chassis, wheels: 'wheels-mesh', power: 'power-fixed-panel', battery: 'battery-li-ion', lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-neutron'] });
+    const steel = runPlan(dark('chassis-steel'), plan('dark-neutron'), data, routes);
+    expect(steel.passes).toBe(false);
+    expect(steel.earned.map((e) => e.id)).not.toContain('ice-deposit-located');
+    // Even with the low-energy switch-off moved out of the way, titanium earns the route's milestones and still fails.
+    const lowLevel: GameData = { ...data, tuning: { ...data.tuning, energy: { ...data.tuning.energy, lowWarningShare: 0.05 } } };
+    const ti = runPlan(dark('chassis-titanium'), plan('dark-neutron'), lowLevel, routes);
+    expect(ti.earned.map((e) => e.id)).toContain('ice-deposit-located');
+    expect(ti.passes).toBe(false);
+  });
+});
+
 describe('win paths report', () => {
   it('prints every build and archetype', () => {
     if (!env.WINPATH_REPORT) return;
@@ -213,8 +269,8 @@ describe('win paths report', () => {
 });
 
 // ---------------------------------------------------------------------------------------------------
-// Moon sites and milestones (Phase 3): the balance model credits the new triggers. The new sites' legs
-// come from the pipeline later (Phase 6); these tests drive synthetic nodes and legs.
+// Moon sites and milestones (Phase 3): the balance model credits the new triggers. These tests drive synthetic
+// nodes and legs; the measured ones (Phase 6) are in balance.json.
 
 describe('win paths: the Moon sites triggers', () => {
   const landing = routes.nodes.find((n) => n.id === 'landing')!;
@@ -298,8 +354,9 @@ describe('win paths: the Moon sites triggers', () => {
     expect(earned(run(build('neutron'), [{ node: 'landing', standby: ['neutron'] }, { node: 'bench' }, { node: 'landing' }]))['cold-trap-survey']).toBe(1); // the same trap twice
     // The Ice hunter's build with the spectrometer instead of the drill, switched on at the crater edge. On the
     // measured legs it reaches the edge at about 275 s with the battery just above the low-energy level, so the
-    // standby switches itself off on the way in and the count starts again: no Ice deposit located (flagged for
-    // the Phase 6 balance). With a lower warning level the same run earns it and the dark crater's survey stage.
+    // standby switches itself off on the way in and the count starts again: no Ice deposit located. With a lower
+    // warning level the same run earns it and the dark crater's survey stage (Phase 6: the rule stays; see the
+    // Dark prospector test).
     const ice = archetype('Ice hunter');
     const b = { ...ice.build, payload: ['instrument-neutron'] };
     const edgePlan: RoutePlan = { id: 'neutron-edge', name: 'neutron on at the edge', stops: [{ node: 'darkEdge', standby: ['neutron'] }, { node: 'ice' }, { node: 'darkEdge' }] };
