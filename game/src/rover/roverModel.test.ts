@@ -139,4 +139,18 @@ describe('Mars parts in the model', () => {
     expect(model.wheels).toHaveLength(4);
     expect(Object.keys(model.slots).sort()).toEqual<ModelGroup[]>(['arm', 'chassis', 'laser', 'mast', 'organics', 'power', 'radar', 'weather']);
   });
+
+  it('puts the laser on the mast head and the organics head on the arm, or both low without them', () => {
+    const bounds = (ids: string[], group: ModelGroup) =>
+      new THREE.Box3().setFromObject(buildRoverModel(handling, connectY, roverLook(ids.map(part)), { bySlot: true }).slots[group]!);
+    const mast = bounds(['mast-remote'], 'mast');
+    const laserOnMast = bounds(['mast-remote', 'instrument-laser'], 'laser');
+    const laserOnDeck = bounds(['instrument-laser'], 'laser');
+    expect(laserOnMast.getCenter(new THREE.Vector3()).y).toBeGreaterThan(mast.max.y - 0.05); // on top of the head (its cable runs down the back)
+    expect(laserOnDeck.max.y).toBeLessThan(mast.min.y + 0.4);
+    const organicsOnArm = bounds(['arm-robotic', 'instrument-organics'], 'organics');
+    const organicsLow = bounds(['instrument-organics'], 'organics');
+    expect(organicsOnArm.min.x).toBeGreaterThan(handling.body.lengthM / 2); // out in front, on the turret
+    expect(organicsLow.max.y).toBeLessThan(-handling.body.heightM / 2 + 0.04); // hung under the deck plate
+  });
 });
