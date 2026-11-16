@@ -970,6 +970,13 @@ All 11 are built. Rules in `game/src/rules/milestones.ts` and `rules/titanMilest
   - Records held, then buttons for the title, the credits and a new campaign.
   - The stats are recorded per round as each mission ends and are kept in the save, so the dashboard survives a reload.
 
+##### Titan goal and the dashboard as built *(decided during implementation, November 15, Owner B to confirm)*
+
+- **Pass rule.** The last mission passes when the rover survives to the end (`rules/campaign.ts` `roundPasses`); Moon and Mars keep the pass mark. `budget.minimumBudget.complete` is removed. The Titan design screen and tutorial state the survival goal instead of a final mark.
+- **Failed Titan debrief.** "Rover lost at m:ss of 15:00 mission time: cause." Buttons: "Try Titan again" (Titan snapshot) and "End the campaign". Ending keeps the lost round's money, RP and records, and Titan is not marked completed.
+- **Round stats** (`rules/roundStats.ts`): one `RoundStats` per mission in the save (`stats`), recorded passed or not; a retry replaces it. Energy used is the battery's total discharge (drops in charge, net of solar income in each step). A night counts as lived through at dawn, or at a survived end, and is classed by how most of it was spent: asleep, lights on, or awake in the dark. Rounds from older saves show "Not recorded".
+- **Dashboard** (`ui/dashboard.ts`, text in `dashboard`): five headline tiles, a card per mission, an SVG balance line and grouped milestone bars (outline = available, fill = earned), records held, the world lessons, and the buttons. `?dashboard=demo`, `demo-lost` and `demo-old` show sample campaigns.
+
 #### The Titan mission as played *(decided during implementation, Phase T6, Owner B to confirm)*
 
 How the Titan rules reach the player (`game/src/ui/titanMission.ts`, small hooks in `missionScreen.ts` and `hud.ts`). The words are in `data/titan/text.json` (`day`, `rain`, `cold`).
