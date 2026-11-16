@@ -190,6 +190,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     lightUniforms.moonDarkTone.value.set(g.darkToneLow, g.darkToneHigh);
     lightUniforms.moonTitanRelief.value.set(g.reliefGain, g.reliefOcclusion, g.reliefNearM, g.reliefFarM);
     lightUniforms.moonHazeShape.value = titanTuning.fog.shapePower;
+    lightUniforms.moonTitanFarTone.value = g.farToneBoost;
   }
   // The play area gets the albedo map and fine detail; the distant rings stay plain regolith of the same mean tone.
   const groundMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: groundColor }), lightUniforms, photometry, true);

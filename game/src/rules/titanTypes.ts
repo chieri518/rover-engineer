@@ -235,6 +235,8 @@ export interface TitanLookTuning {
      * Both fade in between reliefNearM and reliefFarM from the camera, so the ground by the rover keeps its own look.
      */
     reliefGain: number; reliefOcclusion: number; reliefNearM: number; reliefFarM: number;
+    /** Extra albedo contrast far away (tone^farToneBoost, over the same depth range): dune and interdune bands. */
+    farToneBoost: number;
   };
   floodlight: { color: string; intensity: number; angle: number; penumbra: number; decay: number; targetDrop: number };
   /** Rover shadow blur (shadow map radius) and Sun-mask refresh bands; masks pause below minElevationDeg. */
