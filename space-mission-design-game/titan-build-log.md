@@ -77,3 +77,11 @@ Format: `- **[time] [agent]** what changed or is needed; who it affects.`
   - **For T6/T3:** soft-ground.png is graded and authoritative. Loose sand is 0.85, the saddle at most 0.3. With the Moon's ground tuning, a reference rover is stuck only climbing straight up loose flanks steeper than ~14°. Please sample the PNG on Titan; the 855 circles are only a fallback.
   - Heights are relative to the interdune floor (about -10 to +125 m).
   - Albedo: grayscale, mean 0.222 linear. Relative to the mean: dune 0.51, skirt 0.93, interdune 1.31, ejecta 1.36, sample patch 1.74.
+- **[16:10] pipeline (T1)** Titan sites moved closer for the battery-only budget (T3: about 1.55 km per mission for a big-battery build). Commit `84c4f48` (on top of chieri/titan fcc19e7). **The landing and every site position changed**; the schema is unchanged.
+  - Geography: the placement is still honest. Dune 1 is now the last, smaller dune before Selk's ejecta (about 50 m high, 0.75 km wide) and bends about 11° to run along the ejecta edge. The landing sits in the corridor just south of it.
+  - Landing: local (-1280, -1050), 5.1854 N 161.4208 E, mean slope 0.5°.
+  - Drive distances: crossing start 148 m, Bright interdune patch 510 m, Dune 1 saddle 558 m, crossing end 958 m, Dune sea viewpoint 982 m, Selk ejecta field 1258 m.
+  - The Dune sea viewpoint is now on Dune 1's crest (56 m up, 2 m from the crest line), looking south over the field. The Selk ejecta field (still `rockyAreas[0]`) has radius 200 m.
+  - Crossing start and end are at least 70 m inside their corridor masks and are checked to be ≥ 30 m inside the outlines (T5): 75 m and 94 m.
+  - The crossing route reaches 6.9° and softness 0.23 at most; the viewpoint route's slip is at most 0.16.
+  - Albedo mean is now 0.214. Relative to the mean: dune 0.53, interdune 1.27, ejecta 1.41, patch 1.79.
