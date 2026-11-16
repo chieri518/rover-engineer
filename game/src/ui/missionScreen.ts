@@ -383,7 +383,7 @@ export const missionScreen: Screen = (game, root) => {
     const lines = shortUseLines(r, relate(onUseStart(r)));
     const said = { name: partOf(inst).name, seconds: Math.round(r.holdSeconds) };
     if (lines.slowCold) hud.notify(fill(ti.useSlowCold, said));
-    if (lines.fastShadow) hud.notify(fill(ti.useFastShadow, said), 'good');
+    if (lines.fastShadow && !mars) hud.notify(fill(ti.useFastShadow, said), 'good'); // the Moon's shade lesson line (xray-cold); Mars has no such lesson
     return true;
   };
   /**

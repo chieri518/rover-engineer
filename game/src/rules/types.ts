@@ -636,6 +636,7 @@ export interface InstrumentText {
   resultCliff?: string; // the laser on the delta cliff
   stopped?: string; // a reading charged as it runs, stopped because the battery could not pay for the rest: {name}
   forecast?: string; // the weather mast: the earlier storm forecast, crediting the mast: {sols} and the mission vars
+  forecastNoSolar?: string; // the same for a rover without solar income (an RTG)
   readout?: string; // the weather mast's HUD line: {pressure} {pressureTrend} {tau} {dustTrend}
   trend?: Record<'rising' | 'falling' | 'steady', string>; // the weather readout's trend arrows
   strip?: string; // the radar strip's label: {meters} of unbroken profile

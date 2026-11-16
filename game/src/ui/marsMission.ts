@@ -49,17 +49,20 @@ export class MarsMission {
   /**
    * Words for a sunset, dawn or storm notice. A rover without lights hears it cannot drive at night. A
    * forecast the weather mast gave early credits the mast, with the storm's lead (`leadSeconds`) in sols.
-   * A rover without solar income (`solar` false: an RTG) is not told at dawn that its panel charges.
+   * A rover without solar income (`solar` false: an RTG) is not told at dawn that its panel charges, nor that
+   * the storm cuts its solar income.
    */
   noticeText(n: MarsNotice, hasLights: boolean, leadSeconds = 0, solar = true): MarsNoticeText {
     if (n.kind === 'dusk') return { message: hasLights ? this.night.sunset : this.night.noLights, tone: 'warn' };
     if (n.kind === 'dawn') return { message: solar ? this.night.dawn : this.night.dawnNoSolar ?? this.night.dawn, tone: 'good' };
-    const mast = this.data.text.instrumentText.weather?.forecast;
+    const wt = this.data.text.instrumentText.weather;
+    const mast = (!solar && wt?.forecastNoSolar) || wt?.forecast;
     if (n.edge === 'forecast' && n.byMast && mast) {
       const sols = Math.max(0, leadSeconds) / this.data.tuning.sol!.secondsPerSol;
       return { message: fill(mast, { ...this.vars, sols: sols.toFixed(1) }), tone: 'warn' };
     }
-    return { message: fill(this.storm[n.edge], this.vars), tone: n.edge === 'cleared' ? 'good' : 'warn' };
+    const words = (!solar && this.storm[`${n.edge}NoSolar` as const]) || this.storm[n.edge];
+    return { message: fill(words, this.vars), tone: n.edge === 'cleared' ? 'good' : 'warn' };
   }
 
   /** The weather mast's HUD line now: pressure, dust opacity and their trends. Null without the mast's tuning or text. */

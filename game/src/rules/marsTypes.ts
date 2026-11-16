@@ -385,7 +385,7 @@ export interface MarsTextSections {
   sol: Record<'hudSol' | 'lasted', string>;
   /** dawnNoSolar: the dawn notice for a rover without solar income (an RTG), which no panel charges (Mars step 6b). */
   night: Record<'sunset' | 'dawn' | 'sleeping' | 'noLights' | 'lightsOn', string> & { dawnNoSolar?: string };
-  storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string>;
+  storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string> & Partial<Record<'forecastNoSolar' | 'startedNoSolar' | 'clearedNoSolar', string>>; // NoSolar: for a rover without solar income (an RTG)
   /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
   campaign: MarsCampaignText;
   /**

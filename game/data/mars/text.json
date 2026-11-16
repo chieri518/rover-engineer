@@ -123,6 +123,9 @@
     "forecast": "Orbital weather report: a regional dust storm reaches the site in about {stormLeadSols} sol. Solar income will fall to about {stormSolarPercent}%.",
     "started": "Dust storm. Solar income is down to about {stormSolarPercent}%.",
     "cleared": "The dust storm has cleared. Full solar income has returned.",
+    "forecastNoSolar": "Orbital weather report: a regional dust storm reaches the site in about {stormLeadSols} sol. It will dim the sky, but this rover's power does not depend on sunlight.",
+    "startedNoSolar": "Dust storm. The sky is dim, but this rover's power does not depend on sunlight.",
+    "clearedNoSolar": "The dust storm has cleared.",
     "credit": "The weather report is modeled on the daily global weather maps from the MARCI camera on NASA's Mars Reconnaissance Orbiter. Source: NASA Science, Mars Color Imager (MARCI) for Mars Reconnaissance Orbiter (science.nasa.gov/resource/mars-color-imager-marci-for-mars-reconnaissance-orbiter)."
   },
   "debrief": {
@@ -351,13 +354,16 @@
   "instrumentText": {
     "_note": "Mars's own instruments (Mars M4, behavior built in Mars step 4a) and the X-ray's slope refusal. Real facts use the safe wording of the Mars engineering plan's Real anchors (ranges, \"signals consistent with\"); each cites its source. Placeholders: rules/types.ts InstrumentText.",
     "xray": {
-      "slope": "{name}: the ground here is too steep for the arm ({slope}°). The arm reads on ground up to {max}°."
+      "slope": "{name}: the ground here is too steep for the arm ({slope}°). The arm reads on ground up to {max}°.",
+      "fact": "Perseverance's X-ray spectrometer, PIXL, sits on the rover's arm and maps the elements in small patches of rock. In Séítah it found a rock made of packed olivine crystals that settled out of a thick body of cooling magma.",
+      "source": "Liu et al. (2022), An olivine cumulate outcrop on the floor of Jezero crater, Mars, Science 377:1513-1519, doi:10.1126/science.abo2756"
     },
     "weather": {
       "button": "Weather",
       "controls": "{key} to switch the weather mast on or off ({standby} energy/s while on). It reads pressure and dust in the air.",
       "notCarried": "This rover carries no weather mast.",
       "forecast": "Weather mast: the pressure and dust readings point to a regional dust storm reaching the site in about {sols} sols, before the orbital report. Solar income will fall to about {stormSolarPercent}%.",
+      "forecastNoSolar": "Weather mast: the pressure and dust readings point to a regional dust storm reaching the site in about {sols} sols, before the orbital report.",
       "readout": "Air: {pressure} Pa {pressureTrend} · dust {tau} {dustTrend}",
       "trend": { "rising": "↑", "falling": "↓", "steady": "→" },
       "log": "Weather mast: recorded pressure and dust for {seconds} s.",

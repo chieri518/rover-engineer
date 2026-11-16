@@ -102,6 +102,7 @@
     },
     "xray": {
       "_note": "Mars rock types (game-design.md, Mars rock types; MS9, MS10). Each sites.json site names its suite; each boulder reads one rock of it, picked by weight and seeded by its position. rocks: the fallback for a boulder with no site (Maaz basalt, the common crater-floor rock). Arrays replace the Moon's. crater-floor serves East crater, the small craters and the WNW knob (the knob's suite is decided in Mars step 4b, provisional, for Chieri's review). Laser readings use the same types; the organics spectrometer reads none.",
+      "reachM": 4.5,
       "rocks": [{ "id": "maaz-basalt", "weight": 1 }],
       "suites": [
         {
@@ -156,7 +157,7 @@
       "defaultLayer": "floor"
     },
     "laser": {
-      "_note": "Laser spectrometer: the nearest boulder (surface) or point of the delta cliff's foot line (terrain.json deltaFront.scarpLocal_xz) within reachM, inside a cone of coneDeg either side of the rover's heading. reachM is four times the X-ray's 3 m; the real SuperCam laser reads rocks up to about 7 m away (the game scales distances).",
+      "_note": "Laser spectrometer: the nearest boulder (surface) or point of the delta cliff's foot line (terrain.json deltaFront.scarpLocal_xz) within reachM, inside a cone of coneDeg either side of the rover's heading. reachM is well beyond the X-ray's contact reach (4.5 m on Mars); the real SuperCam laser reads rocks up to about 7 m away (the game scales distances).",
       "reachM": 12,
       "coneDeg": 15
     }
