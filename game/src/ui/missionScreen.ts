@@ -479,7 +479,7 @@ export const missionScreen: Screen = (game, root) => {
    * Documented sample (the tracker keeps those sets for all instruments together).
    */
   const finishLaser = (site: UseSite) => {
-    const lt = itx.laser;
+    const lt = itx.laser; // read only while a laser is aboard (Mars)
     if (site.target === 'cliff') {
       log.laser.push({ target: 'cliff', boulder: null, rock: null });
       if (lt.resultCliff) hud.notify(lt.resultCliff, 'good');
@@ -882,10 +882,10 @@ export const missionScreen: Screen = (game, root) => {
     // laser's target while it is aboard, and a long hold's progress (a use charged as it runs).
     const live = (i: Instrument) => !ended && !state.poweredDown && state.standbyOn.includes(i);
     hud.setWeather(mars && live('weather') ? mars.weatherLine(state.seconds, setup) : null);
-    const it = itx.radar;
-    hud.setRadar(live('radar') ? radar.columns : null, it.strip ? fill(it.strip, { meters: Math.round(radar.profileM) }) : '');
+    const it = itx.radar; // absent on the Moon
+    hud.setRadar(live('radar') ? radar.columns : null, it?.strip ? fill(it.strip, { meters: Math.round(radar.profileM) }) : '');
     laser = !ended && aboard('laser') ? currentLaserTarget() : null;
-    const lt = itx.laser;
+    const lt = itx.laser; // read only while a laser is aboard (Mars)
     hud.setLaserTarget(laser && lt.target ? fill(lt.target, {
       target: (laser.kind === 'cliff' ? lt.targetCliff : lt.targetBoulder) ?? laser.kind,
       distance: Math.round(laser.distanceM),
