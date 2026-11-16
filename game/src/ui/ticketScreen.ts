@@ -6,6 +6,7 @@ import { isCompleteBuild } from '../rules/rover';
 import type { TierFit } from '../rules/tiers';
 import { el, money } from './dom';
 import { tierWhyText } from './tierText';
+import { missingSupportWarnings } from './supportText';
 
 export const ticketScreen: Screen = (game, root) => {
   const { data } = game;
@@ -82,7 +83,8 @@ export const ticketScreen: Screen = (game, root) => {
         row('Balance after purchase', money(q.remaining, text), q.remaining < 0 ? 'bad' : ''),
       ),
       !q.tier && el('ul', { class: 'warnings' }, el('li', {}, text.design.overTopTier)),
-      q.payloadProblems.length > 0 && el('ul', { class: 'warnings' }, el('li', {}, text.design.bayOverCapacity)),
+      q.payloadProblems.some((p) => p.kind !== 'needs') && el('ul', { class: 'warnings' }, el('li', {}, text.design.bayOverCapacity)),
+      ...missingSupportWarnings(q.payloadProblems, data).map((w) => el('ul', { class: 'warnings' }, el('li', {}, w))),
       q.canLaunch && !q.canAfford && el('ul', { class: 'warnings' }, el('li', {}, text.design.overBudget)),
       q.overloaded && el('ul', { class: 'warnings' }, el('li', {}, text.design.chassisOverloaded)),
       reviewSection,

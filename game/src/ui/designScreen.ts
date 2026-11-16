@@ -6,8 +6,8 @@ import { canStartMission, nextMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
-import { earnsMilestones, fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
-import { chosenParts } from '../rules/rover';
+import { earnsMilestones, fitPayload, instrumentCosts, instrumentKeys, togglePayload, unmetNeeds, type InstrumentCosts } from '../rules/payload';
+import { chosenParts, slotPartId, supportSlotsOf, withSlotPart } from '../rules/rover';
 import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
@@ -16,6 +16,7 @@ import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
 import { missionVars, tutorialPages } from './tutorialText';
 import { nightBudgetLine } from './marsMission';
+import { missingSupportWarnings, needsText } from './supportText';
 
 const KMH = 3.6;
 
@@ -41,13 +42,17 @@ function keyEffect(part: Part, data: GameData): string | null {
         ? `Top speed ${gameSpeed(e.baseSpeed, data.tuning.speed).toFixed(1)} m/s · grip ${(e.grip ?? 0).toFixed(2)}`
         : null;
     case 'power':
+      if (e.steadyIncome) return `Steady income ${e.steadyIncome.toFixed(1)} energy/s, day and night`;
       return e.energyIncome !== undefined ? `Solar income ${e.energyIncome.toFixed(1)} energy/s` : null;
     case 'battery':
       return e.batteryCapacity !== undefined ? `Capacity ${e.batteryCapacity} energy` : null;
     case 'lights':
       return e.lightRange ? `Light range ${e.lightRange} m` : null;
     case 'heater':
-      return e.heat ? `Heat output ${e.heat}` : null;
+      return e.heat ? `Heat output ${e.heat}${e.heaterDraw ? ` · draws ${e.heaterDraw} energy/s every night` : ''}` : null;
+    case 'arm':
+    case 'mast':
+      return null; // support hardware: the description says what it carries
     case 'instrument': {
       // The description says what the instrument does; the card adds what it costs to run.
       const c = instrumentCosts([part])[0];
@@ -114,25 +119,26 @@ export const designScreen: Screen = (game, root) => {
       effect && el('span', { class: 'option-effect' }, effect),
       part.effects.instrument && !earnsMilestones(part.effects.instrument, data.milestones)
         ? el('span', { class: 'option-note' }, t.instrumentNoMilestones) : null,
+      part.effects.needs && needsText(part.effects.needs, data) ? el('span', { class: 'option-note' }, needsText(part.effects.needs, data)) : null,
       ...extra,
     );
     cards.set(part.id, node);
     return node;
   };
 
-  // Part cards: one radio group per bus slot.
-  const slots = data.parts.slots.map((slot) => {
+  // Part cards: one radio group per bus slot, then per support slot (Mars: the arm and the mast).
+  const slots = [...data.parts.slots, ...supportSlotsOf(data.parts)].map((slot) => {
     const options = data.parts.parts.filter((p) => p.slot === slot);
     const fieldset = el('fieldset', { class: 'slot' },
-      el('legend', {}, text.slots[slot], el('span', { class: 'slot-empty' }, t.slotEmpty)),
+      el('legend', {}, text.slots[slot] ?? slot, el('span', { class: 'slot-empty' }, t.slotEmpty)),
       el('div', { class: 'options' },
         ...options.map((part) => card(part, el('input', {
           type: 'radio',
           name: `slot-${slot}`,
           value: part.id,
-          checked: part.id === game.build[slot],
+          checked: part.id === slotPartId(game.build, slot),
           onchange: () => {
-            const build: DraftBuild = { ...game.build, [slot]: part.id };
+            const build: DraftBuild = withSlotPart(game.build, slot, part.id);
             // A chassis with fewer mounting points drops the instruments added last.
             const points = chassisPoints(build);
             if (slot !== 'chassis' || !build.payload || points === null) return setBuild(build);
@@ -201,11 +207,14 @@ export const designScreen: Screen = (game, root) => {
     baySockets.replaceChildren(...Array.from({ length: points ?? 0 }, (_, i) => el('span', { class: `socket${i < used ? ' filled' : ''}` })));
     for (const [id, input] of bayInputs) {
       const at = payload?.indexOf(id) ?? -1;
+      // An instrument whose support part is missing is refused like a full bay (an instrument already in the bay can still be taken out).
+      const part = partById(id);
+      const unmet = at < 0 && part ? needsText(unmetNeeds(part, game.build, data.parts), data) : null;
       input.checked = at >= 0;
-      input.disabled = at < 0 && full;
+      input.disabled = at < 0 && (full || unmet !== null);
       const node = cards.get(id)!;
       node.classList.toggle('disabled', input.disabled);
-      node.title = input.disabled ? t.bayFull : '';
+      node.title = !input.disabled ? '' : full ? t.bayFull : unmet ?? '';
       const inst = partById(id)?.effects.instrument;
       const key = at >= 0 && inst ? keys.get(inst) : undefined;
       bayKeys.get(id)!.textContent = key ? fill(t.bayKey, { key }) : '';
@@ -294,10 +303,11 @@ export const designScreen: Screen = (game, root) => {
     const chosen = chosenParts(game.build, data.parts);
     preview?.show(chosen);
     previewHint.hidden = chosen.length > 0;
-    const selected = new Set([...data.parts.slots.map((s) => game.build[s]), ...(game.build.payload ?? [])]);
+    const busAndSupport = [...data.parts.slots, ...supportSlotsOf(data.parts)];
+    const selected = new Set([...busAndSupport.map((s) => slotPartId(game.build, s)), ...(game.build.payload ?? [])]);
     for (const [id, node] of cards) node.classList.toggle('selected', selected.has(id));
     for (const [slot, fieldset] of fieldsets) {
-      fieldset.classList.toggle('empty', slot === 'instrument' ? game.build.payload === undefined : !game.build[slot as keyof typeof game.build]);
+      fieldset.classList.toggle('empty', slot === 'instrument' ? game.build.payload === undefined : !slotPartId(game.build, slot as (typeof busAndSupport)[number]));
     }
     updateBay();
     const q = quoteBuild(game.build, data, game.state.balance);
@@ -349,10 +359,11 @@ export const designScreen: Screen = (game, root) => {
 
     warnings.replaceChildren(
       ...[
-        !q.complete && fill(t.slotsEmpty, { slots: q.missing.map((s) => text.slots[s]).join(', ') }),
+        !q.complete && fill(t.slotsEmpty, { slots: q.missing.map((s) => text.slots[s] ?? s).join(', ') }),
         !allowed && t.belowMinimum,
         !q.tier && t.overTopTier,
         bayOver && t.bayOverCapacity,
+        ...missingSupportWarnings(q.payloadProblems, data),
         !q.canAfford && t.overBudget,
         q.overloaded && t.chassisOverloaded,
       ]

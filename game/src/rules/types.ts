@@ -4,9 +4,16 @@ import type { DustDevilSpec, DustStormSpec, DustTuning, MarsMilestoneTrigger, Ma
 
 /** The rover's bus: one part per slot. */
 export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
-/** A part's catalog category: a bus slot, or 'instrument' for the payload bay (which holds a list). */
-export type Slot = BusSlot | 'instrument';
-export type Instrument = 'camera' | 'drill' | 'neutron' | 'xray' | 'seismometer' | 'reflector';
+/**
+ * Support hardware (Mars M5): optional slots a world may offer (PartsFile.supportSlots), one part each,
+ * "No arm" / "No mast" included. Instruments that need one say so (PartEffects.needs). They take no
+ * mounting point.
+ */
+export type SupportSlot = 'arm' | 'mast';
+/** A part's catalog category: a bus slot, a support slot, or 'instrument' for the payload bay (which holds a list). */
+export type Slot = BusSlot | SupportSlot | 'instrument';
+/** The instruments. weather, radar, laser and organics are Mars's (their behavior arrives in Mars step 4a). */
+export type Instrument = 'camera' | 'drill' | 'neutron' | 'xray' | 'seismometer' | 'reflector' | 'weather' | 'radar' | 'laser' | 'organics';
 
 export interface PartEffects {
   maxLoad?: number; // chassis: kg of total rover mass it can carry
@@ -33,6 +40,11 @@ export interface PartEffects {
   heaterDraw?: number; // heater: energy per second every second of night, awake and asleep; its heat counts only while the draw is paid
   steadyIncome?: number; // power: energy per second, day and night, never scaled by sunlight, the low Sun, the storm, shadow or dust
   dustRate?: number; // power: how fast dust settles on this part (x tuning.dust.perSol); every part with energyIncome needs one on a world with dust
+  neutronNoise?: boolean; // power: the part raises the neutron spectrometer's floor (an RTG; the rule is Mars step 5b). Never shown on the desk
+  // Support hardware (Mars M5, M6).
+  arm?: boolean; // arm slot: the part is a robotic arm (contact instruments need it)
+  mast?: boolean; // mast slot: the part is a remote sensing mast (the laser spectrometer needs it)
+  needs?: SupportSlot[]; // instrument: the support hardware it cannot work without; the desk refuses it until the build has it
 }
 
 export interface Part {
@@ -50,7 +62,18 @@ export interface Part {
 
 export interface PartsFile {
   slots: BusSlot[]; // the bus slots; instrument parts go in the payload bay instead
+  /** The support slots this world offers (absent: none, as on the Moon). Set per world by its parts overlay (data/mars/parts.json). */
+  supportSlots?: SupportSlot[];
   parts: Part[];
+}
+
+/**
+ * A world's parts overlay (data/mars/parts.json): the support slots it offers, and effects merged into
+ * shared parts by part id (the Mars X-ray's `needs`). Applied to the whole catalog (rules/merge.ts withPartsOverlay).
+ */
+export interface PartsOverlay {
+  supportSlots?: SupportSlot[];
+  effects?: Record<string, Partial<PartEffects>>;
 }
 
 export interface Tier {
@@ -392,7 +415,7 @@ export interface SharedTextFile {
   moneySuffix: string;
   moneyNote: string;
   title: Record<'heading' | 'subtitle' | 'kicker' | 'coverCaption' | 'newCampaign' | 'continueCampaign', string>;
-  slots: Record<Slot, string>;
+  slots: Record<BusSlot | 'instrument', string> & Partial<Record<SupportSlot, string>>; // support slot names come with the world that offers them
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
@@ -641,13 +664,17 @@ export interface RelationshipsFile {
   relationships: Relationship[];
 }
 
-/** A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order). */
-export type Build = Record<BusSlot, string> & { payload: string[] };
+/**
+ * A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order), and
+ * one part id per support slot on a world that offers them (absent on the Moon, so every Moon build and
+ * save stays valid as it is).
+ */
+export type Build = Record<BusSlot, string> & { payload: string[]; support?: Partial<Record<SupportSlot, string>> };
 /**
  * A build on the design screen: a new campaign starts with every slot empty. `payload` undefined: the
  * player has not confirmed the bay yet; `[]`: a confirmed empty bay.
  */
-export type DraftBuild = Partial<Record<BusSlot, string>> & { payload?: string[] };
+export type DraftBuild = Partial<Record<BusSlot, string>> & { payload?: string[]; support?: Partial<Record<SupportSlot, string>> };
 
 /**
  * data/balance.json: the offline win-path analysis (rules/winPaths.ts). Drive legs between milestone

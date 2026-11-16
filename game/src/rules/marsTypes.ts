@@ -3,6 +3,8 @@
 // Kept apart from types.ts so the Mars tracks can grow their own sections without all editing one file.
 // Each section names the track that owns it; values in data/mars/*.json marked "_placeholder" are stubs.
 
+import type { SupportSlot } from './types';
+
 interface Point { x: number; z: number }
 interface Point3 { x: number; y: number; z: number }
 
@@ -201,14 +203,19 @@ export interface MarsTextSections {
   nightBudget: Record<'label' | 'asleep' | 'lights' | 'heater' | 'steady' | 'separator', string>;
   /** Per-world part wording, by part id: replaces the shared name or description (rules/merge.ts withPartText). */
   partText?: Record<string, { name?: string; description?: string }>;
+  /**
+   * Support hardware on the desk (Mars M5, ui/supportText.ts): `needs` on an instrument's card and its
+   * refusal ({support}), `missing` in the warnings ({part}, {support}), and each support part's name.
+   */
+  support: Record<'needs' | 'missing' | SupportSlot, string>;
 }
 
 export interface MarsCampaignText {
   kicker: string; // design screen, above the heading: which mission this is
   carryOver: string; // {balance}: the balance carried over from the Moon
   passMark: string; // {minimum}: the next mission's pass mark (Titan)
-  sameParts: string; // parts and ticket tiers are the Moon's for now
-  ticketNote: string; // ticket screen: same tiers as the Moon
+  sameParts: string; // design screen: Mars has its own parts and ticket tiers
+  ticketNote: string; // ticket screen: Mars's own tiers
   perseverance: string; // landing: {distance} km {direction} to Perseverance's landing site
   newHeading: string; // landing: "New on Mars"
   newOnMars: string[]; // landing: one line per new constraint, {placeholders} from the Mars data

@@ -1,15 +1,27 @@
 {
   "_about": "Mars overlay, deep-merged over data/text.json (arrays replace). Owners: campaign and screens (M4) everything here except survey, instruments and drill (milestones and survey, M5). Integration (M6) wires the sol, night and storm strings into the HUD; they may use the {placeholders} of missionVars() in src/ui/tutorialText.ts. Every real fact cites its source (historySources, campaign.sources).",
   "partText": {
-    "_about": "Mars wording for the shared parts (data/parts.json), by part id; numbers stay the Moon's. Matches the Mars rules: no driving at night without lights, map-wide night cold, solar income by day only and less in a dust storm, soft ground only in Seitah's sand ripples.",
+    "_about": "Mars wording for the shared parts (data/parts.json), by part id; numbers stay the Moon's. Mars-only parts carry their wording in data/parts.json itself. Matches the Mars rules: no driving at night without lights, map-wide night cold, solar income by day only and less in a dust storm, soft ground only in Seitah's sand ripples.",
     "wheels-solid": { "description": "Cheap and heavy. Lower grip in sand ripples." },
     "power-fixed-panel": { "description": "A flat panel. Solar income by day, most with the Sun high. Nothing at night, less in a dust storm." },
     "power-solar-mast": { "description": "Twice the fixed panel's solar income. Nothing at night, less in a dust storm. Light, expensive and bulky." },
     "lights-none": { "description": "Saves cost, mass, and space. The rover cannot drive at night." },
     "lights-led": { "description": "Lets the rover keep driving at night, at a high battery cost." },
-    "heater-none": { "description": "Saves cost, mass, and space. The rover freezes in its first night." },
+    "heater-none": { "description": "Saves cost, mass, and space. Without another source of heat the rover freezes in its first night." },
     "heater-rhu": { "description": "Steady heat from decaying isotopes. Lets the rover survive the night cold." },
     "instrument-drill": { "name": "Rock drill", "description": "Drills rock cores. Heavier and bulkier than the camera." }
+  },
+  "slots": {
+    "_note": "Names of the support slots Mars offers (data/mars/parts.json supportSlots), merged into the shared slot names.",
+    "arm": "Arm",
+    "mast": "Mast"
+  },
+  "support": {
+    "_note": "Support hardware on the desk (Mars M5): an instrument whose support part is missing is refused with a reason. {support}: the support part's name below; {part}: the instrument.",
+    "needs": "Needs the {support}.",
+    "missing": "{part} needs the {support}. Choose it, or take the instrument out of the bay.",
+    "arm": "robotic arm",
+    "mast": "remote sensing mast"
   },
   "landing": {
     "heading": "Landing: Jezero crater",
@@ -42,8 +54,8 @@
     "kicker": "Mission 2 · Mars, Jezero crater",
     "carryOver": "Balance carried over from the Moon: {balance}.",
     "passMark": "After this mission the balance must stay at or above {minimum}, the pass mark for Titan.",
-    "sameParts": "The parts are the Moon's, without the two instruments that have no work on this mission. Launch ticket tiers are the same as on the Moon in this version.",
-    "ticketNote": "The launch ticket tiers are the same as for the Moon in this version.",
+    "sameParts": "Mars has its own parts: the Moon's, without the two instruments that have no work on this mission, plus new power sources, a larger battery, an electric heater, grouser wheels, an arm, a mast and four Mars instruments. Launches to Mars have their own ticket tiers, with a Heavy tier.",
+    "ticketNote": "Launches to Mars have their own ticket tiers: the Moon's three, and a Heavy tier for rovers up to 100 kg.",
     "perseverance": "NASA's Perseverance rover landed in Jezero crater on February 18, 2021. Its landing site, Octavia E. Butler Landing, is about {distance} km {direction} of the lander.",
     "newHeading": "New on Mars",
     "newOnMars": [
@@ -115,7 +127,7 @@
         "title": "Mission 2: Mars",
         "body": [
           "The campaign continues on Mars, on the floor of Jezero crater. The balance carried over from the Moon is {balance}.",
-          "The parts are the Moon's, without the laser retroreflector and the seismometer station, which have no work to do on this mission. Launch ticket tiers are the same as on the Moon in this version: {tiers}.",
+          "Mars has its own parts. The Moon's carry over, without the laser retroreflector and the seismometer station, which have no work to do on this mission. New are a radioisotope generator and deployable solar arrays, a larger battery, an electric heater, grouser wheels, a robotic arm and a mast for instruments that need them, and four Mars instruments. Launches to Mars have their own ticket tiers: {tiers}.",
           "After the mission, the balance must stay at or above the pass mark for Titan ({nextMinimum}), or the Mars round is restarted. A restart returns the balance, research points and records to their values at the start of the Mars round."
         ]
       },
@@ -211,6 +223,31 @@
     "legendRegion": "Séítah",
     "_siteNames": "Display names for the terrain.json site names, which the pipeline keeps ASCII (shown in the Located notice).",
     "siteNames": { "Seitah": "Séítah" }
+  },
+  "instrumentText": {
+    "_note": "Mars's own instruments (Mars M4). Their behavior and history facts arrive in Mars step 4a; until then a reading gives no result, and the controls line says so.",
+    "weather": {
+      "button": "Weather",
+      "controls": "{key} to switch the weather mast on or off ({standby} energy/s while on; no readings yet in this version).",
+      "notCarried": "This rover carries no weather mast."
+    },
+    "radar": {
+      "button": "Radar",
+      "controls": "{key} to switch the ground-penetrating radar on or off ({standby} energy/s while on; no profile yet in this version).",
+      "notCarried": "This rover carries no ground-penetrating radar."
+    },
+    "laser": {
+      "button": "Laser",
+      "controls": "{key} for a laser reading (stop first; {energy} energy each; no results yet in this version).",
+      "notCarried": "This rover carries no laser spectrometer.",
+      "holding": "Laser reading. The rover holds still."
+    },
+    "organics": {
+      "button": "Organics",
+      "controls": "{key} for an organics reading (stop first; {energy} energy each; no results yet in this version).",
+      "notCarried": "This rover carries no organics spectrometer.",
+      "holding": "Organics reading. The rover holds still."
+    }
   },
   "instruments": {
     "_owner": "M5: Mars overrides of the shared instrument notices, plus the sunset notices (rules/marsTypes.ts MarsInstrumentText).",

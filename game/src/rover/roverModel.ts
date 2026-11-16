@@ -8,10 +8,10 @@
 // A draft build (design screen preview) shows only the parts chosen so far.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import type { BusSlot, Instrument, Part, RoverHandling } from '../rules/types';
+import type { BusSlot, Instrument, Part, RoverHandling, SupportSlot } from '../rules/types';
 
-/** How the model groups its static parts: one group per bus slot, and one per instrument in the bay. */
-export type ModelGroup = BusSlot | Instrument;
+/** How the model groups its static parts: one group per bus slot and support slot, and one per instrument in the bay. */
+export type ModelGroup = BusSlot | SupportSlot | Instrument;
 
 /** What the model shows, read from the selected parts. `null` / `false`: nothing drawn for that slot. */
 export interface RoverLook {

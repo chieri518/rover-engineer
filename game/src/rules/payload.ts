@@ -1,13 +1,14 @@
 // The payload bay: the chassis sets its mounting points (one per instrument), and the bay holds any
 // mix of instruments, one of each, or none. Pure.
-import type { DraftBuild, Instrument, MilestonesFile, MissionId, Part, PartsFile } from './types';
-import { requiredInstruments } from './rover';
+import type { DraftBuild, Instrument, MilestonesFile, MissionId, Part, PartsFile, SupportSlot } from './types';
+import { requiredInstruments, supportSlotsOf } from './rover';
 
 export type PayloadProblem =
   | { kind: 'unknown'; id: string } // no part with this id
   | { kind: 'not-instrument'; id: string } // the part is not an instrument
   | { kind: 'duplicate'; id: string } // a second part giving an instrument already in the bay
-  | { kind: 'over-capacity'; count: number; points: number }; // more instruments than mounting points
+  | { kind: 'over-capacity'; count: number; points: number } // more instruments than mounting points
+  | { kind: 'needs'; id: string; support: SupportSlot }; // an instrument whose support hardware the build lacks (Mars: the arm, the mast)
 
 /** The bay's mounting points, from the chassis among these parts; 0 without a chassis. */
 export function mountingPoints(parts: Part[]): number {
@@ -81,8 +82,32 @@ export function instrumentForKey(code: string, parts: Part[]): Instrument | unde
 }
 
 /**
+ * The support hardware a build carries: each support slot whose chosen part provides it (the robotic
+ * arm has `arm`, the mast `mast`; "No arm" provides nothing).
+ */
+export function supportProvided(build: DraftBuild, catalog: PartsFile): Set<SupportSlot> {
+  const provided = new Set<SupportSlot>();
+  for (const slot of supportSlotsOf(catalog)) {
+    const id = build.support?.[slot];
+    const part = id ? catalog.parts.find((p) => p.id === id && p.slot === slot) : undefined;
+    if (part?.effects[slot]) provided.add(slot);
+  }
+  return provided;
+}
+
+/** The support hardware an instrument part needs that the build does not carry, in the part's order (empty: none missing). */
+export function unmetNeeds(part: Part, build: DraftBuild, catalog: PartsFile): SupportSlot[] {
+  const needs = part.effects.needs ?? [];
+  if (needs.length === 0) return [];
+  const provided = supportProvided(build, catalog);
+  return needs.filter((n) => !provided.has(n));
+}
+
+/**
  * What is wrong with the build's payload. Capacity is checked only once a chassis is chosen (a draft
- * without one has no mounting points yet). An unconfirmed bay has no problems.
+ * without one has no mounting points yet). An instrument whose support hardware is missing (Mars: the
+ * X-ray and organics spectrometers need the arm, the laser spectrometer the mast) is refused, also while
+ * the support slot is still empty. An unconfirmed bay has no problems.
  */
 export function payloadProblems(build: DraftBuild, catalog: PartsFile): PayloadProblem[] {
   const problems: PayloadProblem[] = [];
@@ -93,7 +118,10 @@ export function payloadProblems(build: DraftBuild, catalog: PartsFile): PayloadP
     if (!part) problems.push({ kind: 'unknown', id });
     else if (part.slot !== 'instrument' || !part.effects.instrument) problems.push({ kind: 'not-instrument', id });
     else if (seen.has(part.effects.instrument)) problems.push({ kind: 'duplicate', id });
-    else seen.add(part.effects.instrument);
+    else {
+      seen.add(part.effects.instrument);
+      for (const support of unmetNeeds(part, build, catalog)) problems.push({ kind: 'needs', id, support });
+    }
   }
   const chassis = build.chassis ? catalog.parts.find((p) => p.id === build.chassis) : undefined;
   if (chassis) {
@@ -133,6 +161,8 @@ export function fitPayload(payload: string[], points: number): { kept: string[];
  * - payload ids that are unknown, not instruments, or repeat an instrument already in the bay are
  *   dropped; if that empties a bay that held something, the bay is left unconfirmed so the player
  *   chooses again. More instruments than mounting points are kept (the desk reports it).
+ * - a support slot (where the catalog offers them) keeps its part id only if the catalog has it in that
+ *   slot; saves without `support` (every Moon save) load as they are.
  * Saves from before the payload bay have an `instrument` slot: its part becomes the bay's only instrument.
  */
 export function upgradeSavedBuild(saved: unknown, catalog: PartsFile): DraftBuild {
@@ -142,6 +172,11 @@ export function upgradeSavedBuild(saved: unknown, catalog: PartsFile): DraftBuil
   for (const slot of catalog.slots) {
     const id = record[slot];
     if (typeof id === 'string' && catalog.parts.some((p) => p.id === id && p.slot === slot)) draft[slot] = id;
+  }
+  const savedSupport = typeof record.support === 'object' && record.support !== null ? (record.support as Record<string, unknown>) : {};
+  for (const slot of supportSlotsOf(catalog)) {
+    const id = savedSupport[slot];
+    if (typeof id === 'string' && catalog.parts.some((p) => p.id === id && p.slot === slot)) draft.support = { ...draft.support, [slot]: id };
   }
   const savedBay = Array.isArray(record.payload) ? record.payload : typeof record.instrument === 'string' ? [record.instrument] : undefined;
   if (savedBay) {
@@ -180,12 +215,16 @@ export function catalogFor(catalog: PartsFile, world: MissionId): PartsFile {
 /**
  * A build (from the desk or a save) brought to a world: the build the world's catalog can hold
  * (upgradeSavedBuild against the world's offer), and the parts it lost because the world does not offer
- * them, once each, bus slots first, then the bay in order (the desk's "Not offered" notice). Ids no
+ * them, once each, bus slots first, then support slots, then the bay in order (the desk's "Not offered" notice). Ids no
  * catalog knows are dropped silently, as before.
  */
 export function carryBuild(saved: unknown, allParts: PartsFile, world: MissionId): { build: DraftBuild; dropped: Part[] } {
   const known = upgradeSavedBuild(saved, allParts);
-  const ids = [...allParts.slots.flatMap((s) => known[s] ?? []), ...(known.payload ?? [])];
+  const ids = [
+    ...allParts.slots.flatMap((s) => known[s] ?? []),
+    ...supportSlotsOf(allParts).flatMap((s) => known.support?.[s] ?? []),
+    ...(known.payload ?? []),
+  ];
   const dropped = [...new Set(ids)].flatMap((id) => allParts.parts.find((p) => p.id === id && !offeredOn(p, world)) ?? []);
   return { build: upgradeSavedBuild(saved, catalogFor(allParts, world)), dropped };
 }
