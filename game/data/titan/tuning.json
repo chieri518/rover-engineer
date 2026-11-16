@@ -155,6 +155,25 @@
     "sunMask": {
       "bands": [16, 4, 2],
       "minElevationDeg": -3
+    },
+    "beams": {
+      "_note": "titan-fx: beams. Floodlight beams in the haze and raindrops glinting in them (world/titanBeams.ts). Presentation only.",
+      "intensity": 0.055,
+      "angleScale": 0.55,
+      "lengthScale": 0.9,
+      "penumbra": 0.6,
+      "verticalScale": 0.5,
+      "toeOutDeg": 6,
+      "core": { "angleShare": 0.35, "share": 0.6 },
+      "nearFadeM": 0.8,
+      "nearM": 4,
+      "fullDeg": -4,
+      "offDeg": 6,
+      "dayStrength": 0,
+      "rainBoost": 0.8,
+      "samples": 28,
+      "halo": { "sizeM": 0.6, "intensity": 0.5 },
+      "glints": { "count": 320, "sizePx": 6, "fallMps": 1.5, "intensity": 1.2, "twinkleHz": 2.5 }
     }
   },
   "survey": {

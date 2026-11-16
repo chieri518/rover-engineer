@@ -242,6 +242,43 @@ export interface TitanLookTuning {
   /** Rover shadow blur (shadow map radius) and Sun-mask refresh bands; masks pause below minElevationDeg. */
   shadowRadius: number;
   sunMask: { bands: [number, number, number]; minElevationDeg: number };
+  // titan-fx: beams
+  /** Floodlight beams in the haze (world/titanBeams.ts; optional: no beams without it). */
+  beams?: TitanBeamsTuning;
+}
+
+// titan-fx: beams
+/**
+ * Floodlight beams in the haze: presentation only. Each light bar gets a soft volumetric cone along the
+ * floodlight's direction (angle and penumbra from `floodlight`, length = the lights part's range × lengthScale).
+ */
+export interface TitanBeamsTuning {
+  /** Beam brightness scale (in-scatter per meter, before the strength below). */
+  intensity: number;
+  /** Visible cone half-angle = floodlight.angle × angleScale; beam length = light range × lengthScale. */
+  angleScale: number;
+  lengthScale: number;
+  /** Soft edge share of the cone (as a spotlight's penumbra), height over width, outward toe of each beam (deg). */
+  penumbra: number;
+  verticalScale: number;
+  toeOutDeg: number;
+  /** A brighter core along each beam's axis (so the two beams read from behind): its width (share of the cone angle) and share of the light. */
+  core: { angleShare: number; share: number };
+  /** Beam fades in over nearFadeM from the lamp (no hot spot at the housing); falls as 1/distance past nearM. */
+  nearFadeM: number;
+  nearM: number;
+  /** Strength by Sun elevation: full at or below fullDeg, `dayStrength` at or above offDeg. */
+  fullDeg: number;
+  offDeg: number;
+  dayStrength: number;
+  /** Extra strength at peak rain (more scattering): × (1 + rainBoost × storm). */
+  rainBoost: number;
+  /** Ray-march samples per pixel. */
+  samples: number;
+  /** Faint glow around each light housing at night: size (m) and brightness. */
+  halo: { sizeM: number; intensity: number };
+  /** Raindrops glinting in the beams (rain intensity × strength): count (0: none), size (px at 10 m), fall speed, brightness, twinkle rate. */
+  glints: { count: number; sizePx: number; fallMps: number; intensity: number; twinkleHz: number };
 }
 
 // ---------------------------------------------------------------------------------------------------
