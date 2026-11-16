@@ -5,7 +5,9 @@
 // readout, the radar's subsurface strip under the meters, the laser's target reticle, and a progress bar
 // for a long hold (the organics spectrometer).
 // No clock: time reads only from the Sun and shadows. On Mars a sol line ("Sol 3 of 10") and the night
-// state (asleep, lights on) sit under the sunlight line.
+// state (asleep, lights on) sit under the sunlight line. Mars step 6c: the power line replaces the
+// sunlight line (truthful for an RTG, with the panels' dust factor), and the weather mast's recording
+// state sits under its air readout.
 import type { TextFile } from '../rules/types';
 import type { RadarColumn } from '../rules/instruments';
 import { el } from './dom';
@@ -93,6 +95,8 @@ export class Hud {
   private readonly earthLight = el('div', { class: 'earth-light', hidden: true });
   private readonly trace = el('div', { class: 'quake-trace', hidden: true });
   private readonly weather = el('div', { class: 'weather-readout', hidden: true });
+  private readonly recording = el('div', { class: 'weather-recording', hidden: true });
+  private powerSet = false; // Mars: setPowerLine owns the sunlight line
   private readonly radar = el('div', { class: 'radar-strip', hidden: true });
   private readonly radarLabel = el('span', {});
   private readonly radarCanvas = el('canvas', { width: 160, height: RADAR_HEIGHT_PX, 'aria-hidden': 'true' }) as HTMLCanvasElement;
@@ -131,6 +135,7 @@ export class Hud {
         this.earthLight,
         this.trace,
         this.weather,
+        this.recording,
         this.radar,
         this.target,
         this.power,
@@ -148,10 +153,29 @@ export class Hud {
     this.energy.set(m.energy / m.capacity, `${Math.round(m.energy)} / ${m.capacity}`, m.energy / m.capacity < 0.2);
     this.damage.set(m.damage, `${Math.round(m.damage * 100)}%`, m.damage >= 0.6);
     this.cold.set(m.freeze, `${Math.round(m.freeze * 100)}%`, m.freeze >= 0.5);
-    this.sun.textContent = m.sunlight > 0.5 ? h.sunlit : h.shadow;
-    this.sun.classList.toggle('shadow', m.sunlight <= 0.5);
+    if (!this.powerSet) {
+      this.sun.textContent = m.sunlight > 0.5 ? h.sunlit : h.shadow;
+      this.sun.classList.toggle('shadow', m.sunlight <= 0.5);
+    }
     this.power.textContent = m.poweredDown ? h.powerUp : h.powerDown;
     this.power.classList.toggle('active', m.poweredDown);
+  }
+
+  /**
+   * Mars: the power line in place of the sunlight line (ui/hudText.ts powerLine), dim when nothing comes
+   * in. Once set, update() no longer writes the Moon's sunlight line; null hands it back.
+   */
+  setPowerLine(line: { text: string; dim: boolean } | null): void {
+    this.powerSet = line !== null;
+    if (line === null) return;
+    if (this.sun.textContent !== line.text) this.sun.textContent = line.text;
+    this.sun.classList.toggle('shadow', line.dim);
+  }
+
+  /** Mars: the weather mast's recording state (ui/hudText.ts weatherRecordingLine), or null to hide it. */
+  setRecording(line: string | null): void {
+    this.recording.hidden = line === null;
+    if (line !== null && this.recording.textContent !== line) this.recording.textContent = line;
   }
 
   /** Mars: the sol line and the night state under it (null hides each). */

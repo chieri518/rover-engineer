@@ -73,7 +73,25 @@
   },
   "hud": {
     "endedSurvived": "The rover completed ten sols at Jezero crater.",
-    "lasted": "The rover operated for {days} of {total} sols."
+    "lasted": "The rover operated for {days} of {total} sols.",
+    "legendHydrogen": "Hydrated ground"
+  },
+  "hudMars": {
+    "_owner": "Mars step 6c (ui/hudText.ts; types rules/marsTypes.ts MarsHudText). The power line replaces the Moon's sunlight line on Mars, so a rover with no panels never reads 'Solar panel in sunlight'. dust is the dust lesson's own designed signal (game-design.md: the energy income line shows the dust factor), shown once dust has cut solar income by 1% or more; no other line names dust. recording: the weather mast's timed records (Storm log, Night weather), {event} {seconds} {total}.",
+    "solarSun": "Solar panel in sunlight",
+    "solarLowSun": "Solar panel: low Sun",
+    "solarShadow": "Solar panel in shadow",
+    "solarStorm": "Solar panel: storm dims the Sun",
+    "solarNight": "Solar panel: night, no income",
+    "dust": "dust −{loss}%",
+    "steady": "Steady power, day and night",
+    "steadyToo": "steady power",
+    "none": "No power income",
+    "join": " · ",
+    "recording": "Weather mast recording {event}: {seconds} of {total} s",
+    "recordingPaused": "Weather mast recording {event}: {seconds} of {total} s, paused near the lander",
+    "recordEvents": { "duststorm": "the storm", "night": "the night" },
+    "craterWallHint": "Crater rim: photograph the far inner wall ({key})"
   },
   "warnings": {
     "lowEnergy": "Battery low. Recharge in sunlight, or power down with P.",
@@ -223,6 +241,12 @@
     "legendRocky": "Boulder field",
     "legendDelta": "Delta front",
     "legendRegion": "Séítah",
+    "_legend6c": "Mars step 6c: legend entries for the new site kinds (each shows once such a site is on the map) and the distance under a lead arrow's number.",
+    "legendKnob": "Knob",
+    "legendSeitahEdge": "Séítah edge",
+    "legendDeltaFoot": "Delta foot",
+    "legendFloodBoulder": "Flood boulder",
+    "leadDistance": "{distance} km",
     "_siteNames": "Display names for the terrain.json site names, which the pipeline keeps ASCII (shown in the Located notice).",
     "siteNames": { "Seitah": "Séítah" },
     "_sites": "Mars step 4b: notes and instrument lines for the data/mars/sites.json sites (rules/types.ts TextFile survey; ui/surveyText.ts foundNotice). They replace the Moon's by key (deep merge), so the Moon's fresh rocky area does not reach Mars; its cold-trap and rolled-boulder lines stay merged but Mars has no such sites. Lesson-blind: no line names slope, level, flat, steep, dust, noise, generator or lights (Mars sites plan, Spoiler guard). Notes for the knobs, the Seitah edge, the delta foot and the flood boulder are ready for the survey sites Mars step 5c adds.",
@@ -280,6 +304,36 @@
       "flood-boulder": {
         "xray": "X-ray spectrometer: read its rock.",
         "camera": "Camera: photograph it after reading it, from within {documentedRange} m."
+      }
+    },
+    "_siteLinesById": "Mars step 6c: a site's own lines, before its kind's. Rocky area 2 is a crater with a rim (pipeline), so Crater wall counts there; Rocky area 1 is a block field and has no camera line.",
+    "siteLinesById": {
+      "rocky-area-2": {
+        "camera": "Camera: photograph its far inner wall from the rim."
+      }
+    },
+    "_features": "Mars step 6c: notes and instrument lines for the terrain features with no sites.json id, by survey site key (rules/survey.ts buildSites: deltaFront, seitah, perseveranceLanding, viewpoints by name). Lesson-blind, like the site lines. Perseverance landed on 18 February 2021; NASA named the site Octavia E. Butler Landing (NASA, March 2021).",
+    "featureNotes": {
+      "seitah": "ridged rock with ripples of sand between the ridges.",
+      "deltaFront": "the front of an ancient river delta, its layers exposed in the cliff.",
+      "Delta viewpoint": "a view across the delta's layers.",
+      "West viewpoint": "a wide view west across the crater.",
+      "perseveranceLanding": "where NASA's Perseverance rover touched down in February 2021."
+    },
+    "featureLines": {
+      "seitah": {
+        "drill": "Drill: sample Séítah's rock.",
+        "radar": "Radar: switch it on and drive across it.",
+        "neutron": "Neutron spectrometer: switch it on and drive through it."
+      },
+      "deltaFront": {
+        "camera": "Camera: photograph its layers from the Delta viewpoint.",
+        "laser": "Laser spectrometer: read the delta cliff from its foot.",
+        "radar": "Radar: switch it on and drive along it.",
+        "neutron": "Neutron spectrometer: switch it on and drive along it."
+      },
+      "Delta viewpoint": {
+        "camera": "Camera: photograph the delta's layers from here."
       }
     }
   },

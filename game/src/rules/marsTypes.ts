@@ -3,7 +3,7 @@
 // Kept apart from types.ts so the Mars tracks can grow their own sections without all editing one file.
 // Each section names the track that owns it; values in data/mars/*.json marked "_placeholder" are stubs.
 
-import type { SupportSlot } from './types';
+import type { Instrument, SupportSlot } from './types';
 
 interface Point { x: number; z: number }
 interface Point3 { x: number; y: number; z: number }
@@ -331,6 +331,45 @@ export interface MarsSurveyText {
   legendRegion?: string; // Séítah's outline
   /** Display names for terrain.json site names (the pipeline keeps them ASCII), e.g. "Seitah" → "Séítah". */
   siteNames?: Record<string, string>;
+  // Mars step 6c: the new site kinds' legend entries (each shows once such a site is on the map).
+  legendKnob?: string;
+  legendSeitahEdge?: string;
+  legendDeltaFoot?: string;
+  legendFloodBoulder?: string;
+  /** Under a lead arrow's number on the minimap: {distance} in km from the rover. */
+  leadDistance?: string;
+  /** By sites.json id, then instrument: a site's own line, before its kind's siteLines (Rocky area 2's crater wall). */
+  siteLinesById?: Record<string, Partial<Record<Instrument, string>>>;
+  /**
+   * The terrain features with no sites.json id (Séítah, the delta front, the viewpoints, Perseverance's
+   * landing site), by survey site key: the note after "Located: {name}, " and what each instrument aboard
+   * can do there. Lesson-blind, like the site lines.
+   */
+  featureNotes?: Record<string, string>;
+  featureLines?: Record<string, Partial<Record<Instrument, string>>>;
+}
+
+/**
+ * Mars HUD lines (data/mars/text.json `hudMars`, Mars step 6c; ui/hudText.ts). The power line replaces the
+ * Moon's "Solar panel in sunlight" on Mars, so a rover without panels never reads it: solar states, the
+ * dust factor ({loss} percent), a steady source. The weather mast's recording state: {event}, {seconds},
+ * {total}. The crater wall hint: {key}.
+ */
+export interface MarsHudText {
+  solarSun: string;
+  solarLowSun: string;
+  solarShadow: string;
+  solarStorm: string;
+  solarNight: string;
+  dust: string; // {loss}
+  steady: string; // a rover with only a steady source
+  steadyToo: string; // appended when a solar rover also has a steady source
+  none: string; // no power income at all
+  join: string;
+  recording: string; // {event} {seconds} {total}
+  recordingPaused: string; // {event} {seconds} {total}: counted but paused (near the lander)
+  recordEvents: Partial<Record<'duststorm' | 'night', string>>;
+  craterWallHint: string; // {key}
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -340,6 +379,7 @@ export interface MarsSurveyText {
 export interface MarsTextSections {
   instruments: MarsInstrumentText; // M5
   survey: MarsSurveyText; // M5
+  hudMars: MarsHudText; // Mars step 6c
   sol: Record<'hudSol' | 'lasted', string>;
   night: Record<'sunset' | 'dawn' | 'sleeping' | 'noLights' | 'lightsOn', string>;
   storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string>;

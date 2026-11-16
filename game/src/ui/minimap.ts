@@ -10,6 +10,10 @@
 // patch (apart from the dark crater's solid outline), the rolled boulder with its track up the slope,
 // and the hidden hydrogen's dotted area once found. A small check marks a site where this rover has done
 // all it can (rules/siteChecks.ts). Their legend entries appear once such a site is on the map.
+// Mars (step 6c): knobs as solid rings and the Séítah edge as a dashed ring (scaled to their boulder
+// spread), the delta foot as a thick stretch over the delta line, the flood boulder as a boulder icon,
+// the hydrated ground (the hidden-hydrogen kind) dotted once found; each can show a check. A lead arrow
+// may carry its distance under its number, and the nearest lead's arrow and line stand out.
 import { areaCenter, growBounds, mapView, type Bounds, type MapView, type Site, type SiteKind } from '../rules/survey';
 import type { TextFile, Tuning } from '../rules/types';
 import type { HeightGrid } from '../world/terrainData';
@@ -30,6 +34,11 @@ const COLD_TRAP_FILL = 'rgba(90, 150, 255, 0.2)';
 const ROLLED = '#c9b79c';
 const HYDROGEN = '#c3a6ff';
 const HYDROGEN_FILL = 'rgba(195, 166, 255, 0.15)';
+// The Mars sites (Mars step 6c; the legend in style.css uses the same colors).
+const KNOB = '#e6b98a';
+const SEITAH_EDGE = '#9fd29a';
+const DELTA_FOOT = '#ffd2a6';
+const FLOOD = '#d9825a';
 const CHECK = '#8fe388';
 const OUTLINE = '#05070b';
 const ZOOM_RATE = 2.5; // per second: the view eases toward the explored area, so the map widens smoothly
@@ -43,6 +52,8 @@ export const MARS_RELIEF: ReliefTone = [1.08, 0.78, 0.58];
 export interface LeadArrow {
   label: string; // short tag on the arrow ("1")
   azimuth: number; // degrees from grid north (−z), toward +x
+  distance?: string; // Mars: the distance under the tag ("0.6 km"), already worded
+  nearest?: boolean; // Mars: the nearest open lead, drawn larger
 }
 
 export class Minimap {
@@ -62,6 +73,7 @@ export class Minimap {
   private lastLeads = '';
   /** Legend entries that show once a site of their kind is on the map (or, for the check, once one is drawn). */
   private readonly lateLegend: { kind: SiteKind | 'done'; node: HTMLElement }[];
+  private lastNearest: number | null = null;
 
   constructor(
     grid: HeightGrid,
@@ -85,11 +97,15 @@ export class Minimap {
     const sv = text.survey;
     const hasCold = this.masks.cold.includes(1);
     const late = (kind: SiteKind | 'done', cls: string, label: string) => ({ kind, node: el('span', { class: `lg ${cls}`, hidden: true }, label) });
+    // Mars's own site kinds have legend entries only where the world's text names them (none on the Moon).
+    const marsLate = ([['knob', 'knob', sv.legendKnob], ['seitah-edge', 'seitahedge', sv.legendSeitahEdge], ['delta-foot', 'deltafoot', sv.legendDeltaFoot], ['flood-boulder', 'flood', sv.legendFloodBoulder]] as const)
+      .flatMap(([kind, cls, label]) => (label ? [late(kind, cls, label)] : []));
     this.lateLegend = [
       late('young-crater', 'young', h.legendYoungCrater),
       late('cold-trap', 'coldtrap', h.legendColdTrap),
       late('rolled-boulder', 'rolled', h.legendRolledBoulder),
       late('hidden-hydrogen', 'hydrogen', h.legendHydrogen),
+      ...marsLate,
       late('done', 'done', h.legendDone),
     ];
     this.root = el('div', { class: 'minimap', role: 'img', 'aria-label': h.minimap },
@@ -169,12 +185,16 @@ export class Minimap {
     for (const [x, z] of pts) this.bounds = growBounds(this.bounds, { x, z }, 0);
   }
 
-  /** The list of undiscovered leads under the map (already worded, numbered like the arrows). */
-  setLeads(lines: string[]): void {
+  /**
+   * The list of undiscovered leads under the map (already worded, numbered like the arrows). `nearest`:
+   * the index of a line to stand out (Mars: the nearest lead, listed first).
+   */
+  setLeads(lines: string[], nearest: number | null = null): void {
     const key = lines.join('\n');
-    if (key === this.lastLeads) return;
+    if (key === this.lastLeads && nearest === this.lastNearest) return;
     this.lastLeads = key;
-    this.leadList.replaceChildren(...lines.map((l) => el('li', {}, l)));
+    this.lastNearest = nearest;
+    this.leadList.replaceChildren(...lines.map((l, i) => el('li', i === nearest ? { class: 'nearest' } : {}, l)));
     this.leadList.hidden = lines.length === 0;
   }
 
@@ -297,8 +317,10 @@ export class Minimap {
   }
 
   /**
-   * A Moon site's mark (young crater, cold trap, rolled boulder, hidden hydrogen). Returns where its
-   * check goes (the mark's center and radius in canvas px), or null for any other kind.
+   * A sites.json site's mark: the Moon's (young crater, cold trap, rolled boulder, hidden hydrogen, which
+   * Mars's young craters and hydrated ground share) and Mars's (knob, Séítah edge, delta foot, flood
+   * boulder). Returns where its check goes (the mark's center and radius in canvas px), or null for any
+   * other kind.
    */
   private drawMoonSite(s: Site, px: (x: number) => number, py: (z: number) => number, k: number): { x: number; y: number; r: number } | null {
     const ctx = this.ctx;
@@ -350,6 +372,45 @@ export class Minimap {
         ctx.fill();
         ctx.stroke();
         return { x, y, r: 4 };
+      }
+      case 'knob':
+      case 'seitah-edge': {
+        // A ring scaled to the boulder spread: solid for a knob, dashed for the Séítah edge.
+        const r = a.kind === 'circle' ? Math.max(5, a.r * k) : 6;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        if (s.kind === 'seitah-edge') ctx.setLineDash([4, 3]);
+        this.haloStroke(s.kind === 'knob' ? KNOB : SEITAH_EDGE, 1.5);
+        ctx.setLineDash([]);
+        return { x, y, r };
+      }
+      case 'delta-foot': {
+        // A thick, light stretch over the delta front's line; the check at its middle.
+        if (a.kind !== 'path') {
+          const r = a.kind === 'circle' ? Math.max(5, a.r * k) : 6;
+          ctx.beginPath();
+          ctx.arc(x, y, r, 0, Math.PI * 2);
+          this.haloStroke(DELTA_FOOT, 3);
+          return { x, y, r };
+        }
+        ctx.beginPath();
+        a.points.forEach(([px0, pz0], i) => (i ? ctx.lineTo(px(px0), py(pz0)) : ctx.moveTo(px(px0), py(pz0))));
+        ctx.lineCap = 'round';
+        this.haloStroke(DELTA_FOOT, 5);
+        ctx.lineCap = 'butt';
+        const mid = a.points[Math.floor(a.points.length / 2)]!;
+        return { x: px(mid[0]), y: py(mid[1]), r: 4 };
+      }
+      case 'flood-boulder': {
+        // A boulder icon, larger than the rolled boulder's.
+        ctx.fillStyle = FLOOD;
+        ctx.strokeStyle = OUTLINE;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, 5, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        return { x, y, r: 5 };
       }
       case 'hidden-hydrogen': {
         // A dotted area, drawn only once found (a hidden site is discovered only by revealSite).
@@ -416,6 +477,7 @@ export class Minimap {
     ctx.save();
     ctx.translate(ex, ey);
     ctx.rotate(a);
+    if (lead.nearest) ctx.scale(1.3, 1.3);
     ctx.fillStyle = LEAD;
     ctx.strokeStyle = '#05070b';
     ctx.lineWidth = 2;
@@ -435,7 +497,18 @@ export class Minimap {
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#05070b';
     ctx.fillStyle = LEAD;
-    ctx.strokeText(lead.label, ex - dx * 20, ey - dy * 20);
-    ctx.fillText(lead.label, ex - dx * 20, ey - dy * 20);
+    const tx0 = ex - dx * 20;
+    const ty0 = ey - dy * 20;
+    ctx.strokeText(lead.label, tx0, ty0);
+    ctx.fillText(lead.label, tx0, ty0);
+    if (lead.distance) {
+      // Under the tag, or above it when the arrow sits on the bottom edge.
+      const dyText = ty0 > PX - 40 ? -15 : 15;
+      ctx.font = '600 12px "IBM Plex Mono", monospace';
+      const half = ctx.measureText(lead.distance).width / 2 + 2;
+      const tx = Math.min(PX - half, Math.max(half, tx0));
+      ctx.strokeText(lead.distance, tx, ty0 + dyText);
+      ctx.fillText(lead.distance, tx, ty0 + dyText);
+    }
   }
 }
