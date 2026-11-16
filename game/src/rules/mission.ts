@@ -33,6 +33,8 @@ export interface MarsSetup {
 export function marsSetup(site: MarsSetup['site'], events: EventsFile, rng: Rng, tuning?: Pick<Tuning, 'sol' | 'mission'>): MarsSetup {
   const storm = scheduleDustStorm(events, rng);
   const spec = events.dustdevil;
+  // The devils' seed must stay the last use of rng here: a draw added before it would move every seed's
+  // devils (and, before the storm, its storm), which the seeded storm and dust tests pin.
   const devils = spec && tuning?.sol
     ? scheduleDustDevils(spec, tuning.sol, tuning.mission.lengthSeconds, seededRng(Math.floor(rng() * 0x100000000)))
     : undefined;
@@ -311,7 +313,7 @@ export interface MarsStatus {
   dustFactor: number; // dust on the panels: solar income multiplier, 1 = clean (not part of solarFactor)
   freezeRate: number; // freeze meter change per second (negative = recovering)
   canDrive: boolean; // false asleep, and at night without lights
-  lightsOn: boolean; // awake at night with lights: the floodlights are on and the lights drain applies
+  lightsOn: boolean; // awake at night with lights: the floodlights are on and their draw (the parts' lightsDraw) applies
 }
 
 /** The Mars conditions at the state's time, or null on the Moon (no `setup.mars` or no sol/night tuning). */
@@ -469,7 +471,8 @@ export function startInstrumentUse(
   if (c.needsEarth && !sample.earthInView) return refuse('no-earth');
   if (c.needsBoulder && !sample.boulderInReach) return refuse('no-boulder');
   if (cost > 0 && s.energy <= cost) return refuse('energy');
-  const slowedByCold = held && sample.inColdZone && setup.heat <= 0 && !c.coldTolerant;
+  // The heat that counts now (an electric heater's only while its draw is paid), as in the freeze step.
+  const slowedByCold = held && sample.inColdZone && heatNow(setup.heat, setup.power.electricHeat, s.energy) <= 0 && !c.coldTolerant;
   const fasterInShadow = held && c.shadowHoldFactor !== 1 && sample.sunlight < t.instruments.shadowSunlight;
   const holdSeconds = held ? c.useSeconds * (slowedByCold ? t.instruments.coldSlowdown : 1) * (fasterInShadow ? c.shadowHoldFactor : 1) : 0;
   const site: UseSite = { boulder: sample.boulder ?? null, inDarkCrater: sample.inDarkCrater ?? false, slowedByCold, fasterInShadow };
