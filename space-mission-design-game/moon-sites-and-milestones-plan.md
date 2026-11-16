@@ -71,7 +71,7 @@ The exploring minimap's rules stay ([Minimap and exploration](game-design.md#min
 | Kind | Before discovery | When discovered | After discovery |
 | --- | --- | --- | --- |
 | Young crater | Hidden (fog) | Ring icon; notice names it and, for instruments aboard only, what they can do there ("East crater: fresh boulders and ejecta. X-ray spectrometer: read the rocks.") | Ring; a small check once every milestone this rover can earn there is earned |
-| Cold trap | Hidden | Its permanent-shadow outline in the dark crater's style, smaller; notice "Cold trap: a patch of permanent shadow." plus the neutron line if aboard | Outline; check when surveyed |
+| Cold trap | Hidden | Its outline, a small dashed patch in its own style; notice "Cold trap: a small, very cold patch of ground." plus the neutron line if aboard (reworded after the Phase 0 review: no "shadow", per the spoiler guard) | Outline; check when surveyed |
 | Rolled boulder | Hidden | Boulder icon with a short track line up the slope | Check when read and photographed (whichever the rover can) |
 | Hidden hydrogen | **Never drawn until found.** Only the neutron meter can find it (it rises as the rover nears) | When the survey milestone fires: a dotted area labelled "Hydrogen-rich ground" | Stays drawn |
 | Ice signal | Never drawn; the ice spot stays unmarked, as decided | Not drawn: earning it tells the player where the ice is, which is the meter's job | |
@@ -401,7 +401,7 @@ All decided November 15, 2026: the team accepted every proposed answer below.
 | M12 | A fault scarp viewpoint | Only if P6 shows the de Gerlache scarp in view from the play area; otherwise drop it and keep the Watters fact on Moonquake record |
 | M13 | The North cold trap near the dark crater route | Leave out unless P1 shows a real route passes within 100 m of it |
 | M14 | Desk cards list the milestones each instrument can earn | Yes, names only |
-| M15 | Several docs say all six instruments flew on real lunar rovers or landers, including VIPER | Fix the wording: VIPER has not flown (cancelled in 2024, now planned on a Blue Origin lander); the neutron spectrometer flew in lunar orbit (Lunar Prospector, LRO's LEND). Facts say VIPER "is designed to" |
+| M15 | Several docs say all six instruments flew on real lunar rovers or landers, including VIPER | Fix the wording: VIPER has not flown (cancelled in 2024, now planned on a Blue Origin lander); no neutron spectrometer has driven on a rover yet; they have flown in lunar orbit (Lunar Prospector, LRO's LEND). Facts say VIPER "is designed to" |
 
 ## Sources and what is not verified
 
@@ -414,7 +414,7 @@ Checked on November 15, 2026 against the sources below (some from publisher abst
 | Hydrogen-rich areas not matching permanent shadow | Mitrofanov et al. (2010), Science 330:483, doi:10.1126/science.1185696 | Verified |
 | VIPER's neutron spectrometer reads the top meter while driving; VIPER's status | NASA VIPER pages; NASA release, Sept 2025 (Blue Origin delivery) | Depth from NASA presentations, not the fetched NASA page; status checked |
 | Rockfalls mapped in LRO images | Bickel et al. (2020), Nature Communications 11:2862, doi:10.1038/s41467-020-16653-3 | Verified: 136,610 events |
-| South polar soil composition and magnesium-rich part | Vadawale et al. (2024), Nature, doi:10.1038/s41586-024-07870-7 | DOI verified; volume and page not confirmed |
+| South polar soil composition and magnesium-rich part | Vadawale et al. (2024), Nature 633, 327–331, doi:10.1038/s41586-024-07870-7 | Verified |
 | Fresh ejecta is less weathered and brighter | Grier et al. (2001), JGR 106, doi:10.1029/1999JE001160 | Verified |
 | Apollo documented samples | USGS Apollo 14 and 17 reports; NASA TR R-353 (Apollo 12) | Verified |
 | de Gerlache thrust fault scarp, 1973 shallow moonquake | Watters et al. (2024), Planetary Science Journal 5:22, doi:10.3847/PSJ/ad1332 | Verified; location relative to our play area not checked (P6) |

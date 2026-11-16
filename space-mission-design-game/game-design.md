@@ -254,7 +254,7 @@ Moon minimum (520), starting budget (750), part costs, ticket tiers, death penal
 
 **How it was checked.** `src/rules/winPaths.ts` (pure, unit-tested) drives every build along route plans with the real mission rules: energy, solar income from the real lit share of each leg over time, cold, overload, soft-ground slip at boulder fields, and two flares (the player powers down for 8 s each). Drive legs between the milestone sites were measured once on the real terrain (least-cost routes on a 10 m grid, slopes up to 18°) and are stored with the plans in `game/data/balance.json`, which the game does not load. "Reasonable play" means driving at 90% of top speed, recharging in sunlight before a leg the battery cannot cover with a 10% reserve, and touching a rock when crossing a boulder field (so no Clean run there; real drives often keep it). `winPaths.test.ts` holds the targets: idling fails for every build by more than 100; wandering, or one or two short stops near the lander, fails for every build; at least three archetypes with different parts and routes, using both instruments, pass with a margin of at least 50; each archetype fails if it skips its instrument; fewer than 35% of affordable builds can pass even with their best route; the cheapest build fails on every route; more than five builds pass without the ice.
 
-**Archetypes** (model estimate; pass mark 780):
+**Archetypes** (model estimate; pass mark 780; *before the Moon sites repricing*: for the current targets see [Balance with the Moon sites and milestones](#balance-with-the-moon-sites-and-milestones)):
 
 | Archetype | Build | Cost + ticket | Route | Survey leads that start it | Milestones | Final | Without using the instrument |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -264,7 +264,7 @@ Moon minimum (520), starting budget (750), part costs, ticket tiers, death penal
 
 Other designs also pass in the model, for example a camera build on titanium and mesh wheels doing the scout route, or a drill build with a NiH2 battery sampling the crater wall, the boulder field and the rim. 33 of 115 affordable builds can pass with their best route (17 of 63 camera builds, 16 of 52 drill builds); none pass by idling, wandering or a short trip.
 
-**Browser check** (headless Chrome, real game flow, an autopilot following the measured routes, honest play; run before the final number pass, so the finals below are re-priced with the final money from the milestones each run actually earned):
+**Browser check** (*before the Moon sites repricing*; headless Chrome, real game flow, an autopilot following the measured routes, honest play; run before the final number pass, so the finals below are re-priced with the final money from the milestones each run actually earned):
 
 | Run | Build | Result in the browser | Final with final numbers |
 | --- | --- | --- | --- |
@@ -279,7 +279,7 @@ Other designs also pass in the model, for example a camera build on titanium and
 
 The browser runs found one model error, now fixed: the boulder-field crossing point on the north side sat short of the 90° the Boulder field rule needs (a route leaves the circle early, on a chord). The crossing point is now 112° round from the entry, which passed in the browser, and the model only credits a crossing whose end points are at least 105° apart (a test checks the archetype routes). For players this is the existing rule: cross the boulder field to its far side, not just clip its edge.
 
-**Browser re-check after the playtest fixes** (November 15: exploring minimap with fog and survey leads, and time-lapse gravity in the air; headless Chrome, real game flow, the same autopilot, starting each time from an unexplored map):
+**Browser re-check after the playtest fixes** (*before the Moon sites repricing*; November 15: exploring minimap with fog and survey leads, and time-lapse gravity in the air; headless Chrome, real game flow, the same autopilot, starting each time from an unexplored map):
 
 | Run | Result in the browser | Final | How the route is found on the fogged map |
 | --- | --- | --- | --- |
@@ -462,7 +462,7 @@ The Moon parts table: six slots with two options each, plus the payload bay with
   - Answers: "Bring the neutron spectrometer to locate the ice and the drill to confirm it." / "On a tight budget, choose one of the two, or earn points with other instruments."
   - Review text, last sentence: "Bring the neutron spectrometer to locate the ice and the drill to confirm it; on a tight budget, choose one, or earn points elsewhere."
   - The notice, debrief text and "Solved" line stay. The fact changes to VIPER "is designed to" (M15), as for the neutron spectrometer's first-use fact in `text.json`.
-- **Real basis used:** VIPER's neutron spectrometer, as designed (VIPER has not flown, M15; the drill step of VIPER's plan is not claimed); Chandrayaan-3's ILSA recording its own rover (ISRO); LRO Diviner's shadow temperatures for cold and dark; VIPER as NASA's first rover with headlights, built to explore dark craters (NASA Science VIPER page, checked in Phase 5) for no lights; Curiosity's APXS cooler (without "in daytime", which was not confirmed).
+- **Real basis used:** VIPER's neutron spectrometer, as designed (VIPER has not flown, M15; the drill step of VIPER's plan is not claimed); Chandrayaan-3's ILSA recording its own rover (ISRO); LRO Diviner's shadow temperatures for cold and dark; VIPER as NASA's first rover with headlights, designed to explore dark craters (it has not flown, M15) (NASA Science VIPER page, checked in Phase 5) for no lights; Curiosity's APXS cooler (without "in daytime", which was not confirmed).
 - **The Diviner fact** *(Phase 5 fact check)*: "as cold as -414 °F (about -248 °C, or 25 K)", from NASA SVS 11230, which gives the Fahrenheit figure; the Celsius and kelvin values are conversions. Paige et al. (2010) is no longer cited for it: its abstract does not give 25 K (it gives about 38 K at the LCROSS site). The "Into the dark" milestone fact uses the same wording and source.
 
 **Engineering notebook and pre-launch review** *(decided during implementation, Phase 5; built)*. Rules in `game/src/rules/relationships.ts` and `rules/campaign.ts`; text in `text.json` → `notebook` and `review`.
@@ -583,7 +583,7 @@ The map is **bigger than one mission can cover**, so the player feels they could
 | Kind | Before discovery | When discovered | After discovery |
 | --- | --- | --- | --- |
 | Young crater | Hidden (fog) | Ring icon; the notice names it and, for instruments aboard only, what they can do there ("East crater: fresh boulders and ejecta. X-ray spectrometer: read the rocks.") | Ring; a small check once every milestone this rover can earn there is earned |
-| Cold trap | Hidden | Its permanent-shadow outline in the dark crater's style, smaller; notice "Cold trap: a patch of permanent shadow." plus a neutron line if one is aboard | Outline; a check once surveyed |
+| Cold trap | Hidden | Its outline, a small dashed patch in its own style; notice "Cold trap: a small, very cold patch of ground." plus a neutron line if one is aboard (no word about shadow, light or temperature beyond the name, per the spoiler guard) | Outline; a check once surveyed |
 | Rolled boulder | Hidden | Boulder icon with a short track line up the slope | A check once read and photographed (whichever this rover can) |
 | Hidden hydrogen | **Never drawn until found.** The reveal circle does not discover it; only the neutron meter's rise does | When Hidden hydrogen is earned: a dotted area labeled "Hydrogen-rich ground" | Stays drawn |
 | Ice signal | Never drawn | Not drawn: earning it would show where the ice is, which is the meter's job. The ice spot stays unmarked | |
@@ -664,7 +664,7 @@ The starting list. Distances and amounts are game values to balance.
 | --- | --- | --- | --- |
 | Cold trap survey | Scientific: new information | With the neutron spectrometer switched on, drive an unbroken 50 m that passes within 25 m of a cold trap, or through it. One stage per cold trap, up to 3 | Neutron spectrometer |
 | Hidden hydrogen | Scientific: strange formation | With the neutron spectrometer on, drive through the hidden hydrogen spot, where the meter peaks higher than in the cold traps. *Placed by design* | Neutron spectrometer |
-| Ice deposit located | Scientific: new material | With the neutron spectrometer on, drive inside the dark crater where the meter reads at least 70% (within about 90 m of the ice spot) | Neutron spectrometer, lights |
+| Ice deposit located | Scientific: new material | With the neutron spectrometer on, drive inside the dark crater where the meter reads at least 70% (within about 90 m of the ice spot) | Neutron spectrometer, lights (design requirement only: the in-game how-to-earn text and desk card name only the neutron spectrometer, never lights, so the "No lights" lesson is not given away) |
 | Rock collection | Scientific: new information | Read 2, 3 and 4 different rock types with the X-ray spectrometer (one stage each) | X-ray spectrometer |
 | Rare rock | Record: first discovery | Read the rolled boulder (magnesian norite, found nowhere else). Once per campaign. *Placed by design* | X-ray spectrometer |
 | Boulder track | Scientific: strange formation | Photograph the rolled boulder in frame from within 80 m | Camera |
@@ -734,6 +734,8 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
 - **Debrief: "Not reached"** (M11). With 25 Moon milestones, the debrief adds a short list of milestones the rover carried the parts for and did not earn, names only. *Decided in Phase 0:* only milestones that need at least one instrument count (capability milestones need no parts and would always be listed); the rover must have carried every part the milestone requires; records already held this campaign are left out; a staged milestone is listed only if none of its stages was earned. The debrief groups milestones by instrument and shows staged ones as one line with a count.
 - **No lesson is spoiled.** The five Moon lessons stay as they are. No milestone, site name, notice, lead or desk line names a lesson's cause or its fix: no milestone needs the neutron spectrometer and the drill together (Water ice already rewards the pair), the seismometer texts say only "record" and "clean", no milestone needs a use inside the cold or mentions shadow, temperature or lights. The survey text says "pass near or through". A test greps the new texts for each lesson's key words.
 
+**Why these, and what was left out.** Clean seismogram is its own milestone, not a stage of Moonquake record, so a noisy record still earns the first one and the lesson explains the gap (M10). There is no neutron-plus-drill combo: it would spell out the "neutron finds, drill confirms" lesson, and Water ice already rewards the pair (M8). Left out: a second Earth photo, a lander portrait (free near the start), drilling in the small cold traps (it would blur the ice story), and a fault scarp photo (only if the pipeline shows the de Gerlache scarp in view, M12).
+
 **Real basis of the new milestones** (checked November 15 against the sources below, some from publisher abstracts; every fact is checked again before it goes into `text.json`):
 
 | Milestone | Real basis |
@@ -741,7 +743,7 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
 | Cold trap survey | Lunar Prospector's neutron spectrometer found extra hydrogen at both poles (Feldman et al. 1998, Science 281:1496, doi:10.1126/science.281.5382.1496; hydrogen, not proven water); small cold traps are common and may hold ice (Hayne et al. 2021) |
 | Hidden hydrogen | LRO's LEND found hydrogen-rich areas near the south pole that do not match the permanently shadowed regions (Mitrofanov et al. 2010). *Placed by design* |
 | Ice deposit located | VIPER's neutron spectrometer is designed to find hydrogen in the top meter of soil while driving ([NASA VIPER](https://science.nasa.gov/mission/viper/rover-and-instruments); the depth is from NASA presentations). VIPER has not flown: cancelled in 2024, NASA now plans to deliver it on a Blue Origin lander (NASA release, September 2025) |
-| Rock collection | Chandrayaan-3's X-ray spectrometer measured south polar soil as mostly ferroan anorthosite with a magnesium-rich part (Vadawale et al. 2024, Nature, doi:10.1038/s41586-024-07870-7) |
+| Rock collection | Chandrayaan-3's X-ray spectrometer measured south polar soil as mostly ferroan anorthosite with a magnesium-rich part (Vadawale et al. 2024, Nature 633, 327–331, doi:10.1038/s41586-024-07870-7) |
 | Rare rock | Same study: the magnesium-rich material may come from deeper down; rocks that roll down a wall bring material from upslope (Bickel et al. 2020). *Placed by design* |
 | Boulder track | More than 136,000 rockfalls mapped in LRO images, most set off by impacts (Bickel et al. 2020) |
 | Documented sample | Apollo crews photographed rocks where they lay before collecting them (USGS Apollo 14 and 17 reports; NASA TR R-353, Apollo 12) |
