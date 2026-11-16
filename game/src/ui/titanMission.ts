@@ -10,6 +10,7 @@ import { titanMissionDelta, titanSunAt, type TitanSite } from '../rules/titan';
 import type { SkyDirection } from '../rules/sun';
 import type { TitanTextSections } from '../rules/titanTypes';
 import { fill } from './dom';
+import { missionVars } from './tutorialText';
 
 export interface TitanNoticeText {
   message: string;
@@ -22,6 +23,7 @@ export class TitanMission {
   private readonly day: TitanTextSections['day'];
   private readonly rain: TitanTextSections['rain'];
   private readonly cold: TitanTextSections['cold'];
+  private readonly vars: Record<string, string | number>;
 
   constructor(private readonly data: GameData, readonly site: TitanSite) {
     const { day, rain, cold } = data.text;
@@ -30,6 +32,7 @@ export class TitanMission {
     this.day = day;
     this.rain = rain;
     this.cold = cold;
+    this.vars = missionVars(data);
     this.sunAt = (seconds) => titanSunAt(seconds, sol, site);
   }
 
@@ -51,7 +54,7 @@ export class TitanMission {
   noticeText(n: MarsNotice, hasLights: boolean): TitanNoticeText {
     if (n.kind === 'dusk') return { message: hasLights ? this.day.sunset : this.day.sunsetNoLights, tone: 'warn' };
     if (n.kind === 'dawn') return { message: n.woke ? this.day.dawnWoke : this.day.dawn, tone: 'good' };
-    return { message: this.rain[n.edge], tone: n.edge === 'cleared' ? 'good' : 'warn' };
+    return { message: fill(this.rain[n.edge], this.vars), tone: n.edge === 'cleared' ? 'good' : 'warn' };
   }
 
   /** "Titan day" or "Titan night", the line under the panel line. */
@@ -72,7 +75,7 @@ export class TitanMission {
   /** The banner while powered down: the night fast-forward, or a plain power-down by day. Null awake. */
   sleepBanner(t: TitanStatus, poweredDown: boolean): string | null {
     if (!poweredDown) return null;
-    return t.clockRate > 1 ? this.day.sleepFastForward : this.day.sleepingDay;
+    return t.clockRate > 1 ? fill(this.day.sleepFastForward, this.vars) : this.day.sleepingDay;
   }
 
   /** The standing warning for an awake rover without lights at night (it cannot drive). */

@@ -201,19 +201,19 @@
     "hudNight": "Titan night",
     "lightsOn": "Lights on. The battery is draining fast.",
     "noLights": "No lights: the rover cannot drive at night. Press P to sleep until dawn.",
-    "sleepFastForward": "Sleeping · time speeds up until dawn",
+    "sleepFastForward": "Sleeping · time runs {nightClockRate}× faster until dawn",
     "sleepingDay": "Powered down. Press P to power up.",
     "panelDay": "Solar panel: almost no power in the haze",
     "panelNight": "Solar panel: no power at night"
   },
   "rain": {
     "_owner": "Integration (T6), except credit (campaign and screens, T4).",
-    "forecast": "Lander weather station: methane rain in about a minute. Photographs will not count while it falls, and the cold will bite harder.",
+    "forecast": "Lander weather station: methane rain in about {rainWarningSeconds} s. Photographs will not count while it falls, and the cold will bite harder.",
     "forecastBar": "Methane rain in {seconds} s",
-    "started": "Methane rain. Visibility is down, photographs do not count, and the rover cools faster.",
+    "started": "Methane rain for about {rainSeconds} s. Visibility is down, photographs do not count, and the rover cools faster.",
     "cleared": "The methane rain has cleared.",
     "photoBlocked": "Photograph added to the album, but photographs do not count in the methane rain.",
-    "credit": "[placeholder: T4]"
+    "credit": "The methane rain is modeled on Cassini's observations. Cassini saw a large equatorial cloud system in late 2010, and over 500,000 km2 of ground darkened afterward, most likely from methane rain (Turtle et al. 2011, Science 331:1414)."
   },
   "cold": {
     "_owner": "Integration (T6).",
