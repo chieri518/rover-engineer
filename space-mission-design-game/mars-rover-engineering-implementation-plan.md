@@ -6,7 +6,7 @@ Decisions recorded November 15, 2026.
 
 Written November 15, 2026, against `aon/merge-everything` (the merge of `chieri/mars`, `chieri/minimap` and `aon/engineer-desk`). The rules of [the first-version plan](implementation-plan.md) still apply: game numbers in `game/data/*.json`, pure rules in `game/src/rules/` with unit tests, `npm test` and `npm run build` passing before each commit.
 
-**Status: draft.** Everything below is *Proposed* until Phase 0 records it in game-design.md, except M11 to M19, which are decided (see [Decisions needed](#decisions-needed)) and applied through the doc. The Mars part catalog, unlock tree, ticket tiers and economy are Owner A's (game-design.md open questions 3 and 8); the night, cold, dust and events are Owner B's ([The Mars mission](game-design.md#the-mars-mission)). Items that cross the line are marked **interface**. Numbers are **indicative**: they show the scale against today's parts and are settled in the balance phase; like the Moon's (Moon plan M1), they can be revisited in a later balance patch.
+**Status: Phase 0 done (November 15, 2026)**, except two things that wait: the Mars ticket tiers, drafted as *Proposed* under [M12](#mars-ticket-tiers-m12-proposed) for the user, and Chieri's review of the [Owner B items](#items-for-chieris-review). game-design.md `d596eba` and rover-engineering-design.md `2bf2e0a` record the plan; where the text below says *Proposed*, game-design.md is now the source of truth. Earlier status: everything was *Proposed* until Phase 0, except M11 to M19, which are decided (see [Decisions needed](#decisions-needed)) and applied through the doc. The Mars part catalog, unlock tree, ticket tiers and economy are Owner A's (game-design.md open questions 3 and 8); the night, cold, dust and events are Owner B's ([The Mars mission](game-design.md#the-mars-mission)). Items that cross the line are marked **interface**. Numbers are **indicative**: they show the scale against today's parts and are settled in the balance phase; like the Moon's (Moon plan M1), they can be revisited in a later balance patch.
 
 **Revised November 15, 2026**, applying what we learned planning the Moon's sites and milestones ([Moon plan](moon-sites-and-milestones-plan.md)). Changed sections are marked *Revised*:
 
@@ -224,6 +224,48 @@ The tables use B = 860, a middle Moon result. Spend above B cannot be bought at 
 - **Relationship answers (M14, decided: keep the original answers, not reworded).** The affordability findings above stay as **known issues for the balance patch**: an RTG as the dust answer needs about 85% of all Mars money; "a route past dust devils" is luck, not a plan; the laser as the arm's answer does not fit; and the RTG-plus-neutron cause is barely playable. See [Mars relationships](#mars-relationships-revised).
 - **Mars ticket tiers (M12, decided):** Mars does not keep the Moon tiers. Its own tiers (open question 8) must be designed **before Mars Phase 3**. The masses and sizes above are checked against the Moon tiers only as a yardstick.
 
+#### Mars ticket tiers (M12, *Proposed*)
+
+*Drafted in Phase 0, November 15, 2026; waiting for the user. Recorded as Proposed in [game-design.md](game-design.md#mars-ticket-tiers-proposed).*
+
+| Tier | Mass up to | Size up to | Price | Compared with the Moon |
+| --- | --- | --- | --- | --- |
+| Small | 60 kg | 20 | 60 | Same |
+| Medium | 75 kg | 23 | 120 | Same |
+| Large | 90 kg | 26 | 200 | Same |
+| **Heavy** | **100 kg** | **30** | **300** | New |
+
+- **Built from:** the M11 prices, the Moon tiers, both plans' sample builds and archetypes, an arrival balance of about 780 to 950, and the fixed 800 Titan mark (MS1 deferred).
+- **The first three stay** because every sample build in both plans already lands where the plans assumed. Changing Small or Medium would move every hand estimate while the rewards and the pass test are deferred (M13, MS1). The 60 kg step is where Mars's new parts push a lean rover: lights, an RTG, the arm or the mast each move the camera scout (58 kg) into Medium.
+- **Heavy fixes the real problem, the ceiling.** Of 25,758 valid Mars builds (support hardware only when an instrument needs it; a heater unless an RTG), 52% can launch under the Moon tiers, against the Moon data test's "more than 85%". With Heavy, 86%. 100 kg is steel's maximum load, so nothing that launches on steel is overloaded; 300 continues the +60, +80, +100 steps.
+- **Heavy is not a balance path.** Heavy builds are three-instrument steel rovers with support hardware, at about 900 or more with the ticket, above most arrival balances. The desk accepts them; the price says why not. The "laser alongside a contact instrument" answer (steel, arm, X-ray, mast, laser) still fits Large at 760.
+- **Considered, not proposed:** Small at 65 kg. Six one-instrument builds would drop from Medium to Small (60 cheaper each), more builds would pass, and the RTG would get cheaper. On file for the balance patch.
+- **In data:** `game/data/mars/tiers.json`, merged over the shared tiers like the other Mars overlays (Phase 3).
+
+| Build (titanium, solid, fixed panel, Li-ion, heater units unless stated) | Mass / size | Tier | Parts + ticket = total |
+| --- | --- | --- | --- |
+| Camera scout | 58 kg / 17 | Small | 430 + 60 = 490 |
+| Neutron prospector | 59 kg / 18 | Small | 460 + 60 = 520 |
+| Fast empty bay (mesh, lights) | 50 kg / 19 | Small | 525 + 60 = 585 |
+| Electric heater + larger battery + camera + lights | 66 kg / 19 | Medium | 480 + 120 = 600 |
+| Weather watcher (weather mast + camera) | 63 kg / 19 | Medium | 490 + 120 = 610 |
+| Arm + X-ray | 65 kg / 19 | Medium | 500 + 120 = 620 |
+| Field geologist (camera + drill) | 66 kg / 20 | Medium | 520 + 120 = 640 |
+| Radar surveyor (radar + camera) | 61 kg / 19 | Medium | 520 + 120 = 640 |
+| Mast + laser | 65 kg / 19 | Medium | 530 + 120 = 650 |
+| Rock hound (arm + X-ray + camera) | 68 kg / 20 | Medium | 550 + 120 = 670 |
+| Organics hunter (arm + organics) | 67 kg / 20 | Medium | 550 + 120 = 670 |
+| RTG + camera + lights, no heater | 63 kg / 18 | Medium | 565 + 120 = 685 |
+| Remote geologist (mast + laser + camera) | 68 kg / 20 | Medium | 580 + 120 = 700 |
+| RTG geologist (RTG, lights, no heater, camera + drill) | 71 kg / 21 | Medium | 655 + 120 = 775 |
+| Empty bay (steel) | 69 kg / 16 | Medium | 290 + 120 = 410 |
+| Empty bay + lights (steel) | 72 kg / 17 | Medium | 325 + 120 = 445 |
+| Steel RTG + camera + lights, no heater (dust answer) | 77 kg / 18 | Large | 475 + 200 = 675 |
+| Steel geologist (steel, arm + X-ray + drill) | 87 kg / 22 | Large | 500 + 200 = 700 |
+| Steel, arm + X-ray + mast + laser | 89 kg / 22 | Large | 560 + 200 = 760 |
+| Steel, arm + X-ray + organics + drill | 91 kg / 24 | Heavy (cannot launch today) | 610 + 300 = 910 |
+| Steel, lights, arm + mast, laser + X-ray + camera | 95 kg / 24 | Heavy (cannot launch today) | 645 + 300 = 945 |
+
 **The empty bay passes on today's rewards.** A titanium empty bay with lights and heater units spends 475. It can earn Touchdown (80), two Odometer stages (60), Mapper (60), both Night drive stages (100) and Storm survivor (60), so it ends at B − 65: it fails below about B = 865 and passes from a good Moon result (Camera scout 930, Rock hound 940). The cause is the carried balance. A pass mark that is a fixed number cannot hold both ends of a 160-wide arrival range with a 50 margin. *Decided (M13): leave it for now.* Exact budget requirements and rewards are tuned in future balance patches. The empty-bay concern stays a **noted risk for that patch**: the options on file are testing the empty bay at the top of the range (B = 950) and the archetypes at the bottom (B = 780), or a Titan test relative to the arrival balance.
 
 ## Milestone types *(Revised)*
@@ -386,6 +428,41 @@ Each phase ends with tests and the build passing, a browser check on both worlds
 
 **Done when:** both docs say *Decided* for everything Phases 1 to 4 build.
 
+**Status (November 15, 2026): done, except the Mars tiers and Chieri's review.** game-design.md `d596eba` records the Mars parts, the power model, the support hardware, the instruments and the night budget line, the four Mars lessons, the Mars trigger extensions next to the Moon's, and (from the sites plan) the sites, milestones, rock types and balance targets. rover-engineering-design.md `2bf2e0a` records sections 8, 9 and 10 (the heater lesson dropped, M15; the combo ban lifted, MS11). Still waiting:
+
+- **The Mars ticket tiers** (M12): drafted as [Proposed](#mars-ticket-tiers-m12-proposed). The user decides before Phase 3.
+- **Chieri's review** of the items below. "Owner A and Owner B agree" is recorded as the user's decision, provisional pending that review.
+
+Small details settled while writing Phase 0 down are marked "decided in Phase 0" in game-design.md:
+
+- `reading.sites` keeps the Moon's built rule (a new site is a reading 200 m from earlier ones), not distinct `Boulder.site` values; no Moon milestone uses it yet.
+- `transect.zone` becomes optional: a transect with no zone counts only outside the near-lander zone (Long profile).
+- `RecordEvent` gains `night` and `dustdevil`; `PhotoTarget` gains `crater-wall` and `dustdevil`.
+- The hydrated ground reuses the Moon's `hydrogenZoneRadiusM` (25 m on Mars) and `anomalyEdge` (34%, one straight line), not a new `anomalyCoreM` key.
+- Starting values the plans left open: weather mast 0.05/s, radar 0.1/s, laser 8 per reading with a 2 s hold and a 12 m reach, organics 1.5/s over a 20 s hold, the mast's `photoRangeFactor` 1.5, the weather mast's 30 s earlier forecast, grouser wheels (2.6 m/s, grip 0.95, 0.22 energy/m), dust 3% per sol (×3 in the storm), a dust devil every 3 sols on average that cleans within 50 m, the dust lesson at a 15% income loss, and RTG noise (floor +15%, jitter ±13%).
+- Clean run on Mars pays 0 money and 10 RP until the balance patch, so it adds nothing to the idle and empty-bay money that is already a noted risk.
+- The lesson (energy through day and night) and the mission length (10 sols) are recorded as confirmed for Owner A, since both plans build on them.
+
+#### Items for Chieri's review
+
+The user decided we build Owner B's items ourselves; each is marked "provisional, for Chieri's review" in game-design.md.
+
+| # | Item | Where it is recorded | Builds in |
+| --- | --- | --- | --- |
+| B1 | Dust on the panels: 3% per sol times each part's `dustRate`, three times faster in the storm, the HUD's dust factor, the dust lesson at 15% | game-design.md, Dust and events | Phase 5 |
+| B2 | Dust devils: about one every 3 sols (MS8), cleaning within 50 m, a moving column to photograph and record | Dust and events | Phase 5 |
+| B3 | Mars hydrogen (M3): the neutron spectrometer stays on Mars; the hidden hydrated ground near (780, 420) with a 25 m core; Séítah and the delta foot at 15%; the 10% floor; the RTG's raised floor and jitter | New Mars milestones | Sites plan Phases 2 to 4 |
+| B4 | Site placement: the three clusters, the new site kinds, East crater and the fourth lead (MS6), the flood boulder (MS3), slope targets, boulder counts at the new sites, the Mars `sites.json` overlay, rock suites by site | New sites and areas of interest; Mars rock types | Sites plan Phases 2 and 4 |
+| B5 | Mars terrain pipeline requests MP1 to MP6 to `build_terrain_mars.py` | Sites plan Phase 1 | Sites plan Phase 1 |
+| B6 | Triggers and placement of the 20 new milestones, including Sand crossing's rule and Clean run on Mars (MS7) | New Mars milestones | Sites plan Phases 2 and 3 |
+| B7 | Changes to the built milestones: Blue sunset 70 → 100; Signs of an ancient lake on the 50 m `delta-foot` zone (MS5); Night drive's heater requirement met by any heat (M17); Core sample's fact (Wildcat Ridge moves); Night drive's −83 °C source; Rocky area 2 re-measured | New Mars milestones | Sites plan Phase 2 |
+| B8 | Fact corrections in the built Dust and events table: the 2018 storm "in about a week", not "in 10 days"; no percentage for Spirit's cleaning | Dust and events | Text, Phase 5 |
+| B9 | The weather mast moves the storm forecast 30 s earlier | Mars rover design | Phase 4 |
+| B10 | The night drain moves onto parts: `night.lightsDrainPerSecond` goes away and the LED carries `lightsDraw` 3/s (same numbers; interface, M1) | How the Mars rules work | Phase 2 |
+| B11 | The electric heater (heat 3, only while its 1.2/s draw is paid) and the RTG's heat 2, against the 8/s freeze rate (interface) | Cold at night; Mars rover design | Phases 2 and 3 |
+| B12 | Grouser wheels' feel on Séítah's sand (grip 0.95, 2.6 m/s) | Mars rover design | Phase 3 |
+| B13 | The arm's 10° slope limit (MS2) against the 18° steep-slope warning | Mars rover design | Phase 4 |
+
 ### Phase 1: A catalog per world
 
 Small, and it settles two open items from the merge on its own, so it can ship before the rest.
@@ -519,7 +596,7 @@ Phase 1 can ship alone. Phases 2 and 3 ship together (the power parts are the po
 | M9 | Mars relationships in this wave | Three: RTG noise, dust, the arm on a slope, with the original answers (M14), plus the no-lights entry. The heater lesson is dropped (M15) | Interface |
 | M10 | Unlocks | All Mars parts offered from the start until the unlock tree is decided | Owner A |
 | M11 | *New.* At the draft prices the arm builds, the RTG and the laser cannot be bought or cannot pass, and several cannot launch. Reprice? | **Decided: reprice as proposed** (indicative, revisable in a later balance patch): arm 60 / 8 kg / 2, mast 50 / 4 kg / 1, RTG 200 / 15 kg / 5, larger battery 150 / 12 kg / 3, organics 110 / 4 kg / 2, laser 100 / 6 kg / 2 | Owner A |
-| M12 | *New.* Mars ticket tiers | **Decided: design separate Mars ticket tiers.** Mars does not keep the Moon tiers. Needed before Mars Phase 3. C10 now says the Mars tiers set the limits once designed | Owner A |
+| M12 | *New.* Mars ticket tiers | **Decided: design separate Mars ticket tiers.** Mars does not keep the Moon tiers. Needed before Mars Phase 3. C10 now says the Mars tiers set the limits once designed. *Draft (Phase 0): the Moon's three plus a Heavy tier (100 kg, size 30, 300); [Proposed](#mars-ticket-tiers-m12-proposed), waiting for the user* | Owner A |
 | M13 | *New.* An empty-bay Mars run passes from a good Moon result, because the pass mark is fixed and the carried balance varies by about 160 | **Decided: leave it for now.** Exact budget requirements and rewards are tuned in future balance patches. The empty-bay concern stays a noted risk for that patch (the options: balance the empty bay at B = 950 and the archetypes at B = 780, or a relative Titan test) | Owner A, with the sites plan |
 | M14 | *New.* Reword relationship answers that do not fit | **Decided: keep the original answers, not reworded.** Dust: an RTG, the mast's higher panel, a route past dust devils. Arm: park on level ground, or the laser spectrometer from a distance. The affordability findings (RTG as the dust answer does not fit, dust devils are luck, the laser does not fit) are known issues for the balance patch | Interface |
 | M15 | *New.* The night budget line shows the electric heater's draw on the desk, which gives away "An electric heater spends the night" | **Decided: drop as proposed.** The heater is a plain part cost, like the reflector's need for Earth; the night budget line stays (it is Mars's main teaching tool). Mars has four lessons: RTG noise, dust, the arm on a slope, and no lights at night. A cold-battery relationship can replace it in a later wave | Interface |
@@ -527,3 +604,44 @@ Phase 1 can ship alone. Phases 2 and 3 ship together (the power parts are the po
 | M17 | *New.* An RTG rover with "No heater" is warm but fails Night drive's `slots: ["heater"]` | **Decided: as proposed.** Any total `heat` above zero meets the heater requirement | Owner B |
 | M18 | *New.* `MilestoneRequirements.support` from the draft | **Decided: drop `support` as proposed.** Derive "needs the arm" from the instrument's `needs` | Interface |
 | M19 | *New.* Later Mars stations and the lander | **Decided: same as the Moon, as proposed.** They follow the Moon's near-lander rule (200 m, warning and second press, `record`/`deploy` outside, records whatever the power state); none ships in this wave | Interface |
+
+## Combined phase order (both Mars plans)
+
+*Written in Phase 0, November 15, 2026.* One order that runs this plan (phases **E1 to E7**) and the [Mars sites and milestones plan](mars-sites-and-milestones-plan.md#6-implementation-phases) (phases **S1 to S7**) together on `aon/mars-engineering`. Each step names the files it writes. **Two writers never share a file**: steps listed as parallel write disjoint files, and a data file has one writer per step. Every step ends with `npm test` and `npm run build` passing and a commit of only its own paths; a **browser check** on both worlds follows each step marked with one.
+
+| Step | What | Plan phases | Files it writes | Parallel with | Browser check |
+| --- | --- | --- | --- | --- | --- |
+| 0 | Design first | E0, S0 | Docs only | | |
+| 1a | A catalog per world | E1 | `rules/types.ts`, `src/gameData.ts`, `rules/payload.ts`, `rules/validate.ts`, `rules/relationships.ts`, `data/parts.json`, `data/relationships.json`, `ui/designScreen.ts`, `ui/ticketScreen.ts`, `ui/notebook.ts`, their tests | 1b, 1c | Both desks: Mars without the reflector and seismometer, the dropped-part notice; no Moon lesson on Mars |
+| 1b | Pipeline requests MP1 to MP4, MP6 | S1 | `game/tools/build_terrain_mars.py`, `game/public/terrain/mars/` (pipeline owner only) | Everything until step 6 | |
+| 1c | Dust rules (pure) | E5, rules half | `rules/dust.ts` (new), `rules/dust.test.ts`, `rules/marsTypes.ts`, `data/mars/tuning.json` (`dust`), `data/mars/events.json` (dust devils) | 1a, 1b | |
+| 2 | Parts own their draws; dust in the energy step | E2, plus E5's energy wiring | `rules/types.ts` (`PartEffects`), `rules/energy.ts`, `rules/mission.ts`, `rules/cold.ts`, `data/parts.json` (LED), `data/mars/tuning.json` (`night`), `ui/designScreen.ts` (night budget line), tests | 1b | Mars night drains as before; the night budget line; the Moon unchanged |
+| — | **Gate: the user approves the Mars ticket tiers** (M12) | | | | |
+| 3 | Bus parts, support hardware, the four instrument parts as data, Mars tiers | E3 | `data/parts.json`, `data/mars/parts.json` (new), `data/mars/tiers.json` (new), `src/gameData.ts`, `rules/types.ts`, `rules/payload.ts`, `rules/rover.ts`, `rules/quote.ts`, `rules/tiers.ts`, `rules/validate.ts`, `rules/balance.ts`, `ui/designScreen.ts`, `ui/ticketScreen.ts`, `ui/buildPreview.ts`, `rover/roverModel.ts`, tests | 1b | A Mars rover with each new part; tier jumps; the Moon desk unchanged |
+| 4a | The four Mars instruments, the arm's slope refusal | E4 | `rules/instruments.ts`, `rules/mission.ts`, `ui/missionScreen.ts`, `ui/marsMission.ts`, `ui/hud.ts`, `ui/screens.ts` (instrument log), `data/mars/tuning.json`, `data/mars/text.json`, tests | 4b, 1b | Each instrument works on a rover that carries it and refuses clearly (no arm, no mast, slope, energy) |
+| 4b | Sites data and types | S2, without its tuning and text values | `rules/marsTypes.ts`, `data/mars/milestones.json`, `data/mars/sites.json` (new), `src/gameData.ts` (the sites overlay), `rules/validate.ts`, `rules/data.test.ts` | 4a, 1b | The game loads with 28 Mars milestones present, not firing |
+| 5a | Trigger extensions and Mars zones | E6 (milestone half), S3 (zones) | `rules/milestones.ts`, `rules/types.ts` (trigger shapes), `rules/sites.ts`, `rules/validate.ts`, `rules/milestones.test.ts`, `rules/marsMilestones.test.ts` | 5b, 5c, 5d | |
+| 5b | Hydrogen on Mars, RTG noise, Mars rock suites | S3 (instruments) | `rules/instruments.ts`, `rules/instruments.test.ts`, `data/mars/tuning.json` (all of S2's tuning values), `data/mars/text.json` (rock names) | 5a, 5c, 5d | |
+| 5c | Boulders at the new sites, survey | S3 (boulders, survey) | `rules/boulders.ts`, `rules/survey.ts`, their tests | 5a, 5b, 5d | |
+| 5d | The three Mars relationships and the no-lights entry | E6 (relationship half) | `rules/relationships.ts`, `data/relationships.json`, `rules/relationships.test.ts` | 5a, 5b, 5c | |
+| 6a | World: new boulders, flood boulder, dust devil column | S4, E5 (visuals) | `world/boulders.ts`, `world/dustDevil.ts` (new) | 6b, 6c, 6d | Sites where `terrain.json` says; slope-target boulders the arm refuses, with level ground beside them |
+| 6b | Mission wiring | S4 | `ui/missionScreen.ts`, `ui/marsMission.ts` | 6a, 6c, 6d | Each new milestone earned on purpose; the hydrated ground found with the meter; each lesson triggers once |
+| 6c | HUD and minimap | S5, E5 (dust factor) | `ui/hud.ts`, `ui/minimap.ts`, `ui/style.css` | 6a, 6b, 6d | Rings, the delta foot, "Hydrated ground" after it is found, check marks, the fourth lead, the dust factor |
+| 6d | Desk cards, debrief, notebook, text | S5, E6 (UI) | `ui/designScreen.ts`, `ui/screens.ts`, `ui/notebook.ts`, `data/mars/text.json`, `data/mars/milestones.json` (facts), the spoiler grep test | 6a, 6b, 6c | Cards list milestones; "Not reached" names a missing arm; no Mars text fails the guard |
+| 7 | Balance and browser check | E7 (energy), S6 | `rules/marsNight.test.ts`, a Mars balance data file for the MP5 legs (new), `data/mars/milestones.json` (first reward pass) | MP5 (pipeline) must land first | Autopilot runs at B = 780 and 950: idle, empty bay, each archetype |
+| 8 | Tutorial, credits, playtest checklist, docs | E7, S7 | `ui/tutorialText.ts`, `ui/creditsScreen.ts`, a Mars playtest checklist (new), game-design.md "built" marks | | The full Mars playtest checklist, and a restart |
+
+**Sequential, and why:**
+
+- **1a before 2 before 3:** all three write `rules/types.ts`, `data/parts.json` and `ui/designScreen.ts`. 1c must land before 2, since both write `data/mars/tuning.json`.
+- **The tier gate before 3:** the tiers decide which builds launch, and Phase 3's data test checks every reference build against them.
+- **3 before 4a and 4b:** 4b's milestones name the new instrument ids, which validate against the Mars catalog from 3. 4b holds back S2's tuning and text values because 4a writes those files; 5b adds them.
+- **4a before 5b:** both write `rules/instruments.ts`.
+- **Within step 5,** 5b writes every Mars tuning and text value that 5a and 5c need (zone sizes, meter values, boulder counts, the fourth lead), so `data/mars/tuning.json` has one writer.
+- **5 before 6:** the mission screen feeds rules that must exist. 6b and 6d wait for 4a's mission and debrief edits (they share `ui/missionScreen.ts` and `ui/screens.ts`).
+- **MP1 to MP4 before 6a and 6b**, for real positions; until then `sites.json` holds the provisional candidates, as the Moon did. MP5 needs MP1 to MP3 and 4b's hydrated ground position, and feeds step 7.
+- **Chieri's review** should come before step 4b (placements and milestone triggers) and before step 1c (dust), since those are the Owner B items most costly to redo.
+
+**Shared with the Moon.** `rules/milestones.ts`, `rules/types.ts`, `rules/instruments.ts`, `rules/sites.ts`, `world/boulders.ts`, `ui/missionScreen.ts` and `ui/screens.ts` are also being changed by the Moon sites plan's Phases 4 to 6 in the main checkout. Steps 4a, 5 and 6 should start only after those Moon phases land on the branch this one rebases onto, or the two branches will conflict in the files where the rules are most delicate. Steps 1 to 3 touch little the Moon is changing (`rules/types.ts`: different types) and can start now.
+
+**Shipping** (unchanged in spirit): step 1a can ship alone; 2 and 3 ship together; 4 to 6 ship together, so instruments arrive with their milestones and relationships; 7 must finish before the merge to `main`.
