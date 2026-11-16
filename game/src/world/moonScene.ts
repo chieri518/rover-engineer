@@ -277,7 +277,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   const boulders = new Boulders(rapier, world, opts.boulders ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
   patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, photometry);
   scene.add(boulders.mesh);
-  const trackMesh = opts.boulderTrack ? createBoulderTrack(opts.boulderTrack, fine, lightUniforms, photometry, groundColor) : null;
+  const trackMesh = opts.boulderTrack ? createBoulderTrack(opts.boulderTrack, fine, tuning.boulderTrack) : null;
   if (trackMesh) scene.add(trackMesh);
   const earthAzimuthRad = (tuning.earth.azimuthDeg * Math.PI) / 180;
   const input = new KeyboardInput();
@@ -594,9 +594,10 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       const dy = p.y - c.y;
       const dz = p.z - c.z;
       const dist = Math.hypot(dx, dy, dz);
-      for (let d = 2; d < dist - 3; d += 2) {
+      const { photoLosStepM, photoLosClearanceM, photoLosTailM } = tuning.milestones;
+      for (let d = photoLosStepM; d < dist - photoLosTailM; d += photoLosStepM) {
         const k = d / dist;
-        if (terrain.heightAt(c.x + dx * k, c.z + dz * k) > c.y + dy * k + 0.3) return false;
+        if (terrain.heightAt(c.x + dx * k, c.z + dz * k) > c.y + dy * k + photoLosClearanceM) return false;
       }
       return true;
     },

@@ -217,7 +217,8 @@ export interface Tuning {
     pointsAcross: number; // mesh points across the track
     liftM: number; // above the terrain, against z-fighting
     stopShortM: number; // the track ends this far before the boulder's center
-    brighten: number; // the decal's tone relative to the ground color
+    brighten: number; // the track multiplies the ground on screen by up to this (a multiplicative blend)
+    glow: number; // peak light of a faint additive layer, so the track still shows on nearly black ground
   };
   /** The minimap's zoom: it starts at startSpanM and widens to fit the explored area plus marginM. */
   minimap: { startSpanM: number; marginM: number; maxSpanM: number };

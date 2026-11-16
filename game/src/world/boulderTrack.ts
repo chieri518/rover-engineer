@@ -2,23 +2,19 @@
 // the top of the wall down to just short of the boulder, textured like real lunar boulder tracks in LRO
 // images: a chain of small oval bounce/roll imprints along a faint trough, a little brighter than the
 // surrounding regolith (freshly disturbed soil). Procedural texture, no image files.
-// Lit with patchMoonLighting (Lambert + alpha works as is), so it follows the terrain's sun and shadows.
+// Drawn with a multiplicative blend (ground * (1 + mask * (brighten - 1))) instead of a lit, colored decal:
+// the terrain shader multiplies in albedo, speckle and sun, so a decal with its own flat color read darker
+// than a sunlit ground. Scaling what is already on screen keeps the ground's texture, sun and shadows, and
+// the track is the same fraction brighter lit or in shade.
 import * as THREE from 'three';
 import type { HeightGrid } from './terrainData';
-import { patchMoonLighting, type MoonLightUniforms, type Photometry } from './lunarLighting';
+import type { Tuning } from '../rules/types';
 
 export interface BoulderTrackLine {
   from: { x: number; z: number };
   to: { x: number; z: number };
 }
 
-const WIDTH_M = 2.8;
-const TILE_LENGTH_M = 14; // the texture repeats along the track every this many meters
-const STEP_ALONG_M = 1;
-const POINTS_ACROSS = 7;
-const LIFT_M = 0.04;
-const STOP_SHORT_M = 2.5; // the track ends this far before the boulder centre
-const BRIGHTEN = 1.7; // decal tone relative to the ground color
 
 function makeTexture(): THREE.CanvasTexture {
   const w = 128;
@@ -27,7 +23,9 @@ function makeTexture(): THREE.CanvasTexture {
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext('2d')!;
-  ctx.clearRect(0, 0, w, h);
+  ctx.fillStyle = '#000';
+  ctx.fillRect(0, 0, w, h);
+  ctx.globalCompositeOperation = 'lighter';
   let seed = 7;
   const rnd = () => {
     seed = (seed * 16807) % 2147483647;
@@ -37,7 +35,9 @@ function makeTexture(): THREE.CanvasTexture {
   // Faint trough: soft band along the whole track.
   const band = ctx.createLinearGradient(0, 0, w, 0);
   band.addColorStop(0, 'rgba(255,255,255,0)');
-  band.addColorStop(0.5, 'rgba(255,255,255,0.22)');
+  band.addColorStop(0.25, 'rgba(255,255,255,0.18)');
+  band.addColorStop(0.5, 'rgba(255,255,255,0.3)');
+  band.addColorStop(0.75, 'rgba(255,255,255,0.18)');
   band.addColorStop(1, 'rgba(255,255,255,0)');
   ctx.fillStyle = band;
   ctx.fillRect(0, 0, w, h);
@@ -47,13 +47,13 @@ function makeTexture(): THREE.CanvasTexture {
     const y = ((i + 0.5 + (rnd() - 0.5) * 0.4) / n) * h;
     const x = cx + (rnd() - 0.5) * w * 0.16;
     const rx = w * (0.1 + 0.07 * rnd());
-    const ry = (h / n) * (0.28 + 0.12 * rnd());
+    const ry = (h / n) * (0.75 + 0.35 * rnd()); // overlapping, so the chain reads as one groove
     ctx.save();
     ctx.translate(x, y);
     ctx.scale(rx, ry);
     const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 1);
-    g.addColorStop(0, 'rgba(255,255,255,0.9)');
-    g.addColorStop(0.6, 'rgba(255,255,255,0.55)');
+    g.addColorStop(0, 'rgba(255,255,255,0.3)');
+    g.addColorStop(0.6, 'rgba(255,255,255,0.18)');
     g.addColorStop(1, 'rgba(255,255,255,0)');
     ctx.fillStyle = g;
     ctx.beginPath();
@@ -62,17 +62,16 @@ function makeTexture(): THREE.CanvasTexture {
     ctx.restore();
   }
   // Fade the left and right edges so the ribbon has soft sides.
-  ctx.globalCompositeOperation = 'destination-in';
+  ctx.globalCompositeOperation = 'multiply';
   const edge = ctx.createLinearGradient(0, 0, w, 0);
-  edge.addColorStop(0, 'rgba(0,0,0,0)');
-  edge.addColorStop(0.25, 'rgba(0,0,0,1)');
-  edge.addColorStop(0.75, 'rgba(0,0,0,1)');
-  edge.addColorStop(1, 'rgba(0,0,0,0)');
+  edge.addColorStop(0, '#000');
+  edge.addColorStop(0.25, '#fff');
+  edge.addColorStop(0.75, '#fff');
+  edge.addColorStop(1, '#000');
   ctx.fillStyle = edge;
   ctx.fillRect(0, 0, w, h);
   const tex = new THREE.CanvasTexture(canvas);
   tex.wrapT = THREE.RepeatWrapping;
-  tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
   return tex;
 }
@@ -80,10 +79,9 @@ function makeTexture(): THREE.CanvasTexture {
 export function createBoulderTrack(
   line: BoulderTrackLine,
   fine: HeightGrid,
-  uniforms: MoonLightUniforms,
-  photometry: Photometry,
-  groundColor: number,
+  cfg: Tuning['boulderTrack'],
 ): THREE.Mesh {
+  const { widthM: WIDTH_M, tileLengthM: TILE_LENGTH_M, stepAlongM: STEP_ALONG_M, pointsAcross: POINTS_ACROSS, liftM: LIFT_M, stopShortM: STOP_SHORT_M, brighten: BRIGHTEN, glow: GLOW } = cfg;
   const dx = line.to.x - line.from.x;
   const dz = line.to.z - line.from.z;
   const full = Math.hypot(dx, dz);
@@ -127,23 +125,40 @@ export function createBoulderTrack(
     for (let i = 0; i < nrm.count; i++) nrm.setXYZ(i, -nrm.getX(i), -nrm.getY(i), -nrm.getZ(i));
     nrm.needsUpdate = true;
   }
-  const color = new THREE.Color(groundColor).multiplyScalar(BRIGHTEN);
-  const material = patchMoonLighting(
-    new THREE.MeshLambertMaterial({
-      color,
-      map: makeTexture(),
-      transparent: true,
-      depthWrite: false,
-      polygonOffset: true,
-      polygonOffsetFactor: -2,
-      polygonOffsetUnits: -2,
-      side: THREE.DoubleSide,
-    }),
-    uniforms,
-    photometry,
-  );
+  const material = new THREE.MeshBasicMaterial({
+    color: new THREE.Color().setRGB(BRIGHTEN - 1, BRIGHTEN - 1, BRIGHTEN - 1, THREE.SRGBColorSpace), // blended on the displayed (sRGB) values
+    map: makeTexture(),
+    transparent: true,
+    blending: THREE.CustomBlending,
+    blendEquation: THREE.AddEquation,
+    blendSrc: THREE.DstColorFactor, // dst * src + dst * 1
+    blendDst: THREE.OneFactor,
+    toneMapped: false,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+    side: THREE.DoubleSide,
+  });
   const mesh = new THREE.Mesh(geo, material);
-  mesh.receiveShadow = true;
+  // A faint additive layer on top, so the track also shows where the ground is nearly black (a multiplied
+  // black stays black).
+  const glow = new THREE.MeshBasicMaterial({
+    color: new THREE.Color().setRGB(GLOW, GLOW, GLOW, THREE.SRGBColorSpace),
+    map: material.map,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    toneMapped: false,
+    depthWrite: false,
+    polygonOffset: true,
+    polygonOffsetFactor: -2,
+    polygonOffsetUnits: -2,
+    side: THREE.DoubleSide,
+  });
+  const glowMesh = new THREE.Mesh(geo, glow);
+  glowMesh.frustumCulled = false;
+  glowMesh.renderOrder = 1;
+  mesh.add(glowMesh);
   mesh.frustumCulled = false;
   mesh.renderOrder = 1;
   return mesh;
@@ -152,7 +167,8 @@ export function createBoulderTrack(
 export function disposeBoulderTrack(mesh: THREE.Mesh): void {
   mesh.removeFromParent();
   mesh.geometry.dispose();
-  const m = mesh.material as THREE.MeshLambertMaterial;
+  const m = mesh.material as THREE.MeshBasicMaterial;
   m.map?.dispose();
   m.dispose();
+  for (const child of mesh.children) ((child as THREE.Mesh).material as THREE.Material).dispose();
 }

@@ -94,7 +94,8 @@
     "pointsAcross": 7,
     "liftM": 0.04,
     "stopShortM": 2.5,
-    "brighten": 1.7
+    "brighten": 1.25,
+    "glow": 0.14
   },
   "minimap": {
     "startSpanM": 700,
