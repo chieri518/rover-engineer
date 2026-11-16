@@ -170,10 +170,24 @@
         ]
       },
       {
+        "title": "Power through the night",
+        "body": [
+          "The specification sheet has a Night energy line under the battery: what one {nightSeconds} s night costs this rover asleep, and parked awake with its lights on. Choose a battery that holds more than that, with some left for the morning drive.",
+          "Solar power or steady power. The fixed panel and the solar mast earn by day only. The deployable solar arrays earn the most in sunlight, but they are bulky. A radioisotope generator (RTG) earns a steady trickle day and night, through the dust storm too, and its waste heat keeps the rover warm. It is expensive and heavy, and it earns no more in a sol than a fixed panel does on a clear sol.",
+          "Two heaters. Radioisotope heater units keep the rover warm and draw no energy. The electric heater is cheaper and lighter, but it draws on the battery every night, even while the rover sleeps; the Night energy line includes its share. A rover with an RTG needs no other heater."
+        ]
+      },
+      {
         "title": "Dust storm",
         "body": [
           "One regional dust storm reaches the site during the mission. For about {stormSols} sols, solar income falls to about {stormSolarPercent}%.",
           "A larger battery, or a rover that can sleep through the storm, keeps the mission going."
+        ]
+      },
+      {
+        "title": "Arm and mast",
+        "body": [
+          "Mars adds two support slots, Arm and Mast. Support hardware takes no mounting point in the payload bay. The X-ray and organics spectrometers need the robotic arm; the laser spectrometer needs the remote sensing mast, which also widens the camera's viewpoint photo zones. Choose No arm or No mast when no instrument needs them."
         ]
       }
     ],
@@ -210,15 +224,27 @@
         ]
       },
       {
-        "title": "Instruments and map",
+        "title": "Instruments",
         "instrument": {
-          "camera": "Camera: {key} (or its button) takes a photograph. Photographs count toward milestones at the delta-front viewpoint, and away from the lander with the setting Sun low in the frame: face west as the Sun goes down.",
-          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a core sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
+          "camera": "Camera: {key} (or its button) takes a photograph. Photographs count toward milestones at the delta-front viewpoint, from a crater's rim facing its far inner wall, of a passing dust devil, and away from the lander with the setting Sun low in the frame: face west as the Sun goes down.",
+          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a core sample. Samples count at several sites, each at least {stationMinDistance} m from the lander and {sampleSpacing} m from each other. Séítah and the foot of the delta hold rock of their own.",
+          "neutron": "Neutron spectrometer: {key} switches it on or off. While it is on, the hydrogen meter reads the ground under the rover. Drive it through Séítah or along the delta front, and watch for ground where the meter reads higher than anywhere else.",
+          "xray": "X-ray spectrometer: stop beside a boulder, then press {key} to read its rock with the arm. Each site has its own rocks; the readout says when a type is new.",
+          "weather": "Weather mast: {key} switches it on or off. Left on more than {stationMinDistance} m from the lander, it records the dust storm, part of a night while the rover is awake, and dust devils passing nearby. It can also forecast the storm before the orbital report.",
+          "radar": "Radar: {key} switches it on or off. Keep it on for long drives more than {stationMinDistance} m from the lander, and drive past young craters, Séítah or the delta front to image their buried layers.",
+          "laser": "Laser spectrometer: when the HUD shows a laser target ahead, a boulder or the delta cliff, stop and press {key} to read it from a distance.",
+          "organics": "Organics spectrometer: stop beside a boulder, then press {key}. The reading is long and uses a lot of energy, and the rover holds still until it ends."
         },
         "body": [
           "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
-          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it.",
-          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing."
+          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it."
+        ]
+      },
+      {
+        "title": "Where to go first",
+        "body": [
+          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing, each with its distance: the nearest lead is drawn larger and listed first under the map.",
+          "Start with the sites near the lander. Rocky area 2, an old crater with boulders on its rim, is about half a kilometer west-northwest. Small young craters lie about 0.6 km to the south, west-southwest and southwest, and Rocky area 1, a boulder field, about 0.7 km south. Séítah, East crater and the delta front are farther out, 1 to 1.5 km."
         ]
       }
     ]
