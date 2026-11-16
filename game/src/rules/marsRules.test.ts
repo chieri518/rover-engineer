@@ -65,7 +65,7 @@ describe('Mars night cold', () => {
 });
 
 // stepMission with a Mars setup: the fixed test parts with drive effects added.
-const build: Build = { chassis: 'titanium', wheels: 'mesh', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', instrument: 'camera' };
+const build: Build = { chassis: 'titanium', wheels: 'mesh', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', payload: ['camera'] };
 function partsWith(changes: Partial<Record<Part['slot'], Part['effects']>>): Part[] {
   return selectedParts(build, testParts).map((p) => {
     const base: Partial<Record<Part['slot'], Part['effects']>> = {

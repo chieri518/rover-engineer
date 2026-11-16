@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import terrain from '../../public/terrain/terrain.json';
-import { buildZones, hydrogenSignal, MilestoneTracker, zoneContains, type MilestoneFeatures, type Point3 } from './milestones';
+import { buildZones, MilestoneTracker, zoneContains, type MilestoneFeatures, type Point3 } from './milestones';
 import { selectedParts } from './rover';
 import { finishMission, newCampaign, startRound } from './campaign';
 import type { Build } from './types';
@@ -21,9 +21,9 @@ const L = terrain.landing.local;
 
 const camera: Build = {
   chassis: 'chassis-titanium', wheels: 'wheels-mesh', power: 'power-fixed-panel', battery: 'battery-li-ion',
-  lights: 'lights-led', heater: 'heater-rhu', instrument: 'instrument-camera',
+  lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-camera'],
 };
-const drill: Build = { ...camera, instrument: 'instrument-drill' };
+const drill: Build = { ...camera, payload: ['instrument-drill'] };
 
 function tracker(build: Build) {
   return new MilestoneTracker(data.milestones.milestones, selectedParts(build, data.parts), zones, t);
@@ -167,6 +167,15 @@ describe('milestone triggers', () => {
     expect(tr.result().find((e) => e.id === 'regolith-sample')).toEqual({ id: 'regolith-sample', stages: 3 });
   });
 
+  it('a steel rover carrying the camera and the drill earns a photo and a sample in the same mission', () => {
+    const both: Build = { ...camera, chassis: 'chassis-steel', payload: ['instrument-camera', 'instrument-drill'] };
+    const tr = tracker(both);
+    const v = f.rimViewpoints[0]!.local;
+    step(tr, at(v.x, v.z));
+    expect(ids(tr.photo(at(v.x, v.z), false, 0))).toEqual(['rim-panorama']);
+    expect(ids(tr.drill(at(v.x, v.z)))).toEqual(['regolith-sample']);
+  });
+
   it('the ice spot is small and lies just inside the dark crater, on the side facing the landing', () => {
     const sc = f.shadowedCrater;
     const ice = sc.iceCandidate.local;
@@ -184,21 +193,6 @@ describe('milestone triggers', () => {
     expect(dist(ice)).toBeLessThan(dist(sc.centroidLocal));
     expect(sc.iceCandidate.depthInsideShadow_m).toBeGreaterThanOrEqual(100);
     expect(sc.iceCandidate.depthInsideShadow_m).toBeLessThanOrEqual(200);
-  });
-
-  it('Hydrogen signal: only in the dark crater, stronger nearer the ice, off with the tuning flag', () => {
-    const ice = f.shadowedCrater.iceCandidate.local;
-    const entry = f.shadowedCrater.entryPoint.local;
-    const crater = f.shadowedCrater.centroidLocal;
-    expect(hydrogenSignal(at(ice.x, ice.z), zones, t)).toBe('strong');
-    expect(hydrogenSignal(at(ice.x + t.hydrogenStrongWithinM - 10, ice.z), zones, t)).toBe('strong');
-    expect(hydrogenSignal(at(crater.x + 300, crater.z - 400), zones, t)).toBe('weak');
-    expect(hydrogenSignal(at(L.x + 300, L.z), zones, t)).toBeNull(); // outside the dark crater: no reading
-    // Just inside the edge where a rover enters, the signal is already above weak: a lead to follow.
-    const inside = at(entry.x + 0.3 * (ice.x - entry.x), entry.z + 0.3 * (ice.z - entry.z));
-    expect(zoneContains(zones.find((z) => z.id === 'shadowed-crater')!, inside)).toBe(true);
-    expect(hydrogenSignal(inside, zones, t)).toBe('moderate');
-    expect(hydrogenSignal(at(ice.x, ice.z), zones, { ...t, hydrogenSignal: false })).toBeNull();
   });
 
   it('Flare survivor on a protected flare; Clean run only when surviving without damage', () => {

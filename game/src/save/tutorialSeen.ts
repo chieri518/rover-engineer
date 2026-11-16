@@ -2,7 +2,8 @@
 // does not show them again. Every access is wrapped: without storage, "seen" lasts for the session.
 // Each world has its own design and drive tutorials (Mars explains the night and the dust storm), so
 // "seen" is kept per world. Stored as { design, drive } for the Moon (the original format) plus
-// { mars: { design, drive } }.
+// { mars: { design, drive } }. The key is v2 so returning players see the tutorials once more, with the
+// payload bay, pre-launch review and notebook pages; a v1 save is ignored.
 import type { WorldId } from '../worlds';
 
 export interface TutorialSeen {
@@ -14,7 +15,7 @@ export type TutorialId = keyof TutorialSeen;
 
 export type TutorialSeenByWorld = Record<WorldId, TutorialSeen>;
 
-export const TUTORIAL_KEY = 'rover-engineer.tutorial.v1';
+export const TUTORIAL_KEY = 'rover-engineer.tutorial.v2';
 
 type KeyValueStore = Pick<Storage, 'getItem' | 'setItem'>;
 

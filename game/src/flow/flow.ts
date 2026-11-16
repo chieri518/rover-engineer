@@ -3,13 +3,15 @@
 // last world the "coming soon" screen (comingSoon: "Titan: coming soon", with the campaign summary).
 import type { DraftBuild, GameData, MissionId } from '../rules/types';
 import {
-  buyRover, finishMission, isPlayable, newCampaign, normalizeCampaign, restartRound, startRound,
+  buyRover, finishMission, isPlayable, newCampaign, normalizeCampaign, recordLessons, restartRound, startRound,
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
 import { worldOfStep, type WorldId } from '../worlds';
 import type { MissionResult } from '../rules/payout';
+import type { InstrumentLog } from '../rules/instruments';
 import { quoteBuild } from '../rules/quote';
 import { isCompleteBuild } from '../rules/rover';
+import { upgradeSavedBuild } from '../rules/payload';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 import { loadSettings, saveSettings, type Settings } from '../save/settings';
 import { loadTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen, type TutorialSeenByWorld } from '../save/tutorialSeen';
@@ -33,6 +35,8 @@ export class Game {
   lastResult: MissionResult | null = null;
   /** Photographs from the last mission (not saved: data URLs are too large for localStorage). */
   album: AlbumPhoto[] = [];
+  /** What the instruments recorded in the last mission, for the debrief (not saved). */
+  instrumentLog: InstrumentLog | null = null;
   settings: Settings = loadSettings();
   /** Tutorials already seen, per world; each opens by itself only the first time its screen is reached. */
   private seenByWorld: TutorialSeenByWorld = loadTutorialSeen();
@@ -53,8 +57,9 @@ export class Game {
   ) {
     const saved = loadCampaign();
     this.campaign = saved && normalizeCampaign(saved);
-    this.build = this.campaign?.lastBuild ?? {};
     this.world = this.campaign ? worldOfStep(this.campaign.mission) : 'moon';
+    // Drops part ids the catalog no longer has; old saves move their instrument into the bay.
+    this.build = upgradeSavedBuild(this.campaign?.lastBuild, this.data.parts);
   }
 
   /** The current world's game data (shared data with the world's overlay). */
@@ -155,9 +160,17 @@ export class Game {
     saveTutorialSeen(this.seenByWorld);
   }
 
-  endMission(result: MissionResult, album: AlbumPhoto[] = []): void {
+  /** Save lessons met mid-mission at once, so a reload or crash does not lose them. Only the notebook changes. */
+  recordLessons(ids: readonly string[]): void {
+    if (!this.campaign) return;
+    const next = recordLessons(this.campaign, ids);
+    if (next !== this.campaign) this.setCampaign(next);
+  }
+
+  endMission(result: MissionResult, album: AlbumPhoto[] = [], instrumentLog: InstrumentLog | null = null): void {
     this.lastResult = result;
     this.album = album;
+    this.instrumentLog = instrumentLog;
     this.outcome = finishMission(this.state, result, this.data);
     this.setCampaign(this.outcome.state);
     this.go('debrief');

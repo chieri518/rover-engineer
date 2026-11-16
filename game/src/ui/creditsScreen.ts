@@ -103,6 +103,19 @@ function isReal(s: string | undefined): s is string {
   return Boolean(s) && !s!.startsWith('[placeholder');
 }
 
+/** One entry per source behind a relationship, skipping sources already listed under the instrument facts. */
+function relationshipEntries(data: GameData): HTMLLIElement[] {
+  const seen = new Set<string>();
+  for (const p of data.parts.parts) {
+    const src = p.effects.instrument ? data.text.instrumentText[p.effects.instrument]?.source : undefined;
+    if (src) seen.add(src);
+  }
+  // No lesson names: undiscovered lessons stay hidden (the notebook shows them only as a count).
+  const sources = new Set<string>();
+  for (const r of data.relationships.relationships) if (r.source && !seen.has(r.source)) sources.add(r.source);
+  return [...sources].map((source) => entry(null, source));
+}
+
 export const creditsScreen: Screen = (game, root) => {
   // The shared sections (intro, soil, drive speeds) come from the shared text; each world then lists
   // its own terrain, imagery, events, milestone facts and debrief comparisons.
@@ -179,8 +192,15 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
       el('ul', { class: 'credit-list' }, entry(null, landing.sources))),
     (milestones.length > 0 || world === 'moon') && section(c.milestones,
       el('ul', { class: 'credit-list' },
-        ...milestones.map((m) => entry(m.name, m.source)),
-        world === 'moon' && entry(c.drillHydrogenLabel, text.drill.hydrogenSource))),
+        ...milestones.map((m) => entry(m.name, m.source)))),
+    // The instruments and the relationships are the Moon's (the parts are shared; every relationship is a Moon one).
+    world === 'moon' && section(c.instrumentsLabel,
+      el('ul', { class: 'credit-list' },
+        ...data.parts.parts.flatMap((p) => {
+          const it = p.effects.instrument ? text.instrumentText[p.effects.instrument] : undefined;
+          return it?.source ? [entry(p.name, it.source)] : [];
+        }))),
+    world === 'moon' && section(c.relationshipsLabel, el('ul', { class: 'credit-list' }, ...relationshipEntries(data))),
     historyKeys.length > 0 && section(c.debrief,
       el('ul', { class: 'credit-list' }, ...historyKeys.map((k) => entry(historyLabel(k), text.historySources[k])))),
   );

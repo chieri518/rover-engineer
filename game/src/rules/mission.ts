@@ -1,7 +1,7 @@
 // The mission loop's rules: one step combines energy, damage, cold, soft ground, events and the end
 // conditions. The mission screen measures the rover (MissionSample), calls stepMission, and draws
 // the result. Pure: no rendering, no physics.
-import type { DeathCause, EventsFile, Part, RealFlare, Tuning } from './types';
+import type { DeathCause, EventsFile, Instrument, Part, RealFlare, Tuning } from './types';
 import { driveStats, type DriveStats } from './drive';
 import { roverTotals } from './rover';
 import { canDriveMars, driveEnergy, lowSunFactor, nightDrainPerSecond, solarIncome } from './energy';
@@ -26,6 +26,7 @@ export interface MarsSetup {
 export function marsSetup(site: MarsSetup['site'], events: EventsFile, rng: Rng): MarsSetup {
   return { site, storm: scheduleDustStorm(events, rng), ...(events.duststorm ? { stormSpec: events.duststorm } : {}) };
 }
+import { instrumentCosts, type InstrumentCosts } from './payload';
 
 /** What the parts mean for the mission systems. */
 export interface MissionSetup {
@@ -33,6 +34,7 @@ export interface MissionSetup {
   heat: number;
   hasLights: boolean;
   overloadKg: number; // total mass above the chassis maximum load
+  instruments: InstrumentCosts[]; // the payload still aboard, in bay order (deployed stations leave it)
   events: MissionEvent[];
   mars?: MarsSetup; // present on Mars: the sol clock, night, map-wide cold and the dust storm apply
 }
@@ -45,6 +47,7 @@ export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent
     heat: parts.reduce((s, p) => s + (p.effects.heat ?? 0), 0),
     hasLights: parts.some((p) => (p.effects.lightRange ?? 0) > 0),
     overloadKg: maxLoad === undefined ? 0 : Math.max(0, mass - maxLoad),
+    instruments: instrumentCosts(parts),
     events,
     ...(mars ? { mars } : {}),
   };
@@ -59,6 +62,17 @@ export interface MissionEnd {
 
 export type EventStage = 'pending' | 'warned' | 'done';
 
+/**
+ * Where and how a held use started. The rover holds still, so this is also where it finishes: the
+ * result and the relationships read it from the 'instrument-done' notice, not from the screen.
+ */
+export interface UseSite {
+  boulder: number | null; // the boulder an X-ray reading targets (index in the boulder list), locked at the start
+  inDarkCrater: boolean; // inside the dark crater (the shadowed-crater zone)
+  slowedByCold: boolean; // the hold was lengthened by the cold (no heater)
+  fasterInShadow: boolean; // the hold was shortened by shadow (shadowHoldFactor)
+}
+
 export interface MissionState {
   seconds: number;
   energy: number;
@@ -67,6 +81,9 @@ export interface MissionState {
   dig: number; // 0..1, full = stuck for good
   distanceM: number;
   poweredDown: boolean;
+  standbyOn: Instrument[]; // instruments switched on (each draws its standby energy while the rover is powered up)
+  using: { instrument: Instrument; secondsLeft: number; site: UseSite } | null; // an instrument use the rover holds still for (paused while powered down)
+  deployed: Instrument[]; // stations set down on the ground, in the order deployed (they left the rover)
   impactCooldown: number;
   tiltSeconds: number; // how long the rover has been tilted past the rollover limit
   damageBy: Record<DamageCause, number>;
@@ -95,7 +112,9 @@ export type MissionNotice =
   | { kind: 'flare-warning'; flare: RealFlare; at: number }
   | { kind: 'flare-hit'; flare: RealFlare; protected: boolean; damage: number }
   | { kind: 'quake'; damage: number }
-  | { kind: 'impact'; damage: number };
+  | { kind: 'impact'; damage: number }
+  | { kind: 'instrument-done'; instrument: Instrument; deployed: boolean; site: UseSite } // a held instrument use finished (deployed: a station was set down)
+  | { kind: 'standby-off'; instruments: Instrument[] }; // the battery fell to the low-energy warning: switched-on instruments were switched off
 
 /** Mars notices: sunset, dawn (the rover wakes if it was asleep) and the dust storm's forecast, start and end. */
 export type MarsNotice = { kind: 'dusk' } | { kind: 'dawn'; woke: boolean } | { kind: 'storm'; edge: StormEdge };
@@ -116,6 +135,9 @@ export function startMission(setup: MissionSetup): MissionState {
     dig: 0,
     distanceM: 0,
     poweredDown: false,
+    standbyOn: [],
+    using: null,
+    deployed: [],
     impactCooldown: 0,
     tiltSeconds: 0,
     damageBy: { impact: 0, slope: 0, overload: 0, flare: 0, quake: 0 },
@@ -145,11 +167,20 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   const mars = marsConditions(prev, setup, t);
   const marsNotices: MarsNotice[] = [];
 
-  // Energy (Mars: low Sun and the dust storm cut solar income; none at night; a night drain while awake or asleep)
-  const used = prev.poweredDown ? 0 : driveEnergy(s.distanceM, s.uphillDeg, stats.energyPerMeter, t.energy);
+  // Energy: driving and instruments on standby (nothing while powered down), against solar income.
+  // Mars: low Sun and the dust storm cut solar income (none at night), and a night drain applies awake
+  // or asleep. Standby never ends the mission by itself: its draw never takes the battery below the
+  // low-energy warning level; when it would, the switched-on instruments switch off (with a notice).
+  // The Mars night drain is not capped that way: it can empty the battery.
+  const drive = prev.poweredDown ? 0 : driveEnergy(s.distanceM, s.uphillDeg, stats.energyPerMeter, t.energy);
   const sunlight = mars ? s.sunlight * mars.solarFactor : s.sunlight;
   const drain = mars ? mars.drainPerSecond * s.dt : 0;
-  state.energy = Math.min(stats.batteryCapacity, prev.energy - used - drain + solarIncome(stats.energyIncome, sunlight, s.dt));
+  const afterDrive = Math.min(stats.batteryCapacity, prev.energy - drive - drain + solarIncome(stats.energyIncome, sunlight, s.dt));
+  const standby = prev.poweredDown ? 0 : standbyDraw(prev, setup) * s.dt;
+  const aboveLow = Math.max(0, afterDrive - lowEnergyLevel(setup, t));
+  let standbyOff = false;
+  if (prev.standbyOn.length > 0 && !prev.poweredDown && (standby >= aboveLow || aboveLow <= 0)) standbyOff = true;
+  state.energy = afterDrive - Math.min(standby, aboveLow);
   state.distanceM = prev.distanceM + Math.max(0, s.distanceM);
 
   // Damage
@@ -198,6 +229,24 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   state.energy = Math.max(0, state.energy);
 
   state.end = missionEnd(state, t);
+
+  if (standbyOff && !state.end) {
+    notices.push({ kind: 'standby-off', instruments: prev.standbyOn });
+    state.standbyOn = [];
+  }
+
+  // A held instrument use counts down, but not while the rover is powered down (it resumes on power-up);
+  // it finishes only if the mission goes on. A deployable's part is then on the ground.
+  if (prev.using && !prev.poweredDown) {
+    const secondsLeft = prev.using.secondsLeft - s.dt;
+    state.using = secondsLeft > 1e-9 ? { ...prev.using, secondsLeft } : null;
+    if (!state.using && !state.end) {
+      const inst = prev.using.instrument;
+      const deploy = setup.instruments.find((c) => c.instrument === inst)?.mode === 'deploy';
+      if (deploy) state.deployed = [...prev.deployed, inst];
+      notices.push({ kind: 'instrument-done', instrument: inst, deployed: deploy, site: prev.using.site });
+    }
+  }
 
   // Mars: sunset and dawn (sleep ends at dawn by itself), the dust storm's forecast, start and end
   if (mars && t.sol && !state.end) {
@@ -253,6 +302,122 @@ function marsConditions(state: MissionState, setup: MissionSetup, t: Tuning): Ma
   };
 }
 
+/** The parts still on the rover: deployed stations have left it. */
+export function partsAboard(parts: Part[], deployed: readonly Instrument[]): Part[] {
+  return parts.filter((p) => !(p.effects.instrument && deployed.includes(p.effects.instrument)));
+}
+
+/**
+ * The setup after stations were set down: stats (mass, speed, energy per meter, sinkage), overload and
+ * the instruments aboard are recomputed from the parts still aboard. `parts` is the full launch build;
+ * the events are kept (the same list, so the event stages still line up), and on Mars the site and the
+ * dust storm (the same object, so the night, cold and storm rules carry on).
+ */
+export function deployPart(setup: MissionSetup, parts: Part[], deployed: readonly Instrument[], tuning: Tuning): MissionSetup {
+  return missionSetup(partsAboard(parts, deployed), tuning, setup.events, setup.mars);
+}
+
+/** The low-energy warning level: tuning.energy.lowWarningShare of the battery. */
+export function lowEnergyLevel(setup: MissionSetup, t: Tuning): number {
+  return setup.stats.batteryCapacity * t.energy.lowWarningShare;
+}
+
+/** True when the battery is below the low-energy warning level (the HUD warning shows). */
+export function isLowEnergy(s: MissionState, setup: MissionSetup, t: Tuning): boolean {
+  return s.energy < lowEnergyLevel(setup, t);
+}
+
+/** Energy per second the switched-on instruments draw while the rover is powered up. */
+export function standbyDraw(s: MissionState, setup: MissionSetup): number {
+  return setup.instruments.reduce((sum, c) => sum + (s.standbyOn.includes(c.instrument) ? c.standbyEnergy : 0), 0);
+}
+
+/** True for an instrument aboard that is switched on and off (it has a standby draw) rather than used. */
+export function isSwitchInstrument(instrument: Instrument, setup: MissionSetup): boolean {
+  return setup.instruments.find((c) => c.instrument === instrument)?.mode === 'switch';
+}
+
+export type InstrumentRefusal =
+  | 'ended'
+  | 'deployed' // the station is already on the ground
+  | 'not-carried'
+  | 'busy' // another held use is still going
+  | 'powered-down'
+  | 'moving' // a held use needs the rover stopped
+  | 'no-earth' // needs Earth above the horizon from the rover
+  | 'no-boulder' // needs a boulder within reach
+  | 'energy' // the use would empty the battery
+  | 'low-energy'; // switching on a standby draw at or below the low-energy warning
+
+export type StandbySwitch = { ok: true; state: MissionState } | { ok: false; reason: Extract<InstrumentRefusal, 'ended' | 'not-carried' | 'low-energy'> };
+
+/**
+ * Switch a standby instrument on or off. Switching on is refused while the battery is at or below
+ * the low-energy warning level (stepMission switches standby off there and never lets its draw take the
+ * battery lower, so standby never ends the mission).
+ * Switching on while powered down is allowed: it draws nothing until power-up. An instrument that
+ * is not a switch counts as not carried.
+ */
+export function setStandby(s: MissionState, instrument: Instrument, on: boolean, setup: MissionSetup, t: Tuning): StandbySwitch {
+  if (s.end) return { ok: false, reason: 'ended' };
+  if (!isSwitchInstrument(instrument, setup)) return { ok: false, reason: 'not-carried' };
+  if (s.standbyOn.includes(instrument) === on) return { ok: true, state: s };
+  if (on && s.energy <= lowEnergyLevel(setup, t)) return { ok: false, reason: 'low-energy' };
+  return { ok: true, state: { ...s, standbyOn: on ? [...s.standbyOn, instrument] : s.standbyOn.filter((i) => i !== instrument) } };
+}
+
+/** What the mission screen measured for an instrument use. */
+export interface UseConditions {
+  speedMps: number;
+  inColdZone: boolean;
+  sunlight: number; // 0..1 at the rover
+  earthInView?: boolean; // Earth above the terrain horizon from the rover (needsEarth instruments)
+  boulderInReach?: boolean; // a boulder within tuning.instruments.xray.reachM (needsBoulder instruments)
+  boulder?: number | null; // which boulder that is (index in the boulder list): a held use keeps it in its site
+  inDarkCrater?: boolean; // inside the dark crater (the shadowed-crater zone)
+}
+
+export type InstrumentStart =
+  | { ok: true; state: MissionState; holdSeconds: number; slowedByCold: boolean; fasterInShadow: boolean; cost: number }
+  | { ok: false; reason: InstrumentRefusal; cost: number };
+
+/**
+ * Start using an instrument (not a switch: see setStandby): checks power, speed, conditions and
+ * energy, charges the energy per use at once, and returns how long the rover holds still: its
+ * useSeconds, times tuning.instruments.coldSlowdown in a cold zone on a rover without a heater
+ * (cold-tolerant parts excepted), times its shadowHoldFactor when the rover is in shadow; 0 for an
+ * instant use. A held use is tracked in state.using and finishes with an 'instrument-done' notice
+ * from stepMission. A use is refused when its energy would empty the battery, so an instrument never
+ * ends the mission by itself. A deployed station cannot be used again.
+ */
+export function startInstrumentUse(
+  s: MissionState,
+  instrument: Instrument,
+  sample: UseConditions,
+  setup: MissionSetup,
+  t: Tuning,
+): InstrumentStart {
+  const c = setup.instruments.find((x) => x.instrument === instrument);
+  const cost = c?.energyPerUse ?? 0;
+  const refuse = (reason: InstrumentRefusal): InstrumentStart => ({ ok: false, reason, cost });
+  if (s.end) return refuse('ended');
+  if (s.deployed.includes(instrument)) return refuse('deployed');
+  if (!c || c.mode === 'switch') return refuse('not-carried');
+  const held = c.useSeconds > 0;
+  if (held && s.using) return refuse('busy');
+  if (s.poweredDown) return refuse('powered-down');
+  if (held && sample.speedMps > t.ground.movingSpeedMps) return refuse('moving');
+  if (c.needsEarth && !sample.earthInView) return refuse('no-earth');
+  if (c.needsBoulder && !sample.boulderInReach) return refuse('no-boulder');
+  if (cost > 0 && s.energy <= cost) return refuse('energy');
+  const slowedByCold = held && sample.inColdZone && setup.heat <= 0 && !c.coldTolerant;
+  const fasterInShadow = held && c.shadowHoldFactor !== 1 && sample.sunlight < t.instruments.shadowSunlight;
+  const holdSeconds = held ? c.useSeconds * (slowedByCold ? t.instruments.coldSlowdown : 1) * (fasterInShadow ? c.shadowHoldFactor : 1) : 0;
+  const site: UseSite = { boulder: sample.boulder ?? null, inDarkCrater: sample.inDarkCrater ?? false, slowedByCold, fasterInShadow };
+  const state: MissionState = { ...s, energy: s.energy - cost, using: held ? { instrument, secondsLeft: holdSeconds, site } : s.using };
+  return { ok: true, state, holdSeconds, slowedByCold, fasterInShadow, cost };
+}
+
 /** The end conditions, most severe first. Null while the mission goes on. */
 export function missionEnd(s: MissionState, t: Tuning): MissionEnd | null {
   const at = s.seconds;
@@ -291,7 +456,7 @@ export function missionWarnings(
   if ((sample.inColdZone || marsNight) && s.freeze > 0) w.push('cold');
   if (slip > t.ground.slipLimit) w.push('slip');
   if (sample.slopeDeg >= t.ground.slopeWarningDegrees && sample.speedMps > t.ground.movingSpeedMps) w.push('steepSlope');
-  if (s.energy < setup.stats.batteryCapacity * t.energy.lowWarningShare) w.push('lowEnergy');
+  if (isLowEnergy(s, setup, t)) w.push('lowEnergy');
   if (s.damage >= t.damage.max * t.damage.highWarningShare) w.push('highDamage');
   if (s.poweredDown) w.push('poweredDown');
   return w;

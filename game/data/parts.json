@@ -1,8 +1,8 @@
 {
-  "slots": ["chassis", "wheels", "power", "battery", "lights", "heater", "instrument"],
+  "slots": ["chassis", "wheels", "power", "battery", "lights", "heater"],
   "parts": [
-    { "id": "chassis-steel", "slot": "chassis", "name": "Steel frame", "description": "Cheap and strong, but heavy.", "cost": 60, "mass": 30, "size": 5, "effects": { "maxLoad": 100 } },
-    { "id": "chassis-titanium", "slot": "chassis", "name": "Titanium frame", "description": "Light, but expensive, and carries less than steel.", "cost": 150, "mass": 16, "size": 5, "effects": { "maxLoad": 72 } },
+    { "id": "chassis-steel", "slot": "chassis", "name": "Steel frame", "description": "Cheap and strong, but heavy.", "cost": 60, "mass": 30, "size": 5, "effects": { "maxLoad": 100, "mountingPoints": 3 } },
+    { "id": "chassis-titanium", "slot": "chassis", "name": "Titanium frame", "description": "Light, but expensive, and carries less than steel.", "cost": 150, "mass": 16, "size": 5, "effects": { "maxLoad": 72, "mountingPoints": 2 } },
 
     { "id": "wheels-solid", "slot": "wheels", "name": "Solid aluminium wheels", "description": "Cheap and heavy. Lower grip in soft regolith.", "cost": 30, "mass": 20, "size": 4, "effects": { "baseSpeed": 2.2, "grip": 0.55, "energyPerMeter": 0.24 } },
     { "id": "wheels-mesh", "slot": "wheels", "name": "Wire-mesh wheels", "description": "Light, fast and grippy, like the Apollo rover's. Bulky.", "cost": 140, "mass": 12, "size": 6, "effects": { "baseSpeed": 3.3, "grip": 0.8, "energyPerMeter": 0.18 } },
@@ -20,6 +20,10 @@
     { "id": "heater-rhu", "slot": "heater", "name": "Radioisotope heater units", "description": "Steady heat from decaying isotopes. Slows freezing in the cold.", "cost": 60, "mass": 3, "size": 1, "effects": { "heat": 2 } },
 
     { "id": "instrument-camera", "slot": "instrument", "name": "Science camera", "description": "Photos and imaging science.", "cost": 50, "mass": 3, "size": 1, "effects": { "instrument": "camera" } },
-    { "id": "instrument-drill", "slot": "instrument", "name": "Regolith drill", "description": "Samples the soil, and ice where it exists. Heavier and bulkier than the camera.", "cost": 90, "mass": 8, "size": 3, "effects": { "instrument": "drill" } }
+    { "id": "instrument-drill", "slot": "instrument", "name": "Regolith drill", "description": "Samples the soil, and ice where it exists. Heavier and bulkier than the camera.", "cost": 90, "mass": 8, "size": 3, "effects": { "instrument": "drill", "energyPerUse": 10, "useSeconds": 3 } },
+    { "id": "instrument-neutron", "slot": "instrument", "name": "Neutron spectrometer", "description": "Senses hydrogen in the top meter of soil while the rover drives, as on NASA's VIPER. A live meter that draws energy while switched on.", "cost": 80, "mass": 4, "size": 2, "effects": { "instrument": "neutron", "standbyEnergy": 0.1 } },
+    { "id": "instrument-xray", "slot": "instrument", "name": "X-ray spectrometer", "description": "Reads a rock's main elements: park beside a boulder and hold still.", "cost": 60, "mass": 2, "size": 1, "effects": { "instrument": "xray", "energyPerUse": 3, "useSeconds": 4, "needsBoulder": true, "shadowHoldFactor": 0.5, "coldTolerant": true } },
+    { "id": "instrument-seismometer", "slot": "instrument", "name": "Seismometer station", "description": "Set it down on the ground before the moonquake to record it. Its mass leaves the rover.", "cost": 70, "mass": 4, "size": 2, "effects": { "instrument": "seismometer", "useSeconds": 3, "deploy": true } },
+    { "id": "instrument-reflector", "slot": "instrument", "name": "Laser retroreflector", "description": "Mirrors for lasers fired from Earth. Needs no power; set it down where Earth is in view. Its mass leaves the rover.", "cost": 30, "mass": 3, "size": 1, "effects": { "instrument": "reflector", "useSeconds": 3, "deploy": true, "needsEarth": true } }
   ]
 }

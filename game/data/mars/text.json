@@ -155,12 +155,14 @@
         ]
       },
       {
-        "title": "Instrument and map",
+        "title": "Instruments and map",
         "instrument": {
-          "camera": "Camera: C takes a photograph. Photographs count toward milestones at the delta-front viewpoint, and away from the lander with the setting Sun low in the frame: face west as the Sun goes down.",
-          "drill": "Drill: stop the rover, then press F to drill a core sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
+          "camera": "Camera: {key} (or its button) takes a photograph. Photographs count toward milestones at the delta-front viewpoint, and away from the lander with the setting Sun low in the frame: face west as the Sun goes down.",
+          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a core sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
         },
         "body": [
+          "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
+          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it.",
           "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing."
         ]
       }
@@ -204,7 +206,7 @@
     "captionDay": "{place}, sol {day}",
     "captionSurface": "Jezero crater floor",
     "captionSunset": "Sunset over Jezero crater",
-    "sunsetHint": "The setting Sun is low in view. Press C to take a photograph.",
+    "sunsetHint": "The setting Sun is low in view. Press {key} to take a photograph.",
     "sunsetTooHigh": "The Sun is in view but still high. The sunset photo counts once it is within {max}° of the horizon.",
     "sunsetTooClose": "The setting Sun is in view, but the rover is only {distance} m from the lander. The sunset photo counts at least {min} m away."
   }

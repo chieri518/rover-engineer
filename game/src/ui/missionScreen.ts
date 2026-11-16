@@ -4,8 +4,18 @@
 // Mars adds the sol clock, the real Sun, night (lights on or sleep) and the dust storm (ui/marsMission.ts).
 import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
-import { buildZones, hydrogenSignal, MilestoneTracker, PHOTO_ZONE_IDS, type MilestoneUpdate, type Point3, type SunPhoto } from '../rules/milestones';
+import { buildZones, MilestoneTracker, PHOTO_ZONE_IDS, type MilestoneUpdate, type Point3, type SunPhoto, type Zone } from '../rules/milestones';
 import { isCompleteBuild, selectedParts } from '../rules/rover';
+import { instrumentForKey, instrumentKeys, instrumentsOf } from '../rules/payload';
+import type { Instrument } from '../rules/types';
+import { scatterBoulders, type Boulder } from '../rules/boulders';
+import {
+  emptyInstrumentLog, emptySeismometerTrack, hydrogenReading, rockTypeFor, stepSeismometer, xrayTarget,
+  type InstrumentLog, type SeismometerOutcome, type TrackPoint,
+} from '../rules/instruments';
+import {
+  addToNotebook, lessonFor, meet, metIds, onSeismometer, onShadowStop, onUseDone, onUseStart, relationshipEntry, shortUseLines, type RelationshipEvent,
+} from '../rules/relationships';
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
 import { scheduleEvents, seededRng } from '../rules/events';
@@ -14,8 +24,8 @@ import { noLightsLookaheadM } from '../rules/cold';
 import { createExplored, exploredShare, reveal } from '../rules/explore';
 import { azimuthDeg, areaCenter, buildLeads, buildSites, discover, type Lead, type Site } from '../rules/survey';
 import {
-  activeFlareWarning, missionSetup, missionWarnings, startMission, stepMission,
-  type MarsStatus, type MissionEnd, type MissionSample, type MissionSetup, type MissionState, type WarningId,
+  activeFlareWarning, deployPart, isSwitchInstrument, missionSetup, missionWarnings, partsAboard, setStandby, startInstrumentUse, startMission, stepMission,
+  type InstrumentRefusal, type MarsStatus, type MissionEnd, type MissionSample, type MissionSetup, type MissionState, type UseSite, type WarningId,
 } from '../rules/mission';
 import { WORLDS } from '../worlds';
 import type { MoonDriveLimits, MoonScene, MoonStepSample } from '../world/moonScene';
@@ -28,6 +38,7 @@ import { MARS_RELIEF, Minimap } from './minimap';
 import { hudLeadLine } from './surveyText';
 import { causeText, milestoneCard, missedText } from './milestoneText';
 import { openTutorial, type TutorialHandle } from './tutorial';
+import { openNotebook, type NotebookHandle } from './notebook';
 import { tutorialPages } from './tutorialText';
 import { MarsMission } from './marsMission';
 
@@ -38,6 +49,8 @@ const GRADE_PROBE_M = 2;
 const MINIMAP_EVERY_FRAMES = 3;
 const EARTH_CHECK_EVERY_FRAMES = 10; // also the Mars Sun-in-view check
 const PHOTO_WIDTH_PX = 960;
+const HYDROGEN_EVERY_FRAMES = 12; // the hydrogen meter's live reading is resampled this often
+const NOTEBOOK_KEY = 'KeyN'; // opens the engineering notebook (game-design.md, section 7)
 
 export const missionScreen: Screen = (game, root) => {
   const { data } = game;
@@ -52,7 +65,8 @@ export const missionScreen: Screen = (game, root) => {
   const parts = selectedParts(game.build, data.parts);
   const seed = (Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0;
   const rng = seededRng(seed);
-  // On Mars the setup gains the site and the dust storm once the terrain (and its latitude) has loaded.
+  // The setup changes when a station is set down (lighter rover, fewer instruments aboard), and on Mars
+  // it gains the site and the dust storm once the terrain (and its latitude) has loaded.
   let setup: MissionSetup = missionSetup(parts, tuning, scheduleEvents(data.events, rng));
   let state: MissionState = startMission(setup);
   let ended: MissionEnd | null = null;
@@ -62,17 +76,45 @@ export const missionScreen: Screen = (game, root) => {
   let marsNow: MarsStatus | null = null; // the Mars conditions after the last step
   let sunInView = false; // Mars: the Sun is in frame and above the terrain horizon
   const mt = tuning.milestones;
-  const instrument = parts.find((p) => p.slot === 'instrument')?.effects.instrument ?? null;
+  // The payload bay, in bay order: instrument i is used with number key i + 1 or its HUD button. The
+  // keys and buttons stay fixed to the launch bay order; a deployed station's button is disabled.
+  const instruments = instrumentsOf(parts);
+  const keys = instrumentKeys(parts);
+  const carries = (i: Instrument) => instruments.includes(i);
+  const aboard = (i: Instrument) => carries(i) && !state.deployed.includes(i);
+  const keyOf = (i: Instrument) => keys.get(i) ?? 0;
+  const partOf = (i: Instrument) => parts.find((p) => p.effects.instrument === i)!;
+  const costOf = (i: Instrument) => setup.instruments.find((c) => c.instrument === i);
   const recordsHeld = [...game.state.records];
   const earthDir = skyDirection(tuning.earth.azimuthDeg, tuning.earth.elevationDeg);
   let tracker: MilestoneTracker | null = null;
   const album: AlbumPhoto[] = [];
-  let drillLeft = 0; // mission seconds of drilling left (0 = not drilling)
   let earthInView = false;
   let roverPos: Point3 | null = null; // ground point under the rover after the last step
+  // The new instruments: what they need from the world, and what they recorded (the debrief's log).
+  let boulders: Boulder[] = [];
+  let zones: Zone[] = [];
+  let earthAbove = false; // Earth above the terrain horizon from the rover (reflector light and deploy check)
+  let hydrogen = 0; // the neutron spectrometer's live reading
+  const log: InstrumentLog = emptyInstrumentLog(instruments);
+  let seismometer = emptySeismometerTrack(); // the station, the rover's track while it records, and its record
+  let stationSetDown: { x: number; z: number } | null = null; // a seismometer station set down this step
+  let hydrogenCountdown = 0; // frames until the hydrogen meter is resampled (0: sample now)
+  // Relationships met this mission (rules/relationships.ts): each notice shows once per mission. A new
+  // one enters the in-mission notebook at once; the campaign notebook is saved at once too (game.recordLessons).
+  let met: RelationshipEvent[] = [];
+  const notebookAtLaunch = [...game.state.notebook];
+  let unread = false; // a relationship met since the notebook was last opened
+  const factsShown = new Set<Instrument>(); // each instrument's history fact shows once per mission
 
   // What the last step measured
-  let ctx: { terrain: Terrain; masks: TerrainMasks; sunVisibility: typeof import('../world/terrainData').sunVisibility } | null = null;
+  let ctx: {
+    terrain: Terrain;
+    masks: TerrainMasks;
+    sunVisibility: typeof import('../world/terrainData').sunVisibility;
+    horizonMarginTan: typeof import('../world/terrainData').horizonMarginTan;
+    groundEyeM: number; // eye height for the horizon tests (terrainData.GROUND_EYE_M): the reflector's Earth light
+  } | null = null;
   let lastPos: { x: number; z: number } | null = null;
   let sceneSeconds = 0; // mission time of the last step (drives the Sun)
   let sunlight = 1;
@@ -89,22 +131,57 @@ export const missionScreen: Screen = (game, root) => {
     state = { ...state, poweredDown: !state.poweredDown };
   };
   const ti = text.instruments;
-  const td = text.drill;
-  let hydrogenFactShown = false; // the real-world note on the hydrogen signal shows once per mission
-  const controls = [text.mission.controls, instrument === 'camera' ? ti.cameraControls : instrument === 'drill' ? ti.drillControls : '']
-    .filter(Boolean).join(' ');
+  const itx = text.instrumentText;
+  const controls = [text.mission.controls, ...instruments.map((i) => fill(itx[i].controls, {
+    key: keyOf(i),
+    energy: costOf(i)?.energyPerUse ?? 0,
+    standby: costOf(i)?.standbyEnergy ?? 0,
+  }))]
+    .join(' ');
+  /** The instrument's real-history fact, the first time it is used in a mission (Mission history setting). */
+  const showFact = (inst: Instrument) => {
+    const fact = itx[inst].fact;
+    if (!fact || !game.settings.missionHistory || factsShown.has(inst)) return;
+    factsShown.add(inst);
+    hud.notify(fact, 'good');
+  };
+  /**
+   * Record relationships that happened; show the notice of each met for the first time (its own HUD
+   * slot) and mark the notebook unread. `vars` fills the notice's placeholders beyond {distance}.
+   * Returns the events met for the first time.
+   */
+  const relate = (events: RelationshipEvent[], vars: Record<string, string | number> = {}): RelationshipEvent[] => {
+    if (events.length === 0) return [];
+    const r = meet(met, events);
+    met = r.met;
+    const added = r.fresh.map((e) => e.id).filter((id) => !game.state.notebook.includes(id));
+    if (added.length > 0) game.recordLessons(added); // saved when first met, not only at mission end
+    for (const e of r.fresh) {
+      const lesson = lessonFor(data.relationships, e);
+      if (!lesson) continue;
+      const tone = relationshipEntry(data.relationships, e.id)?.review === 'green' ? 'good' : 'warn';
+      hud.lesson(fill(lesson.notice, { distance: tuning.instruments.seismometer.quietDistanceM, ...vars }), tone);
+      if (!notebookAtLaunch.includes(e.id)) setUnread(true);
+    }
+    return r.fresh;
+  };
+  /** The tutorial and the notebook pause the scene and the HUD's lesson timers together. */
+  const pauseMission = (on: boolean) => {
+    scene?.setPaused(on);
+    hud.setPaused(on);
+  };
   // Drive tutorial: opens by itself on the first mission (the scene loads meanwhile); the Help button
   // reopens it. The mission is paused while it is open.
   let tutorial: TutorialHandle | null = null;
   const openHelp = () => {
-    if (tutorial || ended) return;
-    const pages = tutorialPages('drive', data, { mission: game.state.mission, instrument });
+    if (tutorial || notebook || ended) return;
+    const pages = tutorialPages('drive', data, { mission: game.state.mission, instruments });
     tutorial = openTutorial(root, 'drive', pages, text.tutorial, () => {
       tutorial = null;
-      scene?.setPaused(false);
+      pauseMission(false);
       game.markTutorialSeen('drive');
     });
-    scene?.setPaused(true);
+    pauseMission(true);
   };
   const help = el('button', {
     type: 'button',
@@ -113,10 +190,51 @@ export const missionScreen: Screen = (game, root) => {
     title: text.tutorial.helpDrive,
     onclick: openHelp,
   }, text.tutorial.help);
+  // Engineering notebook: a HUD button and the N key open it over the mission, paused like the tutorial.
+  // It holds the campaign notebook plus what this mission has met so far; a dot marks an unread entry.
+  let notebook: NotebookHandle | null = null;
+  const unreadMark = el('span', { class: 'unread-mark', hidden: true }, el('span', { class: 'visually-hidden' }, text.notebook.unread));
+  const notebookButton = el('button', {
+    type: 'button',
+    class: 'help-button notebook-button',
+    id: 'notebook-open-mission',
+    title: text.notebook.openMission,
+    onclick: () => openNotes(),
+  }, text.notebook.open, unreadMark);
+  function setUnread(on: boolean): void {
+    unread = on;
+    unreadMark.hidden = !on;
+    notebookButton.classList.toggle('unread', on);
+  }
+  function openNotes(): void {
+    if (notebook || tutorial) return;
+    const thisMission = metIds(met).filter((id) => !notebookAtLaunch.includes(id));
+    notebook = openNotebook(root, data, {
+      ids: addToNotebook(notebookAtLaunch, thisMission),
+      newIds: thisMission,
+      closeKey: NOTEBOOK_KEY,
+      onClose: () => {
+        notebook = null;
+        if (!ended) pauseMission(false); // the clock is stopped for good once the mission has ended
+      },
+    });
+    setUnread(false);
+    if (!ended) pauseMission(true);
+  }
+  // One HUD button per instrument, in bay order (the same order as the number keys).
+  // A switch instrument (one with a standby draw) shows whether it is on.
+  const buttonLabels = new Map<Instrument, HTMLSpanElement>(instruments.map((inst) => [inst, el('span', {}, itx[inst].button)]));
+  const instrumentButtons = new Map<Instrument, HTMLButtonElement>(instruments.map((inst) => [inst, el('button', {
+    type: 'button',
+    class: 'instrument-button',
+    onclick: () => useInstrument(inst),
+    ...(isSwitchInstrument(inst, setup) ? { 'aria-pressed': 'false' } : {}),
+  }, el('span', { class: 'instrument-key' }, String(keyOf(inst))), buttonLabels.get(inst)!)]));
   const hud = new Hud(text, togglePower, el('div', { class: 'hud-extra' },
+    instruments.length > 0 && el('div', { class: 'hud-instruments', role: 'group', 'aria-label': ti.buttonsLabel }, ...instrumentButtons.values()),
     el('p', { class: 'muted' }, controls),
     status,
-    el('div', { class: 'hud-help' }, help),
+    el('div', { class: 'hud-help' }, help, notebookButton),
   ));
 
   const announce = (u: MilestoneUpdate) => {
@@ -157,10 +275,70 @@ export const missionScreen: Screen = (game, root) => {
     return null;
   };
 
+  /** The notice for a refused instrument use. */
+  const refusalText = (inst: Instrument, reason: InstrumentRefusal, cost: number): string | null => {
+    const name = partOf(inst)?.name ?? inst;
+    switch (reason) {
+      case 'ended':
+        return null;
+      case 'not-carried':
+        return itx[inst].notCarried;
+      case 'deployed':
+        return fill(ti.useDeployed, { name });
+      case 'no-earth':
+        return fill(ti.useNoEarth, { name });
+      case 'no-boulder':
+        return fill(ti.useNoBoulder, { name, reach: tuning.instruments.xray.reachM });
+      case 'low-energy':
+        return fill(ti.standbyLowEnergy, { name, share: Math.round(tuning.energy.lowWarningShare * 100) });
+      case 'busy':
+        return ti.useBusy;
+      case 'powered-down':
+        return fill(ti.usePoweredDown, { name });
+      case 'moving':
+        return fill(ti.useMoving, { name });
+      case 'energy':
+        return fill(ti.useNoEnergy, { name, cost, energy: Math.floor(state.energy) });
+    }
+  };
+  /** Run the rules for a use; on success the state is updated (energy charged, hold started). */
+  const tryUse = (inst: Instrument): boolean => {
+    if (!carries(inst)) {
+      hud.notify(itx[inst].notCarried);
+      return false;
+    }
+    const r = startInstrumentUse(state, inst, {
+      speedMps: lastSample?.speedMps ?? 0,
+      inColdZone: lastSample?.inColdZone ?? false,
+      sunlight,
+      earthInView: earthAbove,
+      boulderInReach: currentBoulder() !== null,
+      boulder: currentBoulder()?.index ?? null, // an X-ray reading keeps this boulder even if the rover is nudged
+      inDarkCrater: inDarkCrater(),
+    }, setup, tuning);
+    if (!r.ok) {
+      const msg = refusalText(inst, r.reason, r.cost);
+      if (msg) hud.notify(msg);
+      return false;
+    }
+    state = r.state;
+    // The first time in a mission, the relationship's notice explains it; later uses get the short line.
+    const lines = shortUseLines(r, relate(onUseStart(r)));
+    const said = { name: partOf(inst).name, seconds: Math.round(r.holdSeconds) };
+    if (lines.slowCold) hud.notify(fill(ti.useSlowCold, said));
+    if (lines.fastShadow) hud.notify(fill(ti.useFastShadow, said), 'good');
+    return true;
+  };
+  /** The boulder within the X-ray spectrometer's reach, if any. */
+  const currentBoulder = () => (roverPos ? xrayTarget(roverPos, boulders, tuning.instruments.xray) : null);
+  /** The rover is inside the dark crater (the shadowed-crater zone). */
+  const inDarkCrater = () => tracker?.currentZones().some((z) => z.id === 'shadowed-crater') ?? false;
+
   const takePhoto = () => {
     if (ended || !scene || !tracker || !roverPos) return;
-    if (instrument !== 'camera') return hud.notify(ti.noCamera);
+    if (!carries('camera')) return hud.notify(itx.camera.notCarried);
     if (album.length >= mt.albumMax) return hud.notify(fill(ti.photoAlbumFull, { max: mt.albumMax }));
+    if (!tryUse('camera')) return;
     const earth = earthInSky && scene.inView(earthDir, mt.photoFrameMargin);
     const lit = earthInSky ? earthLit() : 0;
     const sun = sunPhoto();
@@ -179,15 +357,14 @@ export const missionScreen: Screen = (game, root) => {
     announce(u);
   };
 
+  // The drill holds the rover still for its useSeconds (rules: startInstrumentUse); stepMission
+  // reports when it is done, and finishDrill reads the sample.
   const startDrill = () => {
-    if (ended || drillLeft > 0) return;
-    if (instrument !== 'drill') return hud.notify(ti.noDrill);
-    if (state.poweredDown) return hud.notify(text.warnings.poweredDown);
-    if ((lastSample?.speedMps ?? 0) > tuning.ground.movingSpeedMps) return hud.notify(ti.drillMoving);
-    drillLeft = mt.drillSeconds;
+    if (ended) return;
+    tryUse('drill');
   };
 
-  const finishDrill = () => {
+  const finishDrill = (site: UseSite) => {
     if (!tracker || !roverPos) return;
     const zones = tracker.zones.filter((z) => tracker!.currentZones().includes(z)).map((z) => z.id);
     const repeat = tracker.sampleTooClose(roverPos);
@@ -195,30 +372,108 @@ export const missionScreen: Screen = (game, root) => {
     if (zones.includes('near-lander')) hud.notify(fill(ti.drillNearLander, { distance: mt.sampleMinDistanceM }));
     else {
       const done = repeat ? fill(ti.drillSameSite, { distance: mt.sampleSpacingM }) : ti.drillDone;
+      // The drill only confirms ice: it gives no hydrogen reading (the neutron spectrometer does).
       const result = zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : done;
-      // In the dark crater each sample also reads the hydrogen signal, a clue to where the ice is.
-      const level = hydrogenSignal(roverPos, tracker.zones, mt);
-      const levelWord = level === 'strong' ? td.hydrogenStrong : level === 'moderate' ? td.hydrogenModerate : td.hydrogenWeak;
-      hud.notify(level ? `${result} ${fill(td.hydrogenSignal, { level: levelWord })}` : result, 'good');
-      if (level && game.settings.missionHistory && !hydrogenFactShown) {
-        hydrogenFactShown = true;
-        hud.notify(td.hydrogenHistory, 'good');
-      }
+      hud.notify(result, 'good');
     }
+    relate(onUseDone('drill', site, instruments, zones.includes('ice-spot')));
     announce(u);
   };
 
+  /** The X-ray reading is done: the rock type of the boulder targeted when it started. */
+  const finishXray = (site: UseSite) => {
+    const index = site.boulder;
+    const boulder = index === null ? undefined : boulders[index];
+    if (index === null || !boulder) return hud.notify(ti.xrayNoTarget);
+    const id = rockTypeFor(boulder, tuning.instruments.xray);
+    const rock = text.rocks[id] ?? { name: id, elements: '' };
+    const again = log.rocks.find((r) => r.boulder === index);
+    hud.notify(again ? fill(ti.xrayAgain, { rock: rock.name }) : fill(ti.xrayResult, { rock: rock.name, elements: rock.elements }), 'good');
+    if (!again) log.rocks.push({ boulder: index, rock: id });
+  };
+
+  /** A station's hold is done: it is on the ground, the rover is lighter and drops the part. */
+  const finishDeploy = (inst: 'seismometer' | 'reflector') => {
+    const aboard = partsAboard(parts, state.deployed);
+    setup = deployPart(setup, parts, state.deployed, tuning);
+    const at = scene?.deploy(inst, roverParams(aboard, tuning), aboard) ?? (roverPos ? { x: roverPos.x, z: roverPos.z } : { x: 0, z: 0 });
+    const button = instrumentButtons.get(inst);
+    if (button) button.disabled = true;
+    buttonLabels.get(inst)!.textContent = ti.deployedButton;
+    if (inst === 'reflector') {
+      log.reflectorPlaced = true;
+      hud.notify(ti.reflectorDeployed, 'good');
+      return;
+    }
+    log.stationPlaced = true;
+    stationSetDown = at; // stepSeismometer places it later in this step (before a moonquake in the same step)
+  };
+
+  /** A held use finished (an 'instrument-done' notice): report what the instrument found. */
+  const finishUse = (inst: Instrument, site: UseSite) => {
+    if (inst === 'drill') finishDrill(site);
+    else if (inst === 'xray') finishXray(site);
+    else if (inst === 'seismometer' || inst === 'reflector') finishDeploy(inst);
+    if (inst !== 'seismometer') showFact(inst); // the station's fact follows its set-down notice (seismometerNotice)
+  };
+
+  /** What the seismometer station did this step: set down, missed the moonquake, or recorded it. */
+  const seismometerNotice = (o: SeismometerOutcome) => {
+    if (o.kind === 'deployed' || o.kind === 'missed') {
+      if (o.kind === 'deployed') hud.notify(ti.seismometerDeployed, 'good');
+      else {
+        log.quake = 'missed';
+        hud.notify(ti.quakeMissed);
+      }
+      return showFact('seismometer');
+    }
+    const { quality, closestM } = o.record;
+    log.quake = quality;
+    hud.showQuakeTrace(quality);
+    // A noisy record is the seismometer's lesson: the first time, its notice replaces the short line.
+    const fresh = relate(onSeismometer(o), { closest: Math.round(closestM) });
+    if (quality === 'clean') hud.notify(ti.quakeClean, 'good');
+    else if (fresh.length === 0) hud.notify(fill(ti.quakeNoisy, { distance: Math.round(closestM) }));
+  };
+
+  /** Switch a standby instrument on or off. */
+  const toggleStandby = (inst: Instrument) => {
+    const on = !state.standbyOn.includes(inst);
+    const r = setStandby(state, inst, on, setup, tuning);
+    if (!r.ok) {
+      const msg = refusalText(inst, r.reason, 0);
+      if (msg) hud.notify(msg);
+      return;
+    }
+    state = r.state;
+    const name = partOf(inst).name;
+    hud.notify(on ? fill(ti.standbyOn, { name, standby: costOf(inst)?.standbyEnergy ?? 0 }) : fill(ti.standbyOff, { name }), 'good');
+    if (on) showFact(inst);
+  };
+
+  function useInstrument(inst: Instrument): void {
+    if (tutorial || notebook || ended) return;
+    // A switch instrument (with a standby draw) is switched on or off; the others are used.
+    if (state.deployed.includes(inst)) {
+      const msg = refusalText(inst, 'deployed', 0);
+      if (msg) hud.notify(msg);
+    } else if (isSwitchInstrument(inst, setup)) toggleStandby(inst);
+    else if (inst === 'camera') takePhoto();
+    else tryUse(inst);
+  }
+
   const onKey = (e: KeyboardEvent) => {
-    if (e.repeat || tutorial) return;
+    if (e.repeat || tutorial || notebook) return;
+    if (e.code === NOTEBOOK_KEY) return openNotes();
     if (e.code === 'KeyP') togglePower();
-    if (e.code === 'KeyC') takePhoto();
-    if (e.code === 'KeyF') startDrill();
+    const inst = instrumentForKey(e.code, parts);
+    if (inst) useInstrument(inst);
   };
   window.addEventListener('keydown', onKey);
 
   const finish = (end: MissionEnd) => {
     ended = end;
-    drillLeft = 0;
+    for (const button of instrumentButtons.values()) button.disabled = true;
     scene?.stopClock();
     if (tracker) announce(tracker.finish(end.survived, state.damageBy));
     const h = text.hud;
@@ -233,8 +488,9 @@ export const missionScreen: Screen = (game, root) => {
       detail: end.detail,
       secondsLasted: end.seconds,
       earned: tracker?.result() ?? [],
+      relationships: met, // for the debrief and the engineering notebook (added at mission end)
     };
-    hud.showEnd(lines, () => game.endMission(result, album));
+    hud.showEnd(lines, () => game.endMission(result, album, log), () => openNotes());
   };
 
   const onStep = (s: MoonStepSample): MoonDriveLimits | void => {
@@ -282,6 +538,9 @@ export const missionScreen: Screen = (game, root) => {
     maxImpact = Math.max(maxImpact, s.deltaV);
     for (const n of step.notices) {
       if (n.kind === 'quake') scene?.shake(data.events.quake?.shakeSeconds ?? 0);
+      if (n.kind === 'standby-off') {
+        hud.notify(fill(ti.standbyAutoOff, { names: n.instruments.map((i) => partOf(i).name).join(text.ticket.and) }));
+      }
       if (n.kind === 'flare-hit' && !n.protected) hud.flashScreen();
       const msg = noticeText(n, text);
       if (msg) hud.notify(msg.message, msg.tone);
@@ -302,18 +561,22 @@ export const missionScreen: Screen = (game, root) => {
         flareSurvived: step.notices.some((n) => n.kind === 'flare-hit' && n.protected),
         ...(marsNow ? { night: marsNow.clock.isNight, stormActive: marsNow.stormPhase === 'active' } : {}),
       }));
-      if (drillLeft > 0) {
-        drillLeft = Math.max(0, drillLeft - s.dt);
-        if (drillLeft === 0 && !state.end) finishDrill();
-      }
+      for (const n of step.notices) if (n.kind === 'instrument-done') finishUse(n.instrument, n.site);
     }
+    // The seismometer station: set down this step, the rover's track while it records, then the moonquake.
+    const point: TrackPoint = { seconds: state.seconds, x: p.x, z: p.z, moving: sample.speedMps > tuning.ground.movingSpeedMps };
+    const seismic = stepSeismometer(seismometer, { point, deployed: stationSetDown, quake: step.notices.some((n) => n.kind === 'quake') }, tuning.instruments.seismometer);
+    seismometer = seismic.track;
+    stationSetDown = null;
+    for (const o of seismic.outcomes) seismometerNotice(o);
     if (state.end && !ended) finish(state.end);
 
     // What the rover may do next step.
     // Mars: no driving at night without lights (marsNow.canDrive also covers sleep).
-    if (ended || state.poweredDown || drillLeft > 0 || (marsNow && !marsNow.canDrive)) {
+    const holding = state.using !== null;
+    if (ended || state.poweredDown || holding || (marsNow && !marsNow.canDrive)) {
       blockedByShadow = false;
-      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: drillLeft > 0 });
+      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: holding });
     }
     // Without lights the rover stops at the edge of permanent shadow.
     let allowForward = true;
@@ -327,6 +590,8 @@ export const missionScreen: Screen = (game, root) => {
     }
     blockedByShadow = (throttle > 0 && !allowForward) || (throttle < 0 && !allowReverse);
     const headingIn = (s.speed > 0.2 && !allowForward) || (s.speed < -0.2 && !allowReverse);
+    // The stop at the edge of permanent shadow is the no-lights lesson (once per mission).
+    relate(onShadowStop({ hasLights: setup.hasLights, stopped: blockedByShadow || headingIn }));
     return (limits = { allowForward, allowReverse, speedFactor: Math.max(0.2, 1 - step.slip), hardStop: headingIn });
   };
 
@@ -339,22 +604,27 @@ export const missionScreen: Screen = (game, root) => {
   };
 
   const hintText = (): string | null => {
-    if (drillLeft > 0) return ti.drilling;
+    if (state.using) return itx[state.using.instrument].holding ?? fill(ti.holding, { name: partOf(state.using.instrument).name });
     const zones = tracker?.currentZones() ?? [];
-    if (instrument === 'camera') {
+    if (aboard('xray') && currentBoulder()) return fill(ti.boulderHint, { key: keyOf('xray') });
+    if (carries('camera')) {
+      const key = keyOf('camera');
       const view = zones.find((z) => PHOTO_ZONE_IDS.includes(z.id));
-      if (view) return fill(ti.viewpointHint, { name: view.name });
+      if (view) return fill(ti.viewpointHint, { name: view.name, key });
       if (sunInView && roverPos && ti.sunsetHint) {
         const sun = sunPhoto();
-        if (sun && tracker?.sunsetBlocker(roverPos, { ...sun, inFrame: true }) === null) return ti.sunsetHint;
+        if (sun && tracker?.sunsetBlocker(roverPos, { ...sun, inFrame: true }) === null) return fill(ti.sunsetHint, { key });
       }
       if (earthInView) {
         const lit = earthLit();
-        return (roverPos && earthBlocker(roverPos, lit)) ?? ti.earthHint;
+        return (roverPos && earthBlocker(roverPos, lit)) ?? fill(ti.earthHint, { key });
       }
     }
     // The exact ice spot is never revealed: inside the dark crater the hint only invites a test drill.
-    if (instrument === 'drill' && zones.some((z) => z.id === 'shadowed-crater')) return mt.hydrogenSignal ? td.searchHintHydrogen : ti.iceSearchHint;
+    if (zones.some((z) => z.id === 'shadowed-crater')) {
+      if (carries('drill')) return fill(ti.iceSearchHint, { key: keyOf('drill') });
+      if (carries('neutron')) return ti.neutronHint;
+    }
     return null;
   };
 
@@ -380,13 +650,34 @@ export const missionScreen: Screen = (game, root) => {
     }
     // On Mars the lights are on whenever the rover is awake at night (the rules drain the battery for it).
     scene?.setFloodlights(!ended && (marsNow ? marsNow.lightsOn : !state.poweredDown && sunlight < 0.5));
+    // Instrument readouts: the hydrogen meter only while the spectrometer is on and the rover powered up.
+    // It samples at once when it turns on (no stale or zero reading), then every HYDROGEN_EVERY_FRAMES.
+    const meterOn = !ended && !state.poweredDown && state.standbyOn.includes('neutron');
+    if (!meterOn) {
+      hydrogenCountdown = 0;
+      hydrogen = 0;
+    } else if (roverPos && --hydrogenCountdown <= 0) {
+      hydrogenCountdown = HYDROGEN_EVERY_FRAMES;
+      hydrogen = hydrogenReading(roverPos, lastSample?.inColdZone ?? false, zones, tuning.instruments.neutron, Math.random());
+      log.hydrogenPeak = Math.max(log.hydrogenPeak ?? 0, hydrogen);
+    }
+    hud.setHydrogen(meterOn ? hydrogen : null);
+    if (earthInSky && ctx && roverPos && frame % EARTH_CHECK_EVERY_FRAMES === 0) {
+      earthAbove = ctx.horizonMarginTan(ctx.terrain, roverPos.x, roverPos.z, roverPos.y + ctx.groundEyeM, earthDir) > 0;
+    }
+    hud.setEarthLight(!ended && aboard('reflector') ? earthAbove : null);
+    for (const [inst, button] of instrumentButtons) {
+      const on = !ended && state.standbyOn.includes(inst);
+      button.classList.toggle('active', !ended && (state.using?.instrument === inst || on));
+      if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', String(on));
+    }
     if (ended) return;
     const flare = activeFlareWarning(state, setup);
     hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / (data.events.flare?.warningSeconds ?? 1) : 0);
     const ids = lastSample ? missionWarnings(state, lastSample, lastSlip, blockedByShadow, setup, tuning) : [];
     const noLights = mars && marsNow ? mars.noLightsWarning(marsNow, state.poweredDown, setup.hasLights) : null;
     hud.setWarnings([...(nearBoundary ? [text.mission.boundary] : []), ...(noLights ? [noLights] : []), ...ids.map(warningText)]);
-    if (instrument === 'camera' && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) {
+    if (carries('camera') && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) {
       if (earthInSky) earthInView = scene.inView(earthDir, mt.photoFrameMargin);
       if (mars) sunInView = scene.inView(sunNow(), mt.photoFrameMargin);
     }
@@ -415,7 +706,8 @@ export const missionScreen: Screen = (game, root) => {
     .then(async ([{ startMoonScene }, terrainData, { loadTerrainMasks }]) => {
       const [terrain, masks] = await Promise.all([terrainData.loadTerrain(game.world), loadTerrainMasks(tuning, game.world)]);
       if (disposed) return;
-      ctx = { terrain, masks, sunVisibility: terrainData.sunVisibility };
+      ctx = { terrain, masks, sunVisibility: terrainData.sunVisibility, horizonMarginTan: terrainData.horizonMarginTan, groundEyeM: terrainData.GROUND_EYE_M };
+      boulders = scatterBoulders(masks.softAreas, tuning.boulders); // the same boulders the scene draws
       explored = createExplored(terrain.fine.extent * 2, tuning.explore);
       if (WORLDS[game.world].sky === 'mars') {
         const se = terrain.info.sunAndEarth;
@@ -441,10 +733,10 @@ export const missionScreen: Screen = (game, root) => {
       });
       if (disposed) return started.dispose();
       scene = started;
-      if (tutorial) scene.setPaused(true);
+      if (tutorial || notebook) scene.setPaused(true);
       status.textContent = '';
       const f = masks.info.features;
-      tracker = new MilestoneTracker(data.milestones.milestones, parts, buildZones({
+      zones = buildZones({
         landing: { x: masks.info.landing.local.x, y: terrain.heightAt(masks.info.landing.local.x, masks.info.landing.local.z), z: masks.info.landing.local.z },
         rimViewpoints: f.rimViewpoints,
         rockyAreas: f.rockyAreas,
@@ -453,7 +745,8 @@ export const missionScreen: Screen = (game, root) => {
         deltaFront: f.deltaFront,
         seitah: f.seitah,
         viewpoints: f.viewpoints,
-      }, mt), mt);
+      }, mt);
+      tracker = new MilestoneTracker(data.milestones.milestones, parts, zones, mt);
       announce(tracker.land());
     })
     .catch((err: unknown) => {
@@ -478,6 +771,10 @@ export const missionScreen: Screen = (game, root) => {
         const length = m.storm.endAt - m.storm.startAt;
         m.storm = { forecastAt: state.seconds + 0.1, startAt: state.seconds + 0.1 + lead, endAt: state.seconds + 0.1 + lead + length };
       },
+      instruments: () => ({ log, earthAbove, hydrogen, boulder: currentBoulder(), seismometer }),
+      relationships: () => met,
+      notebook: () => ({ open: notebook !== null, unread, atLaunch: notebookAtLaunch }),
+      openNotebook: openNotes,
       sample: () => ({ sample: lastSample, slip: lastSlip, sunlight, blockedByShadow, explored: exploredShare(explored), maxImpact }),
       survey: () => ({ discovered: sites.filter((s) => s.discovered).map((s) => s.name), openLeads: leads.filter((l) => !l.site.discovered).map((l) => l.id) }),
       milestones: () => ({
@@ -488,10 +785,12 @@ export const missionScreen: Screen = (game, root) => {
         sunset: roverPos ? (() => { const sun = sunPhoto(); return sun ? { ...sun, blocker: tracker?.sunsetBlocker(roverPos!, sun) } : null; })() : null,
         earthLit: earthLit(),
         album: album.map((a) => a.caption),
-        drilling: drillLeft,
+        drilling: state.using?.instrument === 'drill' ? state.using.secondsLeft : 0,
       }),
       photo: takePhoto,
       drill: startDrill,
+      boulders: () => boulders,
+      use: useInstrument,
       resetMaxImpact() {
         maxImpact = 0;
       },
@@ -517,6 +816,7 @@ export const missionScreen: Screen = (game, root) => {
   return () => {
     disposed = true;
     tutorial?.dispose();
+    notebook?.dispose();
     window.removeEventListener('keydown', onKey);
     scene?.dispose();
     if (import.meta.env.DEV) delete (window as unknown as { __mission?: unknown }).__mission;

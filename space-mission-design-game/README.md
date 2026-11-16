@@ -9,7 +9,10 @@ Everything for our entry to the 2026 [Space Mission Design Game](https://www.spa
 | Document | What it holds | Kind |
 | --- | --- | --- |
 | [game-design.md](game-design.md) | The working design: decisions, economy, milestones, rover slots, hazards, the Moon level, tech stack, open questions, build order | Living, team-owned |
+| [rover-engineering-design.md](rover-engineering-design.md) | The rover design space: every component and instrument the game could offer, the constraints that tie them together, their mission properties, the payload bay, and which instruments each world offers | Living, team-owned |
 | [implementation-plan.md](implementation-plan.md) | How the first version (the Moon mission) is built: scope, architecture, data files, phases with a submission cut, risks | Plan |
+| [rover-engineering-implementation-plan.md](rover-engineering-implementation-plan.md) | How the payload bay, the new Moon instruments, part relationships, the engineering notebook, and the pre-launch review are built: data changes, phases, file map, tests, risks | Plan |
+| [rover-engineering-playtest-checklist.md](rover-engineering-playtest-checklist.md) | A short checklist for playing the payload bay, the six instruments, the five lessons, the notebook, and the pre-launch review in the browser | Checklist |
 | [team-plan.md](team-plan.md) | How our two-person team splits design ownership after the first version, and what we decide together | Plan |
 | [challenge-brief.md](challenge-brief.md) | The official brief, core outcomes, the optional feature register with IDs, the nine NASA resources, and notes on the two PDFs | Official material |
 | [research/landscape-precedents-and-judging.md](research/landscape-precedents-and-judging.md) | Comparable games and the market gap, past Space Apps precedents, applying the judging criteria, open decisions from before the design | Analysis |

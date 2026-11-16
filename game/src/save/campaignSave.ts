@@ -17,7 +17,7 @@ function defaultStore(): KeyValueStore | null {
   }
 }
 
-function looksLikeCampaign(value: unknown): value is CampaignState {
+function looksLikeCampaign(value: unknown): value is Omit<CampaignState, 'notebook'> & { notebook?: unknown } {
   if (typeof value !== 'object' || value === null) return false;
   const v = value as Record<string, unknown>;
   return (
@@ -31,12 +31,18 @@ function looksLikeCampaign(value: unknown): value is CampaignState {
   );
 }
 
+/** A save from before the engineering notebook has none: it starts empty. Entries that are not ids are dropped. */
+function withNotebook(v: Omit<CampaignState, 'notebook'> & { notebook?: unknown }): CampaignState {
+  const notebook = Array.isArray(v.notebook) ? v.notebook.filter((id): id is string => typeof id === 'string') : [];
+  return { ...v, notebook };
+}
+
 export function loadCampaign(store: KeyValueStore | null = defaultStore()): CampaignState | null {
   try {
     const raw = store?.getItem(KEY);
     if (!raw) return null;
     const parsed: unknown = JSON.parse(raw);
-    return looksLikeCampaign(parsed) ? parsed : null;
+    return looksLikeCampaign(parsed) ? withNotebook(parsed) : null;
   } catch {
     return null;
   }

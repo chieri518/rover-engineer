@@ -6,10 +6,10 @@ const part = (id: string, slot: Part['slot'], cost: number, mass: number, size: 
 });
 
 export const testParts: PartsFile = {
-  slots: ['chassis', 'wheels', 'power', 'battery', 'lights', 'heater', 'instrument'],
+  slots: ['chassis', 'wheels', 'power', 'battery', 'lights', 'heater'],
   parts: [
-    part('steel', 'chassis', 60, 30, 5, { maxLoad: 80 }),
-    part('titanium', 'chassis', 160, 15, 4, { maxLoad: 70 }),
+    part('steel', 'chassis', 60, 30, 5, { maxLoad: 80, mountingPoints: 3 }),
+    part('titanium', 'chassis', 160, 15, 4, { maxLoad: 70, mountingPoints: 2 }),
     part('solid', 'wheels', 30, 20, 4),
     part('mesh', 'wheels', 70, 10, 5),
     part('panel', 'power', 40, 10, 4),
@@ -18,7 +18,11 @@ export const testParts: PartsFile = {
     part('no-lights', 'lights', 0, 0, 0, { lightRange: 0 }),
     part('heater', 'heater', 20, 5, 1, { heat: 1 }),
     part('camera', 'instrument', 50, 5, 1, { instrument: 'camera' }),
-    part('drill', 'instrument', 90, 10, 5, { instrument: 'drill' }),
+    part('drill', 'instrument', 90, 10, 5, { instrument: 'drill', energyPerUse: 10, useSeconds: 3 }),
+    part('neutron', 'instrument', 80, 4, 2, { instrument: 'neutron', standbyEnergy: 0.5 }),
+    part('xray', 'instrument', 60, 2, 1, { instrument: 'xray', energyPerUse: 3, useSeconds: 4, needsBoulder: true, shadowHoldFactor: 0.5, coldTolerant: true }),
+    part('seismometer', 'instrument', 70, 4, 2, { instrument: 'seismometer', useSeconds: 3, deploy: true }),
+    part('reflector', 'instrument', 30, 3, 1, { instrument: 'reflector', useSeconds: 3, deploy: true, needsEarth: true }),
   ],
 };
 
@@ -85,8 +89,16 @@ export const testTuning: Tuning = {
   area: { boundaryInsetM: 100, warningDistanceM: 60 },
   milestones: {
     photoZoneRadiusM: 60, iceSpotRadiusM: 50, boulderCrossRadiusFactor: 1.1, boulderCrossMinAngleDeg: 90, partialCrossingHint: true,
-    craterDescentDepthM: 150, craterDescentExitDepthM: 100, drillSeconds: 3, albumMax: 12, photoFrameMargin: 0.85,
-    sampleMinDistanceM: 200, sampleSpacingM: 200, earthPhotoMinLit: 0.25, earthPhotoMinDistanceM: 300, hydrogenSignal: true, hydrogenStrongWithinM: 100, hydrogenModerateWithinM: 250,
+    craterDescentDepthM: 150, craterDescentExitDepthM: 100, albumMax: 12, photoFrameMargin: 0.85,
+    sampleMinDistanceM: 200, sampleSpacingM: 200, earthPhotoMinLit: 0.25, earthPhotoMinDistanceM: 300,
+  },
+  instruments: {
+    coldSlowdown: 2,
+    shadowSunlight: 0.5,
+    stationOffsetM: 1.6,
+    neutron: { iceRangeM: 300, coldBackground: 0.2, noiseFloor: 0.05, jitter: 0.03 },
+    xray: { reachM: 3, rocks: [{ id: 'common', weight: 3 }, { id: 'rare', weight: 1 }] },
+    seismometer: { recordWindowSeconds: 20, quietDistanceM: 150 },
   },
 };
 

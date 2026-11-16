@@ -7,32 +7,13 @@ import type RAPIER from '@dimforge/rapier3d-compat';
 import type { Tuning } from '../rules/types';
 import { seededRng } from '../rules/events';
 import type { SoftArea } from '../rules/ground';
+import { scatterBoulders, type Boulder } from '../rules/boulders';
+
+export type { Boulder };
 
 type Rapier = typeof RAPIER;
 
 const BOULDER_COLOR = 0x7d7a74;
-
-export interface Boulder {
-  x: number;
-  z: number;
-  radius: number;
-}
-
-/** Deterministic boulder positions and sizes: small ones common, large ones rare. */
-export function scatterBoulders(areas: SoftArea[], b: Tuning['boulders']): Boulder[] {
-  const rng = seededRng(b.seed);
-  const list: Boulder[] = [];
-  for (const a of areas) {
-    const spread = a.radiusM * b.spreadRadiusFactor;
-    for (let i = 0; i < b.perRockyArea; i++) {
-      const r = spread * Math.sqrt(rng());
-      const th = rng() * Math.PI * 2;
-      const size = b.minDiameterM * (b.maxDiameterM / b.minDiameterM) ** (rng() ** 3);
-      list.push({ x: a.x + r * Math.cos(th), z: a.z + r * Math.sin(th), radius: size / 2 });
-    }
-  }
-  return list;
-}
 
 export class Boulders {
   readonly mesh: THREE.Mesh;
