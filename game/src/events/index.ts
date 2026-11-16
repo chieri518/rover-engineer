@@ -22,7 +22,8 @@ export function noticeText(notice: MissionNotice, text: TextFile): { message: st
     case 'impact':
       return { message: w.impact, tone: 'warn' };
     case 'instrument-done':
+    case 'instrument-stopped':
     case 'standby-off':
-      return null; // the mission screen reports what the instrument found or which were switched off
+      return null; // the mission screen reports what the instrument found, why it stopped, or which were switched off
   }
 }

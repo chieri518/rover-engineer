@@ -1,7 +1,8 @@
 // Mission screen: the drivable world plus the mission systems. Each physics step it measures the
 // rover, calls the rules (rules/mission.ts) and applies what they allow; each frame it draws the HUD
 // and minimap. The mission ends at its length or on one of the deaths, then goes to the debrief.
-// Mars adds the sol clock, the real Sun, night (lights on or sleep) and the dust storm (ui/marsMission.ts).
+// Mars adds the sol clock, the real Sun, night (lights on or sleep) and the dust storm (ui/marsMission.ts),
+// and its four instruments: the weather mast, the radar, the laser and the organics spectrometer (step 4a).
 import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
 import { buildZones, MilestoneTracker, PHOTO_ZONE_IDS, type FramedBoulder, type MilestoneUpdate, type Point3, type SunPhoto, type Zone } from '../rules/milestones';
@@ -11,8 +12,9 @@ import type { Instrument } from '../rules/types';
 import { scatterBoulders, scatterSiteBoulders, type Boulder } from '../rules/boulders';
 import { resolveSites, type ResolvedSite, type SiteFeatures } from '../rules/sites';
 import {
-  emptyInstrumentLog, emptySeismometerTrack, hydrogenReading, reflectorEarthLight, rockTypeFor, rockTypeTotal, stationHint, stationPress, stationTooClose,
-  stepSeismometer, xrayTarget, type InstrumentLog, type SeismometerOutcome, type StationPending, type TrackPoint,
+  emptyInstrumentLog, emptyRadarTrack, emptySeismometerTrack, hydrogenReading, laserTarget, radarLayer, radarTrack, reflectorEarthLight, rockTypeFor,
+  rockTypeTotal, stationHint, stationPress, stationTooClose, stepSeismometer, withMastPhotoRange, xrayTarget,
+  type InstrumentLog, type LaserTarget, type SeismometerOutcome, type StationPending, type TrackPoint,
 } from '../rules/instruments';
 import { emptySiteProgress, noteReading, siteDone, siteRocks, stepSurveyRun, type SurveyRun } from '../rules/siteChecks';
 import {
@@ -77,7 +79,8 @@ export const missionScreen: Screen = (game, root) => {
   let mars: MarsMission | null = null; // Mars only, once the terrain has loaded
   let marsNow: MarsStatus | null = null; // the Mars conditions after the last step
   let sunInView = false; // Mars: the Sun is in frame and above the terrain horizon
-  const mt = tuning.milestones;
+  // The milestone tuning: with a mast aboard (Mars), the camera's viewpoint photo zones are wider.
+  const mt = withMastPhotoRange(tuning.milestones, parts, tuning.instruments.mast);
   // The payload bay, in bay order: instrument i is used with number key i + 1 or its HUD button. The
   // keys and buttons stay fixed to the launch bay order; a deployed station's button is disabled.
   const instruments = instrumentsOf(parts);
@@ -121,6 +124,11 @@ export const missionScreen: Screen = (game, root) => {
   // A station key pressed inside the near-lander zone waits here for its confirming second press.
   let stationPending: StationPending | null = null;
   let seismometerTooClose: string | null = null; // the station went down near the lander: said after its set-down notice
+  // Mars instruments (step 4a): the radar's profile, the laser's target, and the delta cliff it can aim at.
+  let radar = emptyRadarTrack();
+  let laser: LaserTarget | null = null;
+  let cliffLine: [number, number][] | null = null; // terrain.json deltaFront.scarpLocal_xz (Mars)
+  let roverForward: { x: number; z: number } = { x: 0, z: -1 }; // the rover's heading after the last step
 
   // What the last step measured
   let ctx: {
@@ -320,19 +328,29 @@ export const missionScreen: Screen = (game, root) => {
         return fill(ti.useMoving, { name });
       case 'energy':
         return fill(ti.useNoEnergy, { name, cost, energy: Math.floor(state.energy) });
+      case 'slope':
+        return fill(itx[inst].slope ?? ti.useMoving, { name, slope: Math.round(lastSample?.slopeDeg ?? 0), max: tuning.instruments.arm?.slopeLimitDeg ?? 0 });
+      case 'no-target':
+        return fill(itx[inst].noTarget ?? ti.useNoBoulder, { name, reach: tuning.instruments.laser?.reachM ?? 0 });
     }
   };
   /** The rules' answer to a use now, without applying it. */
-  const startUse = (inst: Instrument) =>
-    startInstrumentUse(state, inst, {
+  const startUse = (inst: Instrument) => {
+    // A remote reading (the laser, on the mast) aims at its target ahead; the others read the boulder in reach.
+    const remote = setup.remote.includes(inst);
+    const aim = remote ? currentLaserTarget() : null;
+    return startInstrumentUse(state, inst, {
       speedMps: lastSample?.speedMps ?? 0,
       inColdZone: lastSample?.inColdZone ?? false,
       sunlight,
       earthInView: earthAbove,
       boulderInReach: currentBoulder() !== null,
-      boulder: currentBoulder()?.index ?? null, // an X-ray reading keeps this boulder even if the rover is nudged
+      boulder: remote ? aim?.index ?? null : currentBoulder()?.index ?? null, // a reading keeps this boulder even if the rover is nudged
       inDarkCrater: inDarkCrater(),
+      slopeDeg: lastSample?.slopeDeg ?? 0,
+      remoteTarget: aim?.kind ?? null,
     }, setup, tuning);
+  };
   /** Run the rules for a use; on success the state is updated (energy charged, hold started). */
   const tryUse = (inst: Instrument): boolean => {
     if (!carries(inst)) {
@@ -370,6 +388,11 @@ export const missionScreen: Screen = (game, root) => {
   };
   /** The boulder within the X-ray spectrometer's reach, if any. */
   const currentBoulder = () => (roverPos ? xrayTarget(roverPos, boulders, tuning.instruments.xray) : null);
+  /** Mars: the laser spectrometer's target in the cone ahead (a boulder or the delta cliff), if any. */
+  const currentLaserTarget = (): LaserTarget | null => {
+    const t = tuning.instruments.laser;
+    return t && roverPos ? laserTarget(roverPos, roverForward, { boulders, cliff: cliffLine }, t) : null;
+  };
   /** A station: an instrument set down on the ground (the seismometer and the reflector). */
   const isStation = (i: Instrument) => partOf(i)?.effects.deploy === true;
   /** The rover is inside the near-lander zone, where a station set down earns no milestones. */
@@ -449,6 +472,36 @@ export const missionScreen: Screen = (game, root) => {
     if (tracker && roverPos) announce(tracker.reading('xray', roverPos, { target: 'boulder', rock: id, boulder: index }));
   };
 
+  /**
+   * The laser reading is done: the boulder's rock type (as the X-ray reads it) or the delta cliff, aimed at
+   * when it started. It feeds the shared `reading` trigger with its target; the rock and the boulder stay
+   * out of the tracker for now, so a laser reading never counts toward the X-ray's Rock collection or
+   * Documented sample (the tracker keeps those sets for all instruments together).
+   */
+  const finishLaser = (site: UseSite) => {
+    const lt = itx.laser;
+    if (site.target === 'cliff') {
+      log.laser.push({ target: 'cliff', boulder: null, rock: null });
+      if (lt.resultCliff) hud.notify(lt.resultCliff, 'good');
+    } else {
+      const boulder = site.boulder === null ? undefined : boulders[site.boulder];
+      if (site.boulder === null || !boulder) return; // cannot happen: a boulder reading starts only aimed at one
+      const id = rockTypeFor(boulder, tuning.instruments.xray, data.sites.sites);
+      const rock = text.rocks[id] ?? { name: id, elements: '' };
+      log.laser.push({ target: 'boulder', boulder: site.boulder, rock: id });
+      hud.notify(fill(lt.result ?? ti.xrayResult, { rock: rock.name, elements: rock.elements }), 'good');
+    }
+    if (tracker && roverPos) announce(tracker.reading('laser', roverPos, { target: site.target ?? 'boulder' }));
+  };
+
+  /** The organics reading is done: no rock type; it feeds the shared `reading` trigger on its boulder. */
+  const finishOrganics = (site: UseSite) => {
+    if (site.boulder === null) return; // cannot happen: an organics reading starts only with a boulder in reach
+    log.organics++;
+    if (itx.organics.result) hud.notify(itx.organics.result, 'good');
+    if (tracker && roverPos) announce(tracker.reading('organics', roverPos, { target: 'boulder' }));
+  };
+
   /** A station's hold is done: it is on the ground, the rover is lighter and drops the part. */
   const finishDeploy = (inst: 'seismometer' | 'reflector') => {
     const aboard = partsAboard(parts, state.deployed);
@@ -481,6 +534,8 @@ export const missionScreen: Screen = (game, root) => {
   const finishUse = (inst: Instrument, site: UseSite) => {
     if (inst === 'drill') finishDrill(site);
     else if (inst === 'xray') finishXray(site);
+    else if (inst === 'laser') finishLaser(site);
+    else if (inst === 'organics') finishOrganics(site);
     else if (inst === 'seismometer' || inst === 'reflector') finishDeploy(inst);
     if (inst !== 'seismometer') showFact(inst); // the station's fact follows its set-down notice (seismometerNotice)
   };
@@ -602,6 +657,7 @@ export const missionScreen: Screen = (game, root) => {
     if (distance > MAX_STEP_DISTANCE_M) distance = 0;
     lastPos = { x: p.x, z: p.z };
     sceneSeconds = s.seconds;
+    if (Math.hypot(s.forward.x, s.forward.z) > 1e-6) roverForward = { x: s.forward.x, z: s.forward.z };
 
     const vh = Math.hypot(s.velocity.x, s.velocity.z);
     let uphillDeg = 0;
@@ -643,15 +699,23 @@ export const missionScreen: Screen = (game, root) => {
         hud.notify(fill(ti.standbyAutoOff, { names: n.instruments.map((i) => partOf(i).name).join(text.ticket.and) }));
       }
       if (n.kind === 'flare-hit' && !n.protected) hud.flashScreen();
+      if (n.kind === 'instrument-stopped') {
+        const said = itx[n.instrument].stopped;
+        if (said) hud.notify(fill(said, { name: partOf(n.instrument).name }));
+      }
       const msg = noticeText(n, text);
       if (msg) hud.notify(msg.message, msg.tone);
     }
     if (mars) {
       marsNow = mars.status(state, setup);
       for (const n of step.marsNotices) {
-        const msg = mars.noticeText(n, setup.hasLights);
+        const lead = setup.mars?.storm ? setup.mars.storm.startAt - state.seconds : 0;
+        const msg = mars.noticeText(n, setup.hasLights, lead);
         hud.notify(msg.message, msg.tone);
+        if (n.kind === 'storm' && n.byMast) log.stormForecastByMast = true;
       }
+      // The weather mast's record: seconds switched on with the rover powered up.
+      if (!state.poweredDown && state.standbyOn.includes('weather')) log.weatherSeconds += s.dt;
     }
     if (!ended && tracker) {
       roverPos = { x: p.x, y: terrain.heightAt(p.x, p.z), z: p.z };
@@ -676,6 +740,21 @@ export const missionScreen: Screen = (game, root) => {
       }, coldTrapSurveyM);
       lastOdometerM = state.distanceM;
       surveyRun = run.run;
+      // The radar's profile: switched on and powered up, along the drive, with the layer under the rover.
+      const radarTuning = tuning.instruments.radar;
+      if (radarTuning && carries('radar')) {
+        const on = !state.poweredDown && state.standbyOn.includes('radar');
+        radar = radarTrack(radar, {
+          on,
+          dt: s.dt,
+          distanceM: distance,
+          headingDeg: Math.atan2(s.forward.x, -s.forward.z) * DEG,
+          moving: sample.speedMps > tuning.ground.movingSpeedMps,
+          layer: radarLayer(tracker.currentZones().map((z) => z.id), radarTuning),
+        }, radarTuning);
+        if (on) log.radarLongestM = Math.max(log.radarLongestM ?? 0, radar.longestM);
+        log.radarLayers = radar.layers;
+      }
       for (const id of run.surveyed) siteProgress.surveyed.add(id);
       for (const n of step.notices) if (n.kind === 'instrument-done') finishUse(n.instrument, n.site);
     }
@@ -723,6 +802,7 @@ export const missionScreen: Screen = (game, root) => {
     if (state.using) return itx[state.using.instrument].holding ?? fill(ti.holding, { name: partOf(state.using.instrument).name });
     const zones = tracker?.currentZones() ?? [];
     if (aboard('xray') && currentBoulder()) return fill(ti.boulderHint, { key: keyOf('xray') });
+    if (aboard('organics') && currentBoulder() && itx.organics.target) return fill(itx.organics.target, { key: keyOf('organics') });
     // A station aboard near the lander: said before it is set down, not after. A reflector without Earth
     // in view is refused outright instead (its Earth light says so), so it gets no too-close hint.
     if (roverTooClose()) {
@@ -798,6 +878,24 @@ export const missionScreen: Screen = (game, root) => {
       log.hydrogenPeak = Math.max(log.hydrogenPeak ?? 0, hydrogen);
     }
     hud.setHydrogen(meterOn ? hydrogen : null);
+    // Mars instruments: the weather readout and the radar strip while switched on and powered up, the
+    // laser's target while it is aboard, and a long hold's progress (a use charged as it runs).
+    const live = (i: Instrument) => !ended && !state.poweredDown && state.standbyOn.includes(i);
+    hud.setWeather(mars && live('weather') ? mars.weatherLine(state.seconds, setup) : null);
+    const it = itx.radar;
+    hud.setRadar(live('radar') ? radar.columns : null, it.strip ? fill(it.strip, { meters: Math.round(radar.profileM) }) : '');
+    laser = !ended && aboard('laser') ? currentLaserTarget() : null;
+    const lt = itx.laser;
+    hud.setLaserTarget(laser && lt.target ? fill(lt.target, {
+      target: (laser.kind === 'cliff' ? lt.targetCliff : lt.targetBoulder) ?? laser.kind,
+      distance: Math.round(laser.distanceM),
+      key: keyOf('laser'),
+    }) : null);
+    const hold = state.using;
+    if (!ended && hold?.chargePerSecond) {
+      const total = costOf(hold.instrument)?.useSeconds ?? hold.secondsLeft;
+      hud.setProgress(total > 0 ? 1 - hold.secondsLeft / total : 1, itx[hold.instrument].holding ?? partOf(hold.instrument).name);
+    } else hud.setProgress(null);
     if (earthInSky && ctx && roverPos && frame % EARTH_CHECK_EVERY_FRAMES === 0) {
       earthAbove = ctx.horizonMarginTan(ctx.terrain, roverPos.x, roverPos.z, roverPos.y + ctx.groundEyeM, earthDir) > 0;
     }
@@ -884,6 +982,7 @@ export const missionScreen: Screen = (game, root) => {
       if (tutorial || notebook) scene.setPaused(true);
       status.textContent = '';
       const f = masks.info.features;
+      cliffLine = f.deltaFront?.scarpLocal_xz ?? null;
       zones = buildZones({
         landing: { x: masks.info.landing.local.x, y: terrain.heightAt(masks.info.landing.local.x, masks.info.landing.local.z), z: masks.info.landing.local.z },
         rimViewpoints: f.rimViewpoints,
@@ -919,7 +1018,7 @@ export const missionScreen: Screen = (game, root) => {
         const length = m.storm.endAt - m.storm.startAt;
         m.storm = { forecastAt: state.seconds + 0.1, startAt: state.seconds + 0.1 + lead, endAt: state.seconds + 0.1 + lead + length };
       },
-      instruments: () => ({ log, earthAbove, hydrogen, boulder: currentBoulder(), seismometer }),
+      instruments: () => ({ log, earthAbove, hydrogen, boulder: currentBoulder(), seismometer, radar, laser: currentLaserTarget(), using: state.using }),
       relationships: () => met,
       notebook: () => ({ open: notebook !== null, unread, atLaunch: notebookAtLaunch }),
       openNotebook: openNotes,

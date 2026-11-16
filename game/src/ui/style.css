@@ -109,6 +109,18 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .quake-trace svg { display: block; width: 100%; height: 34px; margin-top: 2px; }
 .quake-trace polyline { fill: none; stroke: var(--info); stroke-width: 1.2; }
 .quake-trace.noisy polyline { stroke: var(--warn); }
+.weather-readout { font-family: var(--font-mono); font-size: 0.8rem; color: var(--info); }
+.radar-strip { font-size: 0.75rem; color: var(--muted); }
+.radar-strip canvas { display: block; width: 100%; height: 34px; margin-top: 2px; image-rendering: pixelated; border: 1px solid var(--line); }
+.laser-target { font-size: 0.8rem; color: var(--accent); }
+.weather-readout[hidden], .radar-strip[hidden], .laser-target[hidden], .laser-reticle[hidden], .hold-progress[hidden] { display: none; }
+.laser-reticle { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 2px solid var(--accent); border-radius: 50%; pointer-events: none; box-shadow: 0 0 6px rgba(0, 0, 0, 0.6); }
+.laser-reticle::before, .laser-reticle::after { content: ''; position: absolute; background: var(--accent); }
+.laser-reticle::before { left: 50%; top: -8px; bottom: -8px; width: 2px; margin-left: -1px; }
+.laser-reticle::after { top: 50%; left: -8px; right: -8px; height: 2px; margin-top: -1px; }
+.hold-progress { display: grid; gap: 4px; background: rgba(8, 26, 40, 0.88); color: #d4f0ff; border: 1px solid var(--info); padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; min-width: 240px; }
+.hold-progress-track { height: 6px; background: rgba(255, 255, 255, 0.15); border-radius: 3px; overflow: hidden; }
+.hold-progress-fill { height: 100%; width: 0; background: var(--info); }
 .instrument-key { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 4px; }
 /* Between the HUD panel (left, 260 px) and the minimap (right, up to 216 px), so long notices never cover them. */
 .hud-center { position: absolute; top: 14%; left: 50%; transform: translateX(-50%); width: clamp(200px, calc(100% - 600px), 560px); display: grid; gap: 8px; justify-items: center; }

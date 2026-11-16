@@ -42,7 +42,6 @@
   "design": {
     "notOffered": "Not offered on Mars: {parts}.",
     "overTopTier": "Exceeds the Heavy ticket limits. The rover cannot launch.",
-    "instrumentNoMilestones": "Earns no milestones yet.",
     "speedInfo": [
       "The mission compresses {sols} sols on Mars into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
       "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
@@ -224,28 +223,66 @@
     "siteNames": { "Seitah": "Séítah" }
   },
   "instrumentText": {
-    "_note": "Mars's own instruments (Mars M4). Their behavior and history facts arrive in Mars step 4a; until then a reading gives no result, and the controls line says so.",
+    "_note": "Mars's own instruments (Mars M4, behavior built in Mars step 4a) and the X-ray's slope refusal. Real facts use the safe wording of the Mars engineering plan's Real anchors (ranges, \"signals consistent with\"); each cites its source. Placeholders: rules/types.ts InstrumentText.",
+    "xray": {
+      "slope": "{name}: the ground here is too steep for the arm ({slope}°). The arm reads on ground up to {max}°."
+    },
     "weather": {
       "button": "Weather",
-      "controls": "{key} to switch the weather mast on or off ({standby} energy/s while on; no readings yet in this version).",
-      "notCarried": "This rover carries no weather mast."
+      "controls": "{key} to switch the weather mast on or off ({standby} energy/s while on). It reads pressure and dust in the air.",
+      "notCarried": "This rover carries no weather mast.",
+      "forecast": "Weather mast: the pressure and dust readings point to a regional dust storm reaching the site in about {sols} sols, before the orbital report. Solar income will fall to about {stormSolarPercent}%.",
+      "readout": "Air: {pressure} Pa {pressureTrend} · dust {tau} {dustTrend}",
+      "trend": { "rising": "↑", "falling": "↓", "steady": "→" },
+      "log": "Weather mast: recorded pressure and dust for {seconds} s.",
+      "logStorm": "It forecast the dust storm before the orbital report.",
+      "logNone": "Weather mast: never switched on.",
+      "fact": "NASA's Perseverance rover carries MEDA, a set of weather sensors that measures pressure, temperature, wind, humidity and dust in the air at Jezero crater.",
+      "source": "Rodriguez-Manfredi et al. (2021), The Mars Environmental Dynamics Analyzer, MEDA, Space Science Reviews 217:48, doi:10.1007/s11214-021-00816-9"
     },
     "radar": {
       "button": "Radar",
-      "controls": "{key} to switch the ground-penetrating radar on or off ({standby} energy/s while on; no profile yet in this version).",
-      "notCarried": "This rover carries no ground-penetrating radar."
+      "controls": "{key} to switch the ground-penetrating radar on or off ({standby} energy/s while on). It images the buried layers along the drive.",
+      "notCarried": "This rover carries no ground-penetrating radar.",
+      "strip": "Radar profile: {meters} m",
+      "layers": {
+        "floor": "crater floor",
+        "seitah": "Séítah",
+        "delta": "delta front",
+        "ejecta": "boulder field"
+      },
+      "log": "Ground-penetrating radar: longest unbroken profile {meters} m. Ground profiled: {layers}.",
+      "logNone": "Ground-penetrating radar: never switched on.",
+      "fact": "NASA's Perseverance rover carries RIMFAX, a ground-penetrating radar. Along the rover's drives it imaged rock layers beneath the floor of Jezero crater, some of them inclined rather than flat.",
+      "source": "Hamran et al. (2022), Science Advances, doi:10.1126/sciadv.abp8564; UCLA news release, August 25, 2022 (www.college.ucla.edu/2022/08/25/mars-underground-images-from-perseverance-rover)"
     },
     "laser": {
       "button": "Laser",
-      "controls": "{key} for a laser reading (stop first; {energy} energy each; no results yet in this version).",
+      "controls": "{key} for a laser reading of a boulder or cliff ahead (stop first; {energy} energy each).",
       "notCarried": "This rover carries no laser spectrometer.",
-      "holding": "Laser reading. The rover holds still."
+      "holding": "Laser reading. The rover holds still.",
+      "noTarget": "{name}: nothing to read ahead. Face a boulder or the delta cliff within {reach} m.",
+      "target": "Laser target: {target}, {distance} m. Press {key} to read it.",
+      "targetBoulder": "boulder",
+      "targetCliff": "delta cliff",
+      "result": "Laser reading: {rock}. {elements}.",
+      "resultCliff": "Laser reading of the delta cliff: fine layers of sedimentary rock.",
+      "logNone": "Laser spectrometer: no readings.",
+      "fact": "The laser of SuperCam, on NASA's Perseverance rover, analyzes rocks up to about 7 m away.",
+      "source": "CNES, SuperCam (supercam.cnes.fr)"
     },
     "organics": {
       "button": "Organics",
-      "controls": "{key} for an organics reading (stop first; {energy} energy each; no results yet in this version).",
+      "controls": "{key} for an organics reading beside a boulder (stop first; {energy} energy over a long reading).",
       "notCarried": "This rover carries no organics spectrometer.",
-      "holding": "Organics reading. The rover holds still."
+      "holding": "Organics reading. The rover holds still.",
+      "target": "Boulder within reach. Stop and press {key} for an organics reading.",
+      "result": "Organics reading complete. The rock's spectrum is stored for scientists on Earth.",
+      "stopped": "{name}: reading stopped. The battery could not pay for the rest of it.",
+      "log": "Organics spectrometer: finished readings: {count}. Spectra stored.",
+      "logNone": "Organics spectrometer: no readings.",
+      "fact": "SHERLOC, on NASA's Perseverance rover, detected signals consistent with organic molecules in rocks on the floor of Jezero crater. It identified no specific compounds, and sources other than life are not ruled out.",
+      "source": "Sharma et al. (2023), Diverse organic-mineral associations in Jezero crater, Mars, Nature 619:724-732, doi:10.1038/s41586-023-06143-z"
     }
   },
   "instruments": {

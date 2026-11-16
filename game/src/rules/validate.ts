@@ -265,6 +265,55 @@ function instrumentTuningProblems(data: GameData): string[] {
     const inst = part.effects.instrument;
     if (inst && !data.text.instrumentText?.[inst]) problems.push(`instrument ${inst} has no text in text.json instrumentText`);
   }
+  problems.push(...marsInstrumentProblems(data));
+  return problems;
+}
+
+/**
+ * The Mars instruments' tuning (Mars step 4a), where a world has it: finite numbers in range, the arm's
+ * slope limit below the steep-slope warning (so the arm lesson has drivable ground to happen on), radar
+ * layers on known zones with text, and held uses charged as they run that are held uses.
+ */
+function marsInstrumentProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const it = data.tuning.instruments;
+  const positive = (key: string, v: number) => {
+    if (!(Number.isFinite(v) && v > 0)) problems.push(`tuning.instruments.${key} must be a finite number above 0`);
+  };
+  if (it.arm) {
+    positive('arm.slopeLimitDeg', it.arm.slopeLimitDeg);
+    if (!(it.arm.slopeLimitDeg < data.tuning.ground.slopeWarningDegrees)) problems.push('tuning.instruments.arm.slopeLimitDeg must be below tuning.ground.slopeWarningDegrees (drivable ground the arm refuses)');
+  }
+  if (it.mast && !(Number.isFinite(it.mast.photoRangeFactor) && it.mast.photoRangeFactor >= 1)) problems.push('tuning.instruments.mast.photoRangeFactor must be at least 1');
+  if (it.weather) {
+    const w = it.weather;
+    for (const key of ['stormEarlyWarningSeconds', 'pressurePa', 'trendSeconds'] as const) positive(`weather.${key}`, w[key]);
+    for (const key of ['warmupSeconds', 'pressureDailySwing', 'clearTau', 'forecastHazeTau', 'pressureTrendPa', 'dustTrendTau'] as const) {
+      if (!(Number.isFinite(w[key]) && w[key] >= 0)) problems.push(`tuning.instruments.weather.${key} must be a finite number, not negative`);
+    }
+    if (!(w.pressureDailySwing < 1)) problems.push('tuning.instruments.weather.pressureDailySwing must be below 1');
+    if (!(w.pressurePeakHour >= 0 && w.pressurePeakHour < 24)) problems.push('tuning.instruments.weather.pressurePeakHour must be an hour, 0 to 24');
+    if (!(w.stormTau >= w.clearTau + w.forecastHazeTau)) problems.push('tuning.instruments.weather.stormTau must be at least clearTau + forecastHazeTau (the storm reads dustier than the haze ahead of it)');
+  }
+  if (it.radar) {
+    const r = it.radar;
+    for (const key of ['columnM', 'turnBreakDeg', 'stopBreakSeconds', 'columns'] as const) positive(`radar.${key}`, r[key]);
+    const names = data.text.instrumentText?.radar?.layers;
+    for (const l of r.layers) {
+      if (!(ZONE_IDS as readonly string[]).includes(l.zone)) problems.push(`tuning.instruments.radar.layers names unknown zone ${l.zone}`);
+    }
+    for (const kind of new Set([r.defaultLayer, ...r.layers.map((l) => l.kind)])) {
+      if (!names?.[kind]) problems.push(`radar layer ${kind} has no text in instrumentText.radar.layers`);
+    }
+  }
+  if (it.laser) {
+    positive('laser.reachM', it.laser.reachM);
+    if (!(it.laser.coneDeg > 0 && it.laser.coneDeg < 90)) problems.push('tuning.instruments.laser.coneDeg must be above 0 and below 90');
+  }
+  for (const inst of it.chargedWhileHeld ?? []) {
+    const part = data.parts.parts.find((p) => p.effects.instrument === inst);
+    if (part && !((part.effects.useSeconds ?? 0) > 0)) problems.push(`tuning.instruments.chargedWhileHeld: ${inst} has no held use to charge`);
+  }
   return problems;
 }
 

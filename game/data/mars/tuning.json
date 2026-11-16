@@ -69,5 +69,44 @@
     "lessonLoss": 0.15,
     "dustDevilCleanM": 50,
     "dustDevilSenseM": 150
+  },
+  "instruments": {
+    "_note": "Mars instruments (Mars step 4a; starting values from Phase 0 of the Mars engineering plan, tuned in the Mars balance phase). Rules: rules/instruments.ts and rules/mission.ts. arm: contact instruments (whose needs include the arm: the X-ray and organics spectrometers) refuse to read on ground steeper than slopeLimitDeg (MS2, Owner B item B13, provisional, for Chieri's review); ground stays drivable to 18 deg, so the arm lesson has a 10 to 18 deg band. mast: the camera's viewpoint photo zones grow by photoRangeFactor on a rover with a mast. chargedWhileHeld: the organics spectrometer pays its energyPerUse as it runs, energyPerUse / useSeconds per second of the hold (30 / 20 = 1.5/s), not up front; it starts only when the battery holds the whole 30.",
+    "arm": { "slopeLimitDeg": 10 },
+    "mast": { "photoRangeFactor": 1.5 },
+    "chargedWhileHeld": ["organics"],
+    "weather": {
+      "_note": "Weather mast (Owner B item B9, provisional, for Chieri's review). Switched on with the rover powered up for warmupSeconds without a break, it gives the dust storm forecast up to stormEarlyWarningSeconds before the orbital report (90 s ahead instead of 60). The HUD readout: pressure on a daily cycle (pressurePa +/- pressureDailySwing, peak in the morning), dust opacity clearTau on a clear sol, rising by forecastHazeTau over the lead before the storm and to stormTau at full storm; trend arrows compare with trendSeconds ago, steady within pressureTrendPa and dustTrendTau. The readout numbers are game values in a realistic range (Jezero's surface pressure is several hundred pascals), not measurements.",
+      "stormEarlyWarningSeconds": 30,
+      "warmupSeconds": 10,
+      "pressurePa": 720,
+      "pressureDailySwing": 0.05,
+      "pressurePeakHour": 8,
+      "clearTau": 0.5,
+      "stormTau": 2.5,
+      "forecastHazeTau": 0.4,
+      "trendSeconds": 5,
+      "pressureTrendPa": 2,
+      "dustTrendTau": 0.01
+    },
+    "radar": {
+      "_note": "Ground-penetrating radar. A profile column every columnM driven, with the layer kind of the zone under the rover (first match in layers, else defaultLayer). A heading change above turnBreakDeg within one column, or standing still for stopBreakSeconds, breaks the profile (the strip shows a gap). The strip keeps the last columns columns. The milestone transects count as the neutron spectrometer's do (switched on, unbroken by a switch-off), not by these breaks.",
+      "columnM": 2,
+      "turnBreakDeg": 30,
+      "stopBreakSeconds": 3,
+      "columns": 80,
+      "layers": [
+        { "zone": "delta-front", "kind": "delta" },
+        { "zone": "seitah", "kind": "seitah" },
+        { "zone": "young-crater", "kind": "ejecta" },
+        { "zone": "boulder-field", "kind": "ejecta" }
+      ],
+      "defaultLayer": "floor"
+    },
+    "laser": {
+      "_note": "Laser spectrometer: the nearest boulder (surface) or point of the delta cliff's foot line (terrain.json deltaFront.scarpLocal_xz) within reachM, inside a cone of coneDeg either side of the rover's heading. reachM is four times the X-ray's 3 m; the real SuperCam laser reads rocks up to about 7 m away (the game scales distances).",
+      "reachM": 12,
+      "coneDeg": 15
+    }
   }
 }

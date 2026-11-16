@@ -1,10 +1,12 @@
 // The Mars parts of the mission screen: the sol clock and the real Jezero Sun, the night (lights on or
-// sleep), the dust storm, and their HUD words. The rules decide (rules/mission.ts marsStatus and
-// MissionStep.marsNotices); this module only words them. The Moon never creates one.
+// sleep), the dust storm, the weather mast's readout and early forecast, and their HUD words. The rules
+// decide (rules/mission.ts marsStatus and MissionStep.marsNotices); this module only words them. The Moon
+// never creates one.
 import type { GameData, Part } from '../rules/types';
 import { nightBudget, partPower } from '../rules/energy';
 import type { Rng } from '../rules/events';
-import { marsSetup, marsStatus, type MarsNotice, type MarsSetup, type MarsStatus, type MissionSetup, type MissionState } from '../rules/mission';
+import { marsSetup, marsStatus, marsWeatherSky, type MarsNotice, type MarsSetup, type MarsStatus, type MissionSetup, type MissionState } from '../rules/mission';
+import { weatherReadout } from '../rules/instruments';
 import { marsSunAt } from '../rules/marsSun';
 import type { SkyDirection } from '../rules/sun';
 import type { MarsTextSections } from '../rules/marsTypes';
@@ -44,11 +46,31 @@ export class MarsMission {
     return marsStatus(state, setup, this.data.tuning)!;
   }
 
-  /** Words for a sunset, dawn or storm notice. A rover without lights hears it cannot drive at night. */
-  noticeText(n: MarsNotice, hasLights: boolean): MarsNoticeText {
+  /**
+   * Words for a sunset, dawn or storm notice. A rover without lights hears it cannot drive at night. A
+   * forecast the weather mast gave early credits the mast, with the storm's lead (`leadSeconds`) in sols.
+   */
+  noticeText(n: MarsNotice, hasLights: boolean, leadSeconds = 0): MarsNoticeText {
     if (n.kind === 'dusk') return { message: hasLights ? this.night.sunset : this.night.noLights, tone: 'warn' };
     if (n.kind === 'dawn') return { message: this.night.dawn, tone: 'good' };
+    const mast = this.data.text.instrumentText.weather?.forecast;
+    if (n.edge === 'forecast' && n.byMast && mast) {
+      const sols = Math.max(0, leadSeconds) / this.data.tuning.sol!.secondsPerSol;
+      return { message: fill(mast, { ...this.vars, sols: sols.toFixed(1) }), tone: 'warn' };
+    }
     return { message: fill(this.storm[n.edge], this.vars), tone: n.edge === 'cleared' ? 'good' : 'warn' };
+  }
+
+  /** The weather mast's HUD line now: pressure, dust opacity and their trends. Null without the mast's tuning or text. */
+  weatherLine(seconds: number, setup: MissionSetup): string | null {
+    const t = this.data.tuning.instruments.weather;
+    const it = this.data.text.instrumentText.weather;
+    const now = marsWeatherSky(seconds, setup, this.data.tuning);
+    const before = t ? marsWeatherSky(seconds - t.trendSeconds, setup, this.data.tuning) : null;
+    if (!t || !it?.readout || !now || !before) return null;
+    const r = weatherReadout(now, before, t);
+    const arrow = (x: keyof NonNullable<typeof it.trend>) => it.trend?.[x] ?? '';
+    return fill(it.readout, { pressure: Math.round(r.pressurePa), pressureTrend: arrow(r.pressureTrend), tau: r.tau.toFixed(2), dustTrend: arrow(r.dustTrend) });
   }
 
   /** "Sol 3 of 10". */

@@ -306,6 +306,62 @@ export interface InstrumentTuning {
     recordWindowSeconds: number; // the station records the ground for this long before the moonquake
     quietDistanceM: number; // the rover driving closer than this during the window makes the trace noisy
   };
+  // Mars instruments (Mars step 4a; data/mars/tuning.json). Absent on the Moon, so none of their rules apply there.
+  arm?: ArmTuning;
+  mast?: MastTuning;
+  weather?: WeatherTuning;
+  radar?: RadarTuning;
+  laser?: LaserTuning;
+  /** Held uses charged as they run (energyPerUse / useSeconds per second of the hold) instead of up front: the organics spectrometer. */
+  chargedWhileHeld?: Instrument[];
+}
+
+/** The robotic arm (Mars MS2, Owner B item B13): contact instruments (whose `needs` include the arm) refuse to read on steeper ground. */
+export interface ArmTuning {
+  slopeLimitDeg: number; // the ground under the rover must be at most this steep (slope.png)
+}
+
+/** The remote sensing mast (Mars M5): the camera's photo zones (tuning.milestones.photoZoneRadiusM) grow by this on a rover with a mast. */
+export interface MastTuning {
+  photoRangeFactor: number;
+}
+
+/**
+ * The weather mast (Mars M4, Owner B item B9, provisional, for Chieri's review): the storm forecast comes
+ * earlier once the mast has been switched on, with the rover powered up, for a while; the HUD shows a
+ * pressure and dust readout with trends.
+ */
+export interface WeatherTuning {
+  stormEarlyWarningSeconds: number; // the forecast comes this much earlier than the orbital report's
+  warmupSeconds: number; // ...once the mast has been on (and the rover powered up) without a break for this long
+  pressurePa: number; // the readout's mean surface pressure
+  pressureDailySwing: number; // share of pressurePa the daily cycle adds and takes away
+  pressurePeakHour: number; // local solar hour of the daily pressure peak
+  clearTau: number; // dust opacity on a clear sol
+  stormTau: number; // dust opacity at full storm strength
+  forecastHazeTau: number; // dust opacity the air gains over the early-warning lead before the storm (what the mast's trend shows)
+  trendSeconds: number; // the trend arrows compare the readout now with this long ago
+  pressureTrendPa: number; // a pressure change smaller than this reads as steady
+  dustTrendTau: number; // a dust change smaller than this reads as steady
+}
+
+/**
+ * The ground-penetrating radar (Mars M4): a profile of columns along the drive, one per columnM driven,
+ * broken by a sharp turn or a stop. Layer kinds come from the zone under the rover.
+ */
+export interface RadarTuning {
+  columnM: number; // meters of driving per profile column
+  turnBreakDeg: number; // a heading change above this within one column breaks the profile
+  stopBreakSeconds: number; // standing still this long breaks the profile
+  columns: number; // columns kept for the HUD strip
+  layers: { zone: string; kind: string }[]; // the zone under the rover → layer kind, first match wins
+  defaultLayer: string; // the layer kind anywhere else
+}
+
+/** The laser spectrometer (Mars M4): its target is the nearest boulder or point of the delta cliff in a cone ahead. */
+export interface LaserTuning {
+  reachM: number; // a boulder's surface or a cliff point within this distance of the rover's center
+  coneDeg: number; // half-angle of the cone ahead of the rover
 }
 
 /** A rock type (an id in text.json rocks) and its weight in a suite: each boulder reads one, picked by weight and seeded by its position. */
@@ -542,6 +598,23 @@ export interface InstrumentText {
   holding?: string; // the hint while the rover holds still for it (default: instruments.holding)
   fact?: string; // one real-history sentence, shown on first use when Mission history is on
   source?: string; // where the fact comes from (credits)
+  // Mars instruments (Mars step 4a). Placeholders as noted; absent where the instrument has no such notice.
+  slope?: string; // a contact reading refused on ground steeper than the arm's limit: {name} {slope} {max}
+  noTarget?: string; // the laser: no target in the cone ahead: {reach}
+  target?: string; // the laser's target readout: {target} {distance} {key}
+  targetBoulder?: string; // the laser target's name: a boulder
+  targetCliff?: string; // ...the delta cliff
+  result?: string; // a finished reading: the laser on a boulder {rock} {elements}; the organics spectrometer
+  resultCliff?: string; // the laser on the delta cliff
+  stopped?: string; // a reading charged as it runs, stopped because the battery could not pay for the rest: {name}
+  forecast?: string; // the weather mast: the earlier storm forecast, crediting the mast: {sols} and the mission vars
+  readout?: string; // the weather mast's HUD line: {pressure} {pressureTrend} {tau} {dustTrend}
+  trend?: Record<'rising' | 'falling' | 'steady', string>; // the weather readout's trend arrows
+  strip?: string; // the radar strip's label: {meters} of unbroken profile
+  layers?: Record<string, string>; // the radar's layer kinds (tuning.instruments.radar), for the strip and the log
+  log?: string; // the debrief's instrument log line (placeholders per instrument, see ui/screens.ts)
+  logNone?: string; // ...when it was carried but recorded nothing
+  logStorm?: string; // the weather mast: added to its log line when it forecast the dust storm early
 }
 
 /** One page of a tutorial. {name} placeholders are filled from the game data. */

@@ -237,7 +237,7 @@ describe('A rover with the Mars parts runs a mission', () => {
     throttling: false, impactMps: 0, upY: 1, ...over,
   });
 
-  it('a full Mars build (RTG, grousers, arm, mast, three new instruments on steel) runs two sols and uses them, inert', () => {
+  it('a full Mars build (RTG, grousers, arm, mast, three new instruments on steel) runs two sols and uses them', () => {
     const b: Build = {
       chassis: 'chassis-steel', wheels: 'wheels-grouser', power: 'power-rtg', battery: 'battery-large', lights: 'lights-led', heater: 'heater-none',
       payload: ['instrument-weather', 'instrument-radar', 'instrument-organics'], support: { arm: 'arm-robotic', mast: 'mast-remote' },
@@ -251,7 +251,8 @@ describe('A rover with the Mars parts runs a mission', () => {
       expect(r.ok, inst).toBe(true);
       if (r.ok) s = r.state;
     }
-    const use = startInstrumentUse(s, 'organics', { speedMps: 0, inColdZone: false, sunlight: 1, earthInView: false, boulderInReach: false }, setup, mars.tuning);
+    // The organics spectrometer reads a boulder in reach (Mars step 4a).
+    const use = startInstrumentUse(s, 'organics', { speedMps: 0, inColdZone: false, sunlight: 1, earthInView: false, boulderInReach: true, boulder: 0 }, setup, mars.tuning);
     expect(use.ok).toBe(true);
     if (use.ok) s = use.state;
     const notices: string[] = [];

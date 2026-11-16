@@ -194,6 +194,30 @@ function instrumentLogLines(log: InstrumentLog | null, data: GameData, earned: r
     add('seismometer', [!log.stationPlaced ? t.logStationNone : log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone]);
   }
   if (has('reflector')) add('reflector', [log.reflectorPlaced ? t.logReflector : t.logReflectorNone]);
+  // Mars (step 4a): the weather mast, the radar, the laser and the organics spectrometer, in their own words.
+  const it = text.instrumentText;
+  if (has('weather') && it.weather?.log && it.weather.logNone) {
+    const seconds = Math.round(log.weatherSeconds ?? 0);
+    const line = seconds > 0 ? fill(it.weather.log, { seconds }) : it.weather.logNone;
+    add('weather', [log.stormForecastByMast && it.weather.logStorm ? `${line} ${it.weather.logStorm}` : line]);
+  }
+  if (has('radar') && it.radar?.log && it.radar.logNone) {
+    const names = (log.radarLayers ?? []).map((k) => it.radar.layers?.[k] ?? k);
+    const longest = log.radarLongestM ?? null;
+    add('radar', [longest === null ? it.radar.logNone : fill(it.radar.log, { meters: Math.round(longest), layers: names.join(text.ticket.and) || '—' })]);
+  }
+  if (has('laser') && it.laser?.logNone) {
+    const own = (log.laser ?? []).map((r) => {
+      if (r.target === 'cliff') return it.laser.resultCliff ?? '';
+      const rock = r.rock ? text.rocks[r.rock] : undefined;
+      return fill(it.laser.result ?? t.logRock, { rock: rock?.name ?? r.rock ?? '', elements: rock?.elements ?? '' });
+    }).filter(Boolean);
+    add('laser', own.length ? own : [it.laser.logNone]);
+  }
+  if (has('organics') && it.organics?.log && it.organics.logNone) {
+    const count = log.organics ?? 0;
+    add('organics', [count > 0 ? fill(it.organics.log, { count }) : it.organics.logNone]);
+  }
   return lines;
 }
 

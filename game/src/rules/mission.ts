@@ -46,6 +46,7 @@ export function marsSetup(site: MarsSetup['site'], events: EventsFile, rng: Rng,
   };
 }
 import { instrumentCosts, type InstrumentCosts } from './payload';
+import { stormForecastAt, stormHaze, type WeatherSky } from './instruments';
 
 /** What the parts mean for the mission systems. */
 export interface MissionSetup {
@@ -55,6 +56,8 @@ export interface MissionSetup {
   power: PartPower; // the draws and steady income the parts own (rules/energy.ts); applied only where tuning.night exists
   overloadKg: number; // total mass above the chassis maximum load
   instruments: InstrumentCosts[]; // the payload still aboard, in bay order (deployed stations leave it)
+  contact: Instrument[]; // instruments the arm holds against a rock (their `needs` include the arm): a boulder in reach, level enough ground
+  remote: Instrument[]; // instruments on the mast that read from a distance (their `needs` include the mast): a target in the cone ahead
   events: MissionEvent[];
   mars?: MarsSetup; // present on Mars: the sol clock, night, map-wide cold and the dust storm apply
 }
@@ -69,9 +72,16 @@ export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent
     power: partPower(parts),
     overloadKg: maxLoad === undefined ? 0 : Math.max(0, mass - maxLoad),
     instruments: instrumentCosts(parts),
+    contact: needing(parts, 'arm'),
+    remote: needing(parts, 'mast'),
     events,
     ...(mars ? { mars } : {}),
   };
+}
+
+/** The instruments among the parts whose `needs` include this support hardware. */
+function needing(parts: Part[], support: 'arm' | 'mast'): Instrument[] {
+  return parts.flatMap((p) => (p.effects.instrument && p.effects.needs?.includes(support) ? [p.effects.instrument] : []));
 }
 
 export interface MissionEnd {
@@ -92,6 +102,7 @@ export interface UseSite {
   inDarkCrater: boolean; // inside the dark crater (the shadowed-crater zone)
   slowedByCold: boolean; // the hold was lengthened by the cold (no heater)
   fasterInShadow: boolean; // the hold was shortened by shadow (shadowHoldFactor)
+  target?: 'boulder' | 'cliff'; // a remote reading (the laser): what it was aimed at, locked at the start (boulder: site.boulder)
 }
 
 export interface MissionState {
@@ -103,7 +114,11 @@ export interface MissionState {
   distanceM: number;
   poweredDown: boolean;
   standbyOn: Instrument[]; // instruments switched on (each draws its standby energy while the rover is powered up)
-  using: { instrument: Instrument; secondsLeft: number; site: UseSite } | null; // an instrument use the rover holds still for (paused while powered down)
+  /**
+   * An instrument use the rover holds still for (paused while powered down). chargePerSecond: a use charged
+   * as it runs (tuning.instruments.chargedWhileHeld), energy per second of the hold; absent: paid at the start.
+   */
+  using: { instrument: Instrument; secondsLeft: number; site: UseSite; chargePerSecond?: number } | null;
   deployed: Instrument[]; // stations set down on the ground, in the order deployed (they left the rover)
   impactCooldown: number;
   tiltSeconds: number; // how long the rover has been tilted past the rollover limit
@@ -120,10 +135,14 @@ export interface MarsState {
   dustFactor: number; // dust on the panels: solar income multiplier, 1 = clean (rules/dust.ts)
   devils: DustDevil[]; // the dust devils placed so far, each where the rover was when it formed (for cleaning and the renderer)
   roverAt: { x: number; z: number } | null; // the rover's position at the last step (a devil's closest pass is checked along the step)
+  // Mars step 4a (optional, so a state made before them still steps):
+  weatherSince?: number | null; // the weather mast has been switched on, with the rover powered up, since this mission time (null: not now)
+  forecastAt?: number | null; // when the dust storm's forecast was given (null: not yet)
+  forecastByMast?: boolean; // the weather mast gave it, before the orbital report (rules/instruments.ts stormForecastAt)
 }
 
 function startMarsState(): MarsState {
-  return { dustFactor: 1, devils: [], roverAt: null };
+  return { dustFactor: 1, devils: [], roverAt: null, weatherSince: null, forecastAt: null, forecastByMast: false };
 }
 
 /** What the mission screen measured about the rover over one step. */
@@ -148,10 +167,14 @@ export type MissionNotice =
   | { kind: 'quake'; damage: number }
   | { kind: 'impact'; damage: number }
   | { kind: 'instrument-done'; instrument: Instrument; deployed: boolean; site: UseSite } // a held instrument use finished (deployed: a station was set down)
+  | { kind: 'instrument-stopped'; instrument: Instrument; reason: 'energy' } // a use charged as it runs stopped: the battery could not pay for the next step of it
   | { kind: 'standby-off'; instruments: Instrument[] }; // the battery fell to the low-energy warning: switched-on instruments were switched off
 
-/** Mars notices: sunset, dawn (the rover wakes if it was asleep) and the dust storm's forecast, start and end. */
-export type MarsNotice = { kind: 'dusk' } | { kind: 'dawn'; woke: boolean } | { kind: 'storm'; edge: StormEdge };
+/**
+ * Mars notices: sunset, dawn (the rover wakes if it was asleep) and the dust storm's forecast, start and end.
+ * byMast: the weather mast gave the forecast early (present only then).
+ */
+export type MarsNotice = { kind: 'dusk' } | { kind: 'dawn'; woke: boolean } | { kind: 'storm'; edge: StormEdge; byMast?: true };
 
 export interface MissionStep {
   state: MissionState;
@@ -221,7 +244,9 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   if (prev.standbyOn.length > 0 && !prev.poweredDown && (standby >= aboveLow || aboveLow <= 0)) standbyOff = true;
   state.energy = afterDrive - Math.min(standby, aboveLow);
   state.distanceM = prev.distanceM + Math.max(0, s.distanceM);
-  if (mars && marsPrev) state.mars = stepMars(marsPrev, prev.seconds, state.seconds, s, mars.stormIntensity, setup, t);
+  // The weather mast counts as on for a step when it was switched on and the rover powered up at its start.
+  const mastOn = !prev.poweredDown && prev.standbyOn.includes('weather') && isSwitchInstrument('weather', setup);
+  if (mars && marsPrev) state.mars = stepMars(marsPrev, prev.seconds, state.seconds, s, mars.stormIntensity, setup, t, mastOn);
 
   // Damage
   state.impactCooldown = Math.max(0, prev.impactCooldown - s.dt);
@@ -277,7 +302,14 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
 
   // A held instrument use counts down, but not while the rover is powered down (it resumes on power-up);
   // it finishes only if the mission goes on. A deployable's part is then on the ground.
-  if (prev.using && !prev.poweredDown) {
+  // A use charged as it runs pays for the part of the hold this step covers; when the battery cannot, the
+  // use stops (it never ends the mission by itself) and nothing is found.
+  const charge = prev.using?.chargePerSecond ? prev.using.chargePerSecond * Math.min(s.dt, prev.using.secondsLeft) : 0;
+  if (prev.using && !prev.poweredDown && charge > 0 && !state.end && state.energy - charge <= 0) {
+    state.using = null;
+    notices.push({ kind: 'instrument-stopped', instrument: prev.using.instrument, reason: 'energy' });
+  } else if (prev.using && !prev.poweredDown) {
+    if (!state.end) state.energy -= charge;
     const secondsLeft = prev.using.secondsLeft - s.dt;
     state.using = secondsLeft > 1e-9 ? { ...prev.using, secondsLeft } : null;
     if (!state.using && !state.end) {
@@ -296,8 +328,18 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
       marsNotices.push({ kind: 'dawn', woke: state.poweredDown });
       state.poweredDown = false;
     }
-    const storm = stormEdge(prev.seconds, state.seconds, setup.mars!.storm);
-    if (storm) marsNotices.push({ kind: 'storm', edge: storm });
+    // The forecast comes once: from the orbital report, or earlier from a weather mast that has been on a while.
+    const m = state.mars!;
+    const storm = setup.mars!.storm;
+    const stormAt = stormEdge(prev.seconds, state.seconds, storm);
+    if (storm && m.forecastAt == null && state.seconds < storm.startAt) {
+      const forecast = t.instruments.weather ? stormForecastAt(storm, m.weatherSince ?? null, t.instruments.weather) : { at: storm.forecastAt, byMast: false };
+      if (state.seconds >= forecast.at) {
+        state.mars = { ...m, forecastAt: state.seconds, forecastByMast: forecast.byMast };
+        marsNotices.push(forecast.byMast ? { kind: 'storm', edge: 'forecast', byMast: true } : { kind: 'storm', edge: 'forecast' });
+      }
+    }
+    if (stormAt && stormAt !== 'forecast') marsNotices.push({ kind: 'storm', edge: stormAt });
   }
   return { state, slip, notices, marsNotices };
 }
@@ -330,10 +372,11 @@ function marsConditions(state: MissionState, setup: MissionSetup, t: Tuning): Ma
   const spec = m.stormSpec;
   const intensity = stormIntensity(at, m.storm, spec);
   const night = clock.isNight;
+  const phase = stormPhase(at, m.storm);
   return {
     clock,
     sun,
-    stormPhase: stormPhase(at, m.storm),
+    stormPhase: phase === 'none' && state.mars?.forecastAt != null ? 'forecast' : phase, // a weather mast's forecast comes early
     stormIntensity: intensity,
     solarFactor: night ? 0 : lowSunFactor(sun.elevationDeg, t.night) * stormSolarFactor(intensity, spec),
     drainPerSecond: nightDraw(setup.power, { isNight: night, poweredDown: state.poweredDown, hasLights: setup.hasLights }, t.night),
@@ -350,7 +393,7 @@ function marsConditions(state: MissionState, setup: MissionSetup, t: Tuning): Ma
  * cleans the panels, and otherwise dust settles (faster in the storm). Dust settles on every rover; it
  * only matters for solar income, and a rover without solar income has a dust rate of 0.
  */
-function stepMars(prev: MarsState, prevSeconds: number, seconds: number, s: MissionSample, stormIntensity: number, setup: MissionSetup, t: Tuning): MarsState {
+function stepMars(prev: MarsState, prevSeconds: number, seconds: number, s: MissionSample, stormIntensity: number, setup: MissionSetup, t: Tuning, mastOn: boolean): MarsState {
   const m = setup.mars!;
   const at = s.position ? { x: s.position.x, z: s.position.z } : null;
   let devils = prev.devils;
@@ -360,7 +403,27 @@ function stepMars(prev: MarsState, prevSeconds: number, seconds: number, s: Miss
   }
   const cleaned = at !== null && dustDevilCleaned(devils, prevSeconds, seconds, prev.roverAt ?? at, at, t.dust);
   const dustFactor = stepDust(prev.dustFactor, { dt: seconds - prevSeconds, dustRate: setup.power.dustRate, stormIntensity, cleaned }, t.dust, t.sol?.secondsPerSol ?? 0);
-  return { dustFactor, devils, roverAt: at ?? prev.roverAt };
+  return { ...prev, dustFactor, devils, roverAt: at ?? prev.roverAt, weatherSince: mastOn ? prev.weatherSince ?? prevSeconds : null };
+}
+
+/** Mars: since when the weather mast has been switched on with the rover powered up (null: not now; always null on the Moon). */
+export function weatherMastOnSince(state: MissionState): number | null {
+  return state.mars?.weatherSince ?? null;
+}
+
+/**
+ * Mars: what the weather mast reads from at a mission time (the time of day, the storm and the haze ahead
+ * of it), for rules/instruments.ts weatherReadout. Null on the Moon or without tuning.instruments.weather.
+ */
+export function marsWeatherSky(seconds: number, setup: MissionSetup, t: Tuning): WeatherSky | null {
+  const m = setup.mars;
+  if (!m || !t.sol || !t.instruments.weather) return null;
+  const at = Math.max(0, seconds);
+  return {
+    localSolarHours: solClock(at, t.sol, m.site.latitudeDeg).localSolarHours,
+    stormIntensity: stormIntensity(at, m.storm, m.stormSpec),
+    haze: stormHaze(at, m.storm, m.stormSpec?.rampSeconds ?? 0, t.instruments.weather),
+  };
 }
 
 /** The parts still on the rover: deployed stations have left it. */
@@ -407,6 +470,8 @@ export type InstrumentRefusal =
   | 'moving' // a held use needs the rover stopped
   | 'no-earth' // needs Earth above the horizon from the rover
   | 'no-boulder' // needs a boulder within reach
+  | 'slope' // a contact reading (the arm) on ground steeper than tuning.instruments.arm.slopeLimitDeg
+  | 'no-target' // a remote reading (the mast) with no target in the cone ahead
   | 'energy' // the use would empty the battery
   | 'low-energy'; // switching on a standby draw at or below the low-energy warning
 
@@ -434,8 +499,10 @@ export interface UseConditions {
   sunlight: number; // 0..1 at the rover
   earthInView?: boolean; // Earth above the terrain horizon from the rover (needsEarth instruments)
   boulderInReach?: boolean; // a boulder within tuning.instruments.xray.reachM (needsBoulder instruments)
-  boulder?: number | null; // which boulder that is (index in the boulder list): a held use keeps it in its site
+  boulder?: number | null; // which boulder that is (index in the boulder list): a held use keeps it in its site; for a remote reading, the boulder it aims at
   inDarkCrater?: boolean; // inside the dark crater (the shadowed-crater zone)
+  slopeDeg?: number; // the ground under the rover (contact readings on a world with tuning.instruments.arm)
+  remoteTarget?: 'boulder' | 'cliff' | null; // what a remote reading would aim at now (rules/instruments.ts laserTarget)
 }
 
 export type InstrumentStart =
@@ -469,14 +536,26 @@ export function startInstrumentUse(
   if (s.poweredDown) return refuse('powered-down');
   if (held && sample.speedMps > t.ground.movingSpeedMps) return refuse('moving');
   if (c.needsEarth && !sample.earthInView) return refuse('no-earth');
-  if (c.needsBoulder && !sample.boulderInReach) return refuse('no-boulder');
+  const contact = setup.contact.includes(instrument);
+  const remote = setup.remote.includes(instrument);
+  if ((c.needsBoulder || contact) && !sample.boulderInReach) return refuse('no-boulder');
+  const arm = t.instruments.arm;
+  if (contact && arm && (sample.slopeDeg ?? 0) > arm.slopeLimitDeg) return refuse('slope');
+  if (remote && !sample.remoteTarget) return refuse('no-target');
   if (cost > 0 && s.energy <= cost) return refuse('energy');
   // The heat that counts now (an electric heater's only while its draw is paid), as in the freeze step.
   const slowedByCold = held && sample.inColdZone && heatNow(setup.heat, setup.power.electricHeat, s.energy) <= 0 && !c.coldTolerant;
   const fasterInShadow = held && c.shadowHoldFactor !== 1 && sample.sunlight < t.instruments.shadowSunlight;
   const holdSeconds = held ? c.useSeconds * (slowedByCold ? t.instruments.coldSlowdown : 1) * (fasterInShadow ? c.shadowHoldFactor : 1) : 0;
-  const site: UseSite = { boulder: sample.boulder ?? null, inDarkCrater: sample.inDarkCrater ?? false, slowedByCold, fasterInShadow };
-  const state: MissionState = { ...s, energy: s.energy - cost, using: held ? { instrument, secondsLeft: holdSeconds, site } : s.using };
+  const site: UseSite = {
+    boulder: sample.boulder ?? null, inDarkCrater: sample.inDarkCrater ?? false, slowedByCold, fasterInShadow,
+    ...(remote && sample.remoteTarget ? { target: sample.remoteTarget } : {}),
+  };
+  // A use charged as it runs pays energyPerUse / useSeconds per second of its hold (stepMission), nothing now;
+  // it starts only when the battery holds the whole reading's energy, as any use.
+  const chargePerSecond = held && c.useSeconds > 0 && t.instruments.chargedWhileHeld?.includes(instrument) ? cost / c.useSeconds : 0;
+  const using = held ? { instrument, secondsLeft: holdSeconds, site, ...(chargePerSecond > 0 ? { chargePerSecond } : {}) } : s.using;
+  const state: MissionState = { ...s, energy: s.energy - (chargePerSecond > 0 ? 0 : cost), using };
   return { ok: true, state, holdSeconds, slowedByCold, fasterInShadow, cost };
 }
 
