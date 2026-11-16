@@ -85,11 +85,10 @@ describe('survey: leads', () => {
     const landing = terrain.landing.local;
     const dirs = leads.map((l) => leadBearing(l, landing, data.tuning.survey).compass);
     expect(new Set(dirs).size).toBe(dirs.length);
-    for (const l of leads) {
-      expect(data.text.survey.leads[l.id]?.name).toBeTruthy();
-      // Every lead is hidden at the start: no site is discovered from the landing.
-      expect(distanceToArea(l.site.area, landing)).toBeGreaterThan(data.tuning.explore.revealRadiusM);
-    }
+    for (const l of leads) expect(data.text.survey.leads[l.id]?.name).toBeTruthy();
+    // Generous pass: the wide reveal circle finds the nearest lead (the boulder field) at the start; the others stay hidden.
+    const hidden = leads.filter((l) => distanceToArea(l.site.area, landing) > data.tuning.explore.revealRadiusM);
+    expect(hidden.length).toBeGreaterThanOrEqual(leads.length - 1);
     expect(data.text.survey.compass).toHaveLength(16);
     expect(data.text.survey.compassShort).toHaveLength(16);
   });

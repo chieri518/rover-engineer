@@ -296,6 +296,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   // Mission time drives the Sun.
   let seconds = 0;
   let timeScale = 1;
+  // Dev-only fast-forward for testing: runs k physics steps per real step, so driving, energy and the clock all
+  // move k times faster in real time. Set with ?sim=4 in the URL or __moon.setSimSpeed(4). Always 1 in builds.
+  let simSpeed = import.meta.env.DEV ? Math.min(16, Math.max(1, Number(new URLSearchParams(location.search).get('sim')) || 1)) : 1;
   let clockRunning = true;
   let paused = false;
   let orbit: { azimuthDeg: number; distance: number; height: number } | null = null; // development close-up camera
@@ -373,9 +376,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     last = now;
 
     const raw = input.read();
-    acc = paused ? 0 : acc + dt;
+    acc = paused ? 0 : acc + dt * simSpeed;
     let steps = 0;
-    while (acc >= PHYSICS_STEP && steps < 5) {
+    while (acc >= PHYSICS_STEP && steps < 5 * simSpeed) {
       rover.setInput(limitInput(raw));
       rover.speedFactor = limits.speedFactor;
       rover.update(PHYSICS_STEP);
@@ -482,6 +485,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       },
       setTimeScale(k: number) {
         timeScale = k;
+      },
+      /** Fast-forward the whole simulation k times (1 to 16) for testing; see simSpeed. */
+      setSimSpeed(k: number) {
+        simSpeed = Math.min(16, Math.max(1, Math.round(k)));
+        return simSpeed;
       },
       teleport(x: number, z: number, headingDeg: number) {
         colliders.update(x, z);
