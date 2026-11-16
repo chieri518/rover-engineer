@@ -1,0 +1,263 @@
+{
+  "_about": "Titan overlay, deep-merged over data/tuning.json (src/gameData.ts, rules/merge.ts). Keys starting with _ are notes and are dropped; null removes a shared key. Sections not listed here are the Moon's. Types: rules/types.ts Tuning, rules/titanTypes.ts, rules/marsTypes.ts (sol, night).",
+  "_placeholder": "Values in a section with a _placeholder note are stubs for the track named there. Values under _interface are set with Owner A. Titan reuses the Moon parts and ticket tiers (no Titan parts).",
+  "mission": {
+    "_note": "Decided: one Titan day in 15 minutes (sol.sols x sol.secondsPerSol = lengthSeconds). gameDays counts Titan days. gravity: Titan surface gravity, m/s^2 (to fact-check, R).",
+    "lengthSeconds": 900,
+    "gameDays": 1,
+    "gravity": 1.35
+  },
+  "payout": {
+    "_interface": "survivalPayout: Titan survival payout, Owner A sets it (placeholder: the Moon value). A Titan round passes on survival (the rover still running at the end of the mission), not on the balance (decided November 15 by Owner B); there is no final mark.",
+    "survivalPayout": 50
+  },
+  "rover": {
+    "_placeholder": "Integration (T6) tunes on the real terrain. gravityScale keeps the ground gravity the Moon's handling was tuned for (1.35 x 4.8 = 6.48 m/s^2, the Moon's 1.62 x 4); airGravityScale stays the time-lapse value (16 x the world's gravity).",
+    "gravityScale": 4.8,
+    "airGravityScale": 16
+  },
+  "sun": {
+    "_placeholder": "Fallback only, until rules (T3) give the real Titan Sun and integration (T6) wires it: the lunar Sun model fixed near noon at the placeholder site (subsolar longitude = site longitude).",
+    "startAzimuthDeg": 160,
+    "degreesPerEarthDay": 0,
+    "subsolarLatitudeDeg": -10
+  },
+  "cold": {
+    "_note": "No cold zones on Titan: the cold is map-wide and always on (titanCold, rules track T3).",
+    "zones": []
+  },
+  "sol": {
+    "_note": "Rules (T3): Titan reuses the Mars sol clock (rules/sol.ts) with one sol of 900 s: 450 s day then 450 s night, the mission starts 150 s after sunrise (the Sun about 51 deg up) and ends 150 s after the next dawn. The Sun follows real local solar time at the site with Titan's obliquity (Saturn's 26.73 deg, rules/titan.ts titanSunAt). solarLongitudeDeg 309: late 2034, just after the northern winter solstice (research 09, our analysis, unverified), so the Sun is about 20.4 deg S and the noon Sun about 65 deg up toward the south. The season does not move in one Titan day. horizonRateShare 1: the Sun moves at a uniform rate (0 to 10 deg of elevation takes about 27 s).",
+    "sols": 1,
+    "secondsPerSol": 900,
+    "daySeconds": 450,
+    "nightSeconds": 450,
+    "solarLongitudeDeg": 309,
+    "solarLongitudeDegPerSol": 0,
+    "horizonRateShare": 1,
+    "startSecondsIntoDay": 150,
+    "sunsetWarningSeconds": 30
+  },
+  "night": {
+    "_placeholder": "Rules (T3), placeholders tuned against the Moon batteries (400, 600) in rules/titanEnergy.test.ts. The Mars night rules (lights on to drive, awake without lights, or sleep), but on Titan the awake drain (electronics) applies day and night, because there is no solar to cover it. Per second, on top of driving: awake 0.2 (60 over the day), lights on at night 0.6 (a parked lights-on night costs 270), asleep 0.05 (a slept night costs 22.5). freezeRatePerSecond and warmRecoveryPerSecond are unused on Titan (the cold is titanCold); fullSunElevationDeg is unused (titanPower).",
+    "lightsDrainPerSecond": 0.6,
+    "awakeDrainPerSecond": 0.2,
+    "sleepDrainPerSecond": 0.05,
+    "driveWithoutLights": false,
+    "freezeRatePerSecond": 0,
+    "warmRecoveryPerSecond": 0,
+    "fullSunElevationDeg": 0
+  },
+  "sleep": {
+    "_placeholder": "Rules (T3). Asleep at night the mission clock runs nightClockRate times faster (rules/titan.ts titanMissionDelta), so a slept night of 450 s passes in under 2 minutes; drains and cooling follow mission time. The rover wakes at dawn.",
+    "nightClockRate": 4
+  },
+  "titanPower": {
+    "_placeholder": "Rules (T3). Solar income = the Moon panel rate x solarFactor by day, nothing at night (a fixed panel earns about 0.3 over the whole day).",
+    "solarFactor": 0.001
+  },
+  "titanCold": {
+    "_placeholder": "Rules (T3), placeholders checked by rules/titanEnergy.test.ts. Freeze meter per second = freezeRatePerSecond (x the rain's freezeFactor) - heaterReductionPerHeat x heat, where heat = the parts' heat (radioisotope heater 2) + awakeHeat while awake + drivingHeat while driving; asleep only the parts count. Negative = recovering. heaterReductionPerHeat 0.1 replaces the Moon's 1.5 on Titan, so the heater is half the fight, not all of it. No heater: asleep +0.36 (frozen 278 s into the night), awake +0.16 (frozen 625 s from a warm start), driving +0.01. Heater: asleep +0.16 (72 by dawn, about 81 if the rain falls at night), awake -0.04, driving -0.19.",
+    "freezeRatePerSecond": 0.36,
+    "awakeHeat": 2,
+    "drivingHeat": 1.5,
+    "heaterReductionPerHeat": 0.1
+  },
+  "look": {
+    "_note": "T2 sky and light (rendering: world/titanLook.ts, world/titanSky.ts). Presentation values, not game rules; tuned with screenshots. Readability over realism: real Titan daylight is about a thousandth of Earth's, so a capped eye adaptation keeps the day a dim but legible orange; night is near black and the floodlights light the ground. Light is mostly diffuse (weak, soft rover shadows); the haze limits visibility (fog); rain (scene.setStorm) thickens it and darkens the scene.",
+    "pebbles": {
+      "_about": "titan-fx: ground. Huygens-like water-ice pebbles on firm interdune ground (visual only, no colliders; world/titanPebbles.ts). Densest at the landing, thinning with distance; none where soft-ground softness is above softHigh. Drawn within drawRadiusM of the rover (thinning out from edgeFadeShare of it), rounder within nearRadiusM, rebuilt every rebuildStepM.",
+      "seed": 2005, "drawRadiusM": 30, "edgeFadeShare": 0.45, "nearRadiusM": 10, "cellM": 4, "rebuildStepM": 2, "maxInstances": 8000,
+      "landingPerM2": 3.0, "farPerM2": 0.25, "landingFalloffM": 140,
+      "softLow": 0.02, "softHigh": 0.12,
+      "sizeMinM": 0.05, "sizeMaxM": 0.15, "sizePower": 2,
+      "heightShareMin": 0.45, "heightShareMax": 0.7, "buriedShare": 0.3,
+      "color": "#bdb7ad"
+    },
+    "ripples": {
+      "_about": "titan-fx: ground. Wind ripples on loose dune sand, in the ground shader (normal and shading; world/titanRipples.ts). Crests lie across the wind, which blows along the W-E dunes. Each wavelength fades by pixel size, and all fade with camera distance.",
+      "windAzimuthDeg": 90,
+      "fineWavelengthM": 0.3, "fineHeightM": 0.02, "fineShade": 0.1,
+      "coarseWavelengthM": 1.1, "coarseHeightM": 0.03, "coarseShade": 0.06,
+      "warpScaleM": 3.5, "warpM": 0.7, "breakScaleM": 6, "breakAmount": 0.8,
+      "softLow": 0.15, "softHigh": 0.5, "fadeStartM": 60, "fadeEndM": 140
+    },
+    "sunIntensity": 4,
+    "referenceElevationDeg": 65,
+    "radiusOverScaleHeight": 64,
+    "directDepth": 0.5,
+    "directReddening": [0.8, 1.0, 1.35],
+    "directGain": 0.5,
+    "diffuseGain": 0.7,
+    "diffuseSunPower": 0.6,
+    "twilightShare": 0.08,
+    "twilightScaleDeg": 4,
+    "duskLowDeg": -4,
+    "duskHighDeg": 16,
+    "skyGamma": 0.55,
+    "skyAdaptK": 0.35,
+    "skyAdaptMax": 1.8,
+    "adaptK": 0.55,
+    "adaptMax": 5,
+    "nightLight": 0.07,
+    "groundBounce": 0.12,
+    "skyLightSaturation": 0.75,
+    "colors": {
+      "sun": "#ffe9c8",
+      "dayHorizon": "#a6865a",
+      "dayZenith": "#8c6e48",
+      "duskHorizon": "#7c4a2c",
+      "duskZenith": "#2a1c1c",
+      "rainHorizon": "#6e665a",
+      "rainZenith": "#5e574c",
+      "night": "#020203",
+      "glow": "#f2cf98",
+      "duskGlow": "#d98a48"
+    },
+    "glow": {
+      "dayStrength": 0.12,
+      "duskStrength": 0.35,
+      "widthDeg": 18,
+      "duskWidthDeg": 14,
+      "highDeg": 25,
+      "twilightScaleDeg": 4
+    },
+    "sunDisc": {
+      "opacity": 0.35,
+      "fullDeg": 20,
+      "radiusDeg": 0.5
+    },
+    "fog": {
+      "clearDensity": 0.00032,
+      "rainDensity": 0.0075,
+      "rainEase": 0.3,
+      "shapePower": 1.2
+    },
+    "dusk": {
+      "dimDeg": 14,
+      "dim": 0.45
+    },
+    "rain": {
+      "gloom": 0.55,
+      "directDepth": 2,
+      "skyDim": 0.3,
+      "streakOpacity": 0.7,
+      "streakCount": 4000,
+      "streakBoxM": 40,
+      "fallMps": 5,
+      "streakLengthM": 1.2,
+      "color": "#d8ccb8"
+    },
+    "ground": {
+      "color": "#74684f",
+      "albedoContrast": 0.75,
+      "darkSandTint": "#e6dcd4",
+      "darkToneLow": 0.5,
+      "darkToneHigh": 1.1,
+      "reliefGain": 5,
+      "reliefOcclusion": 3,
+      "reliefNearM": 40,
+      "reliefFarM": 400,
+      "farToneBoost": 0.8
+    },
+    "floodlight": {
+      "color": "#ffe8cc",
+      "intensity": 70,
+      "angle": 0.65,
+      "penumbra": 0.9,
+      "decay": 1.0,
+      "targetDrop": 0.8
+    },
+    "shadowRadius": 3,
+    "sunMask": {
+      "bands": [16, 4, 2],
+      "minElevationDeg": -3
+    },
+    "beams": {
+      "_note": "titan-fx: beams. Floodlight beams in the haze and raindrops glinting in them (world/titanBeams.ts). Presentation only.",
+      "intensity": 0.055,
+      "angleScale": 0.55,
+      "lengthScale": 0.9,
+      "penumbra": 0.6,
+      "verticalScale": 0.5,
+      "toeOutDeg": 6,
+      "core": { "angleShare": 0.35, "share": 0.6 },
+      "nearFadeM": 0.8,
+      "nearM": 4,
+      "fullDeg": -4,
+      "offDeg": 6,
+      "dayStrength": 0,
+      "rainBoost": 0.8,
+      "samples": 28,
+      "halo": { "sizeM": 0.6, "intensity": 0.5 },
+      "glints": { "count": 320, "sizePx": 6, "fallMps": 1.5, "intensity": 1.2, "twinkleHz": 2.5 }
+    },
+    "clouds": {
+      "_note": "titan-fx: clouds (world/titanClouds.ts). Demo visuals, presentation only: a faint drifting streaky methane cloud layer in the sky dome and soft cloud shadows on the dunes by day. Drift is exaggerated so it reads on video.",
+      "heightM": 8000,
+      "scaleM": 3500,
+      "stretch": 4,
+      "windDeg": 20,
+      "driftDeg": 75,
+      "driftMps": 120,
+      "coverage": 0.5,
+      "softness": 0.22,
+      "opacity": 0.45,
+      "nightOpacity": 0.1,
+      "nightDeg": -8,
+      "litGain": 1.35,
+      "shadeGain": 0.75,
+      "dayTint": "#fff2dc",
+      "duskTint": "#ffb070",
+      "forwardGlow": 0.5,
+      "rain": { "coverageDrop": 0.3, "opacityGain": 0.8, "darken": 0.6 },
+      "shadow": { "strength": 0.25, "softness": 0.03, "lowDeg": 4, "highDeg": 18 },
+      "duskSky": { "darkenUp": 0.45, "glowBoost": 1.2, "belowDeg": -6, "fullDeg": 4, "offDeg": 14 }
+    },
+    "rainDrops": {
+      "_note": "titan-fx: rain (world/titanRain.ts). Methane raindrops, presentation only. Real basis: Lorenz 1993 (Planet. Space Sci. 41:647): drops up to about 9.5 mm across fall at about 1.6 m/s, about 6x slower than Earth's largest (about 6.5 mm, 9.2 m/s). Drop sizes are drawn drawScale x life size so they read on 1280x720 video; smaller drops fall slower (fallSpread). Drops wrap in a box around the camera; the number drawn follows the rain intensity.",
+      "count": 6000,
+      "boxM": 14,
+      "fallMps": 1.6,
+      "fallSpread": 0.45,
+      "sizeMinMm": 2,
+      "sizeMaxMm": 9.5,
+      "drawScale": 3.5,
+      "stretch": 1.8,
+      "windMps": [0.45, 0.15],
+      "swayM": 0.12,
+      "swayHz": 0.35,
+      "minPx": 1.5,
+      "fadeNearM": 0.5,
+      "fadeFarM": 18,
+      "opacity": 0.9,
+      "brightness": 1.8,
+      "darkShare": 0.3,
+      "lampGain": 0.05
+    },
+    "wet": {
+      "_note": "titan-fx: rain (world/titanWet.ts). Wet ground, presentation only: wetness 0..1 rises toward the rain intensity with time constant wetTauS and falls linearly over dryS once the rain eases (mission seconds). Wet ground darkens to darken x its color and gains a sheen: the hazy horizon reflected at grazing angles (fresnel0 at normal view), a glint toward the Sun and the floodlights (shininess), varying in patches about patchM across.",
+      "wetTauS": 6,
+      "dryS": 180,
+      "darken": 0.45,
+      "sky": 0.25,
+      "sun": 0.4,
+      "lamp": 0.35,
+      "shininess": 24,
+      "fresnel0": 0.04,
+      "patchM": 5
+    }
+  },
+  "survey": {
+    "_note": "T5. Orbital survey leads, nearest first: the bright interdune sample patch (samplePatch), the dune-crest viewpoint (viewpoints.0), the Selk ejecta field (rockyAreas.0), and Selk crater itself (selk: tens of km off the map, never discovered, so it stays a bearing to the rim). Sites are named by key or alias so the leads survive the pipeline renaming them. Text in data/titan/text.json survey.leads. Rounding is the Moon's.",
+    "leads": [
+      { "id": "patch", "site": "samplePatch" },
+      { "id": "crest", "site": "viewpoints.0" },
+      { "id": "ejecta", "site": "rockyAreas.0" },
+      { "id": "selk", "site": "selk" }
+    ]
+  },
+  "milestones": {
+    "_note": "T5. No Titan-only tuning: zones come from terrain.json (dune crests within duneCrests.zoneRadius_m of a crest line, corridor outlines, the sample patch's radius_m, the ejecta field = rockyAreas[0] radius x boulderCrossRadiusFactor) and the shared photoZoneRadiusM (dune-crest viewpoint). Samples: the Moon's 200 m from the lander and from each other. No hydrogen signal (no ice spot on Titan)."
+  }
+}

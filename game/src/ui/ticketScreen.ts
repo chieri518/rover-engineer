@@ -64,10 +64,15 @@ export const ticketScreen: Screen = (game, root) => {
 
   root.append(
     el('section', { class: 'panel ticket' },
-      el('h2', {}, t.heading),
+      // The top bar stays in view while the ticket scrolls.
+      el('header', { class: 'ticket-head' },
+        el('h2', {}, t.heading),
+        el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
+      ),
       el('p', {}, t.briefing),
       el('p', { class: 'muted' }, t.tierRule),
       text.campaign && el('p', { class: 'muted' }, text.campaign.ticketNote),
+      text.titanCampaign && el('p', { class: 'muted world-warning' }, text.titanCampaign.solarNote),
       el('div', { class: 'rover-line' },
         row('Rover mass', `${q.mass} kg`),
         row('Rover size', `${q.size}`),
@@ -92,7 +97,6 @@ export const ticketScreen: Screen = (game, root) => {
       ),
       warnings.length > 0 && el('ul', { class: 'warnings' }, ...warnings.map((w) => el('li', {}, w))),
       reviewSection,
-      el('p', { class: 'note' }, text.moneyNote),
       el('div', { class: 'actions' },
         el('button', { onclick: () => game.go('design') }, 'Back to design'),
         el('button', { class: 'primary', disabled: !q.canLaunch || !q.canAfford, onclick: () => game.buyTicket() },

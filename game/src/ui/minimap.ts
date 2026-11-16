@@ -6,6 +6,9 @@
 // lander, the operating boundary and the rover are always drawn. Up is local −z (grid north, toward
 // Earth). The ice spot is never marked. On Mars the map also draws the delta front's scarp line, Séítah's
 // outline and Perseverance's landing site once discovered; it has no cold zones, so no cold legend.
+// Titan draws its dune crests as lines (the delta front's style), interdune corridors as dashed outlines
+// (Séítah's style; the legend words come from text.survey), the sample patch and the ejecta field; Selk is
+// off the map, so it shows only as a lead arrow.
 // The Moon's sites.json sites have their own marks: a young crater's double ring, a cold trap's dashed
 // patch (apart from the dark crater's solid outline), the rolled boulder with its track up the slope,
 // and the hidden hydrogen's dotted area once found. A small check marks a site where this rover has done
@@ -47,6 +50,7 @@ const REVEAL_SOFT_EDGE = 0.8; // the fog fades out over the outer 20% of each re
 export type ReliefTone = [number, number, number];
 const GREY: ReliefTone = [1, 1, 1];
 export const MARS_RELIEF: ReliefTone = [1.08, 0.78, 0.58];
+export const TITAN_RELIEF: ReliefTone = [1.04, 0.88, 0.7];
 
 /** An undiscovered lead, as the map draws it. */
 export interface LeadArrow {
@@ -179,7 +183,7 @@ export class Minimap {
    */
   includeSite(site: Site): void {
     const a = site.area;
-    if (a.kind === 'path') return;
+    if (a.kind === 'path' || site.kind === 'corridor') return; // Titan corridors span the map
     const pts: [number, number][] = a.kind === 'polygon' ? a.points : [[a.x - a.r, a.z - a.r], [a.x + a.r, a.z + a.r]];
     if (site.track) pts.push([site.track.from.x, site.track.from.z]);
     for (const [x, z] of pts) this.bounds = growBounds(this.bounds, { x, z }, 0);
@@ -247,8 +251,8 @@ export class Minimap {
         }
       } else if (a.kind === 'polygon' || a.kind === 'path') {
         ctx.strokeStyle = s.kind === 'shadowed-crater' ? COLD : a.kind === 'path' ? DELTA : REGION;
-        ctx.lineWidth = a.kind === 'path' ? 3 : 1.5;
-        ctx.setLineDash(s.kind === 'region' ? [5, 4] : []);
+        ctx.lineWidth = a.kind === 'path' ? (s.kind === 'dune-crest' ? 2 : 3) : 1.5;
+        ctx.setLineDash(s.kind === 'region' || s.kind === 'corridor' ? [5, 4] : []);
         ctx.beginPath();
         a.points.forEach(([x, z], i) => (i ? ctx.lineTo(px(x), py(z)) : ctx.moveTo(px(x), py(z))));
         if (a.kind === 'polygon') ctx.closePath();
@@ -279,7 +283,7 @@ export class Minimap {
         ctx.strokeStyle = MARK;
         ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(px(a.x), py(a.z), s.kind === 'rocky-area' ? Math.max(4, a.r * k) : 6, 0, Math.PI * 2);
+        ctx.arc(px(a.x), py(a.z), s.kind === 'rocky-area' || s.kind === 'sample-patch' ? Math.max(4, a.r * k) : 6, 0, Math.PI * 2);
         ctx.stroke();
         // A rocky area is also a sites.json site, so it can show a check.
         if (s.kind === 'rocky-area' && done(s)) {

@@ -107,11 +107,11 @@ export function validateGameData(data: GameData): string[] {
   problems.push(...instrumentTuningProblems(data));
   problems.push(...siteProblems(data));
   problems.push(...relationshipProblems(data.relationships, data.allParts.parts));
-  const { flare, quake, duststorm } = data.events;
+  const { flare, quake, duststorm, rainstorm } = data.events;
   if (flare && flare.realFlares.length < flare.windowsSeconds.length) {
     problems.push('events.json needs at least one real flare per flare window');
   }
-  for (const [a, b] of [...(flare?.windowsSeconds ?? []), ...(quake?.windowsSeconds ?? []), ...(duststorm?.windowsSeconds ?? [])]) {
+  for (const [a, b] of [...(flare?.windowsSeconds ?? []), ...(quake?.windowsSeconds ?? []), ...(duststorm?.windowsSeconds ?? []), ...(rainstorm?.windowsSeconds ?? [])]) {
     if (!(a <= b && b <= data.tuning.mission.lengthSeconds)) problems.push(`event window [${a}, ${b}] is outside the mission`);
   }
   return problems;
@@ -197,10 +197,12 @@ function powerProblems(data: GameData): string[] {
  */
 function dustProblems(data: GameData): string[] {
   const problems: string[] = [];
-  const { dust, sol, night } = data.tuning;
+  const { dust, sol, night, titanCold } = data.tuning;
   const devil = data.events.dustdevil;
-  // The energy step reads tuning.dust on every world with a night (Mars) or dust devils.
-  if (!dust && (night || devil)) problems.push(`tuning.dust is needed on ${data.world}, which has ${night ? 'a night' : 'dust devils'}`);
+  // The Mars energy step reads tuning.dust on every world with a night (Mars) or dust devils. Titan has a
+  // night too, but its own rules (tuning.titanCold, rules/titan.ts) replace the Mars step and read no dust.
+  const marsNight = night && !titanCold;
+  if (!dust && (marsNight || devil)) problems.push(`tuning.dust is needed on ${data.world}, which has ${marsNight ? 'a night' : 'dust devils'}`);
   for (const part of data.parts.parts) {
     const e = part.effects;
     if (dust && (e.energyIncome ?? 0) > 0 && e.dustRate === undefined) problems.push(`part ${part.id} has solar income but no dustRate (needed on ${data.world}, which has dust)`);

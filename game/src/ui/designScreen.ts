@@ -2,7 +2,7 @@
 // the specification sheet.
 // All numbers come from rules/ (quoteBuild); this file only lays them out.
 import type { Screen } from '../flow/flow';
-import { canStartMission, nextMission } from '../rules/campaign';
+import { canStartMission, isPlayable, nextMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
@@ -44,7 +44,8 @@ function keyEffect(part: Part, data: GameData): string | null {
         : null;
     case 'power':
       if (e.steadyIncome) return `Steady income ${e.steadyIncome.toFixed(1)} energy/s, day and night`;
-      return e.energyIncome !== undefined ? `Solar income ${e.energyIncome.toFixed(1)} energy/s` : null;
+      if (e.energyIncome === undefined) return null;
+      return titanSolar(e.energyIncome, data) ?? `Solar income ${e.energyIncome.toFixed(1)} energy/s`;
     case 'battery':
       return e.batteryCapacity !== undefined ? `Capacity ${e.batteryCapacity} energy` : null;
     case 'lights':
@@ -60,6 +61,14 @@ function keyEffect(part: Part, data: GameData): string | null {
       return c ? costsText(c, data, true) : null;
     }
   }
+}
+
+/** Titan: a panel's solar income at Titan (the Moon rate times the Titan solar factor), or null elsewhere. */
+function titanSolar(income: number, data: GameData): string | null {
+  const factor = data.tuning.titanPower?.solarFactor;
+  const t = data.text.titanCampaign;
+  if (factor === undefined || !t) return null;
+  return fill(t.solarIncome, { income: Number((income * factor).toPrecision(1)) });
 }
 
 /** A horizontal gauge with a tick at each tier limit. */
@@ -111,7 +120,7 @@ export const designScreen: Screen = (game, root) => {
     const node = el('label', { class: 'option' },
       input,
       el('span', { class: 'option-name' }, part.name),
-      el('span', { class: 'option-desc' }, part.description),
+      part.description ? el('span', { class: 'option-desc' }, part.description) : null, // none/empty options have no description
       el('span', { class: 'option-stats' },
         el('span', {}, money(part.cost, text)),
         el('span', {}, `${part.mass} kg`),
@@ -354,7 +363,7 @@ export const designScreen: Screen = (game, root) => {
       ...(nightLine ? [row(nightLine.label, nightLine.value)] : []),
       row('Range on battery', has('wheels') && has('battery') ? `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground` : dash),
       row(t.instrumentEnergy, instrumentEnergyText()),
-      row('Solar income', has('power') ? `${d.energyIncome.toFixed(1)} energy/s in full sun` : dash),
+      row('Solar income', has('power') ? (titanSolar(d.energyIncome, data) ?? `${d.energyIncome.toFixed(1)} energy/s in full sun`) : dash),
     );
     renderInfo(q);
 
@@ -392,13 +401,16 @@ export const designScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
 
-  // After the Moon (Mars only): which mission this is, the balance carried over, the next pass mark,
-  // and what the parts and tickets are for now.
+  // After the Moon (Mars, Titan): the balance carried over, the next pass mark (on Titan the survival
+  // goal: it passes if the rover is still running at the end), and what the parts and tickets are for now
+  // (Mars has its own; Titan's are the Moon's). Titan adds a plain warning that solar panels give almost no
+  // power there.
   const mars = text.campaign;
   const nextStep = nextMission(game.state.mission);
   const transition = mars && el('p', { class: 'world-transition' },
     fill(mars.carryOver, { balance: money(game.state.balance, text) }), ' ',
-    nextStep ? fill(mars.passMark, { minimum: money(data.tuning.budget.minimumBudget[nextStep], text) }) : '', ' ',
+    nextStep && isPlayable(nextStep) ? fill(mars.passMark, { minimum: money(data.tuning.budget.minimumBudget[nextStep], text) })
+      : nextStep ? fill(mars.passMark, missionVars(data)) : '', ' ',
     mars.sameParts,
   );
 
@@ -415,20 +427,25 @@ export const designScreen: Screen = (game, root) => {
   }, text.notebook.open);
 
   const desk = el('section', { class: 'desk' },
+    // The top bar stays in view while the desk scrolls: title, help, notebook and balance. The longer notes sit below it.
     el('header', { class: 'desk-head' },
       el('div', {},
-        mars && el('p', { class: 'title-kicker' }, mars.kicker),
+        el('p', { class: 'title-kicker' }, text.story.kicker),
         el('h2', {}, t.heading),
-        el('p', { class: 'muted' }, t.tutorial),
-        transition,
-        notOffered.length > 0 && el('p', { class: 'world-transition not-offered', role: 'status' },
-          fill(t.notOffered, { parts: notOffered.map((p) => p.name).join(text.ticket.and) })),
       ),
       el('div', { class: 'desk-head-side' },
         help,
         notebookButton,
         el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
       ),
+    ),
+    el('div', { class: 'desk-notes' },
+      el('p', { class: 'story-site' }, text.story.site), // why REL is going to this site
+      el('p', { class: 'muted' }, t.tutorial),
+      transition,
+      notOffered.length > 0 && el('p', { class: 'world-transition not-offered', role: 'status' },
+        fill(t.notOffered, { parts: notOffered.map((p) => p.name).join(text.ticket.and) })),
+      text.titanCampaign && el('p', { class: 'world-transition world-warning' }, text.titanCampaign.solarNote),
     ),
     el('div', { class: 'desk-grid' },
       el('div', { class: 'slots' }, ...slots),
@@ -438,7 +455,6 @@ export const designScreen: Screen = (game, root) => {
         sheet,
         warnings,
         el('div', { class: 'actions' }, next),
-        el('p', { class: 'note' }, text.moneyNote),
       ),
     ),
   );

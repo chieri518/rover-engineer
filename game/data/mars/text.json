@@ -5,7 +5,7 @@
     "wheels-solid": { "description": "Cheap and heavy. Lower grip in sand ripples." },
     "power-fixed-panel": { "description": "A flat panel. Solar income by day, most with the Sun high. Nothing at night, less in a dust storm." },
     "power-solar-mast": { "description": "Twice the fixed panel's solar income. Nothing at night, less in a dust storm. Light, expensive and bulky." },
-    "lights-none": { "description": "Saves cost, mass, and space. The rover cannot drive at night." },
+    "lights-none": { "description": "" },
     "lights-led": { "description": "Lets the rover keep driving at night, at a high battery cost." },
     "heater-none": { "description": "Saves cost, mass, and space. Without another source of heat the rover freezes in its first night." },
     "heater-rhu": { "description": "Steady heat from decaying isotopes. Lets the rover survive the night cold." },
@@ -58,8 +58,15 @@
       "Robotic rovers drive far slower. NASA's Curiosity and Perseverance rovers on Mars have a top speed of about 4 cm/s (0.15 km/h) on flat ground."
     ]
   },
-  "campaign": {
+  "story": {
     "kicker": "Mission 2 · Mars, Jezero crater",
+    "site": "Mission 2 goes to Jezero crater on Mars. About 3.5 billion years ago the crater held a lake, fed by a river that built a delta at its edge. NASA's Perseverance rover landed here in 2021 and has drilled rock cores from that delta.",
+    "sources": [
+      "NASA JPL, Mars 2020 Landing Press Kit: Landing Site (jpl.nasa.gov/news/press_kits/mars_2020/landing/mission/landing_site/)",
+      "NASA JPL, NASA's Perseverance Rover Investigates Geologically Rich Mars Terrain (jpl.nasa.gov/news/nasas-perseverance-rover-investigates-geologically-rich-mars-terrain/)"
+    ]
+  },
+  "campaign": {
     "carryOver": "Balance carried over from the Moon: {balance}.",
     "passMark": "After this mission the balance must stay at or above {minimum}, the pass mark for Titan.",
     "sameParts": "Mars has its own parts: the Moon's, without the two instruments that have no work on this mission, plus new power sources, a larger battery, an electric heater, grouser wheels, an arm, a mast and four Mars instruments. Launches to Mars have their own ticket tiers, with a Heavy tier.",
@@ -76,7 +83,7 @@
     "sources": "Sources: NASA JPL, Mars 2020 Landing Press Kit: Landing Site (www.jpl.nasa.gov/news/press_kits/mars_2020/landing/mission/landing_site/); NASA, Welcome to 'Octavia E. Butler Landing' (www.nasa.gov/image-article/welcome-octavia-e-butler-landing/)."
   },
   "mission": {
-    "briefing": "Ten sols at Jezero crater. The Sun sets every sol: lights on to keep driving, or sleep until dawn.",
+    "briefing": "{sols} sols at Jezero crater. The Sun sets every sol: lights on to keep driving, or sleep until dawn.",
     "controls": "W A S D or arrow keys to drive. Space to brake. P to power down (sleep) or power up.",
     "loading": "Loading Jezero crater…",
     "loadFailed": "Mars failed to load: {error}"
@@ -131,7 +138,9 @@
   "debrief": {
     "failedRound": "The balance is below the pass mark for the next mission, Titan ({minimum}). The round must be restarted. Balance, research points and records return to their values at the start of the Mars round.",
     "passedRound": "The balance meets the pass mark for the next mission, Titan ({minimum}). The Mars round is complete.",
-    "continue": "Continue"
+    "continue": "Continue to Titan",
+    "storyPassed": "The Jezero results fund the program's last mission: a rover for the Shangri-La dunes on Titan, Saturn's largest moon. Titan takes away the sunlight. The battery is the budget, and the cold never lets up.",
+    "storyFailed": "On these results, REL cannot fund the mission to Titan. The board has approved another attempt at Jezero crater, and the engineering notebook keeps what this rover learned."
   },
   "causes": {
     "stuck": "Stuck in sand",

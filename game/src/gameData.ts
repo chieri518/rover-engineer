@@ -16,6 +16,10 @@ import marsTiers from '../data/mars/tiers.json';
 import marsSites from '../data/mars/sites.json';
 import relationships from '../data/relationships.json';
 import sites from '../data/sites.json';
+import titanTuning from '../data/titan/tuning.json';
+import titanEvents from '../data/titan/events.json';
+import titanMilestones from '../data/titan/milestones.json';
+import titanText from '../data/titan/text.json';
 import type { GameData, PartsFile, PartsOverlay, TiersFile, MilestonesFile, Tuning, EventsFile, TextFile, RelationshipsFile, SitesFile } from './rules/types';
 import { validateGameData } from './rules/validate';
 import { deepMerge, withPartsOverlay, withPartText } from './rules/merge';
@@ -38,13 +42,14 @@ const shared: Omit<GameData, 'world' | 'allParts'> = {
  * Per-world overlays. The part catalog is one file: each part says which worlds offer it (Part.worlds),
  * text.partText rewords parts per world, and the world's parts overlay (PartsOverlay) adds its support
  * slots and per-world effects. Ticket tiers are deep-merged like the other overlays (Mars's list replaces
- * the shared one). Relationships are shared (each relationship names its world). Each world has its own
- * sites file, replaced whole (data/sites.json is the Moon's, data/mars/sites.json Mars's), so no Moon site
- * reaches Mars.
+ * the shared one; Titan reuses the Moon's). Relationships are shared (each relationship names its world).
+ * Each world has its own sites file, replaced whole (data/sites.json is the Moon's, data/mars/sites.json
+ * Mars's; Titan has none), so no Moon site reaches Mars or Titan.
  */
 const overlays: Record<WorldId, Partial<Record<keyof GameData, unknown>>> = {
   moon: {},
   mars: { tuning: marsTuning, events: marsEvents, milestones: marsMilestones, text: marsText, parts: marsParts, tiers: marsTiers, sites: marsSites as SitesFile },
+  titan: { tuning: titanTuning, events: titanEvents, milestones: titanMilestones, text: titanText, sites: { sites: [] } },
 };
 
 /** The world's data: shared data with the world's overlay merged over it, and the parts the world offers. */

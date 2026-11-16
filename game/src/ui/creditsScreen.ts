@@ -98,9 +98,9 @@ function fallback(c: TextFile['credits'], lines: string[]): Node[] {
   return [el('p', { class: 'note' }, c.loadFailed), ...lines.map((l) => el('p', {}, l))];
 }
 
-/** A source line that is filled in (stub data files mark theirs "[placeholder]"). */
+/** A source line that is filled in (stub data files mark theirs "[placeholder]" or "[to fact-check]"). */
 function isReal(s: string | undefined): s is string {
-  return Boolean(s) && !s!.startsWith('[placeholder');
+  return Boolean(s) && !s!.startsWith('[placeholder') && !s!.startsWith('[to fact-check');
 }
 
 /**
@@ -147,7 +147,6 @@ export const creditsScreen: Screen = (game, root) => {
       el('h2', {}, c.heading),
       el('p', {}, c.intro),
       el('p', { class: 'credits-disclaimer' }, c.disclaimer),
-      el('p', { class: 'note' }, shared.text.moneyNote),
 
       ...WORLD_IDS.map((w) => worldCredits(w, game.dataOf(w), shared, disposed)),
 
@@ -181,6 +180,8 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
   const imagery = loading();
   const flare = data.events.flare;
   const storm = data.events.duststorm;
+  const rain = data.events.rainstorm;
+  const titan = text.titanCampaign; // Titan: the Dragonfly debrief
   const historyLabel = (k: HistoryKey) => (k === 'survived' ? c.survivedLabel : k === 'rollover' ? text.debrief.rollover : text.causes[k]);
   // Other worlds list only the debrief comparisons they replace.
   const historyKeys = HISTORY_KEYS.filter((k) => world === 'moon' || text.historySources[k] !== shared.text.historySources[k]);
@@ -188,6 +189,7 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
   const instruments = instrumentSources(data, shared);
   const relationships = relationshipSources(data);
   const landing = text.campaign;
+  const story = text.story.sources.filter(isReal); // the design desk's site context
 
   void fetchJson<TerrainSources>(world, 'terrain.json')
     .then((info) => terrainList(info, c))
@@ -208,21 +210,27 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
           fill(c.flaresUsed, { list: flare.realFlares.map((f) => `${f.class} (${f.date})`).join(', ') })))),
     storm && (isReal(storm.source) || isReal(text.storm?.credit)) && section(c.spaceWeather,
       el('ul', { class: 'credit-list' }, entry(null, isReal(storm.source) && storm.source, isReal(text.storm?.credit) && text.storm!.credit))),
+    rain && (isReal(rain.source) || isReal(text.rain?.credit)) && section(c.spaceWeather,
+      el('ul', { class: 'credit-list' }, entry(null, isReal(rain.source) && rain.source, isReal(text.rain?.credit) && text.rain!.credit))),
+    story.length > 0 && section(text.story.sourcesLabel,
+      el('ul', { class: 'credit-list' }, ...story.map((s) => entry(null, s)))),
     landing && isReal(landing.sources) && section(landing.sourcesLabel,
       el('ul', { class: 'credit-list' }, entry(null, landing.sources))),
     (milestones.length > 0 || world === 'moon') && section(c.milestones,
       el('ul', { class: 'credit-list' },
         ...milestones.map((m) => entry(m.name, m.source)))),
     // Each world's instrument facts (other worlds only those that differ from the Moon's), its own parts'
-    // real basis (Mars step 8), and the sources behind its relationships.
+    // real basis (Mars step 8), the sources behind its relationships, and the debrief comparisons (Titan: Dragonfly).
     instruments.length > 0 && section(c.instrumentsLabel,
       el('ul', { class: 'credit-list' }, ...instruments.map(([name, source]) => entry(name, source)))),
     c.partsLabel && c.partEntries && c.partEntries.length > 0
       && section(c.partsLabel, el('ul', { class: 'credit-list' }, ...c.partEntries.map(handEntry))),
     relationships.length > 0 && section(c.relationshipsLabel,
       el('ul', { class: 'credit-list' }, ...relationships.map((source) => entry(null, source)))),
-    historyKeys.length > 0 && section(c.debrief,
-      el('ul', { class: 'credit-list' }, ...historyKeys.map((k) => entry(historyLabel(k), text.historySources[k])))),
+    (historyKeys.length > 0 || titan) && section(c.debrief,
+      el('ul', { class: 'credit-list' },
+        ...historyKeys.map((k) => entry(historyLabel(k), text.historySources[k])),
+        titan && entry(titan.dragonflyHeading, titan.dragonflySource))),
     // Another world's own "placed by design" note (the shared one, at the end, is the Moon's).
     world !== 'moon' && c.generated !== shared.text.credits.generated && section(c.generatedHeading, el('p', {}, c.generated)),
   );

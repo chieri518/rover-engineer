@@ -3,13 +3,18 @@
 // patches (mask >= 128) connected to the places listed in tuning.cold.zones: on the Moon the shadowed
 // crater, the small cold patch in Rocky area 1, and the East and South cold traps (sites.json). Other
 // tiny shadowed spots are ignored.
-// Mars has no cold mask (its night cold is map-wide), so it has no cold zones. Mars has a soft-ground mask
-// (soft-ground.png, Séítah's sand ripples), which keeps site boulders off the ripples; the Moon has none.
+// Mars has no cold mask (its night cold is map-wide), so it has no cold zones. Mars and Titan have a
+// soft-ground mask (soft-ground.png). On Mars it marks Séítah's sand ripples and keeps site boulders off
+// them (softAt); its driving softness keeps the circle rule. Titan's is graded (softness = value / 255) and
+// authoritative (terrain.json maskIsAuthoritative), so it is the driving softness there (softMask). The
+// Moon has none.
 import { decode } from 'fast-png';
 import type { SiteSpec, Tuning } from '../rules/types';
 import { coldZoneAnchor, type SiteFeatures } from '../rules/sites';
-import type { SoftArea } from '../rules/ground';
+import { softnessAt, type SoftArea } from '../rules/ground';
 import type { MarsTerrainFeatures } from '../rules/marsTypes';
+import type { TitanTerrainFeatures } from '../rules/titanTypes';
+import { maskSoftness, type GridMask } from '../rules/titan';
 import { terrainUrl, type WorldId } from '../worlds';
 
 interface Point { x: number; z: number }
@@ -26,7 +31,9 @@ export interface MoonTerrainFeatures {
  * so each world's code checks for the ones it uses.
  */
 export type TerrainFeatures = { rockyAreas: { name: string; local: Point; radius_m: number }[] }
-  & Partial<MoonTerrainFeatures> & Partial<Omit<MarsTerrainFeatures, 'rockyAreas'>>;
+  & Partial<MoonTerrainFeatures> & Partial<Omit<MarsTerrainFeatures, 'rockyAreas'>>
+  & Partial<Pick<TitanTerrainFeatures, 'duneCrests' | 'interdunes' | 'samplePatch' | 'crossingRoute' | 'selk'>>
+  & { softGround?: { maskIsAuthoritative?: boolean } };
 
 /** The parts of terrain.json the mission systems read. */
 export interface FeatureInfo {
@@ -45,13 +52,15 @@ export class TerrainMasks {
   readonly softAreas: SoftArea[];
   /** Where boulders lie: the rocky areas on every world. */
   readonly boulderAreas: SoftArea[];
+  /** Titan: the graded soft-ground mask (authoritative); null where the circles are the rule (the Moon, Mars). */
+  readonly softMask: GridMask | null;
 
   constructor(
     readonly info: FeatureInfo,
     private readonly slope: Uint8Array,
     /** 1 inside a cold zone. */
     readonly cold: Uint8Array,
-    /** soft-ground.png (Mars): 0 firm to 255 sand ripples. Absent: no soft-ground mask (the Moon). */
+    /** soft-ground.png (Mars, Titan): 0 firm to 255 softest. Absent: no soft-ground mask (the Moon). */
     private readonly soft: Uint8Array | null = null,
   ) {
     this.n = info.playArea.samples;
@@ -61,6 +70,7 @@ export class TerrainMasks {
     this.boulderAreas = circles(info.features.rockyAreas);
     const sand = info.features.softGround?.areas;
     this.softAreas = sand ? circles(sand) : this.boulderAreas;
+    this.softMask = soft && info.features.softGround?.maskIsAuthoritative ? { data: soft, n: this.n, pixelM: this.pixel } : null;
   }
 
   private index(x: number, z: number): number {
@@ -74,7 +84,7 @@ export class TerrainMasks {
     return this.slope[this.index(x, z)]! / 4;
   }
 
-  /** Whether this world has a soft-ground mask (Mars). */
+  /** Whether this world has a soft-ground mask (Mars, Titan). */
   get hasSoftGround(): boolean {
     return this.soft !== null;
   }
@@ -82,6 +92,11 @@ export class TerrainMasks {
   /** Softness at (x, z) from soft-ground.png, 0 (firm) to 1 (sand ripples), nearest 5 m sample; 0 without the mask. */
   softAt(x: number, z: number): number {
     return this.soft ? this.soft[this.index(x, z)]! / 255 : 0;
+  }
+
+  /** Ground softness 0..1 at (x, z): the graded mask where there is one (Titan), else the soft circles. */
+  softnessAt(x: number, z: number, ground: Tuning['ground']): number {
+    return this.softMask ? maskSoftness(this.softMask, x, z) : softnessAt(x, z, this.softAreas, ground);
   }
 
   inColdZone(x: number, z: number): boolean {

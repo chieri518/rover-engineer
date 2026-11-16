@@ -200,12 +200,16 @@ export interface SolTuning {
   horizonRateShare?: number;
   /** The mission starts this many seconds after sunrise of sol 1 (the Sun about 15° up), not at sunrise. */
   startSecondsIntoDay?: number;
+  /** Titan: a "sunset soon" notice this many seconds before the first sunset (absent: no notice). */
+  sunsetWarningSeconds?: number;
 }
 
 /** Night: lights on or sleep, and the map-wide night cold. Owner: rules (M3). */
 export interface NightTuning {
   awakeDrainPerSecond: number; // the electronics awake at night: battery drain on top of driving (the lights and heater draws are the parts', rules/energy.ts nightDraw)
   sleepDrainPerSecond: number; // the electronics powered down (P) at night
+  /** Titan only (rules/titan.ts titanDrainPerSecond): the whole awake-at-night drain with the lights on. Mars uses the parts' lightsDraw instead. */
+  lightsDrainPerSecond?: number;
   driveWithoutLights: boolean; // design: false, a rover without lights cannot drive at night
   freezeRatePerSecond: number; // night-wide freezing without a heater (heaterReductionPerHeat from tuning.cold applies)
   warmRecoveryPerSecond: number; // freeze meter recovery by day
@@ -403,7 +407,6 @@ export interface MarsTextSections {
 }
 
 export interface MarsCampaignText {
-  kicker: string; // design screen, above the heading: which mission this is
   carryOver: string; // {balance}: the balance carried over from the Moon
   passMark: string; // {minimum}: the next mission's pass mark (Titan)
   sameParts: string; // design screen: Mars has its own parts and ticket tiers

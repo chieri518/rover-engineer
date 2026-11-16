@@ -195,7 +195,7 @@ export function upgradeSavedBuild(saved: unknown, catalog: PartsFile): DraftBuil
 
 // --- A catalog per world ---
 
-const WORLD_LIST = ['moon', 'mars'] as const satisfies readonly MissionId[];
+const WORLD_LIST = ['moon', 'mars', 'titan'] as const satisfies readonly MissionId[];
 /** Every world id, for checking `Part.worlds` and `Relationship.world`. */
 export const KNOWN_WORLDS: readonly MissionId[] = WORLD_LIST;
 /** A type error here means a MissionId is missing from KNOWN_WORLDS. */

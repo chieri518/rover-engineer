@@ -28,6 +28,24 @@ describe('campaign save', () => {
     expect(loadCampaign(store)).toBeNull();
   });
 
+  it('round-trips round stats, and keeps older saves without them working', () => {
+    const store = memoryStore();
+    const stats = {
+      mission: 'titan' as const, passed: false, outcome: 'energy' as const, secondsLasted: 612, missionSeconds: 900, distanceM: 2100,
+      milestones: [{ category: 'capability' as const, earned: 2, available: 5 }], moneyEarned: 120, penalty: 40, net: 80,
+      spentRover: 400, spentTicket: 160, balanceAfter: 950, rp: 12, batteryCapacity: 300, energyUsed: 300, lowestBattery: 0,
+      peakCold: 0.42, samples: 1, photos: 3, build: { parts: ['steel'], payload: ['camera'] }, nights: { survived: 0, asleep: 0, lights: 0, dark: 0 },
+    };
+    const state = { ...startRound(newCampaign(testTuning)), stats: [stats] };
+    saveCampaign(state, store);
+    expect(loadCampaign(store)).toEqual(state);
+    store.setItem('rover-engineer.campaign.v1', JSON.stringify({ ...state, stats: [stats, { mission: 'moon' }, 3] }));
+    expect(loadCampaign(store)!.stats).toEqual([stats]); // damaged entries are dropped
+    const { stats: _drop, ...old } = state;
+    store.setItem('rover-engineer.campaign.v1', JSON.stringify(old));
+    expect(loadCampaign(store)!.stats).toBeUndefined(); // the dashboard shows these missions as not recorded
+  });
+
   it('works without storage', () => {
     expect(saveCampaign(newCampaign(testTuning), null)).toBe(false);
     expect(loadCampaign(null)).toBeNull();
@@ -88,10 +106,10 @@ describe('campaign save across worlds', () => {
     expect(restartRound(loaded).balance).toBe(900);
   });
 
-  it('round-trips a finished campaign at the Titan marker, log included', () => {
+  it('round-trips a finished campaign at the end marker, log included', () => {
     const store = memoryStore();
     const done = {
-      ...newCampaign(testTuning), mission: 'titan' as const, completed: ['moon' as const, 'mars' as const],
+      ...newCampaign(testTuning), mission: 'complete' as const, completed: ['moon' as const, 'mars' as const, 'titan' as const],
       log: [{ mission: 'moon' as const, outcome: 'survived' as const, secondsLasted: 300, money: 400, rp: 30, milestones: 4 }],
     };
     saveCampaign(done, store);
@@ -99,6 +117,16 @@ describe('campaign save across worlds', () => {
     expect(loaded).toEqual(done);
     expect(normalizeCampaign(loaded)).toBe(loaded);
     expect(isPlayable(loaded.mission)).toBe(false);
+  });
+
+  it('a save at the old Titan end marker loads as the playable Titan round', () => {
+    const store = memoryStore();
+    const old = startRound({ ...newCampaign(testTuning), mission: 'titan' as const, completed: ['moon' as const, 'mars' as const], balance: 950 });
+    saveCampaign(old, store);
+    const loaded = normalizeCampaign(loadCampaign(store)!);
+    expect(loaded).toEqual(old);
+    expect(isPlayable(loaded.mission)).toBe(true);
+    expect(restartRound(loaded).balance).toBe(950);
   });
 
   it('rejects unknown missions', () => {
@@ -111,7 +139,7 @@ describe('campaign save across worlds', () => {
 
   it('a new campaign replaces a finished one', () => {
     const store = memoryStore();
-    saveCampaign({ ...newCampaign(testTuning), mission: 'titan', completed: ['moon', 'mars'] }, store);
+    saveCampaign({ ...newCampaign(testTuning), mission: 'complete', completed: ['moon', 'mars', 'titan'] }, store);
     clearCampaign(store);
     saveCampaign(startRound(newCampaign(testTuning)), store);
     expect(loadCampaign(store)).toMatchObject({ mission: 'moon', completed: [], log: [] });

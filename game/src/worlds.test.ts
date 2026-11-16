@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData, worldGameData } from './gameData';
 import { fill } from './ui/dom';
-import { isWorldId, MARS_TERRAIN_BASE, worldFromQuery, worldOfStep, WORLDS } from './worlds';
+import { isWorldId, MARS_TERRAIN_BASE, TITAN_TERRAIN_BASE, worldFromQuery, worldOfStep, WORLDS } from './worlds';
 import type { MarsTerrainFeatures } from './rules/marsTypes';
+import type { TitanTerrainFeatures } from './rules/titanTypes';
 import moonTuning from '../data/tuning.json';
 import moonEvents from '../data/events.json';
 import moonMilestones from '../data/milestones.json';
@@ -13,6 +14,10 @@ import marsText from '../data/mars/text.json';
 import marsPartsOverlay from '../data/mars/parts.json';
 import moonTiers from '../data/tiers.json';
 import jezero from '../public/terrain/mars/terrain.json';
+import titanTuning from '../data/titan/tuning.json';
+import titanText from '../data/titan/text.json';
+import marsMilestones from '../data/mars/milestones.json';
+import titanTerrain from '../public/terrain/titan/terrain.json';
 
 /** Paths of every key (objects only) that does not start with _, e.g. "mission.gravity". */
 function keyPaths(o: unknown, prefix = ''): string[] {
@@ -24,16 +29,21 @@ function get(o: unknown, path: string): unknown {
 }
 
 describe('worlds', () => {
-  it('registers the Moon and Mars; the Moon terrain stays at terrain/', () => {
+  it('registers the Moon, Mars and Titan; the Moon terrain stays at terrain/', () => {
     expect(WORLDS.moon.terrainBase).toBe('terrain/');
     expect(WORLDS.mars.terrainBase).toBe(MARS_TERRAIN_BASE);
+    expect(TITAN_TERRAIN_BASE).toBe('terrain/titan/');
+    expect(WORLDS.titan).toEqual({ id: 'titan', terrainBase: TITAN_TERRAIN_BASE, sky: 'titan', earthInSky: false });
     expect(isWorldId('mars')).toBe(true);
-    expect(isWorldId('titan')).toBe(false);
-    expect(worldOfStep('titan')).toBe('mars');
+    expect(isWorldId('titan')).toBe(true);
+    expect(isWorldId('complete')).toBe(false);
+    expect(worldOfStep('titan')).toBe('titan');
+    expect(worldOfStep('complete')).toBe('titan');
   });
 
   it('reads the debug start from the query', () => {
     expect(worldFromQuery('?world=mars')).toBe('mars');
+    expect(worldFromQuery('?world=titan')).toBe('titan');
     expect(worldFromQuery('?world=venus')).toBeNull();
     expect(worldFromQuery('')).toBeNull();
   });
@@ -151,5 +161,97 @@ describe('Mars terrain (Jezero)', () => {
     expect(jezero.playArea.samples).toBe(1601);
     expect(jezero.distantTerrain).toHaveLength(2);
     expect('coldMask' in jezero.playArea.files).toBe(false);
+  });
+});
+
+describe('Titan data', () => {
+  it('loads and passes validation', () => {
+    expect(() => loadGameData('titan')).not.toThrow();
+  });
+
+  it('overlays the shared data: one 900 s day, Titan gravity, the rainstorm, Titan milestones', () => {
+    const titan = worldGameData('titan');
+    expect(titan.tuning.mission).toEqual({ lengthSeconds: 900, gameDays: 1, gravity: 1.35 });
+    const sol = titan.tuning.sol!;
+    expect(sol.sols * sol.secondsPerSol).toBe(titan.tuning.mission.lengthSeconds);
+    expect([sol.daySeconds, sol.nightSeconds, sol.startSecondsIntoDay]).toEqual([450, 450, 150]);
+    // Ground handling matches the Moon's tuned ground gravity.
+    const moon = loadGameData('moon').tuning;
+    expect(titan.tuning.mission.gravity * titan.tuning.rover.gravityScale).toBeCloseTo(moon.mission.gravity * moon.rover.gravityScale, 1);
+    expect(titan.tuning.ground).toEqual(moonTuning.ground);
+    expect(titan.tuning.cold.zones).toEqual([]);
+    expect(titan.tuning.sleep!.nightClockRate).toBe(4);
+    expect(titan.tuning.titanPower!.solarFactor).toBeLessThan(0.01);
+    expect(titan.events.flare).toBeUndefined();
+    expect(titan.events.quake).toBeUndefined();
+    expect(titan.events.duststorm).toBeUndefined();
+    expect(titan.events.rainstorm!.warningSeconds).toBe(60);
+    // No Titan parts or tiers: the Moon's parts (same ids and numbers) and tiers.
+    const moonData = loadGameData('moon');
+    expect(titan.parts.parts.map(({ name: _n, description: _d, ...rest }) => rest)).toEqual(moonData.parts.parts.map(({ name: _n, description: _d, ...rest }) => rest));
+    expect(titan.tiers).toBe(moonData.tiers);
+    const otherIds = new Set([...moonMilestones.milestones, ...marsMilestones.milestones].map((m) => m.id));
+    expect(titan.milestones.milestones.length).toBe(11);
+    for (const m of titan.milestones.milestones) expect(otherIds.has(m.id), m.id).toBe(false);
+  });
+
+  it('every Titan overlay key ends up in the merged data, and no _ note does', () => {
+    const titan = worldGameData('titan');
+    for (const path of keyPaths(titanTuning)) expect(get(titan.tuning, path), path).toEqual(get(titanTuning, path) === null ? undefined : expect.anything());
+    for (const path of keyPaths(titanText)) expect(get(titan.text, path), path).toBeDefined();
+    expect(JSON.stringify(titan)).not.toMatch(/"_\w+":/);
+  });
+
+  it('screens show Titan wording, not the Moon or Mars', () => {
+    const t = worldGameData('titan').text;
+    for (const s of [t.landing.heading, t.landing.briefing, t.ticket.briefing, t.mission.briefing, t.mission.loading, t.story.kicker, t.story.site, t.tutorial.designHeading]) {
+      expect(s).toMatch(/Titan|Shangri-La/);
+    }
+    expect(worldGameData('mars').text.debrief.continue).toBe('Continue to Titan');
+  });
+});
+
+describe('story context', () => {
+  const files = { moon: moonText, mars: marsText, titan: titanText } as const;
+
+  it('every world sets its own story kicker, site context, sources and debrief beats', () => {
+    for (const [world, file] of Object.entries(files)) {
+      // Set in each file itself, so Mars and Titan never inherit the Moon's lines through the merge.
+      const story = (file as { story?: { kicker?: string; site?: string; sources?: string[] } }).story;
+      const debrief = (file as { debrief: Record<string, string | undefined> }).debrief;
+      expect(story?.kicker, world).toBeTruthy();
+      expect(story?.site, world).toBeTruthy();
+      expect(story?.sources?.length, world).toBeGreaterThan(0);
+      expect(debrief.storyFailed, world).toBeTruthy();
+      expect(typeof debrief.storyPassed, world).toBe('string'); // Titan's is empty: Campaign complete carries the end
+    }
+    const kickers = (['moon', 'mars', 'titan'] as const).map((w) => loadGameData(w).text.story.kicker);
+    expect(kickers.map((k) => k.slice(0, 9))).toEqual(['Mission 1', 'Mission 2', 'Mission 3']);
+    expect(loadGameData('titan').text.debrief.storyPassed).toBe('');
+  });
+
+  it('the base text has no campaign section, so the Moon desk shows no transition notes', () => {
+    expect((moonText as { campaign?: unknown }).campaign).toBeUndefined();
+  });
+});
+
+describe('Titan terrain', () => {
+  it('has the agreed terrain.json feature schema', () => {
+    const f: TitanTerrainFeatures = titanTerrain.features as unknown as TitanTerrainFeatures;
+    expect(f.duneCrests.lines.length).toBeGreaterThan(1);
+    for (const l of f.duneCrests.lines) expect(l.crestLocal_xz.length).toBeGreaterThan(1);
+    expect(f.interdunes.corridors.length).toBeGreaterThan(1);
+    expect(f.softGround.maskIsAuthoritative).toBe(true);
+    expect(f.softGround.areas.length).toBeGreaterThan(0);
+    expect(f.rockyAreas[0]!.driveDistanceFromLanding_m).toBeGreaterThan(0);
+    expect(f.viewpoints.map((v) => v.kind)).toEqual(['duneCrest']);
+    expect(f.samplePatch.radius_m).toBeGreaterThan(0);
+    expect(f.crossingRoute.pathLocal_xz.length).toBeGreaterThan(1);
+    expect(f.crossingRoute.crestPoint.name).toBeTruthy();
+    expect(f.selk.diameter_km).toBeGreaterThan(0);
+    expect(titanTerrain.playArea.samples).toBe(1601);
+    expect(titanTerrain.playArea.files.softGround.file).toBe('soft-ground.png');
+    expect(titanTerrain.distantTerrain).toHaveLength(2);
+    expect('coldMask' in titanTerrain.playArea.files).toBe(false);
   });
 });
