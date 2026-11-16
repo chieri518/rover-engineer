@@ -109,7 +109,7 @@ export const designScreen: Screen = (game, root) => {
     const node = el('label', { class: 'option' },
       input,
       el('span', { class: 'option-name' }, part.name),
-      el('span', { class: 'option-desc' }, part.description),
+      part.description ? el('span', { class: 'option-desc' }, part.description) : null, // none/empty options have no description
       el('span', { class: 'option-stats' },
         el('span', {}, money(part.cost, text)),
         el('span', {}, `${part.mass} kg`),

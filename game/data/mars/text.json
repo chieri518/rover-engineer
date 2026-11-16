@@ -5,9 +5,9 @@
     "wheels-solid": { "description": "Cheap and heavy. Lower grip in sand ripples." },
     "power-fixed-panel": { "description": "A flat panel. Solar income by day, most with the Sun high. Nothing at night, less in a dust storm." },
     "power-solar-mast": { "description": "Twice the fixed panel's solar income. Nothing at night, less in a dust storm. Light, expensive and bulky." },
-    "lights-none": { "description": "Saves cost, mass, and space. The rover cannot drive at night." },
+    "lights-none": { "description": "" },
     "lights-led": { "description": "Lets the rover keep driving at night, at a high battery cost." },
-    "heater-none": { "description": "Saves cost, mass, and space. The rover freezes in its first night." },
+    "heater-none": { "description": "" },
     "heater-rhu": { "description": "Steady heat from decaying isotopes. Lets the rover survive the night cold." },
     "instrument-drill": { "name": "Rock drill", "description": "Drills rock cores. Heavier and bulkier than the camera." }
   },
