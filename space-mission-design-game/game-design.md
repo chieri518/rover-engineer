@@ -295,7 +295,7 @@ The browser runs found one model error, now fixed: the boulder-field crossing po
 - Hops in these runs: at most one hop of 0.26 m per run, 0.1 s long. No rollovers, no rover stuck.
 - Map reset confirmed: the wanderer found 3 sites on its first try. After Restart round, the second try started with no sites found and all three leads open.
 
-**Builds without a plan** (best route in the model). Examples that fail, and why:
+**Builds without a plan** (best route in the model; *before the Moon sites repricing*). Examples that fail, and why:
 
 | Build | Cost + ticket | Best final | Why it fails |
 | --- | --- | --- | --- |
