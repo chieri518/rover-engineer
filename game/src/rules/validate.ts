@@ -1,5 +1,6 @@
 import type { GameData, Milestone, MoonPipelineFeatures, PhotoTarget, PipelineFeatureList, ReadingTarget, SiteKind } from './types';
 import { ZONE_IDS } from './milestones';
+import { KNOWN_WORLDS } from './payload';
 import { relationshipProblems } from './relationships';
 import { requiredInstruments } from './rover';
 import { coldZoneAnchor, type SiteFeatures } from './sites';
@@ -56,11 +57,14 @@ export function validateGameData(data: GameData): string[] {
       }
     }
   }
+  // Each world needs at least one part in every bus slot (this data is one world's offer).
   for (const slot of slots) {
-    if (!parts.some((p) => p.slot === slot)) problems.push(`slot ${slot} has no parts`);
+    if (!parts.some((p) => p.slot === slot)) problems.push(`slot ${slot} has no parts on ${data.world}`);
   }
+  problems.push(...catalogProblems(data));
+  const allIds = new Set(data.allParts.parts.map((p) => p.id));
   for (const id of Object.keys(data.text.partText ?? {})) {
-    if (!ids.has(id)) problems.push(`text.partText names unknown part ${id}`);
+    if (!allIds.has(id)) problems.push(`text.partText names unknown part ${id}`);
   }
   const tiers = data.tiers.tiers;
   if (tiers.length === 0) problems.push('no ticket tiers');
@@ -85,13 +89,30 @@ export function validateGameData(data: GameData): string[] {
   }
   problems.push(...instrumentTuningProblems(data));
   problems.push(...siteProblems(data));
-  problems.push(...relationshipProblems(data.relationships, ids));
+  problems.push(...relationshipProblems(data.relationships, data.allParts.parts));
   const { flare, quake, duststorm } = data.events;
   if (flare && flare.realFlares.length < flare.windowsSeconds.length) {
     problems.push('events.json needs at least one real flare per flare window');
   }
   for (const [a, b] of [...(flare?.windowsSeconds ?? []), ...(quake?.windowsSeconds ?? []), ...(duststorm?.windowsSeconds ?? [])]) {
     if (!(a <= b && b <= data.tuning.mission.lengthSeconds)) problems.push(`event window [${a}, ${b}] is outside the mission`);
+  }
+  return problems;
+}
+
+/**
+ * The catalog per world: each part's `worlds` is a non-empty list of known world ids (a part no world
+ * offers would never be checked or shown), and part ids are unique across every world's parts.
+ */
+function catalogProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const part of data.allParts.parts) {
+    if (seen.has(part.id)) problems.push(`duplicate part id ${part.id} in the catalog`);
+    seen.add(part.id);
+    if (part.worlds === undefined) continue;
+    if (!Array.isArray(part.worlds) || part.worlds.length === 0) problems.push(`part ${part.id} has an empty worlds list (leave it out to offer the part everywhere)`);
+    else for (const w of part.worlds) if (!KNOWN_WORLDS.includes(w)) problems.push(`part ${part.id} names unknown world ${String(w)}`);
   }
   return problems;
 }

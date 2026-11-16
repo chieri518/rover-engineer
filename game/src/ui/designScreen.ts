@@ -6,7 +6,7 @@ import { canStartMission, nextMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
-import { earnsMilestones, fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
+import { carryBuild, earnsMilestones, fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
 import { chosenParts } from '../rules/rover';
 import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
@@ -77,6 +77,14 @@ export const designScreen: Screen = (game, root) => {
   const t = text.design;
   const tiers = data.tiers.tiers;
   const allowed = canStartMission(game.state, data.tuning);
+
+  // A build carried from another world (the Moon's, continued to Mars) loses the parts this world does not
+  // offer. The notice names them while the carried design is the one on the desk or the last rover bought
+  // (a reload has already dropped them from the desk's build); it goes once a rover is bought here.
+  const carried = carryBuild(game.build, data.allParts, data.world);
+  if (carried.dropped.length > 0) game.build = carried.build;
+  const notOffered = [...carried.dropped, ...carryBuild(game.state.lastBuild, data.allParts, data.world).dropped]
+    .filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i);
 
   const partById = (id: string) => data.parts.parts.find((p) => p.id === id);
   const chassisPoints = (build: DraftBuild): number | null => {
@@ -374,7 +382,7 @@ export const designScreen: Screen = (game, root) => {
   }, text.tutorial.help);
 
   // After the Moon (Mars only): which mission this is, the balance carried over, the next pass mark,
-  // and that parts and tickets are the Moon's for now.
+  // and what the parts and tickets are for now.
   const mars = text.campaign;
   const nextStep = nextMission(game.state.mission);
   const transition = mars && el('p', { class: 'world-transition' },
@@ -402,6 +410,8 @@ export const designScreen: Screen = (game, root) => {
         el('h2', {}, t.heading),
         el('p', { class: 'muted' }, t.tutorial),
         transition,
+        notOffered.length > 0 && el('p', { class: 'world-transition not-offered', role: 'status' },
+          fill(t.notOffered, { parts: notOffered.map((p) => p.name).join(text.ticket.and) })),
       ),
       el('div', { class: 'desk-head-side' },
         help,

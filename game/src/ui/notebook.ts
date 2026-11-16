@@ -1,5 +1,6 @@
 // The engineering notebook (rover-engineering-design.md, section 10): the relationships discovered so
-// far, each with what happens and why, the ways to solve it, and the real mission behind it.
+// far on the current world, each with what happens and why, the ways to solve it, and the real mission
+// behind it.
 // Undiscovered lessons show only as a count, never by name. A modal overlay, opened from the title
 // screen, the desk, and the mission (which pauses while it is open): the rest of the screen is inert,
 // focus stays inside, and Escape (or the notebook key) closes it. Keys the overlay does not handle
@@ -30,7 +31,7 @@ const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]), [tabi
 export function openNotebook(host: HTMLElement, data: GameData, opts: NotebookOptions): NotebookHandle {
   const t = data.text.notebook;
   const returnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-  const { entries, total } = notebookView(opts.ids, data.relationships);
+  const { entries, total } = notebookView(opts.ids, data.relationships, data.world); // the current world's lessons only
   const fresh = new Set(opts.newIds ?? []);
   let closed = false;
 
@@ -46,7 +47,7 @@ export function openNotebook(host: HTMLElement, data: GameData, opts: NotebookOp
   },
     el('div', { class: 'notebook-head' },
       el('h2', { id: 'notebook-title' }, t.heading),
-      el('span', { class: 'notebook-count' }, fill(t.count, { found: entries.length, total })),
+      total > 0 && el('span', { class: 'notebook-count' }, fill(t.count, { found: entries.length, total })), // none yet: no count
       headClose,
     ),
     el('p', { class: 'muted' }, entries.length ? t.intro : t.empty),

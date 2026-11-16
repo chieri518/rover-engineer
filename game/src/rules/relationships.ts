@@ -1,12 +1,13 @@
 // Relationships between parts (rover-engineering-design.md, section 10): when each Moon relationship
-// happens in a mission, and which builds the pre-launch review flags. The text and review colors are in
+// happens in a mission, and which builds the pre-launch review flags. Each relationship names its world;
+// the mission, the review and the notebook use only the current world's. The text and review colors are in
 // data/relationships.json; the rules that decide *when* are code here, keyed by id. The mission screen
 // calls the event hooks with what it measured and shows a relationship's notice the first time it
 // happens in a mission; the ticket screen calls reviewItems. Pure: no rendering, no DOM.
-import type { Build, Instrument, Part, PartsFile, Relationship, RelationshipLesson, RelationshipsFile, ReviewColor } from './types';
+import type { Build, Instrument, MissionId, Part, PartsFile, Relationship, RelationshipLesson, RelationshipsFile, ReviewColor } from './types';
 import type { UseSite } from './mission';
 import type { SeismometerOutcome } from './instruments';
-import { instrumentCosts, instrumentsOf, type InstrumentCosts } from './payload';
+import { instrumentCosts, instrumentsOf, KNOWN_WORLDS, offeredOn, type InstrumentCosts } from './payload';
 import { selectedParts } from './rover';
 
 /**
@@ -30,6 +31,20 @@ export const LESSON_IDS = Object.keys(FIRED_RELATIONSHIPS) as RelationshipId[];
 /** A relationship that happened. */
 export interface RelationshipEvent {
   id: RelationshipId;
+}
+
+/** The relationships of one world, in data order: the mission, the review and the notebook show only these. */
+export function relationshipsOf(file: RelationshipsFile, world: MissionId): Relationship[] {
+  return file.relationships.filter((r) => r.world === world);
+}
+
+/**
+ * The events that belong to this world. The Moon's hooks still see what happens on Mars (the cold
+ * slowing a held use, say), so the mission drops other worlds' events before they are met: no Moon
+ * lesson fires, enters the debrief or reaches the notebook on Mars.
+ */
+export function onWorld(events: readonly RelationshipEvent[], file: RelationshipsFile, world: MissionId): RelationshipEvent[] {
+  return events.filter((e) => relationshipEntry(file, e.id)?.world === world);
 }
 
 /**
@@ -146,18 +161,20 @@ export interface NotebookEntry {
 }
 
 /**
- * The engineering notebook: the discovered Moon lessons in the order discovered, and the count of all
- * Moon lessons (undiscovered ones are counted, never named). Unknown or repeated ids are skipped.
+ * The engineering notebook for one world: that world's discovered lessons in the order discovered, and
+ * the count of all its lessons (undiscovered ones are counted, never named). Unknown or repeated ids, and
+ * other worlds' lessons, are skipped. A world with no lessons in the data yet has a total of 0.
  */
-export function notebookView(notebook: readonly string[], file: RelationshipsFile): { entries: NotebookEntry[]; total: number } {
+export function notebookView(notebook: readonly string[], file: RelationshipsFile, world: MissionId): { entries: NotebookEntry[]; total: number } {
+  const ofWorld = (id: string) => (LESSON_IDS as readonly string[]).includes(id) && relationshipEntry(file, id)?.world === world;
   const entries: NotebookEntry[] = [];
   for (const id of new Set(notebook)) {
-    if (!(LESSON_IDS as readonly string[]).includes(id)) continue;
+    if (!ofWorld(id)) continue;
     const entry = relationshipEntry(file, id);
     const lesson = lessonFor(file, { id });
     if (entry && lesson) entries.push({ id: id as RelationshipId, entry, lesson });
   }
-  return { entries, total: LESSON_IDS.filter((id) => lessonFor(file, { id })).length };
+  return { entries, total: LESSON_IDS.filter((id) => ofWorld(id) && lessonFor(file, { id })).length };
 }
 
 // --- Pre-launch review ---
@@ -219,13 +236,14 @@ export interface ReviewItem {
 
 /**
  * The pre-launch review: the build's relationships that are in the notebook, plus hard blocks (always
- * shown, discovered or not), in data order. Relationships the build does not trigger are left out, so a
- * first build shows only its hard blocks. The player can always launch: the review only informs.
+ * shown, discovered or not), in data order, for the data's world only. Relationships the build does not
+ * trigger are left out, so a first build shows only its hard blocks. The player can always launch: the
+ * review only informs.
  */
-export function reviewItems(build: Build, notebook: readonly string[], data: { parts: PartsFile; relationships: RelationshipsFile }): ReviewItem[] {
+export function reviewItems(build: Build, notebook: readonly string[], data: { world: MissionId; parts: PartsFile; relationships: RelationshipsFile }): ReviewItem[] {
   const facts = buildFacts(selectedParts(build, data.parts));
   const known = new Set(notebook);
-  return data.relationships.relationships.flatMap((r) => {
+  return relationshipsOf(data.relationships, data.world).flatMap((r) => {
     if (!r.hardBlock && !known.has(r.id)) return [];
     const predicate = BUILD_PREDICATES[r.id as RelationshipId] as BuildPredicate | undefined;
     const verdict = predicate?.verdict(facts) ?? null;
@@ -253,11 +271,12 @@ function placeholders(s: string | undefined): string[] {
 }
 
 /**
- * relationships.json: unique ids, known parts, text present, a valid kind and review color, every fired
+ * relationships.json: unique ids, a known world, known parts offered on that world (`parts`: every
+ * world's parts), text present, a valid kind and review color, every fired
  * relationship present with its lesson and real fact, a build predicate for every entry, no variants
  * (the mission fires one lesson per relationship), and placeholders only where the mission fills them.
  */
-export function relationshipProblems(file: RelationshipsFile, partIds: ReadonlySet<string>): string[] {
+export function relationshipProblems(file: RelationshipsFile, parts: readonly Part[]): string[] {
   const problems: string[] = [];
   const ids = new Set<string>();
   const filled = (s: unknown) => typeof s === 'string' && s.trim().length > 0;
@@ -265,11 +284,16 @@ export function relationshipProblems(file: RelationshipsFile, partIds: ReadonlyS
   for (const r of file.relationships) {
     if (ids.has(r.id)) problems.push(`duplicate relationship id ${r.id}`);
     ids.add(r.id);
-    if (r.world !== 'moon') problems.push(`relationship ${r.id} has unknown world ${String(r.world)}`);
+    const knownWorld = KNOWN_WORLDS.includes(r.world);
+    if (!knownWorld) problems.push(`relationship ${r.id} has unknown world ${String(r.world)}`);
     if (!KINDS.includes(r.kind)) problems.push(`relationship ${r.id} has unknown kind ${String(r.kind)}`);
     if (!COLORS.includes(r.review)) problems.push(`relationship ${r.id} has unknown review color ${String(r.review)}`);
     if (r.parts.length === 0) problems.push(`relationship ${r.id} names no parts`);
-    for (const p of r.parts) if (!partIds.has(p)) problems.push(`relationship ${r.id} names unknown part ${p}`);
+    for (const id of r.parts) {
+      const part = parts.find((p) => p.id === id);
+      if (!part) problems.push(`relationship ${r.id} names unknown part ${id}`);
+      else if (knownWorld && !offeredOn(part, r.world)) problems.push(`relationship ${r.id} names part ${id}, which ${r.world} does not offer`);
+    }
     if (!filled(r.name) || !filled(r.reviewText)) problems.push(`relationship ${r.id} needs a name and review text`);
     if (r.review === 'red' && !r.hardBlock) problems.push(`relationship ${r.id} is red, which only a hard block can be (the review shows red as Blocked)`);
     if (r.hardBlock && r.review !== 'red') problems.push(`relationship ${r.id} is a hard block, so its review is red`);

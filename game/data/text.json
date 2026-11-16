@@ -32,6 +32,7 @@
     "bayDropped": "The {chassis} has {points} mounting points: {parts} removed from the payload bay.",
     "bayOverCapacity": "The payload bay holds more instruments than the chassis has mounting points.",
     "bayKey": "Key {key}",
+    "notOffered": "Not offered on the Moon: {parts}.",
     "instrumentEnergy": "Instrument energy",
     "instrumentEnergyItem": "{name}: {costs}",
     "instrumentEnergyNone": "None",

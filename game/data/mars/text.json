@@ -19,17 +19,21 @@
     "briefing": "REL secures a spot for the rover on the next commercial launch to Mars. The lander will set it down on the floor of Jezero crater."
   },
   "design": {
+    "notOffered": "Not offered on Mars: {parts}.",
     "speedInfo": [
       "The mission compresses {sols} sols on Mars into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
       "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
       "Robotic rovers drive far slower. NASA's Curiosity and Perseverance rovers on Mars have a top speed of about 4 cm/s (0.15 km/h) on flat ground."
     ]
   },
+  "notebook": {
+    "count": "{found} of {total} Mars lessons found"
+  },
   "campaign": {
     "kicker": "Mission 2 · Mars, Jezero crater",
     "carryOver": "Balance carried over from the Moon: {balance}.",
     "passMark": "After this mission the balance must stay at or above {minimum}, the pass mark for Titan.",
-    "sameParts": "Parts and launch ticket tiers are the same as on the Moon in this version.",
+    "sameParts": "The parts are the Moon's, without the two instruments that have no work on this mission. Launch ticket tiers are the same as on the Moon in this version.",
     "ticketNote": "The launch ticket tiers are the same as for the Moon in this version.",
     "perseverance": "NASA's Perseverance rover landed in Jezero crater on February 18, 2021. Its landing site, Octavia E. Butler Landing, is about {distance} km {direction} of the lander.",
     "newHeading": "New on Mars",
@@ -102,7 +106,7 @@
         "title": "Mission 2: Mars",
         "body": [
           "The campaign continues on Mars, on the floor of Jezero crater. The balance carried over from the Moon is {balance}.",
-          "Parts and launch ticket tiers are the same as on the Moon in this version: {tiers}.",
+          "The parts are the Moon's, without the laser retroreflector and the seismometer station, which have no work to do on this mission. Launch ticket tiers are the same as on the Moon in this version: {tiers}.",
           "After the mission, the balance must stay at or above the pass mark for Titan ({nextMinimum}), or the Mars round is restarted. A restart returns the balance, research points and records to their values at the start of the Mars round."
         ]
       },

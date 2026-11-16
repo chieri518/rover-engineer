@@ -38,6 +38,8 @@ export interface Part {
   mass: number; // kg
   size: number; // size units
   effects: PartEffects;
+  /** The worlds whose desk offers this part (absent: every world). Mission ids are the world ids (src/worlds.ts WorldId). */
+  worlds?: MissionId[];
 }
 
 export interface PartsFile {
@@ -388,6 +390,7 @@ export interface SharedTextFile {
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
     | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
+    | 'notOffered' // parts a carried build lost because this world does not offer them ({parts}; reworded per world)
     | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentNoMilestones' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
     string
   > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
@@ -499,7 +502,12 @@ export interface CreditEntry {
 }
 
 export interface GameData {
+  /** The world this data is for: its overlay is merged in, and parts and relationships are filtered to it. */
+  world: MissionId;
+  /** The parts this world offers (Part.worlds), with the world's wording. */
   parts: PartsFile;
+  /** Every world's parts, with this world's wording: to name the parts a carried build loses, and to check references. */
+  allParts: PartsFile;
   tiers: TiersFile;
   milestones: MilestonesFile;
   tuning: Tuning;
@@ -608,7 +616,7 @@ export interface RelationshipLesson {
  */
 export interface Relationship extends Partial<RelationshipLesson> {
   id: string;
-  world: 'moon';
+  world: MissionId; // the mission, the review and the notebook show only the current world's
   kind: RelationshipKind;
   name: string; // a short title, for the debrief, the notebook and the review
   parts: string[]; // part ids involved (the cause at the desk)

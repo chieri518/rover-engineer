@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  earnsMilestones, fitPayload, instrumentCosts, instrumentForKey, instrumentKeys, instrumentsOf, isBayOverCapacity, mountingPoints, payloadProblems,
+  carryBuild, catalogFor, earnsMilestones, fitPayload, offeredOn, instrumentCosts, instrumentForKey, instrumentKeys, instrumentsOf, isBayOverCapacity, mountingPoints, payloadProblems,
   togglePayload, upgradeSavedBuild,
 } from './payload';
 import { selectedParts } from './rover';
@@ -156,5 +156,48 @@ describe('earnsMilestones', () => {
   it('is true only for an instrument some milestone requires', () => {
     expect(earnsMilestones('camera', file)).toBe(true);
     expect(earnsMilestones('xray', file)).toBe(false);
+  });
+});
+
+describe('a catalog per world', () => {
+  // The test catalog with the real data's Moon-only parts, and a part only Mars offers.
+  const worldParts: PartsFile = {
+    ...testParts,
+    parts: [
+      ...testParts.parts.map((p) => (p.id === 'seismometer' || p.id === 'reflector' ? { ...p, worlds: ['moon' as const] } : p)),
+      { id: 'mast', slot: 'instrument', name: 'Mast', description: '', cost: 50, mass: 4, size: 1, effects: { instrument: 'camera' }, worlds: ['mars'] },
+    ],
+  };
+  const ids = (f: PartsFile) => f.parts.map((p) => p.id);
+
+  it('a part without worlds is offered everywhere; one with worlds only there', () => {
+    const [steel, reflector] = [worldParts.parts[0]!, worldParts.parts.find((p) => p.id === 'reflector')!];
+    expect([offeredOn(steel, 'moon'), offeredOn(steel, 'mars')]).toEqual([true, true]);
+    expect([offeredOn(reflector, 'moon'), offeredOn(reflector, 'mars')]).toEqual([true, false]);
+  });
+
+  it('each world gets its own parts in catalog order, with the same slots', () => {
+    expect(ids(catalogFor(worldParts, 'moon'))).toEqual(ids(testParts));
+    expect(ids(catalogFor(worldParts, 'mars'))).toEqual([...ids(testParts).filter((id) => id !== 'seismometer' && id !== 'reflector'), 'mast']);
+    expect(catalogFor(worldParts, 'mars').slots).toEqual(testParts.slots);
+  });
+
+  it('a Moon build carried to Mars loses the Moon-only parts and names them, bay order kept', () => {
+    const moon: Build = { ...build, payload: ['reflector', 'camera', 'seismometer'] };
+    const out = carryBuild(moon, worldParts, 'mars');
+    expect(out.build).toEqual({ ...build, payload: ['camera'] });
+    expect(out.dropped.map((p) => p.name)).toEqual(['reflector', 'seismometer']);
+  });
+
+  it('a bay holding only Moon-only parts is left unconfirmed on Mars; unknown ids drop silently', () => {
+    const out = carryBuild({ ...build, payload: ['reflector', 'gone'] }, worldParts, 'mars');
+    expect(out.build).not.toHaveProperty('payload');
+    expect(out.dropped.map((p) => p.id)).toEqual(['reflector']);
+  });
+
+  it('nothing to drop: on its own world, without a build, or for parts every world offers', () => {
+    expect(carryBuild({ ...build, payload: ['reflector'] }, worldParts, 'moon')).toEqual({ build: { ...build, payload: ['reflector'] }, dropped: [] });
+    expect(carryBuild(null, worldParts, 'mars')).toEqual({ build: {}, dropped: [] });
+    expect(carryBuild(build, worldParts, 'mars')).toEqual({ build, dropped: [] });
   });
 });

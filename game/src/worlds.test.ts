@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData, worldGameData } from './gameData';
+import { fill } from './ui/dom';
 import { isWorldId, MARS_TERRAIN_BASE, worldFromQuery, worldOfStep, WORLDS } from './worlds';
 import type { MarsTerrainFeatures } from './rules/marsTypes';
 import moonTuning from '../data/tuning.json';
 import moonEvents from '../data/events.json';
 import moonMilestones from '../data/milestones.json';
 import moonText from '../data/text.json';
+import moonParts from '../data/parts.json';
 import marsTuning from '../data/mars/tuning.json';
 import marsText from '../data/mars/text.json';
 import jezero from '../public/terrain/mars/terrain.json';
@@ -60,13 +62,34 @@ describe('world data', () => {
     expect(mars.events.flare).toBeUndefined();
     expect(mars.events.quake).toBeUndefined();
     expect(mars.events.duststorm).toBeDefined();
-    // The demo reuses the Moon parts (same ids and numbers, Mars wording) and tiers.
+    // Mars offers the Moon parts (same ids and numbers, Mars wording) without the Moon-only ones, and the same tiers.
     const moonParts = loadGameData('moon').parts;
-    expect(mars.parts.parts.map(({ name: _n, description: _d, ...rest }) => rest)).toEqual(moonParts.parts.map(({ name: _n, description: _d, ...rest }) => rest));
+    const marsOffer = moonParts.parts.filter((p) => !p.worlds || p.worlds.includes('mars'));
+    expect(mars.parts.parts.map(({ name: _n, description: _d, ...rest }) => rest)).toEqual(marsOffer.map(({ name: _n, description: _d, ...rest }) => rest));
     expect(mars.tiers).toBe(loadGameData('moon').tiers);
     const moonIds = new Set(moonMilestones.milestones.map((m) => m.id));
     expect(mars.milestones.milestones.length).toBeGreaterThan(0);
     for (const m of mars.milestones.milestones) expect(moonIds.has(m.id)).toBe(false);
+  });
+
+  it('each world has its own catalog: Mars offers four instruments, without the reflector and the seismometer station', () => {
+    const mars = loadGameData('mars');
+    const instruments = (parts: { slot: string; id: string }[]) => parts.filter((p) => p.slot === 'instrument').map((p) => p.id);
+    expect(mars.world).toBe('mars');
+    expect(instruments(mars.parts.parts)).toEqual(['instrument-camera', 'instrument-drill', 'instrument-neutron', 'instrument-xray']);
+    expect(mars.parts.parts.find((p) => p.id === 'instrument-reflector' || p.id === 'instrument-seismometer')).toBeUndefined();
+    // Every world's parts stay at hand, in the world's wording, for the dropped-part notice.
+    expect(mars.allParts.parts.map((p) => p.id)).toEqual(moonParts.parts.map((p) => p.id));
+    expect(mars.allParts.parts.find((p) => p.id === 'instrument-reflector')!.name).toBe('Laser retroreflector');
+    expect(fill(mars.text.design.notOffered, { parts: 'Laser retroreflector' })).toBe('Not offered on Mars: Laser retroreflector.');
+  });
+
+  it('the Moon catalog is unchanged: every part in parts.json, in order, with its numbers and words', () => {
+    const moon = loadGameData('moon');
+    expect(moon.world).toBe('moon');
+    expect(moon.parts).toEqual(moonParts);
+    expect(moon.allParts).toEqual(moonParts);
+    expect(moon.parts.parts.filter((p) => p.slot === 'instrument')).toHaveLength(6);
   });
 
   it('Mars parts have Mars wording; the Moon keeps its own', () => {

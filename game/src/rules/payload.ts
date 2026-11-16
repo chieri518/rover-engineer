@@ -1,6 +1,6 @@
 // The payload bay: the chassis sets its mounting points (one per instrument), and the bay holds any
 // mix of instruments, one of each, or none. Pure.
-import type { DraftBuild, Instrument, MilestonesFile, Part, PartsFile } from './types';
+import type { DraftBuild, Instrument, MilestonesFile, MissionId, Part, PartsFile } from './types';
 import { requiredInstruments } from './rover';
 
 export type PayloadProblem =
@@ -156,6 +156,34 @@ export function upgradeSavedBuild(saved: unknown, catalog: PartsFile): DraftBuil
     if (bay.length > 0 || savedBay.length === 0) draft.payload = bay;
   }
   return draft;
+}
+
+// --- A catalog per world ---
+
+/** Every world id, for checking `Part.worlds` and `Relationship.world` (the type keeps it in step with MissionId). */
+export const KNOWN_WORLDS: readonly MissionId[] = Object.keys({ moon: true, mars: true } satisfies Record<MissionId, true>) as MissionId[];
+
+/** Does this world's desk offer the part? A part without `worlds` is offered everywhere. */
+export function offeredOn(part: Part, world: MissionId): boolean {
+  return part.worlds === undefined || part.worlds.includes(world);
+}
+
+/** The catalog one world offers: the same slots, the parts it offers, in catalog order. */
+export function catalogFor(catalog: PartsFile, world: MissionId): PartsFile {
+  return { ...catalog, parts: catalog.parts.filter((p) => offeredOn(p, world)) };
+}
+
+/**
+ * A build (from the desk or a save) brought to a world: the build the world's catalog can hold
+ * (upgradeSavedBuild against the world's offer), and the parts it lost because the world does not offer
+ * them, once each, bus slots first, then the bay in order (the desk's "Not offered" notice). Ids no
+ * catalog knows are dropped silently, as before.
+ */
+export function carryBuild(saved: unknown, allParts: PartsFile, world: MissionId): { build: DraftBuild; dropped: Part[] } {
+  const known = upgradeSavedBuild(saved, allParts);
+  const ids = [...allParts.slots.flatMap((s) => known[s] ?? []), ...(known.payload ?? [])];
+  const dropped = [...new Set(ids)].flatMap((id) => allParts.parts.find((p) => p.id === id && !offeredOn(p, world)) ?? []);
+  return { build: upgradeSavedBuild(saved, catalogFor(allParts, world)), dropped };
 }
 
 /** Does any milestone require this instrument? Derived, so a card's "earns nothing yet" line goes away once one does. */

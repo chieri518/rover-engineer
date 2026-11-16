@@ -14,7 +14,7 @@ import {
   type InstrumentLog, type SeismometerOutcome, type TrackPoint,
 } from '../rules/instruments';
 import {
-  addToNotebook, lessonFor, meet, metIds, onSeismometer, onShadowStop, onUseDone, onUseStart, relationshipEntry, shortUseLines, type RelationshipEvent,
+  addToNotebook, lessonFor, meet, metIds, onSeismometer, onWorld, onShadowStop, onUseDone, onUseStart, relationshipEntry, shortUseLines, type RelationshipEvent,
 } from '../rules/relationships';
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
@@ -150,7 +150,8 @@ export const missionScreen: Screen = (game, root) => {
    * slot) and mark the notebook unread. `vars` fills the notice's placeholders beyond {distance}.
    * Returns the events met for the first time.
    */
-  const relate = (events: RelationshipEvent[], vars: Record<string, string | number> = {}): RelationshipEvent[] => {
+  const relate = (all: RelationshipEvent[], vars: Record<string, string | number> = {}): RelationshipEvent[] => {
+    const events = onWorld(all, data.relationships, data.world); // no Moon lesson on Mars
     if (events.length === 0) return [];
     const r = meet(met, events);
     met = r.met;
