@@ -1,0 +1,16 @@
+{
+  "_about": "Moon sites the new milestones use (Moon sites and milestones plan, section 2; rules in game-design.md, Rules for the new milestones). Types: rules/types.ts SitesFile. Each site is an existing terrain.json feature (feature), a pipeline feature by id (pipeline: { list, id }), or a provisional candidate (provisional, local, radiusM) until the pipeline (Phase 1, P1 to P4) confirms or replaces it. rockSuite names a suite in tuning.json instruments.xray.suites. Keys starting with _ are notes.",
+  "sites": [
+    { "id": "rocky-area-1", "kind": "rocky-area", "name": "Rocky area 1", "feature": "Rocky area 1", "rockSuite": "rocky-area-1" },
+    { "id": "rocky-area-2", "kind": "rocky-area", "name": "Rocky area 2", "feature": "Rocky area 2", "rockSuite": "rocky-area-2" },
+    { "id": "nw-crater", "kind": "young-crater", "name": "NW crater", "provisional": true, "local": { "x": -860, "z": -210 }, "radiusM": 20, "rockSuite": "regolith-crater", "note": "Plan candidate: 244 m NNW of the lander, about 8 m deep. Radius from depth / 0.2 (fresh simple crater)." },
+    { "id": "east-crater", "kind": "young-crater", "name": "East crater", "provisional": true, "local": { "x": -240, "z": -120 }, "radiusM": 28, "rockSuite": "east-crater", "note": "Plan candidate: 509 m ENE, about 11 m deep, inner wall up to 39 deg. Radius from depth / 0.2." },
+    { "id": "west-crater", "kind": "young-crater", "name": "West crater", "provisional": true, "local": { "x": -1790, "z": -30 }, "radiusM": 23, "rockSuite": "regolith-crater", "note": "Plan candidate: 1,055 m W, about 9 m deep. Radius from depth / 0.2." },
+    { "id": "rolled-boulder", "kind": "rolled-boulder", "name": "Rolled boulder", "provisional": true, "local": { "x": -240, "z": -120 }, "within": "east-crater", "rockSuite": "rolled-boulder", "note": "Placed by design on East crater's floor below its steepest wall. Provisional: East crater's center until P3 gives the wall foot." },
+    { "id": "hidden-hydrogen", "kind": "hidden-hydrogen", "name": "Hydrogen-rich ground", "provisional": true, "local": { "x": -1100, "z": -390 }, "note": "Placed by design on the shaded north slope between Rocky area 1 and Rim viewpoint 1 (average sunlight 5 to 9%, not permanent shadow), 534 m NW. Zone radius: tuning.milestones.hydrogenZoneRadiusM." },
+    { "id": "rocky-area-1-cold-patch", "kind": "cold-trap", "name": "Rocky area 1 cold patch", "feature": "Rocky area 1", "note": "The existing cold patch in Rocky area 1 (0.05 km2), found in the cold mask from the rocky area's center." },
+    { "id": "east-cold-trap", "kind": "cold-trap", "name": "East cold trap", "provisional": true, "local": { "x": -132, "z": 122 }, "radiusM": 26, "note": "Plan candidate: 615 m ESE, about one 60 m pixel of the LOLA shadow map (about 2,200 m2, so a 26 m circle); LOLA PSR fraction 0.92." },
+    { "id": "south-cold-trap", "kind": "cold-trap", "name": "South cold trap", "provisional": true, "local": { "x": -972, "z": 902 }, "radiusM": 26, "note": "Plan candidate: 930 m SSW, 240 m from the wall descent point; about 2,200 m2." },
+    { "id": "dark-crater", "kind": "cold-trap", "name": "Permanently shadowed crater", "feature": "shadowedCrater", "note": "Counts as a cold trap for the survey (decided in Phase 0). Its zone is its permanent-shadow outline." }
+  ]
+}

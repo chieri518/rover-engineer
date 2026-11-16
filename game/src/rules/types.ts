@@ -59,22 +59,60 @@ export interface TiersFile {
 
 export type MilestoneCategory = 'capability' | 'scientific' | 'record' | 'picture';
 
+/**
+ * What a photo milestone wants in frame: Earth (Moon), the setting Sun (Mars), the rolled boulder within
+ * tuning.milestones.boulderTrackPhotoRangeM, or a boulder the X-ray spectrometer read this mission within
+ * documentedSampleRangeM (Moon). Without a target, a photo counts inside its zone.
+ */
+export type PhotoTarget = 'earth' | 'sunset' | 'rolled-boulder' | 'read-boulder';
+/** Events a `record` trigger waits for: the moonquake (Moon), the dust storm (Mars). */
+export type RecordEvent = 'quake' | 'duststorm';
+/** The seismometer station's record of the moonquake (rules/instruments.ts SeismometerRecord). */
+export type RecordQuality = 'clean' | 'noisy';
+
+/**
+ * A milestone's trigger. The instrument triggers (transect, reading, record, deploy) are shared by every
+ * world: the Moon builds them first, Mars reuses them (Moon sites plan, M6). Unknown or unbuilt triggers
+ * are simply never reached.
+ */
 export type MilestoneTrigger =
   | { type: 'landing' }
   | { type: 'distance'; meters: number[] } // one reward per threshold reached
   | { type: 'explore'; share: number }
   | { type: 'zone'; zone: string; mode: 'enter-and-exit' | 'cross' }
-  | { type: 'photo'; zone?: string; target?: string }
+  | { type: 'photo'; zone?: string; target?: PhotoTarget }
   /** sites: staged, one reward per sample site, up to this many, each at least sampleSpacingM from the others. */
   | { type: 'drill'; zone?: string; sites?: number }
   | { type: 'event'; event: 'flare' | 'quake'; condition: 'no-damage' }
   /** no-damage: no damage from any cause except those listed (moonquakes cannot be avoided). */
   | { type: 'survive'; condition?: 'no-damage'; except?: DamageCause[] }
+  /**
+   * The instrument was switched on for an unbroken drive of at least `meters` that touches the zone.
+   * sites: staged, one stage per distinct zone instance, up to this many (Cold trap survey).
+   */
+  | { type: 'transect'; instrument: Instrument; zone: string; meters: number; sites?: number }
+  /**
+   * A use of the instrument finishes, inside the zone or on the target kind if given. sites: staged as the
+   * drill. rocks: staged by distinct rock types read this mission, one stage per count (Rock collection
+   * [2, 3, 4]). rock: the reading must find this rock type (an id in tuning.instruments.xray.suites).
+   */
+  | { type: 'reading'; instrument: Instrument; zone?: string; target?: string; sites?: number; rocks?: number[]; rock?: string }
+  /**
+   * The instrument was deployed (or, for one aboard, switched on) when the event came. On the Moon the
+   * station must have been set down outside the near-lander zone. quality: the record must be this good.
+   */
+  | { type: 'record'; instrument: Instrument; event: RecordEvent; quality?: RecordQuality }
+  /**
+   * The station is set down outside the near-lander zone; needs 'earth': with Earth in view; near: within
+   * withinM of the other station on the ground. A pair fires when the second of the two goes down, either order.
+   */
+  | { type: 'deploy'; instrument: Instrument; needs?: 'earth'; near?: { instrument: Instrument; withinM: number } }
   | MarsMilestoneTrigger;
 
 export interface MilestoneRequirements {
   slots?: BusSlot[]; // the part in each slot must have a non-zero capability effect
   instrument?: Instrument; // some part in the payload bay must provide it
+  instruments?: Instrument[]; // combos: the payload bay must provide every one of these
 }
 
 export interface Milestone {
@@ -87,6 +125,7 @@ export interface Milestone {
   money: number; // per stage for staged triggers (distance)
   rp: number;
   summary: string; // what the rover did, in the formal mission-log tone of the pop-up
+  howTo?: string; // how to earn it, in plain words for the desk and the debrief (names no lesson's cause or fix)
   fact: string; // one real-history sentence, shown only when the Mission history setting is on
   source?: string; // where the fact comes from (not shown in the pop-up)
 }
@@ -173,6 +212,8 @@ export interface Tuning {
   /** Boulders scattered in the rocky areas (fresh craters): most are small, a few reach maxDiameterM. */
   boulders: {
     perRockyArea: number;
+    perYoungCrater: number; // boulders around each young crater in sites.json (no soft ground there)
+    rolledBoulderDiameterM: number; // the one rolled boulder (sites.json kind rolled-boulder)
     spreadRadiusFactor: number; // scattered out to rockyArea.radius × this
     minDiameterM: number;
     maxDiameterM: number;
@@ -198,15 +239,22 @@ export interface InstrumentTuning {
   coldSlowdown: number; // an instrument's hold time is multiplied by this in a cold zone on a rover without a heater (cold-tolerant parts excepted)
   shadowSunlight: number; // the rover counts as in shadow below this sunlight share (shadowHoldFactor)
   stationOffsetM: number; // a deployed station is set down this far to the rover's left (from its center)
+  stationConfirmSeconds: number; // inside the near-lander zone a station's key must be pressed again within this long to set it down
   neutron: {
     iceRangeM: number; // in permanent shadow, the hydrogen signal falls from 1 at the ice spot's center to 0 at this distance
     coldBackground: number; // the reading anywhere in permanent shadow (0..1): a little hydrogen in every cold trap
     noiseFloor: number; // the reading on ordinary ground (0..1)
     jitter: number; // the live reading wobbles by up to this much (counting noise)
+    edgeRampM: number; // outside every cold zone the reading falls in a straight line from coldBackground to noiseFloor over this distance
+    anomalyPeak: number; // the hidden hydrogen spot: the reading at its center...
+    anomalyEdge: number; // ...at its zone edge (tuning.milestones.hydrogenZoneRadiusM), in a straight line...
+    anomalyRangeM: number; // ...then down to noiseFloor at this distance from the center
+    iceSignalShare: number; // Ice deposit located: the dark crater's ice signal (0..1) reaches at least this (within (1 - share) x iceRangeM of the spot)
   };
   xray: {
     reachM: number; // a boulder counts when its surface is this close to the rover's center
-    rocks: { id: string; weight: number }[]; // placeholder rock types, picked per boulder by weight (names in text.json rocks)
+    rocks: RockWeight[]; // fallback rock types for a boulder with no site (or a site with no suite), picked by weight
+    suites: { id: string; rocks: RockWeight[] }[]; // rock suites; each site in sites.json names its suite by id (rockSuite)
   };
   seismometer: {
     recordWindowSeconds: number; // the station records the ground for this long before the moonquake
@@ -214,7 +262,13 @@ export interface InstrumentTuning {
   };
 }
 
-/** Zone sizes and actions for the milestones (zones come from terrain.json features). */
+/** A rock type (an id in text.json rocks) and its weight in a suite: each boulder reads one, picked by weight and seeded by its position. */
+export interface RockWeight {
+  id: string;
+  weight: number;
+}
+
+/** Zone sizes and actions for the milestones (zones come from terrain.json features and sites.json). */
 export interface MilestoneTuning {
   photoZoneRadiusM: number; // viewpoint zones: a circle this wide around each terrain.json viewpoint
   iceSpotRadiusM: number; // drilling within this distance of the hidden ice spot finds ice
@@ -229,6 +283,11 @@ export interface MilestoneTuning {
   sampleSpacingM: number; // a staged sample milestone counts a new site only this far from earlier sites
   earthPhotoMinLit: number; // the Earth photo counts only when at least this share of Earth's disc is lit (its phase)
   earthPhotoMinDistanceM: number; // ...and only this far from the landing point, so it is not free at the start
+  coldTrapEdgeM: number; // a cold trap's survey zone: its outline plus this edge (a rover without lights can survey from it)
+  youngCraterEjectaFactor: number; // the young-crater drill zone: within this times a young crater's or rocky area's radius
+  boulderTrackPhotoRangeM: number; // Boulder track: the rolled boulder in frame from within this distance
+  documentedSampleRangeM: number; // Documented sample: a boulder read this mission, in frame from within this distance
+  hydrogenZoneRadiusM: number; // the hidden hydrogen zone: a circle this wide around its site; the meter reads neutron.anomalyEdge at its edge
 }
 
 /** Orbital survey leads: rough bearings to areas of interest, given at the landing briefing. */
@@ -444,6 +503,85 @@ export interface GameData {
   events: EventsFile;
   text: TextFile;
   relationships: RelationshipsFile;
+  sites: SitesFile;
+}
+
+/** Kinds of site in sites.json (Moon sites and milestones plan, section 2). */
+export type SiteKind = 'young-crater' | 'rocky-area' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen';
+/** The terrain.json feature lists the pipeline adds for the Moon sites (plan, Phase 1, P1 to P4). */
+export type PipelineFeatureList = 'coldTraps' | 'youngCraters' | 'boulderTrackCandidates' | 'lowLightPatches';
+
+/**
+ * One site in data/sites.json: a design choice on top of the terrain (which crater holds the rolled
+ * boulder, which low-light slope is the hidden hydrogen, each site's rock suite, display names). Where it
+ * is comes in one of three ways: an existing terrain.json feature (`feature`), a pipeline feature by id
+ * (`pipeline`), or a candidate position until the pipeline confirms it (`provisional` with `local`).
+ */
+export interface SiteSpec {
+  id: string; // stable, for code and other entries (within)
+  kind: SiteKind;
+  name: string; // display name; tuning.cold.zones names cold traps by it
+  feature?: string; // an existing terrain.json feature: key (shadowedCrater) or name (Rocky area 1)
+  pipeline?: { list: PipelineFeatureList; id: string }; // a feature the pipeline produced, by its id
+  provisional?: boolean; // true: `local` (and `radiusM`) are candidates from the plan, not yet confirmed by the pipeline
+  local?: { x: number; z: number }; // the site's center in the local frame
+  radiusM?: number; // young crater and cold trap radius (a provisional cold trap is a circle until the pipeline gives its outline)
+  rockSuite?: string; // a key in tuning.instruments.xray.suites: what the X-ray spectrometer reads at this site's boulders
+  within?: string; // rolled boulder: the id of the young crater it lies in
+  note?: string; // where the values come from
+}
+
+/** data/sites.json */
+export interface SitesFile {
+  sites: SiteSpec[];
+}
+
+interface FeaturePoint { x: number; y?: number; z: number }
+
+/**
+ * The pipeline's new Moon terrain.json feature lists (plan, Phase 1 table). Every field optional: the
+ * pipeline owns the shape; the game reads what it needs and validation only relies on `id`.
+ */
+export interface MoonPipelineFeatures {
+  /** P1: permanent-shadow patches in the play area (LOLA 60 m, PSR >= 0.5) over 2,000 m². */
+  coldTraps?: {
+    id?: string;
+    name?: string;
+    centroidLocal?: FeaturePoint;
+    outlineLocal_xz?: [number, number][];
+    area_m2?: number;
+    distanceFromLanding_m?: number;
+    driveDistanceFromLanding_m?: number;
+    avgIllumination?: number;
+  }[];
+  /** P2: small fresh craters 40 to 150 m across within 1.6 km. */
+  youngCraters?: {
+    id?: string;
+    name?: string;
+    local?: FeaturePoint;
+    radius_m?: number;
+    depth_m?: number;
+    avgIllumination?: number;
+    earthVisibility?: number;
+  }[];
+  /** P3: points at the foot of walls steeper than 25° with a 50 to 150 m run below, with the wall's top point. */
+  boulderTrackCandidates?: {
+    id?: string;
+    name?: string;
+    local?: FeaturePoint;
+    wallTopLocal?: FeaturePoint;
+    youngCrater?: string; // the young crater it lies in, if any
+  }[];
+  /** P4: ground outside permanent shadow with average illumination under 15% and slope under 15°, within 1 km. */
+  lowLightPatches?: {
+    id?: string;
+    name?: string;
+    centroidLocal?: FeaturePoint;
+    outlineLocal_xz?: [number, number][];
+    area_m2?: number;
+    avgIllumination?: number;
+    slope_deg?: number;
+  }[];
 }
 
 /** The kinds of relationship between parts (rover-engineering-design.md, section 10). */

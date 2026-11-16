@@ -8,7 +8,7 @@ import type { BusSlot, Instrument, Milestone, MilestoneTuning, Part } from './ty
 import type { MarsMilestoneTuning, MarsViewpointKind } from './marsTypes';
 import type { DamageCause } from './damage';
 import { milestoneStages, type EarnedMilestone } from './payout';
-import { meetsRequirements } from './rover';
+import { meetsRequirements, requiredInstruments } from './rover';
 
 export interface Point { x: number; z: number }
 export interface Point3 { x: number; y: number; z: number }
@@ -33,6 +33,8 @@ export interface MilestoneFeatures {
  */
 export const ZONE_IDS = [
   'large-crater', 'boulder-field', 'shadowed-crater', 'crater-wall', 'ice-spot', 'rim-viewpoint', 'near-lander',
+  // Moon sites (sites.json): named by the new milestones now, built by buildZones in Phase 3 of the Moon sites plan.
+  'cold-trap', 'young-crater', 'hydrogen-anomaly', 'ice-signal',
   'delta-front', 'delta-layers', 'seitah', 'sunset-viewpoint',
 ] as const;
 export type ZoneId = (typeof ZONE_IDS)[number];
@@ -208,8 +210,7 @@ function missingParts(parts: Part[], m: Milestone): Missed['missing'] {
   for (const slot of m.requires.slots ?? []) {
     if (!meetsRequirements(parts, { ...m, requires: { slots: [slot] } })) missing.push(slot);
   }
-  const inst = m.requires.instrument;
-  if (inst && !parts.some((p) => p.effects.instrument === inst)) missing.push(inst);
+  for (const inst of requiredInstruments(m)) if (!parts.some((p) => p.effects.instrument === inst)) missing.push(inst);
   return missing;
 }
 

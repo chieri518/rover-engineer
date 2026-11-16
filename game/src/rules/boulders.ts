@@ -8,6 +8,7 @@ export interface Boulder {
   x: number;
   z: number;
   radius: number;
+  site?: string; // the sites.json id it belongs to, which picks its rock suite (absent: the fallback rock list)
 }
 
 /** Deterministic boulder positions and sizes: small ones common, large ones rare. */

@@ -360,7 +360,7 @@
       "button": "Neutron",
       "controls": "{key} to switch the neutron spectrometer on or off ({standby} energy/s while on).",
       "notCarried": "This rover carries no neutron spectrometer.",
-      "fact": "NASA's VIPER rover carries a Neutron Spectrometer System that senses hidden water up to about 1 m (3 feet) below the surface while it drives.",
+      "fact": "NASA's VIPER rover is designed to sense hidden water up to about 1 m (3 feet) below the surface with its Neutron Spectrometer System while it drives. VIPER has not flown yet.",
       "source": "NASA Science, VIPER rover and instruments (science.nasa.gov/mission/viper/rover-and-instruments)"
     },
     "xray": {
@@ -404,6 +404,10 @@
     "regolith-breccia": {
       "name": "Regolith breccia",
       "elements": "Soil fragments pressed together into rock"
+    },
+    "magnesian-norite": {
+      "name": "Magnesian norite",
+      "elements": "Rich in magnesium and iron, poor in calcium; pyroxene-rich"
     }
   },
   "settings": {

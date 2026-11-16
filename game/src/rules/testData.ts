@@ -63,7 +63,7 @@ export const testTuning: Tuning = {
     roundKmBelow1: 0.1,
     roundKmAbove1: 0.5,
   },
-  boulders: { perRockyArea: 10, spreadRadiusFactor: 1, minDiameterM: 0.4, maxDiameterM: 2, buriedShare: 0.3, seed: 1 },
+  boulders: { perRockyArea: 10, perYoungCrater: 5, rolledBoulderDiameterM: 3.5, spreadRadiusFactor: 1, minDiameterM: 0.4, maxDiameterM: 2, buriedShare: 0.3, seed: 1 },
   sun: { startAzimuthDeg: 20, degreesPerEarthDay: 12, subsolarLatitudeDeg: -1 },
   earth: { azimuthDeg: 0, elevationDeg: 0.6 },
   rover: {
@@ -91,13 +91,22 @@ export const testTuning: Tuning = {
     photoZoneRadiusM: 60, iceSpotRadiusM: 50, boulderCrossRadiusFactor: 1.1, boulderCrossMinAngleDeg: 90, partialCrossingHint: true,
     craterDescentDepthM: 150, craterDescentExitDepthM: 100, albumMax: 12, photoFrameMargin: 0.85,
     sampleMinDistanceM: 200, sampleSpacingM: 200, earthPhotoMinLit: 0.25, earthPhotoMinDistanceM: 300,
+    coldTrapEdgeM: 25, youngCraterEjectaFactor: 1.5, boulderTrackPhotoRangeM: 80, documentedSampleRangeM: 15, hydrogenZoneRadiusM: 60,
   },
   instruments: {
     coldSlowdown: 2,
     shadowSunlight: 0.5,
     stationOffsetM: 1.6,
-    neutron: { iceRangeM: 300, coldBackground: 0.2, noiseFloor: 0.05, jitter: 0.03 },
-    xray: { reachM: 3, rocks: [{ id: 'common', weight: 3 }, { id: 'rare', weight: 1 }] },
+    stationConfirmSeconds: 5,
+    neutron: {
+      iceRangeM: 300, coldBackground: 0.2, noiseFloor: 0.05, jitter: 0.03,
+      edgeRampM: 25, anomalyPeak: 0.5, anomalyEdge: 0.4, anomalyRangeM: 150, iceSignalShare: 0.7,
+    },
+    xray: {
+      reachM: 3,
+      rocks: [{ id: 'common', weight: 3 }, { id: 'rare', weight: 1 }],
+      suites: [{ id: 'plain', rocks: [{ id: 'common', weight: 1 }] }, { id: 'mixed', rocks: [{ id: 'common', weight: 1 }, { id: 'rare', weight: 1 }] }],
+    },
     seismometer: { recordWindowSeconds: 20, quietDistanceM: 150 },
   },
 };

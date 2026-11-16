@@ -53,7 +53,7 @@
     "heaterReductionPerHeat": 1.5,
     "warmRecoveryPerSecond": 6,
     "warningShare": 0.5,
-    "zones": ["shadowedCrater", "Rocky area 1"],
+    "zones": ["shadowedCrater", "Rocky area 1", "East cold trap", "South cold trap"],
     "zoneSearchRadiusM": 300,
     "noLightsMarginM": 3
   },
@@ -75,6 +75,8 @@
   },
   "boulders": {
     "perRockyArea": 160,
+    "perYoungCrater": 30,
+    "rolledBoulderDiameterM": 3.5,
     "spreadRadiusFactor": 1.1,
     "minDiameterM": 0.4,
     "maxDiameterM": 2.6,
@@ -155,17 +157,28 @@
     "sampleMinDistanceM": 200,
     "sampleSpacingM": 200,
     "earthPhotoMinLit": 0.25,
-    "earthPhotoMinDistanceM": 300
+    "earthPhotoMinDistanceM": 300,
+    "coldTrapEdgeM": 25,
+    "youngCraterEjectaFactor": 1.5,
+    "boulderTrackPhotoRangeM": 80,
+    "documentedSampleRangeM": 15,
+    "hydrogenZoneRadiusM": 60
   },
   "instruments": {
     "coldSlowdown": 2,
     "shadowSunlight": 0.5,
     "stationOffsetM": 1.6,
+    "stationConfirmSeconds": 5,
     "neutron": {
       "iceRangeM": 300,
       "coldBackground": 0.2,
       "noiseFloor": 0.05,
-      "jitter": 0.03
+      "jitter": 0.03,
+      "edgeRampM": 25,
+      "anomalyPeak": 0.5,
+      "anomalyEdge": 0.4,
+      "anomalyRangeM": 150,
+      "iceSignalShare": 0.7
     },
     "xray": {
       "reachM": 3,
@@ -174,6 +187,42 @@
         { "id": "noritic-anorthosite", "weight": 3 },
         { "id": "impact-melt-breccia", "weight": 3 },
         { "id": "regolith-breccia", "weight": 3 }
+      ],
+      "suites": [
+        {
+          "id": "rocky-area-1",
+          "rocks": [
+            { "id": "impact-melt-breccia", "weight": 6 },
+            { "id": "ferroan-anorthosite", "weight": 4 }
+          ]
+        },
+        {
+          "id": "east-crater",
+          "rocks": [
+            { "id": "noritic-anorthosite", "weight": 6 },
+            { "id": "ferroan-anorthosite", "weight": 4 }
+          ]
+        },
+        {
+          "id": "regolith-crater",
+          "rocks": [
+            { "id": "regolith-breccia", "weight": 6 },
+            { "id": "ferroan-anorthosite", "weight": 4 }
+          ]
+        },
+        {
+          "id": "rocky-area-2",
+          "rocks": [
+            { "id": "noritic-anorthosite", "weight": 5 },
+            { "id": "regolith-breccia", "weight": 5 }
+          ]
+        },
+        {
+          "id": "rolled-boulder",
+          "rocks": [
+            { "id": "magnesian-norite", "weight": 1 }
+          ]
+        }
       ]
     },
     "seismometer": {
