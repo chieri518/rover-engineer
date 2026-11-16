@@ -842,6 +842,16 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 *How it is drawn (decided during implementation, T2):* about 85% of the light is diffuse sky light, so rover shadows are faint and soft. A capped eye adaptation keeps the day dimmer than a clear Mars noon but readable. The sky goes from orange-brown by day to a darker, redder dusk and a long twilight, then a night with no stars. The haze hides 95% of the terrain by about 5 km. During the methane rain the scene darkens, the Sun disappears, visibility closes in to about 250 m, and rain streaks fall. Dark dune sand and brighter interdunes come from the generated ground texture. All of these values are in `data/titan/tuning.json` (`look`).
 
+##### Demo visuals *(decided November 15 by Owner B; presentation only, no gameplay change)*
+
+Five additions to make Titan read as Titan on video. None of them changes the rules: traction, visibility for milestones, energy and cold stay as they are.
+
+- **Methane raindrops:** large drops falling slowly. Titan raindrops can be about twice the size of Earth's and fall several times slower in the thick air and low gravity (to fact-check against Lorenz 1993).
+- **Wet ground:** during the rain the ground darkens and takes a faint sheen, then dries over a few minutes. Cassini saw a large area darken after the 2010 equatorial storm, most likely from rain.
+- **Methane clouds:** a faint, slow-drifting streaky cloud layer, with soft cloud shadows moving over the dunes. Cassini and Huygens observed methane clouds; their exact look here is a game rendering.
+- **Ice pebbles and sand ripples:** rounded water-ice pebbles (about 5 to 15 cm) scattered on the firm interdune ground, densest near the landing, as Huygens photographed in 2005; fine ripples on the dune flanks.
+- **Headlight beams:** at night the floodlights show as beams in the thick, hazy air, and raindrops glint in them.
+
 #### Power and night
 
 *Proposed*, all numbers placeholders tuned against the Moon parts and checked by a battery-only test, as `marsNight.test.ts` checks Mars:
