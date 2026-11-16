@@ -135,9 +135,10 @@ export type MilestoneTrigger =
   | { type: 'transect'; instrument: Instrument; zone?: string; zones?: string[]; meters: number; sites?: number }
   /**
    * A use of the instrument finishes, inside the zone or on the target kind if given. sites: staged as the
-   * drill (one stage per reading site, each at least sampleSpacingM from the others). rocks: staged by
-   * distinct rock types read this mission, one stage per count (Rock collection [2, 3, 4]). rock: the
-   * reading must find this rock type (an id in tuning.instruments.xray.suites).
+   * drill (one stage per reading site, each at least sampleSpacingM from the others, none inside the
+   * near-lander zone). rocks: staged by distinct rock types this instrument read this mission, one stage
+   * per count (Rock collection [2, 3, 4]). rock: the reading must find this rock type (an id in
+   * tuning.instruments.xray.suites). Rock types and read boulders count per instrument (Mars step 5a).
    */
   | { type: 'reading'; instrument: Instrument; zone?: string; target?: ReadingTarget; sites?: number; rocks?: number[]; rock?: string }
   /**

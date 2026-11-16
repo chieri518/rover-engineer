@@ -284,9 +284,8 @@ export type MarsMilestoneTrigger =
  * own (the delta front, the delta-layers and sunset viewpoints, Séítah, and the delta foot, Mars sites
  * plan MS5), and the shared ids Mars also builds: the near-lander zone, the rocky areas' boulder fields,
  * the young craters' ejecta rings and the hidden hydrated ground (the Moon's `young-crater` and
- * `hydrogen-anomaly`, from data/mars/sites.json). `delta-foot` is built by rules/milestones.ts in Mars
- * step 5a (within tuning.milestones.deltaFootRadiusM of terrain.json deltaFront.footNear); until then a
- * trigger naming it never fires.
+ * `hydrogen-anomaly`, from data/mars/sites.json). `delta-foot` is built by rules/milestones.ts buildZones
+ * (within tuning.milestones.deltaFootRadiusM of terrain.json deltaFront.footNear's line).
  */
 export const MARS_ZONE_IDS = [
   'delta-front', 'delta-layers', 'seitah', 'sunset-viewpoint', 'delta-foot',
@@ -313,6 +312,8 @@ export interface MarsMilestoneTuning {
   deltaFootRadiusM: number;
   /** Crater wall: a young crater's center in frame, the rover between these multiples of the crater's radius from it. */
   craterWallRimBand: [number, number];
+  /** Dust devil: the devil in frame within this distance of the rover. Absent: any devil in frame counts (the design's rule). */
+  dustDevilPhotoRangeM?: number;
 }
 
 /** Mars-only instrument notices (data/mars/text.json `instruments`); absent on the Moon. */

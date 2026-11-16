@@ -7,6 +7,7 @@ import jezero from '../../public/terrain/mars/terrain.json';
 import { buildZones, distanceToPath, MilestoneTracker, PHOTO_ZONE_IDS, zoneContains, type MilestoneFeatures, type Point3, type SunPhoto } from './milestones';
 import { buildLeads, buildSites, discover, distanceToArea, leadBearing, nearestOnPath, type SurveyFeatures } from './survey';
 import { selectedParts } from './rover';
+import { resolveSites, type SiteFeatures } from './sites';
 import { validateGameData } from './validate';
 import type { MarsTerrainFeatures } from './marsTypes';
 import type { Build } from './types';
@@ -60,12 +61,13 @@ describe('Mars milestone data', () => {
     }
   });
 
-  it('every zone a trigger names exists on the Mars map; no Moon-only triggers remain', () => {
-    const known = new Set(zones.map((z) => z.id));
+  it('every zone a trigger names exists on the Mars map (with its sites); no Moon-only triggers remain', () => {
+    const withSites = buildZones(features, t, { sites: resolveSites(data.sites.sites, jezero.features as unknown as SiteFeatures) });
+    const known = new Set<string>(withSites.map((z) => z.id));
     for (const m of data.milestones.milestones) {
       const tr = m.trigger;
-      // delta-foot (Signs of an ancient lake) is a Mars zone id whose zone Mars step 5a builds; until then it never fires.
-      if ((tr.type === 'photo' || tr.type === 'drill' || tr.type === 'zone') && tr.zone && tr.zone !== 'delta-foot') expect(known.has(tr.zone as never), m.id).toBe(true);
+      const named = 'zone' in tr && tr.zone ? [tr.zone] : tr.type === 'transect' ? tr.zones ?? [] : [];
+      for (const z of named) expect(known.has(z), `${m.id} ${z}`).toBe(true);
       if (tr.type === 'photo') expect(tr.target).not.toBe('earth');
       expect(tr.type).not.toBe('event'); // flares and quakes stay on the Moon
     }

@@ -17,9 +17,12 @@ const PIPELINE_LISTS: readonly PipelineFeatureList[] = ['coldTraps', 'youngCrate
 /** Site kinds whose boulders the X-ray spectrometer reads: each needs a rock suite. */
 const SUITE_KINDS: readonly SiteKind[] = ['young-crater', 'rocky-area', 'rolled-boulder', 'knob', 'seitah-edge', 'delta-foot', 'flood-boulder'];
 
-/** The zone ids a world's milestone triggers may name: Mars's own list (marsTypes.ts), else every zone buildZones makes. */
+/** Zones only Mars builds (from its terrain features and tuning): never valid on the Moon. */
+const MARS_OWN_ZONE_IDS: readonly string[] = ['delta-front', 'delta-layers', 'seitah', 'sunset-viewpoint', 'delta-foot'];
+
+/** The zone ids a world's milestone triggers may name: Mars's own list (marsTypes.ts), else every zone buildZones makes but Mars's own. */
 function worldZoneIds(data: GameData): readonly string[] {
-  return data.world === 'mars' ? MARS_ZONE_IDS : ZONE_IDS;
+  return data.world === 'mars' ? MARS_ZONE_IDS : ZONE_IDS.filter((z) => !MARS_OWN_ZONE_IDS.includes(z));
 }
 
 /** Checks the data files for broken references and missing entries. Returns a list of problems. */
@@ -278,6 +281,7 @@ function instrumentTuningProblems(data: GameData): string[] {
   }
   // Mars sites (Mars step 4b): the delta-foot zone and the Crater wall band.
   if (mt.deltaFootRadiusM !== undefined && !(Number.isFinite(mt.deltaFootRadiusM) && mt.deltaFootRadiusM > 0)) problems.push('tuning.milestones.deltaFootRadiusM must be a finite number above 0');
+  if (mt.dustDevilPhotoRangeM !== undefined && !(Number.isFinite(mt.dustDevilPhotoRangeM) && mt.dustDevilPhotoRangeM > 0)) problems.push('tuning.milestones.dustDevilPhotoRangeM must be a finite number above 0');
   if (mt.craterWallRimBand !== undefined) {
     const [lo, hi] = mt.craterWallRimBand;
     if (!(Number.isFinite(lo) && Number.isFinite(hi) && lo! > 0 && lo! < hi!)) problems.push('tuning.milestones.craterWallRimBand must be [low, high] with 0 < low < high');
@@ -371,6 +375,29 @@ function suiteRockIds(data: GameData): Set<string> {
   return new Set(data.tuning.instruments.xray.suites.flatMap((suite) => suite.rocks.map((r) => r.id)));
 }
 
+/** What a world lacks for a photo target (null: it has it). */
+function photoTargetMissing(target: PhotoTarget, data: GameData): string | null {
+  const mt = data.tuning.milestones;
+  switch (target) {
+    case 'sunset': return mt.sunsetMinElevationDeg === undefined || mt.sunsetMaxElevationDeg === undefined ? 'the sunset band in tuning.milestones' : null;
+    case 'crater-wall': return mt.craterWallRimBand === undefined ? 'tuning.milestones.craterWallRimBand' : null;
+    case 'dustdevil': return data.events.dustdevil ? null : 'events.dustdevil';
+    case 'rolled-boulder': return data.sites.sites.some((s) => s.kind === 'rolled-boulder') ? null : 'a rolled-boulder site';
+    case 'earth':
+    case 'read-boulder': return null;
+  }
+}
+
+/** What a world lacks for a record event (null: it has it). */
+function recordEventMissing(event: RecordEvent, data: GameData): string | null {
+  switch (event) {
+    case 'quake': return data.events.quake ? null : 'events.quake';
+    case 'duststorm': return data.events.duststorm ? null : 'events.duststorm';
+    case 'dustdevil': return data.events.dustdevil && data.tuning.dust ? null : 'events.dustdevil and tuning.dust';
+    case 'night': return data.tuning.sol ? null : 'tuning.sol';
+  }
+}
+
 /** A milestone's trigger: zones, instruments, photo targets, rock types and stage counts that exist. */
 function triggerProblems(m: Milestone, data: GameData): string[] {
   const problems: string[] = [];
@@ -382,10 +409,28 @@ function triggerProblems(m: Milestone, data: GameData): string[] {
   if (tr.type === 'transect' && tr.zones !== undefined && (tr.zone !== undefined || tr.zones.length === 0)) {
     problems.push(`milestone ${m.id} needs either one zone or a non-empty zones list, not both`);
   }
-  if (tr.type === 'photo' && tr.target !== undefined && !PHOTO_TARGETS.includes(tr.target)) problems.push(`milestone ${m.id} names unknown photo target ${tr.target}`);
+  if (tr.type === 'transect' && tr.sites !== undefined && tr.zone === undefined && tr.zones === undefined) {
+    problems.push(`milestone ${m.id} stages by zone (sites) but names no zone`);
+  }
+  if (zones.includes('delta-foot') && worldZoneIds(data).includes('delta-foot') && data.tuning.milestones.deltaFootRadiusM === undefined) problems.push(`milestone ${m.id} names zone delta-foot, which needs tuning.milestones.deltaFootRadiusM`);
+  if (tr.type === 'photo' && tr.target !== undefined) {
+    if (!PHOTO_TARGETS.includes(tr.target)) problems.push(`milestone ${m.id} names unknown photo target ${tr.target}`);
+    else {
+      const missing = photoTargetMissing(tr.target, data);
+      if (missing) problems.push(`milestone ${m.id} photographs ${tr.target}, which needs ${missing}`);
+    }
+  }
   if (tr.type === 'record') {
     if (!RECORD_EVENTS.includes(tr.event)) problems.push(`milestone ${m.id} waits for unknown event ${String(tr.event)}`);
+    else {
+      const missing = recordEventMissing(tr.event, data);
+      if (missing) problems.push(`milestone ${m.id} waits for ${tr.event}, which needs ${missing}`);
+    }
     if (tr.seconds !== undefined && !(Number.isFinite(tr.seconds) && tr.seconds >= 0)) problems.push(`milestone ${m.id} needs record seconds as a finite number, not negative`);
+    // Timed records count while an instrument aboard is switched on; the others are a station's (deployed) record.
+    const part = data.parts.parts.find((p) => p.effects.instrument === tr.instrument);
+    if (part && tr.seconds !== undefined && !((part.effects.standbyEnergy ?? 0) > 0)) problems.push(`milestone ${m.id} counts record seconds on ${tr.instrument}, which is not switched on and off`);
+    if (part && tr.seconds === undefined && part.effects.deploy !== true) problems.push(`milestone ${m.id} records on ${tr.instrument}, which is not a station (give it seconds)`);
   }
   const stages = (sites: number | undefined) => sites === undefined || (Number.isInteger(sites) && sites >= 1);
   if ((tr.type === 'drill' || tr.type === 'transect' || tr.type === 'reading') && !stages(tr.sites)) problems.push(`milestone ${m.id} needs a whole number of sites, at least 1`);
