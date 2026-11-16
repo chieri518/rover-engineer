@@ -10,7 +10,7 @@ Last updated November 15, 2026 (all six phases of the payload bay and relationsh
 
 **Moon sites and milestones (November 15, 2026, decided; not built yet):** 12 new Moon milestones so that every Moon instrument earns something (two of them combos), Boulder field and Mapper repriced, new sites near the lander (three young craters, cold traps, a rolled boulder, a hidden hydrogen spot), a fourth survey lead, rock suites by site, and three new archetypes as balance targets. Recorded in Phase 0 of the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md), whose open questions M1 to M15 the team decided as proposed. Small details settled while writing them down are marked "decided in Phase 0". Rewards and distances in these sections are **starting values for the balance model**; Phase 6 sets the final ones.
 
-**Mars engineering, sites and milestones (November 15, 2026, decided in Phase 0; not built yet):** a Mars part catalog (each part says which worlds offer it), a power model in which the lights, the electric heater and the RTG own their draws, support hardware (robotic arm and mast), four new Mars instruments and a night budget line on the desk, four Mars lessons, 20 new Mars milestones so that every Mars instrument earns something, new sites in three clusters on the Jezero map, and six Mars rock types. Recorded in Phase 0 of the [Mars rover engineering plan](mars-rover-engineering-implementation-plan.md) (its decisions are cited here as **Mars M1 to M19**, to keep them apart from the Moon plan's M1 to M15) and the [Mars sites and milestones plan](mars-sites-and-milestones-plan.md) (MS1 to MS15). All numbers are **indicative starting values**: Mars rewards, budget requirements and the pass test are left to a later balance patch (Mars M13, MS1), and Mars has no `winPaths` model (MS13). The user decided that we build the Owner B items ourselves: dust and dust devils, Mars hydrogen, site placement and the Mars terrain pipeline requests, and changes to the built Mars milestones are marked **provisional, for Chieri's review**. The Mars ticket tiers are *Proposed* and wait for the team (Mars M12).
+**Mars engineering, sites and milestones (November 15, 2026, decided in Phase 0; not built yet):** a Mars part catalog (each part says which worlds offer it), a power model in which the lights, the electric heater and the RTG own their draws, support hardware (robotic arm and mast), four new Mars instruments and a night budget line on the desk, four Mars lessons, 20 new Mars milestones so that every Mars instrument earns something, new sites in three clusters on the Jezero map, and six Mars rock types. Recorded in Phase 0 of the [Mars rover engineering plan](mars-rover-engineering-implementation-plan.md) (its decisions are cited here as **Mars M1 to M19**, to keep them apart from the Moon plan's M1 to M15) and the [Mars sites and milestones plan](mars-sites-and-milestones-plan.md) (MS1 to MS15). All numbers are **indicative starting values**: Mars rewards, budget requirements and the pass test are left to a later balance patch (Mars M13, MS1), and Mars has no `winPaths` model (MS13). The user decided that we build the Owner B items ourselves: dust and dust devils, Mars hydrogen, site placement and the Mars terrain pipeline requests, and changes to the built Mars milestones are marked **provisional, for Chieri's review**. The Mars ticket tiers are *Decided* (the user approved the draft on November 15, Mars M12).
 
 **Recent changes (November 15, 2026, playtest fixes):** the minimap starts zoomed in and widens as the rover explores, hides unexplored ground and undiscovered sites, and points to orbital survey leads; the map resets on every try; the rover no longer flies over bumps (time-lapse gravity while its wheels are in the air).
 
@@ -78,7 +78,7 @@ The design screen is a **constraint puzzle**. On the Moon it is simply mass vers
 | 5 | Mission length in game time | Mars: 10 sols at 60 s each, decided by Owner B and confirmed for Owner A in Phase 0 of the Mars plans. Titan: *Proposed:* 1 Titan day. |
 | 6 | Data and communications as a resource? | **Decided:** not on the Moon; a real constraint on Mars, designed later and not in the first Mars build. At the south pole Earth dips below the horizon, which could later become a contact blackout. |
 | 7 | Two-player mode | Later |
-| 8 | Mars parts, ticket tiers, budget | **Parts decided for the first Mars wave** (November 15; see [Mars rover design](#mars-rover-design)); no air-sample instrument in it. **Ticket tiers:** Mars gets its own (Mars M12); the draft is *Proposed* and waits for the team ([Mars ticket tiers](#mars-ticket-tiers-proposed)). **Budget:** the Mars minimum stays 780 and the Titan pass mark stays 800 until the balance patch (MS1). Mars ends on "Titan: coming soon" (built). |
+| 8 | Mars parts, ticket tiers, budget | **Parts decided for the first Mars wave** (November 15; see [Mars rover design](#mars-rover-design)); no air-sample instrument in it. **Ticket tiers:** Mars gets its own (Mars M12), *Decided* November 15 ([Mars ticket tiers](#mars-ticket-tiers-decided)): the Moon's three plus Heavy. **Budget:** the Mars minimum stays 780 and the Titan pass mark stays 800 until the balance patch (MS1). Mars ends on "Titan: coming soon" (built). |
 
 ## 3. Campaign: the outer loop
 
@@ -511,7 +511,7 @@ REL does not build its own rockets or landers. For each mission it pays to **sec
 - **Tier jumps make the puzzle.** A rover just over a tier limit pays a much higher price, so players trim parts to fit a cheaper ticket, or decide the extra capability is worth the jump.
 - **Size:** each part has a size as well as a mass, and the rover's size is the total of its parts. Large solar panels, big wheels, and the drill are bulky; a battery or heater is compact.
 - **Three tiers** to start.
-- **Mars has its own tiers** *(decided November 15, Mars M12; the tiers themselves are Proposed)*. The draft keeps the Moon's three and adds a fourth, Heavy, for the support hardware and three-instrument steel rovers Mars allows; see [Mars ticket tiers](#mars-ticket-tiers-proposed).
+- **Mars has its own tiers** *(decided November 15, Mars M12; the user approved the tiers on November 15)*. The draft keeps the Moon's three and adds a fourth, Heavy, for the support hardware and three-instrument steel rovers Mars allows; see [Mars ticket tiers](#mars-ticket-tiers-decided).
 - Tier limits and prices are balance numbers (open question 1).
 
 **Real basis.** NASA's [Commercial Lunar Payload Services](https://www.nasa.gov/commercial-lunar-payload-services/) works this way: instead of building its own landers, NASA pays commercial companies to carry its instruments and small rovers to the Moon. Rideshare launches also sell spots by mass and size.
@@ -1091,9 +1091,9 @@ The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the 
 
 **The night budget line** (Mars M15). On Mars the specification sheet shows what one 15 s night costs this build, asleep and awake with lights, next to the battery capacity, for example "Night: 3 asleep · 60 with lights · RTG +9". It includes the electric heater's draw: the heater is a plain part cost, so the line gives nothing away. It is the most useful number for Mars's lesson, which today the player finds only by running out of energy.
 
-##### Mars ticket tiers (proposed)
+##### Mars ticket tiers (decided)
 
-*Proposed November 15, 2026, in Phase 0 (Mars M12 decided that Mars gets its own tiers; this draft waits for the team). Owner A's area. Needed before Mars Phase 3, because the tiers decide which builds can launch.* Until it is approved, the Moon's tiers are a yardstick.
+*Decided November 15, 2026: drafted in Phase 0 (Mars M12 decided that Mars gets its own tiers) and approved by the user as drafted. Owner A's area. Built in Mars Phase 3 (combined step 3).* Prices stay indicative, like every Mars number, until the balance patch.
 
 | Tier | Mass up to | Size up to | Price | Compared with the Moon |
 | --- | --- | --- | --- | --- |
@@ -1106,7 +1106,7 @@ The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the 
 - **Why a Heavy tier.** The Moon tiers' problem on Mars is the ceiling. Two support slots and eight instruments make heavier rovers possible: of the 25,758 valid Mars builds (support hardware only when an instrument needs it, a heater unless an RTG), only 52% fit under 90 kg and size 26, against the Moon's data test of more than 85%. With Heavy, 86% can launch.
 - **Why 100 kg and 300.** 100 kg is the steel frame's maximum load, so any rover that launches on steel is not overloaded. The price continues the Moon's rising steps (+60, +80, then +100). Real basis: Mars landers carry far heavier rovers than lunar landers do (Perseverance is about 1,025 kg, Pragyan 26 kg).
 - **Heavy is not a balance path.** Heavy builds are three-instrument steel rovers with support hardware, spending about 900 or more with the ticket, above most arrival balances. The tier lets the desk accept them instead of refusing them; the price says why not.
-- **Considered and not proposed:** a Mars-scaled Small of 65 kg. It would move six one-instrument builds (arm and X-ray, mast and laser, RTG with camera and lights, the weather watcher, the radar surveyor, camera with lights) from Medium to Small, 60 cheaper each, so more builds pass (the 40% target below). It stays on file for the balance patch.
+- **Considered and not adopted:** a Mars-scaled Small of 65 kg. It would move six one-instrument builds (arm and X-ray, mast and laser, RTG with camera and lights, the weather watcher, the radar surveyor, camera with lights) from Medium to Small, 60 cheaper each, so more builds pass (the 40% target below). It stays on file for the balance patch.
 - **In data:** `game/data/mars/tiers.json`, merged over the shared tiers like the other Mars overlays. The design and ticket screens stop saying the tiers are the Moon's.
 
 **Where the sample builds land** (titanium, solid wheels, fixed panel, lithium-ion, heater units, no lights, unless stated):
@@ -1313,7 +1313,7 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 - **The pass test stays as built for now** (MS1): the fixed 800 Titan mark and today's capability rewards. The options for the balance patch stay on file: a relative test ("Mars must pay for itself": final at least 800 **and** at least B), or cutting capability rewards about 60% ("set A"), which would leave only the delta routes passing and break the density goal.
 - **Hand estimates and playtests only** (MS13): no Mars `winPaths` model. `marsNight.test.ts` stays the energy check, extended with the MP5 route legs; browser autopilot runs check the estimates.
-- **Ticket prices** are the Moon tiers, which the proposed [Mars ticket tiers](#mars-ticket-tiers-proposed) keep for every build below.
+- **Ticket prices** are the Moon tiers, which the decided [Mars ticket tiers](#mars-ticket-tiers-decided) keep for every build below.
 
 **Archetypes, as targets** (hand estimates from the sites plan, B = 780, today's capability rewards; titanium, solid wheels, fixed panel, lithium-ion, heater units unless stated; dust devil milestones left out):
 
