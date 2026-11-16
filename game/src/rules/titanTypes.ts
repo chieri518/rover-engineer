@@ -242,6 +242,119 @@ export interface TitanLookTuning {
   /** Rover shadow blur (shadow map radius) and Sun-mask refresh bands; masks pause below minElevationDeg. */
   shadowRadius: number;
   sunMask: { bands: [number, number, number]; minElevationDeg: number };
+  // titan-fx: beams
+  /** Floodlight beams in the haze (world/titanBeams.ts; optional: no beams without it). */
+  beams?: TitanBeamsTuning;
+  /** titan-fx: clouds. Methane cloud layer and its ground shadows (world/titanClouds.ts); absent = no clouds. */
+  clouds?: TitanCloudTuning;
+  // titan-fx: rain
+  rainDrops?: TitanRainDropsTuning;
+  wet?: TitanWetTuning;
+}
+
+// titan-fx: beams
+/**
+ * Floodlight beams in the haze: presentation only. Each light bar gets a soft volumetric cone along the
+ * floodlight's direction (angle and penumbra from `floodlight`, length = the lights part's range × lengthScale).
+ */
+export interface TitanBeamsTuning {
+  /** Beam brightness scale (in-scatter per meter, before the strength below). */
+  intensity: number;
+  /** Visible cone half-angle = floodlight.angle × angleScale; beam length = light range × lengthScale. */
+  angleScale: number;
+  lengthScale: number;
+  /** Soft edge share of the cone (as a spotlight's penumbra), height over width, outward toe of each beam (deg). */
+  penumbra: number;
+  verticalScale: number;
+  toeOutDeg: number;
+  /** A brighter core along each beam's axis (so the two beams read from behind): its width (share of the cone angle) and share of the light. */
+  core: { angleShare: number; share: number };
+  /** Beam fades in over nearFadeM from the lamp (no hot spot at the housing); falls as 1/distance past nearM. */
+  nearFadeM: number;
+  nearM: number;
+  /** Strength by Sun elevation: full at or below fullDeg, `dayStrength` at or above offDeg. */
+  fullDeg: number;
+  offDeg: number;
+  dayStrength: number;
+  /** Extra strength at peak rain (more scattering): × (1 + rainBoost × storm). */
+  rainBoost: number;
+  /** Ray-march samples per pixel. */
+  samples: number;
+  /** Faint glow around each light housing at night: size (m) and brightness. */
+  halo: { sizeM: number; intensity: number };
+  /** Raindrops glinting in the beams (rain intensity × strength): count (0: none), size (px at 10 m), fall speed, brightness, twinkle rate. */
+  glints: { count: number; sizePx: number; fallMps: number; intensity: number; twinkleHz: number };
+}
+
+// titan-fx: clouds ------------------------------------------------------------------------------------
+/** Demo visuals: a faint streaky methane cloud layer in the sky and its soft shadows on the dunes (presentation only). */
+export interface TitanCloudTuning {
+  /** Height of the cloud plane above the camera (m), feature size (m), stretch along the wind (×). */
+  heightM: number; scaleM: number; stretch: number;
+  /** Streak direction (deg, from world +x toward +z); drift direction and speed on the plane (m/s, exaggerated
+   *  for motion). The drift crosses the streaks at an angle, or the motion would hide along their length. */
+  windDeg: number; driftDeg: number; driftMps: number;
+  /** Coverage threshold on the 0..1 noise (higher = fewer clouds) and edge softness. */
+  coverage: number; softness: number;
+  /** Peak opacity by day, and the share left at night (faded in from nightDeg below the horizon up to 0°). */
+  opacity: number; nightOpacity: number; nightDeg: number;
+  /** Lit color = horizon × tint × litGain (Sun side); shaded = zenith × tint × shadeGain; tints by day and dusk (sRGB hex). */
+  litGain: number; shadeGain: number; dayTint: string; duskTint: string;
+  /** Extra brightening toward the Sun (forward scattering), times the lit color. */
+  forwardGlow: number;
+  /** Rain: coverage threshold drop (thicker), opacity gain (×(1+gain)), darkening of the cloud color. */
+  rain: { coverageDrop: number; opacityGain: number; darken: number };
+  /** Ground shadows: peak darkening (0..1), extra edge softness, Sun elevations over which they fade in (deg). */
+  shadow: { strength: number; softness: number; lowDeg: number; highDeg: number };
+  /** Richer dusk sky (titanSky.ts): darkening toward the zenith (0..1) and extra Sun glow (× look glow), fading in from
+   *  belowDeg (Sun below the horizon) to 0°, full up to fullDeg, gone by offDeg; none in rain. */
+  duskSky: { darkenUp: number; glowBoost: number; belowDeg: number; fullDeg: number; offDeg: number };
+}
+// end titan-fx: clouds --------------------------------------------------------------------------------
+// titan-fx: rain. Demo visuals (presentation only): methane raindrops and wet ground, data/titan/tuning.json look.
+/** Methane raindrops (world/titanRain.ts). */
+export interface TitanRainDropsTuning {
+  /** Drops at full rain (fewer drawn as the rain eases), in a box of boxM around the camera. */
+  count: number;
+  boxM: number;
+  /** Fall speed of the largest drops (m/s); the smallest fall (1 - fallSpread) x as fast. */
+  fallMps: number;
+  fallSpread: number;
+  /** Real drop diameters (mm), drawn drawScale x larger; stretch = drawn length over width (motion blur). */
+  sizeMinMm: number;
+  sizeMaxMm: number;
+  drawScale: number;
+  stretch: number;
+  /** Horizontal wind drift (m/s, world x and z) and a small sway (amplitude m, frequency Hz). */
+  windMps: [number, number];
+  swayM: number;
+  swayHz: number;
+  /** Smallest drawn size in pixels (fainter instead of smaller), fade-in near the camera and fade-out far (m), peak opacity. */
+  minPx: number;
+  fadeNearM: number;
+  fadeFarM: number;
+  opacity: number;
+  /** Drop color = the look's rain color x brightness (drops catch the sky light and stand out from the haze). */
+  brightness: number;
+  /** Share of that color left in the dark (night): unlit drops fade, drops in the floodlight beam are lit (× lampGain). */
+  darkShare: number;
+  lampGain: number;
+}
+
+/** Wet ground (world/titanWet.ts). */
+export interface TitanWetTuning {
+  /** Wetting time constant toward the rain intensity, and seconds to dry from fully wet (mission time). */
+  wetTauS: number;
+  dryS: number;
+  /** Color multiplier when fully wet; sheen gains for the reflected sky, the Sun glint and the floodlight glint. */
+  darken: number;
+  sky: number;
+  sun: number;
+  lamp: number;
+  /** Glint sharpness (Phong exponent), reflectance looking straight down, size of the wet patches (m). */
+  shininess: number;
+  fresnel0: number;
+  patchM: number;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -291,4 +404,66 @@ export interface TitanCompleteText {
   totalRow: string; // campaign table: the total row
   lessonsHeading: string;
   lessons: string[]; // one line per world
+}
+
+// ---------------------------------------------------------------------------------------------------
+// titan-fx: ground. Demo visuals: ice pebbles and sand ripples (data/titan/tuning.json `look.pebbles`,
+// `look.ripples`; world/titanPebbles.ts, world/titanRipples.ts). Presentation only. Declaration merging
+// adds the two optional keys to TitanLookTuning without touching its body.
+
+export interface TitanLookTuning {
+  pebbles?: TitanPebbleTuning;
+  ripples?: TitanRippleTuning;
+}
+
+/** Water-ice pebbles on firm ground, scattered per cell around the rover (visual only). Lengths in meters. */
+export interface TitanPebbleTuning {
+  seed: number;
+  /** Pebbles are drawn within this distance of the rover, in square cells of cellM, rebuilt each rebuildStepM moved. */
+  drawRadiusM: number;
+  /** Pebbles thin out from edgeFadeShare × drawRadiusM to the edge, so there is no visible ring. */
+  edgeFadeShare: number;
+  /** Within this distance of the rover pebbles get the rounder (80-triangle) shape; beyond, a 20-triangle one. */
+  nearRadiusM: number;
+  cellM: number;
+  rebuildStepM: number;
+  maxInstances: number;
+  /** Density per m²: landingPerM2 at the landing, easing to farPerM2 as exp(-(distance / landingFalloffM)²). */
+  landingPerM2: number;
+  farPerM2: number;
+  landingFalloffM: number;
+  /** Softness (0..1) at which pebbles start thinning and above which there are none. */
+  softLow: number;
+  softHigh: number;
+  /** Width across: sizeMin + (sizeMax - sizeMin) × u^sizePower; height is that × heightShare; buriedShare of the height sinks. */
+  sizeMinM: number;
+  sizeMaxM: number;
+  sizePower: number;
+  heightShareMin: number;
+  heightShareMax: number;
+  buriedShare: number;
+  color: string;
+}
+
+/** Wind ripples on loose dune sand (ground shader). */
+export interface TitanRippleTuning {
+  /** Direction the wind blows toward (degrees clockwise from north); ripple crests lie across it. */
+  windAzimuthDeg: number;
+  fineWavelengthM: number;
+  fineHeightM: number;
+  /** Shading amplitude (share of the ground color) of each ripple set. */
+  fineShade: number;
+  coarseWavelengthM: number;
+  coarseHeightM: number;
+  coarseShade: number;
+  /** Crest wander: noise scale and displacement (m); patchiness: noise scale and amount (0..1). */
+  warpScaleM: number;
+  warpM: number;
+  breakScaleM: number;
+  breakAmount: number;
+  /** Softness range over which ripples fade in, and the camera distance range over which they fade out. */
+  softLow: number;
+  softHigh: number;
+  fadeStartM: number;
+  fadeEndM: number;
 }
