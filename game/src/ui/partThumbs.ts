@@ -18,6 +18,8 @@ const FLAT_RATIO = 0.2; // a part is flat when its height is under this share of
 const YAW = -0.6; // radians, as the build preview's turntable starts: the part's front three-quarter faces the camera
 const WHEEL_YAW = -1.05; // a wheel turned further, so its tread shows as well as its face
 const LIGHTS_YAW = -0.95; // one floodlight, seen more from the front so both lamps show
+const HEATER_YAW = -0.2; // the blanketed box turned side-on and seen from low down, so the heater on its side shows
+const HEATER_ELEVATION_DEG = 10;
 const MARGIN = 0.86; // share of the view (from center to edge) the part may use
 const WEBP_QUALITY = 0.9;
 
@@ -64,6 +66,8 @@ export interface ThumbSubject {
   object: THREE.Object3D;
   /** Radians the part turns about the vertical to face the camera. */
   yaw: number;
+  /** Degrees the camera looks down from, when not the default for the part's shape. */
+  elevationDeg?: number;
   /** Free every geometry, material and texture the model made. */
   dispose(): void;
 }
@@ -90,6 +94,7 @@ export function thumbSubject(part: Part, handling: RoverHandling): ThumbSubject 
   const dispose = () => disposeObjects(roots);
   let object: THREE.Object3D | undefined;
   let yaw = YAW;
+  let elevationDeg: number | undefined;
   if (group === 'wheels') {
     // One wheel (the front right), its outer face toward the camera.
     const wheel = model.wheels[0]?.wheel;
@@ -106,6 +111,10 @@ export function thumbSubject(part: Part, handling: RoverHandling): ThumbSubject 
       keepRightSide(object);
       yaw = LIGHTS_YAW;
     }
+    if (group === 'heater') {
+      yaw = HEATER_YAW;
+      elevationDeg = HEATER_ELEVATION_DEG;
+    }
   }
   if (!object || !hasMesh(object)) {
     dispose();
@@ -113,7 +122,7 @@ export function thumbSubject(part: Part, handling: RoverHandling): ThumbSubject 
   }
   object.removeFromParent();
   roots.push(object);
-  return { object, yaw, dispose };
+  return { object, yaw, elevationDeg, dispose };
 }
 
 /** Keep only the triangles on the right of the rover (+z) in each mesh under `root` (slot meshes are merged in the chassis frame). */
@@ -321,7 +330,7 @@ function makeStudio(pixels: number): Studio | null {
 
         // The camera looks at the center from a fixed direction (a little above); find the closest
         // distance at which the part's projected width and height fit, then shift the view to center it.
-        const el = THREE.MathUtils.degToRad(flat ? FLAT_ELEVATION_DEG : CAMERA_ELEVATION_DEG);
+        const el = THREE.MathUtils.degToRad(subject.elevationDeg ?? (flat ? FLAT_ELEVATION_DEG : CAMERA_ELEVATION_DEG));
         toCamera.set(0, Math.sin(el), Math.cos(el));
         right.set(1, 0, 0); // the camera's right and up vectors for that direction
         up.set(0, Math.cos(el), -Math.sin(el));

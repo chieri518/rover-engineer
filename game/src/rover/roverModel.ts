@@ -1,7 +1,9 @@
 // The rover's look, built from three.js primitives and shaped by the selected parts: a titanium or
 // steel frame, solid, wire-mesh or grouser wheels, a flat solar panel, a vertical solar mast, deployable
-// solar array wings or a finned radioisotope generator at the back, the battery pack, floodlights, the
-// gold thermal blanket of a warm rover (any part with heat), Mars's support hardware (a robotic arm
+// solar array wings or a finned radioisotope generator at the back, the battery (nickel-hydrogen
+// cylinders, a lithium-ion pack, or the larger battery's two tall modules), floodlights, the gold thermal
+// blanket of a warm rover (any part with heat) with the fitted heater on its sides (radioisotope heater
+// unit canisters, or the electric heater's patches and wiring), Mars's support hardware (a robotic arm
 // folded at the front with its tool turret, a remote sensing mast with its head), and the payload bay's
 // instruments: a camera mast and a regolith drill at the front, a neutron spectrometer and an X-ray
 // spectrometer arm under the body, a seismometer station and a laser retroreflector carried on the deck,
@@ -26,9 +28,10 @@ export interface RoverLook {
   frame: 'titanium' | 'steel' | null; // null: no chassis chosen (deck, frame, electronics box and antenna)
   wheels: 'solid' | 'mesh' | 'grouser' | null; // null: no wheels, struts or drive motors
   power: 'panel' | 'mast' | 'arrays' | 'rtg' | null;
-  battery: 'cylinders' | 'pack' | null;
+  battery: 'cylinders' | 'pack' | 'large' | null; // nickel-hydrogen, lithium-ion, the larger battery pack
   lights: boolean;
   heater: boolean; // any part gives heat (heater units, an electric heater, an RTG's waste heat): the gold blanket
+  heaterKind?: 'rhu' | 'electric' | null; // the heater part fitted, drawn on the blanket's sides (null or absent: none, as on an RTG rover without one)
   arm?: boolean; // a robotic arm (Mars support hardware)
   mast?: boolean; // a remote sensing mast (Mars support hardware)
   instruments: Instrument[]; // the payload bay, in bay order (empty: no instruments drawn)
@@ -45,13 +48,20 @@ export function roverLook(parts: Part[]): RoverLook {
     frame: pick('chassis', (id) => (id.includes('steel') ? 'steel' : 'titanium')),
     wheels: pick('wheels', (id) => (id.includes('mesh') ? 'mesh' : id.includes('grouser') ? 'grouser' : 'solid')),
     power: pick('power', (id) => (id.includes('mast') ? 'mast' : id.includes('arrays') ? 'arrays' : id.includes('rtg') ? 'rtg' : 'panel')),
-    battery: pick('battery', (id) => (id.includes('nih2') ? 'cylinders' : 'pack')),
+    battery: pick('battery', (id) => (id.includes('nih2') ? 'cylinders' : id.includes('large') ? 'large' : 'pack')),
     lights: (bySlot('lights')?.effects.lightRange ?? 0) > 0,
     heater: parts.some((p) => (p.effects.heat ?? 0) > 0),
+    heaterKind: heaterKind(bySlot('heater')),
     arm: Boolean(bySlot('arm')?.effects.arm),
     mast: Boolean(bySlot('mast')?.effects.mast),
     instruments: parts.flatMap((p) => (p.slot === 'instrument' && p.effects.instrument ? [p.effects.instrument] : [])),
   };
+}
+
+/** The heater part's look: none for no heater (or "No heater"), else the electric heater or the heater units. */
+function heaterKind(part: Part | undefined): RoverLook['heaterKind'] {
+  if (!part || (part.effects.heat ?? 0) <= 0) return null;
+  return (part.effects.heaterDraw ?? 0) > 0 || part.id.includes('electric') ? 'electric' : 'rhu';
 }
 
 export interface RoverModel {
@@ -92,6 +102,8 @@ const COLORS = {
   casing: 0xb9bdc3,
   lens: 0x0e1217,
   radar: 0x4b4a44, // the radar antenna's face, without its element texture
+  kapton: 0xb4601f, // the electric heater's patches, without their trace texture
+  wireRed: 0xa8322a,
 };
 
 /** The seismometer station, origin at the ground: a gold-foil dome on a silver base, with three feet when set down. */
@@ -416,6 +428,28 @@ function radarTexture(): THREE.Texture | null {
   }, [4, 3]);
 }
 
+/** An electric heater patch: amber film with a dark border and a bright copper serpentine trace. */
+function heaterPatchTexture(): THREE.Texture | null {
+  return canvasTexture(64, (g, s) => {
+    g.fillStyle = '#3a1a08';
+    g.fillRect(0, 0, s, s);
+    g.fillStyle = '#b8561a';
+    g.fillRect(4, 4, s - 8, s - 8);
+    g.strokeStyle = '#ffd890';
+    g.lineWidth = 4;
+    g.beginPath();
+    const rows = 6;
+    for (let k = 0; k <= rows; k++) {
+      const y = 9 + (k * (s - 18)) / rows;
+      const [a, b] = k % 2 ? [s - 10, 10] : [10, s - 10];
+      if (k === 0) g.moveTo(a, y);
+      else g.lineTo(a, y);
+      g.lineTo(b, y);
+    }
+    g.stroke();
+  }, [1, 1]);
+}
+
 /** A small fictional rover marking, dark on clear. */
 function markingTexture(): THREE.Texture | null {
   return canvasTexture(256, (g, s) => {
@@ -609,6 +643,49 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     }
     for (const z of [-1, 1]) add(box(boxL * 0.64, 0.02, 0.04), dark, boxX, boxY + boxH * 0.42, z * (boxW / 2 + 0.02));
   }
+  // The fitted heater, on the blanket in the two rear bays between the fins (the front bay has the
+  // marking), shallow enough to stay inside the fins and clear of the titanium frame's side tubes.
+  const bays = [boxX - boxL * 0.2, boxX];
+  if (look.heaterKind === 'rhu') {
+    // Radioisotope heater units: a row of small dark canisters with silver end caps, standing on a shelf
+    // in front of a silver backplate, held by a clamp band.
+    const cr = 0.019;
+    const ch = 0.12;
+    const cy = boxY - 0.01;
+    for (const z of [-1, 1]) for (const bay of bays) {
+      const face = z * (boxW / 2);
+      const cz = face + z * (0.006 + cr);
+      add(box(0.22, 0.16, 0.004), casing, bay, cy, face + z * 0.002);
+      add(box(0.23, 0.012, 0.05), frame, bay, cy - ch / 2 - 0.014, face + z * 0.025);
+      add(box(0.23, 0.014, 0.004), frame, bay, cy + 0.01, cz + z * (cr + 0.002));
+      for (let k = 0; k < 4; k++) {
+        const x = bay + (k - 1.5) * 0.054;
+        add(rod(cr, ch, 10), dark, x, cy, cz);
+        for (const s of [-1, 1]) add(rod(cr + 0.003, 0.014, 10), casing, x, cy + s * (ch / 2 - 0.004), cz);
+      }
+    }
+  } else if (look.heaterKind === 'electric') {
+    // The electric heater: amber resistive patches with copper traces, each with a thermostat and a pair
+    // of leads (red and black) that run up and into the box under the lid.
+    const patch = mat('heaterPatch', () => {
+      const map = heaterPatchTexture();
+      return { color: map ? 0xffffff : COLORS.kapton, map };
+    });
+    const wire = mat('wireRed', () => ({ color: COLORS.wireRed }));
+    const py = boxY - 0.01;
+    for (const z of [-1, 1]) for (const bay of bays) {
+      const face = z * (boxW / 2);
+      const patchMesh = add(box(0.21, 0.19, 0.004), patch, bay, py, face + z * 0.003);
+      if (z < 0) patchMesh.rotation.y = Math.PI; // the trace reads the same way on both sides
+      add(box(0.05, 0.034, 0.018), casing, bay + 0.06, py + 0.06, face + z * 0.014); // the thermostat
+      for (const [k, m] of [[0, wire], [1, dark]] as const) {
+        const x = bay - 0.07 + k * 0.022;
+        const zz = face + z * (0.012 + k * 0.004);
+        add(cable([[x, py + 0.075, zz], [x + 0.01, py + 0.11, zz + z * 0.006], [x - 0.01, boxY + boxH * 0.38, zz]], 0.008), m);
+      }
+      add(cable([[bay + 0.06, py + 0.077, face + z * 0.012], [bay + 0.03, py + 0.12, face + z * 0.016], [bay - 0.02, boxY + boxH * 0.38, face + z * 0.012]], 0.007), wire);
+    }
+  }
   const deckTop = look.power === 'panel' || look.power === 'arrays' ? deckTopY + 0.07 : deckTopY + 0.02; // what deck-mounted instruments stand on
 
   // Power: a flat panel over the deck (also under deployable arrays), a vertical solar mast for a Sun on
@@ -696,7 +773,8 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   }
 
   // Battery: nickel-hydrogen cells are cylindrical pressure vessels with domed ends, in clamp bands
-  // on a rack; lithium-ion is a compact ribbed pack.
+  // on a rack; lithium-ion is a compact ribbed pack; the larger battery is two tall ribbed modules, one
+  // each side of the centre line (clear of an RTG's base), under white top plates with terminal posts.
   slot = 'battery';
   const bx = -l / 2 + 0.02;
   if (look.battery === 'cylinders') {
@@ -721,6 +799,24 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     add(box(0.13, 0.02, w * 0.5), casing, bx, -top + 0.3, 0);
     for (const z of [-1, 1]) add(axle(0.018, 0.04, 10, true), frame, bx + 0.08, -top + 0.25, z * 0.18);
     add(cable([[bx + 0.1, -top + 0.25, 0.18], [bx + 0.16, -top + 0.27, 0.22], [bx + 0.22, -top + 0.3, 0.26]]), dark);
+  } else if (look.battery === 'large') {
+    const mh = 0.27; // module height
+    const my = -top + 0.09 + mh / 2;
+    const topY = my + mh / 2;
+    const plate = mat('batteryPlate', () => ({ color: COLORS.white }));
+    const red = mat('wireRed', () => ({ color: COLORS.wireRed }));
+    for (const z of [-1, 1]) {
+      const mz = z * 0.26;
+      add(box(0.13, mh, 0.15), dark, bx, my, mz);
+      for (let k = 0; k < 8; k++) add(box(0.016, 0.014, 0.13), dark, bx - 0.071, my - mh / 2 + 0.025 + k * 0.031, mz); // cooling ribs
+      for (const s of [-1, 1]) add(box(0.012, mh - 0.03, 0.016), casing, bx + 0.066, my, mz + s * 0.055); // front straps
+      add(box(0.15, 0.02, 0.17), plate, bx, topY + 0.01, mz);
+      add(rod(0.016, 0.026, 10), red, bx - 0.03, topY + 0.033, mz - 0.035);
+      add(rod(0.016, 0.026, 10), dark, bx - 0.03, topY + 0.033, mz + 0.035);
+    }
+    add(box(0.15, 0.012, 0.7), frame, bx, -top + 0.084, 0); // the mounting rail under both
+    add(cable([[bx - 0.03, topY + 0.05, -0.225], [bx - 0.04, topY + 0.09, 0], [bx - 0.03, topY + 0.05, 0.225]]), dark); // the modules' interconnect
+    add(cable([[bx + 0.066, my + 0.06, 0.2], [bx + 0.14, my + 0.08, 0.22], [bx + 0.22, -top + 0.3, 0.26]]), dark);
   }
 
   // High-gain antenna at the back, for the link to Earth (part of the chassis): a parabolic dish with
