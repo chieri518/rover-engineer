@@ -686,7 +686,7 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 - **Landing briefing.** Jezero crater and its ancient lake (sourced), the distance and direction to Perseverance's landing site (computed from the terrain data), and a "New on Mars" list: sols, the night choice, night cold, the dust storm forecast.
 - **Titan: coming soon.** After a passed Mars round: banked RP, balance, records held, and a campaign record table with one row per passed mission (outcome, net change, RP, milestones). A failed Mars round (balance below the Titan pass mark) restarts from the Mars snapshot.
 - **Titan pass mark.** *Decided November 15 by Owner B: a fixed placeholder of 800 (`budget.minimumBudget.titan`, was 0); Owner A to revisit.* From the current Mars rewards: a rover that idles at the lander and survives earns about 190, so it ends at about 770 at most from a 1,000 arrival and fails; a frozen run fails; a good camera or drill run (about 470 to 490) passes from a typical Moon result (about 820 to 990 on arrival, 450 to 550 spent on rover and ticket).
-- **Title screen.** The kicker reads "Campaign · The Moon, then Mars"; the cover and its caption stay the Moon's.
+- **Title screen.** The kicker reads "Campaign · The Moon, then Mars" (since T4: "Campaign · The Moon, Mars and Titan"); the cover and its caption stay the Moon's.
 - **Credits.** The credits list every world, each with its own terrain, imagery, events, milestone facts and debrief comparisons, whichever world the campaign is on.
 
 ### The Titan mission
@@ -858,6 +858,16 @@ All 11 are built. Rules in `game/src/rules/milestones.ts` and `rules/titanMilest
 - **Debrief: the real mission flies.** The Titan debrief compares the rover with Dragonfly, a nuclear-powered rotorcraft that flies between sites because Titan's thick air and low gravity make flight easier than driving. The lesson: the right vehicle depends on the world ([rover-engineering/04](research/rover-engineering/04-rover-games-and-scenarios.md), card 12).
 - **Campaign complete.** Replaces "Titan: coming soon": banked RP, final balance, records held, and the campaign table with one row per mission. *Proposed:* a failed Titan round (rover lost before dawn and the balance below a final mark, interface) can be retried from the Titan snapshot; otherwise the campaign ends.
 - **Credits** add the Titan sources (Cassini radar and maps, Huygens, Dragonfly).
+
+##### Campaign end as built *(decided during implementation, Phase T4, Owner B to confirm)*
+
+- **Mars to Titan.** The Titan design screen shows "Mission 3 · Titan, Shangri-La dunes", the balance carried over, the final mark, the Moon parts note, and a separate warning: "Solar panels give almost no power at Titan. In this version the rover runs on its battery alone." Power cards and the sheet show the panel's income at Titan (the Moon rate times the Titan solar factor). The ticket screen repeats the tier note and the warning.
+- **Titan tutorials.** Design (3 pages): Mission 3, no useful sunlight (the battery is the budget), always cold (heater, electronics, sleep cools, lights). Drive (5 pages): one Titan day, energy and the long night (lights or sleep, sleep runs time faster), sleep saves energy but the rover cools, the methane rainstorm and its forecast, instrument and map. Numbers come from the Titan data. Each opens by itself on the first Titan visit.
+- **Landing briefing.** "Titan in a few facts" (air, cold and methane rain, gravity, dim light), the site and Selk (distance and direction computed from `terrain.json` `features.selk`), "New on Titan", the survey leads and the sources.
+- **Debrief.** "The real mission flies": Dragonfly in four short paragraphs (rotorcraft, why flying is easier on Titan, nuclear power and waste heat, launch no earlier than July 2028 and arrival in late 2034), a table comparing the rover flown (its wheels, battery and heater) with Dragonfly, and the lesson. It is always shown on Titan and replaces the per-outcome rover history there (that history is Moon and Mars facts). Fact-checked by research.
+- **Campaign complete** (screen id `complete`): banked RP, final balance, records held, the start and final balance, the campaign table with a total row, one line per world on what it asked of the rover, and buttons for the title, the credits and a new campaign.
+- **Titan final mark.** Kept at the placeholder 0 (`budget.minimumBudget.complete`): a Titan round fails only if the balance goes negative, and then restarts from the Titan snapshot. The "rover lost before dawn" condition is not added. Owner A sets the mark.
+- **Credits.** The Titan section lists the terrain and texture sources from the pipeline's files ("modeled on Cassini data"), the landing briefing sources, the rainstorm source once it is fact-checked, and the Dragonfly debrief sources.
 
 #### Spine decisions *(decided during implementation, Phase T0, Owner B to confirm)*
 
