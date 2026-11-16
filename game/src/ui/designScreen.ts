@@ -7,11 +7,11 @@ import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
 import { fitPayload, instrumentCosts, instrumentKeys, togglePayload, unmetNeeds, type InstrumentCosts } from '../rules/payload';
-import { instrumentMilestones } from '../rules/milestoneLists';
 import { chosenParts, slotPartId, supportSlotsOf, withSlotPart } from '../rules/rover';
-import type { DraftBuild, GameData, Instrument, Part, Tier } from '../rules/types';
+import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
+import { deskCardNotes } from './milestoneText';
 import { tierWhyText } from './tierText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
@@ -104,12 +104,6 @@ export const designScreen: Screen = (game, root) => {
     update();
   };
 
-  // What an instrument can earn in this world, by milestone name only (no rewards, no hints at how;
-  // game-design.md M14); an instrument that earns none says so (the Mars cards of the new instruments).
-  const earnsText = (instrument: Instrument): string => {
-    const names = instrumentMilestones(instrument, data.milestones.milestones).map((m) => m.name);
-    return names.length ? fill(t.instrumentMilestones, { names: names.join(t.instrumentMilestonesJoin) }) : t.instrumentNoMilestones;
-  };
   const cards = new Map<string, HTMLElement>();
   const fieldsets = new Map<string, HTMLElement>();
   const card = (part: Part, input: HTMLInputElement, ...extra: (Node | null)[]) => {
@@ -124,7 +118,8 @@ export const designScreen: Screen = (game, root) => {
         el('span', {}, `size ${part.size}`),
       ),
       effect && el('span', { class: 'option-effect' }, effect),
-      part.effects.instrument ? el('span', { class: 'option-note' }, earnsText(part.effects.instrument)) : null,
+      // What the instrument can earn here, by milestone name only (M14), and on Mars where it is used.
+      ...(part.effects.instrument ? deskCardNotes(part.effects.instrument, data).map((note) => el('span', { class: 'option-note' }, note)) : []),
       part.effects.needs && needsText(part.effects.needs, data) ? el('span', { class: 'option-note' }, needsText(part.effects.needs, data)) : null,
       ...extra,
     );

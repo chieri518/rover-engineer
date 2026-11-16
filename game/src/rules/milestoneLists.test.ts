@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
-import { groupMilestones, instrumentMilestones, notReached, rockTypeTally, earnedWith } from './milestoneLists';
+import { groupMilestones, instrumentMilestones, notReached, rockTypeTally, earnedWith, unmetSupport } from './milestoneLists';
 import { selectedParts } from './rover';
 import type { Build, Instrument } from './types';
 
@@ -97,5 +97,30 @@ describe('debrief "Not reached"', () => {
     const listed = run(build({ lights: true, heater: true, instruments: ['camera', 'drill', 'neutron'] }));
     for (const m of all.filter((x) => x.category === 'capability')) expect(listed).not.toContain(m.name);
     expect(listed).not.toContain('Touchdown');
+  });
+});
+
+describe('debrief "Not reached": a missing support part (Mars M18)', () => {
+  const marsParts = (...ids: string[]) => ids.map((id) => mars.parts.parts.find((p) => p.id === id)!);
+  const byId = (id: string) => mars.milestones.milestones.find((m) => m.id === id)!;
+
+  it('names the support part a carried instrument needs and the rover lacks, from the instrument\'s needs', () => {
+    expect(unmetSupport(byId('mars-rock-collection'), marsParts('arm-none', 'mast-none', 'instrument-xray'))).toEqual(['arm']);
+    expect(unmetSupport(byId('organic-signals'), marsParts('arm-none', 'instrument-organics'))).toEqual(['arm']);
+    expect(unmetSupport(byId('remote-reading'), marsParts('arm-robotic', 'mast-none', 'instrument-laser'))).toEqual(['mast']);
+    // A combo: the X-ray's arm, once.
+    expect(unmetSupport(byId('mars-documented-sample'), marsParts('arm-none', 'instrument-camera', 'instrument-xray'))).toEqual(['arm']);
+  });
+
+  it('nothing when the rover carries the support part, the instrument needs none, or the milestone needs no instrument', () => {
+    expect(unmetSupport(byId('mars-rock-collection'), marsParts('arm-robotic', 'mast-none', 'instrument-xray'))).toEqual([]);
+    expect(unmetSupport(byId('remote-reading'), marsParts('arm-none', 'mast-remote', 'instrument-laser'))).toEqual([]);
+    expect(unmetSupport(byId('long-profile'), marsParts('arm-none', 'mast-none', 'instrument-radar'))).toEqual([]);
+    expect(unmetSupport(byId('mars-clean-run'), marsParts('arm-none', 'mast-none'))).toEqual([]);
+  });
+
+  it('the Moon is unchanged: its X-ray needs no arm', () => {
+    const rock = all.find((m) => m.id === 'rock-collection')!;
+    expect(unmetSupport(rock, partsOf(build({ instruments: ['xray', 'camera'] })))).toEqual([]);
   });
 });

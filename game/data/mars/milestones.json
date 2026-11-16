@@ -272,7 +272,7 @@
       "rp": 10,
       "summary": "The laser spectrometer read a boulder from a distance.",
       "howTo": "Read a boulder with the laser spectrometer. Once at each of up to {sites} sites, each {sampleSpacing} m from the others.",
-      "fact": "SuperCam, on Perseverance's mast, fires its laser at rocks up to about 7 m away and reads the light of the tiny spark it makes, without touching the rock.",
+      "fact": "SuperCam, on Perseverance's mast, fires its laser at rocks up to about 7 m away and reads the light of the tiny spark it makes.",
       "source": "CNES, SuperCam (supercam.cnes.fr)"
     },
     {

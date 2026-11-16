@@ -9,7 +9,7 @@ import { isCompleteBuild, selectedParts } from '../rules/rover';
 import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
 import { openNotebook, type NotebookHandle } from './notebook';
 import type { InstrumentLog } from '../rules/instruments';
-import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
+import { categoryLabel, causeText, milestoneSummary, notReachedLine } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
 import { azimuthDeg, buildLeads, buildSites, compassPoint } from '../rules/survey';
@@ -289,7 +289,7 @@ const debrief: Screen = (game, root) => {
     el('h4', { class: 'debrief-group' }, groupHeading(g.key, data)),
     el('ul', { class: 'debrief-milestones' }, ...g.milestones.map(item)),
   ]);
-  // "Not reached": names only (game-design.md M11).
+  // "Not reached": names only (game-design.md M11), each with the support part the rover lacked for it, if any (Mars M18).
   const missed = notReached(data.milestones.milestones, launchParts, result.earned, recordsHeldAtLaunch, bay);
 
   root.append(
@@ -304,7 +304,7 @@ const debrief: Screen = (game, root) => {
 
       missed.length > 0 && el('h3', {}, t.notReachedHeading),
       missed.length > 0 && el('p', { class: 'muted' }, t.notReachedNote),
-      missed.length > 0 && el('ul', { class: 'debrief-not-reached' }, ...missed.map((m) => el('li', {}, m.name))),
+      missed.length > 0 && el('ul', { class: 'debrief-not-reached' }, ...missed.map((m) => el('li', {}, notReachedLine(m, launchParts, data)))),
 
       el('h3', {}, t.payoutHeading),
       el('div', { class: 'ledger' },

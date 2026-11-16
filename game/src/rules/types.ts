@@ -518,9 +518,13 @@ export interface SharedTextFile {
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
     | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
     | 'notOffered' // parts a carried build lost because this world does not offer them ({parts}; reworded per world)
-    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentNoMilestones' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
+    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
     string
-  > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
+  > & {
+    speedInfo: string[]; // the optional real-speed pop-up, one paragraph per entry
+    /** By instrument: a desk card's short line on where the instrument is used (Mars step 6d; none on the Moon). Names places, never a lesson. */
+    instrumentWhere?: Partial<Record<Instrument, string>>;
+  };
   ticket: Record<
     'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
     string
@@ -563,6 +567,7 @@ export interface SharedTextFile {
     | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
     | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue'
     | 'logRockTypes' | 'logEarned' | 'logEarnedJoin' | 'stagedCount' | 'groupRover' | 'groupCombo' | 'notReachedHeading' | 'notReachedNote' // Moon sites plan, Phase 5
+    | 'notReachedNeeds' // a "Not reached" line naming the support part the rover lacked: {name}, {needs} (Mars M18)
     | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
     | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource', // "What the rover taught us": the relationships met
     string
