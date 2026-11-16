@@ -283,6 +283,7 @@ export const missionScreen: Screen = (game, root) => {
       impactMps: s.deltaV,
       upY: s.upY,
     };
+    const before = state.seconds;
     const step = stepMission(state, sample, setup, tuning, data.events);
     state = step.state;
     lastSample = sample;
@@ -303,6 +304,8 @@ export const missionScreen: Screen = (game, root) => {
     }
     if (titan) {
       titanNow = titan.status(state, setup, Math.abs(s.speed) > tuning.ground.movingSpeedMps);
+      const soon = titan.sunsetSoon(before, state.seconds);
+      if (soon) hud.notify(soon.message, soon.tone);
       for (const n of step.marsNotices) {
         const msg = titan.noticeText(n, setup.hasLights);
         hud.notify(msg.message, msg.tone);
@@ -329,7 +332,8 @@ export const missionScreen: Screen = (game, root) => {
     // Mars and Titan: no driving at night without lights (canDrive also covers sleep).
     if (ended || state.poweredDown || drillLeft > 0 || (dayNow() && !dayNow()!.canDrive)) {
       blockedByShadow = false;
-      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: drillLeft > 0 });
+      // Titan: a sleeping rover, or one that cannot drive, brakes to a stop instead of coasting on.
+      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: drillLeft > 0, ...(titan && !ended ? { brake: true } : {}) });
     }
     // Without lights the rover stops at the edge of permanent shadow.
     let allowForward = true;

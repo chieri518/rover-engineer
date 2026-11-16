@@ -205,8 +205,14 @@ export interface TitanLookTuning {
   glow: { dayStrength: number; duskStrength: number; widthDeg: number; duskWidthDeg: number; highDeg: number; twilightScaleDeg: number };
   /** The faint Sun disc: opacity with the Sun high, reached at fullDeg elevation; size in degrees (radius). */
   sunDisc: { opacity: number; fullDeg: number; radiusDeg: number };
-  /** exp² fog density per meter: clear and at peak rain; fog follows rain^rainEase on a log scale. */
-  fog: { clearDensity: number; rainDensity: number; rainEase: number };
+  /**
+   * Haze density per meter, clear and at peak rain; fog follows rain^rainEase on a log scale. The terrain hazes
+   * as 1 - exp(-(density × depth)^shapePower): 1 is a soft haze that starts near and fades far relief gently,
+   * 2 is three's exp² fog with its sharper fog line (the rover and lander keep exp², which barely touches them).
+   */
+  fog: { clearDensity: number; rainDensity: number; rainEase: number; shapePower: number };
+  /** Dusk: the light and sky dim to `dim` × as the Sun drops from dimDeg to the horizon (a visible cue before sunset). */
+  dusk: { dimDeg: number; dim: number };
   rain: {
     /** Share of the eye adaptation lost at peak rain (the scene darkens), extra direct depth, sky light dimming. */
     gloom: number;
@@ -221,7 +227,15 @@ export interface TitanLookTuning {
     color: string;
   };
   /** Ground: mean color (tints the grayscale albedo map), albedo contrast, and a tint for the dark dune sand. */
-  ground: { color: string; albedoContrast: number; darkSandTint: string; darkToneLow: number; darkToneHigh: number };
+  ground: {
+    color: string; albedoContrast: number; darkSandTint: string; darkToneLow: number; darkToneHigh: number;
+    /**
+     * Dune relief in the flat diffuse light: the shading normal's tilt is multiplied by reliefGain, and the
+     * sky light falls as (up component of that normal)^reliefOcclusion, so flanks read darker than crests and flats.
+     * Both fade in between reliefNearM and reliefFarM from the camera, so the ground by the rover keeps its own look.
+     */
+    reliefGain: number; reliefOcclusion: number; reliefNearM: number; reliefFarM: number;
+  };
   floodlight: { color: string; intensity: number; angle: number; penumbra: number; decay: number; targetDrop: number };
   /** Rover shadow blur (shadow map radius) and Sun-mask refresh bands; masks pause below minElevationDeg. */
   shadowRadius: number;
@@ -236,7 +250,7 @@ export interface TitanLookTuning {
 export interface TitanTextSections {
   /** Day and night notices and HUD lines (T6). */
   day: Record<
-    | 'sunset' | 'sunsetNoLights' | 'dawn' | 'dawnWoke'
+    | 'sunset' | 'sunsetNoLights' | 'sunsetSoon' | 'dawn' | 'dawnWoke'
     | 'hudDay' | 'hudNight' | 'lightsOn' | 'noLights' | 'sleepFastForward' | 'sleepingDay'
     | 'panelDay' | 'panelNight',
     string

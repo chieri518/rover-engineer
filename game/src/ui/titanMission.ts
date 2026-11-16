@@ -57,6 +57,20 @@ export class TitanMission {
     return { message: fill(this.rain[n.edge], this.vars), tone: n.edge === 'cleared' ? 'good' : 'warn' };
   }
 
+  /**
+   * The "sunset soon" notice when mission time crosses sol.sunsetWarningSeconds before the first sunset
+   * (from `before` to `after` seconds), else null. A jump past sunset says nothing.
+   */
+  sunsetSoon(before: number, after: number): TitanNoticeText | null {
+    const sol = this.data.tuning.sol!;
+    const lead = sol.sunsetWarningSeconds;
+    if (lead === undefined) return null;
+    const sunsetAt = sol.daySeconds - (sol.startSecondsIntoDay ?? 0);
+    const warnAt = sunsetAt - lead;
+    if (!(before < warnAt && after >= warnAt && after < sunsetAt)) return null;
+    return { message: fill(this.day.sunsetSoon, { seconds: Math.round(sunsetAt - after) }), tone: 'warn' };
+  }
+
   /** "Titan day" or "Titan night", the line under the panel line. */
   dayLine(t: TitanStatus): string {
     return t.clock.isNight ? this.day.hudNight : this.day.hudDay;

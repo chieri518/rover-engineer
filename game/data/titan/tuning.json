@@ -35,7 +35,8 @@
     "solarLongitudeDeg": 309,
     "solarLongitudeDegPerSol": 0,
     "horizonRateShare": 1,
-    "startSecondsIntoDay": 150
+    "startSecondsIntoDay": 150,
+    "sunsetWarningSeconds": 30
   },
   "night": {
     "_placeholder": "Rules (T3), placeholders tuned against the Moon batteries (400, 600) in rules/titanEnergy.test.ts. The Mars night rules (lights on to drive, awake without lights, or sleep), but on Titan the awake drain (electronics) applies day and night, because there is no solar to cover it. Per second, on top of driving: awake 0.2 (60 over the day), lights on at night 0.6 (a parked lights-on night costs 270), asleep 0.05 (a slept night costs 22.5). freezeRatePerSecond and warmRecoveryPerSecond are unused on Titan (the cold is titanCold); fullSunElevationDeg is unused (titanPower).",
@@ -75,10 +76,10 @@
     "twilightShare": 0.08,
     "twilightScaleDeg": 4,
     "duskLowDeg": -4,
-    "duskHighDeg": 12,
+    "duskHighDeg": 16,
     "skyGamma": 0.55,
     "skyAdaptK": 0.35,
-    "skyAdaptMax": 2.2,
+    "skyAdaptMax": 1.8,
     "adaptK": 0.55,
     "adaptMax": 5,
     "nightLight": 0.07,
@@ -86,12 +87,12 @@
     "skyLightSaturation": 0.75,
     "colors": {
       "sun": "#ffe9c8",
-      "dayHorizon": "#c49058",
-      "dayZenith": "#946236",
+      "dayHorizon": "#a6865a",
+      "dayZenith": "#8c6e48",
       "duskHorizon": "#7c4a2c",
       "duskZenith": "#2a1c1c",
-      "rainHorizon": "#7d6a52",
-      "rainZenith": "#6e5c46",
+      "rainHorizon": "#6e665a",
+      "rainZenith": "#5e574c",
       "night": "#020203",
       "glow": "#f2cf98",
       "duskGlow": "#d98a48"
@@ -110,12 +111,17 @@
       "radiusDeg": 0.5
     },
     "fog": {
-      "clearDensity": 0.00035,
-      "rainDensity": 0.007,
-      "rainEase": 0.4
+      "clearDensity": 0.00036,
+      "rainDensity": 0.0075,
+      "rainEase": 0.3,
+      "shapePower": 1.2
+    },
+    "dusk": {
+      "dimDeg": 14,
+      "dim": 0.45
     },
     "rain": {
-      "gloom": 0.45,
+      "gloom": 0.55,
       "directDepth": 2,
       "skyDim": 0.3,
       "streakOpacity": 0.7,
@@ -126,11 +132,15 @@
       "color": "#d8ccb8"
     },
     "ground": {
-      "color": "#7a6a58",
+      "color": "#74684f",
       "albedoContrast": 0.75,
       "darkSandTint": "#e6dcd4",
       "darkToneLow": 0.5,
-      "darkToneHigh": 1.1
+      "darkToneHigh": 1.1,
+      "reliefGain": 3,
+      "reliefOcclusion": 2.5,
+      "reliefNearM": 40,
+      "reliefFarM": 400
     },
     "floodlight": {
       "color": "#ffe8cc",

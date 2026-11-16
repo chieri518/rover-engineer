@@ -210,6 +210,7 @@
     "_owner": "Integration (T6): the day and night notices and HUD lines on Titan. The lander does not recharge the rover, so nothing here sends it back to base.",
     "sunset": "Sunset. The long Titan night begins: lights on to keep driving, or press P to sleep until dawn.",
     "sunsetNoLights": "Sunset. Without lights the rover cannot drive in the long Titan night. Press P to sleep until dawn.",
+    "sunsetSoon": "The Sun is setting: the long Titan night begins in about {seconds} s.",
     "dawn": "Dawn over the dunes. The rover made it through the Titan night.",
     "dawnWoke": "Dawn over the dunes. The rover wakes up: it made it through the Titan night.",
     "hudDay": "Titan day",

@@ -28,6 +28,10 @@ export interface MoonLightUniforms {
   /** Titan: color multiplier for dark ground (dune sand), and the tone range over which it fades out (x..y). */
   moonDarkTint: THREE.IUniform<THREE.Color>;
   moonDarkTone: THREE.IUniform<THREE.Vector2>;
+  /** Titan: dune relief (x = normal tilt gain, y = sky-light occlusion power, z..w = depth range over which it fades in, m). */
+  moonTitanRelief: THREE.IUniform<THREE.Vector4>;
+  /** Titan: haze shape power (1 soft exp, 2 = three's exp²). */
+  moonHazeShape: THREE.IUniform<number>;
 }
 
 /** How a patched material scatters sunlight: lunar regolith, Mars ground, Titan ground, or plain Lambert (false). */
@@ -45,6 +49,8 @@ export function createMoonLightUniforms(fine: HeightGrid, near: HeightGrid, far:
     moonAlbedoTone: { value: new THREE.Vector2(ALBEDO_MEAN, 1) },
     moonDarkTint: { value: new THREE.Color(1, 1, 1) },
     moonDarkTone: { value: new THREE.Vector2(0, 1) },
+    moonTitanRelief: { value: new THREE.Vector4(1, 0, 0, 1) },
+    moonHazeShape: { value: 2 },
   };
 }
 
@@ -178,6 +184,33 @@ const GROUND_NORMAL = /* glsl */ `
 }
 `;
 
+// Titan only: the flat, diffuse light hides dune relief, so the shading normal's tilt is exaggerated (fading in
+// with distance, so the ground near the rover keeps its own look) and the sky light falls on steeper flanks.
+const TITAN_PARS = /* glsl */ `
+uniform vec4 moonTitanRelief;
+uniform float moonHazeShape;
+float moonSkyOcc = 1.0;
+`;
+
+const TITAN_NORMAL = /* glsl */ `
+{
+  vec3 nw = inverseTransformDirection( normal, viewMatrix );
+  float far = smoothstep( moonTitanRelief.z, moonTitanRelief.w, length( vViewPosition ) );
+  float gain = mix( 1.0, moonTitanRelief.x, far );
+  vec3 nr = normalize( vec3( nw.x * gain, max( nw.y, 0.0 ), nw.z * gain ) );
+  moonSkyOcc = mix( 1.0, pow( max( nr.y, 0.0 ), moonTitanRelief.y ), far );
+  normal = normalize( ( viewMatrix * vec4( nr, 0.0 ) ).xyz );
+}
+`;
+
+// Titan only: a soft haze, 1 - exp(-(density × depth)^shape), in place of three's exp² fog line.
+const TITAN_FOG = /* glsl */ `
+#ifdef USE_FOG
+  float moonHaze = 1.0 - exp( - pow( max( fogDensity * vFogDepth, 0.0 ), moonHazeShape ) );
+  gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, saturate( moonHaze ) );
+#endif
+`;
+
 const LAMBERT_PARS = /* glsl */ `
 varying vec3 vViewPosition;
 
@@ -205,6 +238,10 @@ void RE_Direct_Lambert( const in IncidentLight directLight, const in vec3 geomet
 }
 
 void RE_IndirectDiffuse_Lambert( const in vec3 irradiance, const in vec3 geometryPosition, const in vec3 geometryNormal, const in vec3 geometryViewDir, const in vec3 geometryClearcoatNormal, const in LambertMaterial material, inout ReflectedLight reflectedLight ) {
+  #ifdef MOON_TITAN
+    reflectedLight.indirectDiffuse += irradiance * moonSkyOcc * BRDF_Lambert( material.diffuseColor );
+    return;
+  #endif
   reflectedLight.indirectDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );
 }
 
@@ -233,6 +270,13 @@ export function patchMoonLighting(
         .replace('#include <common>', `#include <common>\n${GROUND_PARS}`)
         .replace('#include <color_fragment>', `#include <color_fragment>\n${GROUND_COLOR}`)
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${GROUND_NORMAL}`);
+    }
+    if (lunar === 'titan') {
+      // Before the ground's fine bumps, which then tilt the exaggerated normal as usual.
+      fragment = fragment
+        .replace('#include <common>', `#include <common>\n${TITAN_PARS}`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${TITAN_NORMAL}`)
+        .replace('#include <fog_fragment>', TITAN_FOG);
     }
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vMoonWorld;')

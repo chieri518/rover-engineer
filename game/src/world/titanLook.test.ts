@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import titanTuning from '../../data/titan/tuning.json';
 import type { TitanLookTuning } from '../rules/titanTypes';
 import { marsLook } from './marsLook';
-import { hexToLinear, luminance as lum, titanDirect, titanLook } from './titanLook';
+import { hexToLinear, luminance as lum, titanDirect, titanHaze, titanLook } from './titanLook';
 
 const t = titanTuning.look as unknown as TitanLookTuning;
 const look = (el: number, rain = 0) => titanLook(el, rain, t);
@@ -76,12 +76,27 @@ describe('titanLook', () => {
   });
 
   it('the haze limits visibility to a few kilometers; rain closes it in to a few hundred meters', () => {
-    const d95 = (l: { fogDensity: number }) => Math.sqrt(3) / l.fogDensity; // exp² fog hides 95% here
+    const d95 = (l: { fogDensity: number; fogShape: number }) => Math.pow(3, 1 / l.fogShape) / l.fogDensity; // the haze hides 95% here
     expect(d95(look(NOON))).toBeGreaterThan(2000);
     expect(d95(look(NOON))).toBeLessThan(8000);
     expect(d95(look(NOON, 1))).toBeGreaterThan(150);
     expect(d95(look(NOON, 1))).toBeLessThan(400);
     expect(d95(look(NOON, 0.5))).toBeLessThan(d95(look(NOON)) * 0.5); // the haze closes in early
+  });
+
+  it('the day haze is soft: dune relief within 3 km still shows, distant terrain melts into the sky (T8)', () => {
+    const l = look(NOON);
+    expect(titanHaze(1000, l)).toBeGreaterThan(0.15); // a nearer haze: lower contrast already at 1 km
+    expect(titanHaze(3000, l)).toBeLessThan(0.75);
+    expect(titanHaze(10000, l)).toBeGreaterThan(0.97);
+    expect(titanHaze(250, look(NOON, 1))).toBeGreaterThan(0.8); // rain: about 250 m visibility
+  });
+
+  it('the light dims visibly in the last degrees before sunset (T8)', () => {
+    const noon = sceneLight(look(NOON), NOON);
+    expect(sceneLight(look(11), 11)).toBeLessThan(noon * 0.85); // about 30 s before sunset
+    expect(sceneLight(look(3), 3)).toBeLessThan(noon * 0.4);
+    expect(lum(look(3).horizon)).toBeLessThan(lum(look(NOON).horizon) * 0.6);
   });
 
   it('rain darkens the scene, hides the Sun and draws streaks', () => {

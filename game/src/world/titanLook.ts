@@ -33,8 +33,9 @@ export interface TitanLook {
   sunDiscColor: RGB;
   /** Star brightness, 0..1 (always 0 on Titan: the haze hides them). */
   stars: number;
-  /** THREE.FogExp2 density (per meter) and color (the sky at the horizon, so distant terrain melts into it). */
+  /** Haze density (per meter; the terrain uses fogShape, see TitanLookTuning.fog) and color (the sky at the horizon, so distant terrain melts into it). */
   fogDensity: number;
+  fogShape: number;
   fog: RGB;
   /** Opacity of the rain streaks, 0..1, and their color (linear). */
   rainStreaks: number;
@@ -89,6 +90,16 @@ export function titanLevelLight(elevationDeg: number, rain: number, t: TitanLook
   return luminance(titanDirect(elevationDeg, rain, t)) * Math.max(0, Math.sin(elevationDeg * DEG)) + titanSkyLight(elevationDeg, rain, t);
 }
 
+/** Dusk dimming factor: 1 with the Sun above dusk.dimDeg, easing down to dusk.dim at the horizon and below. */
+export function titanDuskDim(elevationDeg: number, t: TitanLookTuning): number {
+  return t.dusk.dim + (1 - t.dusk.dim) * smoothstep(0, t.dusk.dimDeg, elevationDeg);
+}
+
+/** Share of the terrain color the haze replaces at `depthM` (1 - exp(-(density × depth)^shape)). */
+export function titanHaze(depthM: number, l: Pick<TitanLook, 'fogDensity' | 'fogShape'>): number {
+  return 1 - Math.exp(-Math.pow(l.fogDensity * depthM, l.fogShape));
+}
+
 export function titanLook(sunElevationDeg: number, rainIntensity: number, t: TitanLookTuning): TitanLook {
   const el = sunElevationDeg;
   const rain = clamp01(rainIntensity);
@@ -102,7 +113,9 @@ export function titanLook(sunElevationDeg: number, rainIntensity: number, t: Tit
   const day = smoothstep(t.duskLowDeg, t.duskHighDeg, el);
   const up = smoothstep(-2, 3, el);
   const skyAdapt = 1 + (Math.min(t.skyAdaptMax, Math.pow(skyRef / Math.max(skyLight, 1e-9), t.skyAdaptK)) - 1) * up;
-  const brightness = Math.min(1.1, Math.pow(skyLight / skyRef, t.skyGamma) * skyAdapt * (1 - t.rain.gloom * rain));
+  // Dusk: the eye adaptation stops hiding the lowering Sun, so the last minute before sunset visibly dims.
+  const dusk = titanDuskDim(el, t);
+  const brightness = Math.min(1.1, Math.pow(skyLight / skyRef, t.skyGamma) * skyAdapt * dusk * (1 - t.rain.gloom * rain));
   const night = hexToLinear(c.night);
   const tint = (dusk: string, dayC: string, rainC: string): RGB => {
     const v = scale(mix(mix(hexToLinear(dusk), hexToLinear(dayC), day), hexToLinear(rainC), rain), brightness);
@@ -120,7 +133,7 @@ export function titanLook(sunElevationDeg: number, rainIntensity: number, t: Tit
 
   // Light on the scene.
   const levelLight = titanLevelLight(el, rain, t);
-  const exposure = t.sunIntensity * Math.min(t.adaptMax, Math.pow(levelRef / Math.max(levelLight, 1e-9), t.adaptK)) * (1 - t.rain.gloom * rain);
+  const exposure = t.sunIntensity * Math.min(t.adaptMax, Math.pow(levelRef / Math.max(levelLight, 1e-9), t.adaptK)) * dusk * (1 - t.rain.gloom * rain);
   const sunColor = hexToLinear(c.sun);
   const sun = [0, 1, 2].map((i) => sunColor[i]! * direct[i]! * exposure) as RGB;
   const skyMid = mix(horizon, zenith, 0.5);
@@ -144,6 +157,7 @@ export function titanLook(sunElevationDeg: number, rainIntensity: number, t: Tit
     sunDiscColor: sunColor,
     stars: 0,
     fogDensity: fogClear * Math.pow(t.fog.rainDensity / fogClear, Math.pow(rain, t.fog.rainEase)),
+    fogShape: t.fog.shapePower,
     fog: horizon,
     rainStreaks: t.rain.streakOpacity * rain,
     rainColor: scale(hexToLinear(t.rain.color), Math.max(0.05, Math.min(1, brightness * 1.5))),

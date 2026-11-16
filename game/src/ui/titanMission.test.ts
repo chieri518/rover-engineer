@@ -35,6 +35,18 @@ describe('Titan mission wording (T6)', () => {
     expect(tm.sleepBanner(night, true)).toContain(`${titan.tuning.sleep!.nightClockRate}×`);
   });
 
+  it('warns once, about 30 s before sunset, and not on a jump past it (T8)', () => {
+    const { tm } = mission();
+    const sol = titan.tuning.sol!;
+    const sunsetAt = sol.daySeconds - sol.startSecondsIntoDay!;
+    const warnAt = sunsetAt - sol.sunsetWarningSeconds!;
+    const soon = tm.sunsetSoon(warnAt - 0.1, warnAt + 0.1);
+    expect(soon?.message).toContain('30 s');
+    expect(soon?.message).not.toMatch(unfilled);
+    expect(tm.sunsetSoon(warnAt + 0.1, warnAt + 0.2)).toBeNull();
+    expect(tm.sunsetSoon(warnAt - 1, sunsetAt + 1)).toBeNull();
+  });
+
   it('never claims the cold meter rises all mission (awake with a heater stays warm, T8)', () => {
     expect(JSON.stringify(titan.text)).not.toMatch(/rises all (mission|the time)/i);
   });

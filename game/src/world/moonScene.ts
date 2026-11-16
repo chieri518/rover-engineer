@@ -80,6 +80,7 @@ export interface MoonDriveLimits {
   allowReverse: boolean;
   speedFactor: number; // multiplies the top speed
   hardStop?: boolean; // stop the rover now, even downhill (e.g. at the edge of permanent shadow)
+  brake?: boolean; // hold the brakes (Titan: a powered-down rover, or one that cannot drive, brakes to a stop)
 }
 
 export interface MoonSceneOptions {
@@ -180,6 +181,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     const g = titanTuning.ground;
     lightUniforms.moonDarkTint.value.set(g.darkSandTint); // sRGB hex to the linear working space
     lightUniforms.moonDarkTone.value.set(g.darkToneLow, g.darkToneHigh);
+    lightUniforms.moonTitanRelief.value.set(g.reliefGain, g.reliefOcclusion, g.reliefNearM, g.reliefFarM);
+    lightUniforms.moonHazeShape.value = titanTuning.fog.shapePower;
   }
   // The play area gets the albedo map and fine detail; the distant rings stay plain regolith of the same mean tone.
   const groundMaterial = patchMoonLighting(new THREE.MeshLambertMaterial({ color: groundColor }), lightUniforms, photometry, true);
@@ -319,6 +322,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   const up = new THREE.Vector3();
   const fwd = new THREE.Vector3();
   const limitInput = (raw: DriveInput): DriveInput => {
+    if (limits.brake) return { ...raw, throttle: 0, brake: true };
     if ((raw.throttle > 0 && !limits.allowForward) || (raw.throttle < 0 && !limits.allowReverse)) return { ...raw, throttle: 0 };
     return raw;
   };
