@@ -93,13 +93,19 @@ export type MilestoneCategory = 'capability' | 'scientific' | 'record' | 'pictur
 /**
  * What a photo milestone wants in frame: Earth (Moon), the setting Sun (Mars), the rolled boulder within
  * tuning.milestones.boulderTrackPhotoRangeM, or a boulder the X-ray spectrometer read this mission within
- * documentedSampleRangeM (Moon). Without a target, a photo counts inside its zone.
+ * documentedSampleRangeM (both worlds). Mars extensions: `crater-wall`, a young crater's center in frame
+ * with the rover inside tuning.milestones.craterWallRimBand times its radius (Crater wall), and
+ * `dustdevil`, a dust devil in frame (Dust devil). Without a target, a photo counts inside its zone.
  */
-export type PhotoTarget = 'earth' | 'sunset' | 'rolled-boulder' | 'read-boulder';
+export type PhotoTarget = 'earth' | 'sunset' | 'rolled-boulder' | 'read-boulder' | 'crater-wall' | 'dustdevil';
 /** What a `reading` trigger may need the reading to be on: any boulder, or the Mars delta cliff (Mars plan, laser spectrometer). */
 export type ReadingTarget = 'boulder' | 'cliff';
-/** Events a `record` trigger waits for: the moonquake (Moon), the dust storm (Mars). */
-export type RecordEvent = 'quake' | 'duststorm';
+/**
+ * Events a `record` trigger waits for: the moonquake (Moon), the dust storm (Mars). Mars extensions:
+ * `night` (while it is night, rules/sol.ts solClock().isNight) and `dustdevil` (a dust devil passing within
+ * tuning.dust.dustDevilSenseM of the rover).
+ */
+export type RecordEvent = 'quake' | 'duststorm' | 'night' | 'dustdevil';
 /** The seismometer station's record of the moonquake (rules/instruments.ts SeismometerRecord). */
 export type RecordQuality = 'clean' | 'noisy';
 
@@ -122,8 +128,11 @@ export type MilestoneTrigger =
   /**
    * The instrument was switched on for an unbroken drive of at least `meters` that touches the zone.
    * sites: staged, one stage per distinct zone instance, up to this many (Cold trap survey).
+   * Mars extensions: `zones` instead of `zone` lists several zone ids, any of which counts (Buried layers:
+   * a young crater, Séítah or the delta front); with neither, the drive counts anywhere outside the
+   * near-lander zone (Long profile). Moon transects all name one `zone`.
    */
-  | { type: 'transect'; instrument: Instrument; zone: string; meters: number; sites?: number }
+  | { type: 'transect'; instrument: Instrument; zone?: string; zones?: string[]; meters: number; sites?: number }
   /**
    * A use of the instrument finishes, inside the zone or on the target kind if given. sites: staged as the
    * drill (one stage per reading site, each at least sampleSpacingM from the others). rocks: staged by
@@ -134,8 +143,11 @@ export type MilestoneTrigger =
   /**
    * The instrument was deployed (or, for one aboard, switched on) when the event came. On the Moon the
    * station must have been set down outside the near-lander zone. quality: the record must be this good.
+   * Mars extension (M16) `seconds`: an instrument aboard was switched on, the rover powered up and outside
+   * the near-lander zone, for at least this many seconds while the event was active (a power-down pauses
+   * the count; 0: at the moment the event comes). Stations keep the Moon rule.
    */
-  | { type: 'record'; instrument: Instrument; event: RecordEvent; quality?: RecordQuality }
+  | { type: 'record'; instrument: Instrument; event: RecordEvent; quality?: RecordQuality; seconds?: number }
   /**
    * The station is set down outside the near-lander zone; needs 'earth': with Earth in view; near: within
    * withinM of the other station on the ground. A pair fires when the second of the two goes down, either order.
@@ -259,6 +271,11 @@ export interface Tuning {
     perRockyArea: number;
     perYoungCrater: number; // boulders around each young crater in sites.json (no soft ground there)
     rolledBoulderDiameterM: number; // the one rolled boulder (sites.json kind rolled-boulder)
+    // Mars sites (data/mars/tuning.json; rules in Mars step 5c). Absent on the Moon.
+    perSiteKind?: Partial<Record<SiteKind, number>>; // boulders at each site of these kinds (knobs, the Séítah edge, the delta foot)
+    perSite?: Record<string, number>; // by sites.json id: replaces its kind's count (East crater: 60)
+    floodBoulderDiameterM?: number; // the one flood boulder (sites.json kind flood-boulder)
+    slopeTargetShare?: number; // share of each young crater's and knob's boulders put on terrain.json slopeTargets cells (10 to 18°, level ground beside)
     spreadRadiusFactor: number; // scattered out to rockyArea.radius × this
     minDiameterM: number;
     maxDiameterM: number;
@@ -296,6 +313,10 @@ export interface InstrumentTuning {
     anomalyEdge: number; // ...at its zone edge (tuning.milestones.hydrogenZoneRadiusM), in a straight line...
     anomalyRangeM: number; // ...then down to noiseFloor at this distance from the center
     iceSignalShare: number; // Ice deposit located: the dark crater's ice signal (0..1) reaches at least this (within (1 - share) x iceRangeM of the spot)
+    // Mars (data/mars/tuning.json; rules in Mars step 5b). Absent on the Moon.
+    unitReadings?: Record<string, number>; // by zone id: the reading inside that zone, where it is above noiseFloor (Séítah, the delta foot; a game simplification)
+    rtgFloorRise?: number; // on a rover whose power part has neutronNoise (an RTG): the noise floor rises by this...
+    rtgJitter?: number; // ...and the reading wobbles by up to this (instead of jitter)
   };
   xray: {
     reachM: number; // a boulder counts when its surface is this close to the rover's center
@@ -648,8 +669,13 @@ export interface GameData {
   sites: SitesFile;
 }
 
-/** Kinds of site in sites.json (Moon sites and milestones plan, section 2). */
-export type SiteKind = 'young-crater' | 'rocky-area' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen';
+/**
+ * Kinds of site in sites.json (Moon sites and milestones plan, section 2). Mars (data/mars/sites.json, Mars
+ * sites plan section 2) reuses young-crater, rocky-area and hidden-hydrogen (the hydrated ground), and adds
+ * knob (slope targets), seitah-edge (firm ground at Séítah's edge), delta-foot and flood-boulder.
+ */
+export type SiteKind = 'young-crater' | 'rocky-area' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen'
+  | 'knob' | 'seitah-edge' | 'delta-foot' | 'flood-boulder';
 /** The terrain.json feature lists the pipeline adds for the Moon sites (plan, Phase 1, P1 to P4). */
 export type PipelineFeatureList = 'coldTraps' | 'youngCraters' | 'boulderTrackCandidates' | 'lowLightPatches';
 
@@ -665,6 +691,13 @@ export interface SiteSpec {
   name: string; // display name; tuning.cold.zones names cold traps by it
   feature?: string; // an existing terrain.json feature: key (shadowedCrater) or name (Rocky area 1)
   pipeline?: { list: PipelineFeatureList; id: string }; // a feature the pipeline produced, by its id
+  /**
+   * Mars: the terrain.json feature this site's `local` is copied from, as a dotted path from `features`
+   * (deltaFront.floodBoulder, seitah.entryPoint); in a list, the item's id is the next segment
+   * (slopeTargets.slope-targets-knob-wnw). The data test checks the path exists and, where the feature has
+   * a `local`, that it matches. rules/sites.ts reads `local` until it resolves the path itself.
+   */
+  terrain?: string;
   provisional?: boolean; // true: `local` (and `radiusM`) are candidates from the plan, not yet confirmed by the pipeline
   local?: { x: number; z: number }; // the site's center in the local frame
   radiusM?: number; // young crater and cold trap radius (a provisional cold trap is a circle until the pipeline gives its outline)
@@ -673,7 +706,7 @@ export interface SiteSpec {
   note?: string; // where the values come from
 }
 
-/** data/sites.json */
+/** data/sites.json (the Moon's) and data/mars/sites.json (Mars's, which replaces it whole). */
 export interface SitesFile {
   sites: SiteSpec[];
 }

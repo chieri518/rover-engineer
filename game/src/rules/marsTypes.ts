@@ -40,6 +40,9 @@ export interface MarsTerrainFeatures {
     zoneRadius_m: number; // within this distance of the polyline counts as "at the delta front"
     samplePoint: MarsSite; // a drivable spot at the base, for the delta drill sample
     source: string;
+    footContour_m?: number;
+    footNear?: MarsDeltaFoot; // MP3
+    floodBoulder?: MarsFloodBoulder; // MP3
   };
   /** Séítah: a ridged rock unit with sand ripples (soft ground). */
   seitah: {
@@ -60,7 +63,126 @@ export interface MarsTerrainFeatures {
   viewpoints: MarsViewpoint[];
   /** Perseverance's 2021 landing site, a landmark only (the player's lander does not land on it). */
   perseveranceLanding: { name: string; local: Point; latLon: [number, number]; source: string };
+  // The Mars sites lists (game/tools/mars_sites.py, Mars sites plan MP1 to MP4 and MP6). Optional: the
+  // game loads without them, and data/mars/sites.json keeps a `local` stand-in for each place it reads.
+  youngCraters?: MarsYoungCrater[]; // MP1
+  slopeTargets?: MarsSlopeTargets[]; // MP2
+  perseveranceSites?: MarsPerseveranceSite[]; // MP4
+  missionLandmarks?: MarsMissionLandmark[]; // MP6
   notes?: string[];
+}
+
+/** MP3: the delta foot, deltaFront.footNear: the nearest 400 m of the scarp-foot line to the landing. */
+export interface MarsDeltaFoot {
+  name: string;
+  description: string;
+  lineLocal_xz: [number, number][]; // the foot line, nearest end first
+  length_m: number;
+  zoneRadius_m: number; // the pipeline's zone; the game's is tuning.milestones.deltaFootRadiusM
+  nearestPoint: Omit<MarsSite, 'source'>; // the foot line's point nearest the landing
+  lineDistanceFromLanding_m: [number, number];
+  zoneMinDistanceFromLanding_m: number;
+  driveDistanceFromLanding_m: number;
+  drivePoint: Point;
+  source: string;
+}
+
+/** MP3: the flood boulder, deltaFront.floodBoulder. Placed by design on the delta foot's lower slope. */
+export interface MarsFloodBoulder {
+  name: string;
+  local: Point3;
+  latLon: [number, number];
+  diameter_m: number;
+  slope_deg: number;
+  downhill: Point; // unit vector down the slope
+  faceSlopes_deg: { uphill: number; left: number; right: number; downhillWithin3m: number };
+  readingSpot: Point & { slope_deg: number }; // the level ground on its downhill side
+  distanceFromLanding_m: number;
+  distanceFromFootLine_m: number;
+  driveDistanceFromLanding_m: number;
+  source: string;
+}
+
+/** MP1: a crater 80 to 400 m across within 1.6 km. `freshness` 'fresh': a round, raised, blocky rim (25 cm HiRISE). */
+export interface MarsYoungCrater {
+  id: string;
+  name: string;
+  local: Point3;
+  latLon: [number, number];
+  elevation_m: number;
+  slope_deg: number;
+  distanceFromLanding_m: number;
+  radius_m: number; // rim crest
+  diameter_m: number;
+  diameterRange_m: [number, number];
+  depth_m: number;
+  depthToDiameter: number;
+  rimCompleteness: number;
+  rimUplift_m: number;
+  innerWallSlope_deg: number;
+  innerWallSlopeMax_deg: number;
+  rimBoulderShadowsPerHa: number;
+  backgroundBoulderShadowsPerHa: number;
+  rimBlockRatio: number;
+  freshness: 'fresh' | 'subdued';
+  steepestWallSide: string;
+  lowestRimSide: string;
+  blockiestRimSide: string;
+  driveDistanceFromLanding_m: number; // to the cheapest rim cell (drivePoint)
+  drivePoint: Point;
+  floorDriveDistance_m: number | null; // to the center; null if the floor cannot be reached under 18°
+  rockyArea?: string; // the rockyAreas feature it is (Rocky area 2)
+}
+
+/** MP2: 10 to 18° cells beside ground under 8°, grouped per site (the 4 largest patches). */
+export interface MarsSlopeTargets {
+  id: string;
+  site: string; // a youngCraters id, a knob id (knob-wnw, knob-ssw) or delta-foot
+  siteKind: 'youngCrater' | 'knob' | 'deltaFoot';
+  name: string;
+  cellCount: number;
+  patchCount: number;
+  patches: {
+    local: Point; // the target cell nearest the patch center
+    slope_deg: number;
+    cells: number;
+    slopeMean_deg: number;
+    slopeMax_deg: number;
+    levelCell: Point & { slope_deg: number }; // its level neighbor
+    driveDistanceFromLanding_m: number;
+  }[];
+  searchRadius_m?: number;
+}
+
+/** MP4: a rock Perseverance abraded and sampled within 1.6 km (a landmark and fact anchor; names to fact-check). */
+export interface MarsPerseveranceSite {
+  id: string;
+  name: string;
+  local: Point3;
+  latLon: [number, number];
+  elevation_m: number;
+  slope_deg: number;
+  distanceFromLanding_m: number;
+  driveDistanceFromLanding_m: number;
+  kind: 'sample' | 'sample-attempt';
+  abrasion?: string;
+  samples: { name: string; sol: number | null; date: string; note?: string }[];
+  waypoint: { sol: number; rmc: string };
+  roverStayedSols: [number, number];
+  source: string;
+}
+
+/** MP6: Wright Brothers Field (approximate). Not a site: nothing on the ground to see (MS12). */
+export interface MarsMissionLandmark {
+  id: string;
+  name: string;
+  local: Point3;
+  latLon: [number, number];
+  distanceFromLanding_m: number;
+  driveDistanceFromLanding_m: number;
+  kind: string;
+  note?: string;
+  source: string;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -157,14 +279,40 @@ export type MarsMilestoneTrigger =
   | { type: 'night-distance'; meters: number[] } // driven at night, one reward per threshold
   | { type: 'storm-survive' }; // still running when the dust storm clears
 
-/** Mars zone ids that milestones.json triggers may name (rules/milestones.ts buildZones). */
-export type MarsZoneId = 'delta-front' | 'delta-layers' | 'seitah' | 'sunset-viewpoint';
+/**
+ * Mars zone ids that Mars milestones.json triggers may name (validate.ts checks them per world): Mars's
+ * own (the delta front, the delta-layers and sunset viewpoints, Séítah, and the delta foot, Mars sites
+ * plan MS5), and the shared ids Mars also builds: the near-lander zone, the rocky areas' boulder fields,
+ * the young craters' ejecta rings and the hidden hydrated ground (the Moon's `young-crater` and
+ * `hydrogen-anomaly`, from data/mars/sites.json). `delta-foot` is built by rules/milestones.ts in Mars
+ * step 5a (within tuning.milestones.deltaFootRadiusM of terrain.json deltaFront.footNear); until then a
+ * trigger naming it never fires.
+ */
+export const MARS_ZONE_IDS = [
+  'delta-front', 'delta-layers', 'seitah', 'sunset-viewpoint', 'delta-foot',
+  'near-lander', 'boulder-field', 'young-crater', 'hydrogen-anomaly',
+] as const;
+export type MarsZoneId = (typeof MARS_ZONE_IDS)[number];
+
+/**
+ * The six Mars rock types (game-design.md, Mars rock types; MS10). Names and readouts in data/mars/text.json
+ * `rocks`; suites by site in data/mars/tuning.json instruments.xray.suites. Flood conglomerate is the rare
+ * rock, only at the flood boulder (placed by design).
+ */
+export const MARS_ROCK_IDS = [
+  'maaz-basalt', 'salt-veined-basalt', 'olivine-cumulate', 'carbonate-olivine-rock', 'lake-mudstone', 'flood-conglomerate',
+] as const;
+export type MarsRockId = (typeof MARS_ROCK_IDS)[number];
 
 /** Mars-only milestone tuning (data/mars/tuning.json `milestones`), merged over the shared MilestoneTuning. */
 export interface MarsMilestoneTuning {
   sunsetMinElevationDeg: number; // Blue sunset: the Sun's center at least this high (and not hidden by terrain)...
   sunsetMaxElevationDeg: number; // ...and at most this high, while setting (after local noon)
   sunsetPhotoMinDistanceM: number; // ...taken at least this far from the landing point (sunset is in view from the lander every sol)
+  /** The delta-foot zone (Signs of an ancient lake, Lake organics, Rock from afar): within this of terrain.json deltaFront.footNear's line. */
+  deltaFootRadiusM: number;
+  /** Crater wall: a young crater's center in frame, the rover between these multiples of the crater's radius from it. */
+  craterWallRimBand: [number, number];
 }
 
 /** Mars-only instrument notices (data/mars/text.json `instruments`); absent on the Moon. */
