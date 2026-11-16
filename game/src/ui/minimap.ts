@@ -340,7 +340,7 @@ export class Minimap {
           ctx.beginPath();
           ctx.moveTo(px(s.track.from.x), py(s.track.from.z));
           ctx.lineTo(px(s.track.to.x), py(s.track.to.z));
-          this.haloStroke(ROLLED, 1.5);
+          this.haloStroke(ROLLED, 2.5); // wider than the crater ring, so it reads across it
         }
         ctx.fillStyle = ROLLED;
         ctx.strokeStyle = OUTLINE;
