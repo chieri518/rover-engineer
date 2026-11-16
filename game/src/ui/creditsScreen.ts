@@ -98,9 +98,9 @@ function fallback(c: TextFile['credits'], lines: string[]): Node[] {
   return [el('p', { class: 'note' }, c.loadFailed), ...lines.map((l) => el('p', {}, l))];
 }
 
-/** A source line that is filled in (stub data files mark theirs "[placeholder]"). */
+/** A source line that is filled in (stub data files mark theirs "[placeholder]" or "[to fact-check]"). */
 function isReal(s: string | undefined): s is string {
-  return Boolean(s) && !s!.startsWith('[placeholder');
+  return Boolean(s) && !s!.startsWith('[placeholder') && !s!.startsWith('[to fact-check');
 }
 
 export const creditsScreen: Screen = (game, root) => {
@@ -150,6 +150,8 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
   const imagery = loading();
   const flare = data.events.flare;
   const storm = data.events.duststorm;
+  const rain = data.events.rainstorm;
+  const titan = text.titanCampaign; // Titan: the Dragonfly debrief
   const historyLabel = (k: HistoryKey) => (k === 'survived' ? c.survivedLabel : k === 'rollover' ? text.debrief.rollover : text.causes[k]);
   // Other worlds list only the debrief comparisons they replace.
   const historyKeys = HISTORY_KEYS.filter((k) => world === 'moon' || text.historySources[k] !== shared.text.historySources[k]);
@@ -175,13 +177,17 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
           fill(c.flaresUsed, { list: flare.realFlares.map((f) => `${f.class} (${f.date})`).join(', ') })))),
     storm && (isReal(storm.source) || isReal(text.storm?.credit)) && section(c.spaceWeather,
       el('ul', { class: 'credit-list' }, entry(null, isReal(storm.source) && storm.source, isReal(text.storm?.credit) && text.storm!.credit))),
+    rain && (isReal(rain.source) || isReal(text.rain?.credit)) && section(c.spaceWeather,
+      el('ul', { class: 'credit-list' }, entry(null, isReal(rain.source) && rain.source, isReal(text.rain?.credit) && text.rain!.credit))),
     landing && isReal(landing.sources) && section(landing.sourcesLabel,
       el('ul', { class: 'credit-list' }, entry(null, landing.sources))),
     (milestones.length > 0 || world === 'moon') && section(c.milestones,
       el('ul', { class: 'credit-list' },
         ...milestones.map((m) => entry(m.name, m.source)),
         world === 'moon' && entry(c.drillHydrogenLabel, text.drill.hydrogenSource))),
-    historyKeys.length > 0 && section(c.debrief,
-      el('ul', { class: 'credit-list' }, ...historyKeys.map((k) => entry(historyLabel(k), text.historySources[k])))),
+    (historyKeys.length > 0 || titan) && section(c.debrief,
+      el('ul', { class: 'credit-list' },
+        ...historyKeys.map((k) => entry(historyLabel(k), text.historySources[k])),
+        titan && entry(titan.dragonflyHeading, titan.dragonflySource))),
   );
 }

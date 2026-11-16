@@ -166,6 +166,8 @@ const debrief: Screen = (game, root) => {
   if (!outcome || !result) return void game.go('title');
   const { payout, failed, state } = outcome;
   const history = game.settings.missionHistory;
+  // Titan replaces the per-outcome rover history with the Dragonfly comparison (always shown).
+  const roverHistory = history && !text.titanCampaign;
   // The pass mark: the minimum budget of the mission after the one just played.
   const next = nextMission(game.world);
   const minimum = { minimum: money(next ? data.tuning.budget.minimumBudget[next] : 0, text) };
@@ -215,8 +217,8 @@ const debrief: Screen = (game, root) => {
 
       text.titanCampaign && dragonflyView(text.titanCampaign, game.state.lastBuild, data),
 
-      history && el('h3', {}, t.historyHeading),
-      history && el('div', { class: 'history' },
+      roverHistory && el('h3', {}, t.historyHeading),
+      roverHistory && el('div', { class: 'history' },
         el('p', {}, text.history[historyKey]),
         el('p', { class: 'note' }, `Source: ${text.historySources[historyKey]}`),
       ),
