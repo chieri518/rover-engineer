@@ -309,6 +309,9 @@ export interface TitanRainDropsTuning {
   opacity: number;
   /** Drop color = the look's rain color x brightness (drops catch the sky light and stand out from the haze). */
   brightness: number;
+  /** Share of that color left in the dark (night): unlit drops fade, drops in the floodlight beam are lit (× lampGain). */
+  darkShare: number;
+  lampGain: number;
 }
 
 /** Wet ground (world/titanWet.ts). */

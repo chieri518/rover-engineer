@@ -102,10 +102,10 @@ export class TitanWet {
     this.wetness = this.hold ?? stepWetness(this.wetness, rain, dt, this.t);
     const u = titanWetUniforms;
     u.titanWet.value = this.wetness;
-    if (this.wetness <= 0.001) return;
     u.titanWetSunDir.value.subVectors(sun.position, sun.target.position).normalize();
     u.titanWetSun.value.copy(sun.color).multiplyScalar(sun.intensity);
     if (look) u.titanWetSky.value.setRGB(look.horizon[0], look.horizon[1], look.horizon[2]);
+    // The floodlight uniforms are also read by the raindrops (titanRain.ts), so they stay current when dry.
     if (lamp && lamp.intensity > 0) {
       lamp.getWorldPosition(lampWorld);
       lamp.target.getWorldPosition(lampTarget);

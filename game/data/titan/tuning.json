@@ -209,7 +209,9 @@
       "fadeNearM": 0.5,
       "fadeFarM": 18,
       "opacity": 0.9,
-      "brightness": 1.8
+      "brightness": 1.8,
+      "darkShare": 0.3,
+      "lampGain": 0.05
     },
     "wet": {
       "_note": "titan-fx: rain (world/titanWet.ts). Wet ground, presentation only: wetness 0..1 rises toward the rain intensity with time constant wetTauS and falls linearly over dryS once the rain eases (mission seconds). Wet ground darkens to darken x its color and gains a sheen: the hazy horizon reflected at grazing angles (fresnel0 at normal view), a glint toward the Sun and the floodlights (shininess), varying in patches about patchM across.",
