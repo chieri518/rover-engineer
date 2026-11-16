@@ -1522,6 +1522,47 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 - **Targets for the hand estimates and playtests:** each archetype passes by at least 50 from B = 780 on at least one route; each fails without its instruments at both ends of the range; at B = 860, fewer than 40% of affordable builds pass with their best route (looser than the Moon's 35%: Mars has twice the instruments). For the balance patch: the empty bay and idling fail by at least 50 at B = 950. If the 40% target breaks, lower the delta-only rewards first (Rare rock, Lake organics, Rock from afar, Signs of an ancient lake), not the near rewards the south and east archetypes depend on.
 - **The RTG passes** only with two instruments and night driving, so the risk that the RTG is never picked stays open.
 
+##### Generous pass on Mars (Mars step 7, November 15, 2026)
+
+*Hand-tuned, a quick "good enough" (the user's generous rule); no balance model (MS13). The fixed 800 Titan mark, the capability rewards (MS1) and Clean run's 0 money stay. Provisional, for the balance patch; site additions provisional, for Chieri's review.*
+
+**Player model** (as the Moon's generous pass): a first-time player drives at about half top speed, routes about 1.5 times the straight line, loses time searching and does not know the map. On Mars that is 10 sols of 60 s with 15 s nights, so about 450 s of daylight; at 6 to 9 m/s with about 40% lost to stops, holds and searching, a first-timer drives about 1.6 to 2.4 km, which reaches sites within about 0.9 km of the landing (and Séítah, 1.1 km, with intent). The delta foot (1.5 km) is for players who head straight there, and is not counted below.
+
+**What is near the landing:** Rocky area 2 (0.45 km), S crater (0.57), WSW crater (0.58), SW crater (0.64), Rocky area 1 (0.70), SSE crater (0.84); the weather mast, Long profile and Core sample work anywhere outside the near-lander zone (120 m).
+
+| Change | Before | Now |
+| --- | --- | --- |
+| Staged science (per stage), ×1.5 or more | Core sample 60, Rock collection 70, Organic signals 140, Remote reading 70, Buried layers 90, Hydrogen traverse 100 | **100, 105, 210, 105, 135, 150** |
+| Near picture and combo rewards, doubled | Crater wall 70, Dust devil 60, Documented sample 50 | **140, 120, 100** |
+| Sites near the landing | S, SSE, ESE small craters | **+ WSW crater (584 m) and SW crater (636 m)** as young-crater sites: boulders, a crater-floor rock suite, radar rings and Crater wall targets near the landing |
+| Contact reach on Mars (step 6 review) | 3 m | **4.5 m** |
+
+Unchanged: the far single rewards (Delta layers, Signs of an ancient lake, Rare rock, Lake organics, Rock from afar, Hydrated ground), the weather mast's records (Storm log 160, Night weather 110: they work anywhere outside 120 m, so doubling them would let a parked rover win big), Blue sunset 100, capability rewards, survival 50, prices and tiers.
+
+**Estimates** (final = B − parts and ticket + 50 survival + milestones; an active first-timer also earns Touchdown 80, Storm survivor 60, Odometer ×2 60 and Mapper 60, so 310 with survival; an idle rover 190; titanium, solid wheels, fixed panel, Li-ion, heater units, near route only, no dust devils):
+
+| Build (parts + ticket) | Near-route science | Final at B = 800 | At B = 900 |
+| --- | --- | --- | --- |
+| Idle at the lander (440) | none | 550: **loses** | 650: loses |
+| Empty bay (440) | none | 670: **loses** | 770: loses |
+| Empty bay, steel, LED, both Night drive stages (465) | Night drive 100 | 745: **loses** | 845: passes (known risk, M13) |
+| Camera (490) | Blue sunset, Crater wall: 240 | 860: **wins** | 960 |
+| Drill (590) | Core sample ×3: 300 | 820: **wins** | 920 |
+| Camera + drill (640) | 540 | 1,010: **wins** | 1,110 |
+| Arm + X-ray (620) | Rock collection ×2: 210 | 700: loses; 805 with Séítah's fourth type | 800: scrapes |
+| Arm + X-ray + camera (670) | 210 + Documented 100 + camera 240 | 990: **wins** | 1,090 |
+| Arm + organics (670) | Organic signals ×2: 420 | 860: **wins** | 960 |
+| Mast + laser (650) | Remote reading ×3: 315 | 775: loses narrowly | 875: wins |
+| Mast + laser + camera (700) | 555 | 965: **wins** | 1,065 |
+| Weather mast (500) | Storm log, Night weather: 270 | 880: **wins** | 980 |
+| Radar (530) | Long profile, Buried layers ×2: 370 | 950: **wins** | 1,050 |
+| Neutron (520) | Hydrogen traverse in Séítah 150; + Hydrated ground 180 | 740 without the hidden ground; 920 with it | 840 / 1,020 |
+| RTG, LED, camera + drill, no heater (775) | 540 + Night drive 100 | 975: **wins** | 1,075 |
+
+- **Several builds win** from a scraping Moon result (B = 800) on the near route alone: the camera, the drill, the camera and drill, the X-ray with the camera, the organics, the laser with the camera, the weather mast, the radar and the RTG geologist. The single X-ray, the single laser and the neutron spectrometer need a farther site (Séítah, or the hidden ground) or a better Moon result.
+- **Idle and empty bay lose** at B = 800 and 900. *Known risk (M13, MS1, deferred by the user):* under the fixed mark an idle rover passes from B ≈ 1,050 and an empty bay with lights that drives both nights from B ≈ 855; only a capability cut or a relative pass test fixes this, and both wait for the balance patch.
+- **Not modelled:** dust devils (bonus), the delta foot's big rewards, damage. One short browser run checks the arithmetic (below).
+
 #### Communications
 
 *Decided:* data and communications are a real constraint on Mars: delay to Earth, bandwidth through relay orbiter passes, and possibly science that counts only once it is sent home. It is a design decision for now and is not built in the first Mars version.

@@ -28,7 +28,7 @@ describe('Mars boulders: counts per site', () => {
   it('gives each site its tuned count, East crater its own, and the flood boulder one', () => {
     expect(b.perSiteKind && b.perSite && b.slopeTargetShare && b.floodBoulderDiameterM).toBeTruthy();
     const withBoulders = sites.filter((s) => ['young-crater', 'knob', 'seitah-edge', 'delta-foot'].includes(s.kind));
-    expect(withBoulders.map((s) => s.kind).sort()).toEqual(['delta-foot', 'knob', 'knob', 'seitah-edge', 'young-crater', 'young-crater', 'young-crater', 'young-crater']);
+    expect(withBoulders.map((s) => s.kind).sort()).toEqual(['delta-foot', 'knob', 'knob', 'seitah-edge', 'young-crater', 'young-crater', 'young-crater', 'young-crater', 'young-crater', 'young-crater']);
     for (const s of withBoulders) {
       const n = siteBoulderCount(s, b);
       expect(n, s.id).toBeGreaterThan(0);
@@ -72,7 +72,7 @@ describe('Mars boulders: slope targets', () => {
   const withPatches = sites.filter((s) => s.slopePatches);
 
   it('every young crater and knob has the pipeline\'s slope-target patches', () => {
-    expect(withPatches.map((s) => s.id).sort()).toEqual(['east-crater', 'ese-crater', 's-crater', 'seitah-knob', 'sse-crater', 'wnw-knob']);
+    expect(withPatches.map((s) => s.id).sort()).toEqual(['east-crater', 'ese-crater', 's-crater', 'seitah-knob', 'sse-crater', 'sw-crater', 'wnw-knob', 'wsw-crater']);
   });
 
   it('puts the tuned share of each one\'s boulders on its slope-target cells', () => {

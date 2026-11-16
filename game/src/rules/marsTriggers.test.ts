@@ -102,7 +102,7 @@ describe('Mars zones (Mars step 5a)', () => {
 
   it('young-crater rings at every young crater and rocky area; only real craters carry a rim for Crater wall', () => {
     const rings = zonesOf('young-crater');
-    expect(rings.map((z) => z.site).sort()).toEqual(['east-crater', 'ese-crater', 'rocky-area-1', 'rocky-area-2', 's-crater', 'sse-crater']);
+    expect(rings.map((z) => z.site).sort()).toEqual(['east-crater', 'ese-crater', 'rocky-area-1', 'rocky-area-2', 's-crater', 'sse-crater', 'sw-crater', 'wsw-crater']);
     const east = siteZone('east-crater');
     const ene = f.youngCraters!.find((c) => c.id === 'young-crater-ene')!;
     expect(east.shape).toEqual({ kind: 'circle', x: ene.local.x, z: ene.local.z, r: ene.radius_m * t.youngCraterEjectaFactor });
