@@ -120,3 +120,27 @@ Format: `- **[time] [agent]** what changed or is needed; who it affects.`
   - **Debrief:** the Titan debrief always shows the Dragonfly comparison and hides the per-outcome rover history (Moon facts).
   - Final mark stays 0 (`budget.minimumBudget.complete`), placeholder for Owner A.
   - Fact-check: research R checked every fact; corrections applied ("many kilometers", "late 2034", Huygens DISR and credit wording).
+- **[16:40] integration (T6)** Titan wired into the mission (worktree-agent-a5d77d13d1c4d1822). As built: game-design.md → "The Titan mission as played".
+  - **Terrain:** `TITAN_TERRAIN_BASE` = `terrain/titan/`. `worlds.test.ts` reads the real `terrain.json`. The placeholder folder is left in place.
+  - **`world/terrainMasks.ts`:** decodes `soft-ground.png` when `features.softGround.maskIsAuthoritative`. It has a new `TerrainMasks.softnessAt(x, z, ground)` (mask on Titan, circles elsewhere), and `TerrainFeatures` gains the Titan features.
+  - **`world/moonScene.ts`:** new option `missionDelta(wallDt, seconds)` for the mission-time step. Titan passes `titanMissionDelta`, and physics stays on wall time.
+  - **`ui/titanMission.ts` (`TitanMission`):**
+    - It holds the site, `sunAt`, `status()` (= `titanStatus`, with driving heat), `missionDelta`, and the notice words.
+    - It also gives the HUD lines: day/night, lights on, the panel line, the sleep banner, no lights, the cold warning and the rain forecast bar.
+    - Rain and sleep text is filled with `missionVars`.
+  - **`ui/missionScreen.ts` on Titan:**
+    - Setup: `missionSetup(..., undefined, titan.setup(rng))`. `canDrive`, the drive limits, the floodlights and `setStorm` come from `titanStatus` (via a shared `dayNow()` = Mars or Titan status).
+    - Tracker: `night`, `stormActive` and `photosBlocked` are fed. `buildZones` gets `duneCrests`, `interdunes` and `samplePatch`. The minimap uses `TITAN_RELIEF`.
+    - A photo in the rain shows `rain.photoBlocked` instead of "photo taken". The forecast countdown uses the flare bar.
+    - The `poweredDown` warning is dropped on Titan (the banner says it). The cold warning waits for the meter to show 1%.
+  - **`ui/hud.ts`:** `HudMeters.panelText?` replaces the sunlight words, and `setBanner(text|null)` adds a centered banner (`.hud-banner` in style.css). Moon and Mars pass neither.
+  - **Text:** `day`, `rain` and `cold` are final; the `day` and `rain` keys are extended in `titanTypes.ts`. `rain.credit` is filled from the rainstorm source.
+  - **Tuning:** `look.nightLight` goes from 0.04 to 0.07 (within T2's near-black test). `gravityScale` stays 4.8.
+  - **Dev hooks:** `__mission.titan()`, `__mission.rainSoon()`, `__mission.jumpTo(s)`.
+- **[17:10] integration (T6)** Headless check on the real terrain (Sonnet): all pass, with no console errors on Titan, the Moon or Mars.
+  - Day panel line; saddle crossing (806 m, `dune-crossing` earned); viewpoint climb and the `dune-sea` photo; dusk notice; lights-on night drive.
+  - Sleep at 3.8 to 3.9× wall speed to dawn, waking with `titan-dawn` earned.
+  - Rain: forecast bar, rain, blocked photo notice, cleared, `titan-storm-survivor` earned.
+  - Drills: `organic-sands` and `crater-ejecta`.
+  - A no-lights rover cannot drive at night. The Moon and Mars still load and drive.
+  - **For T5/main:** the Titan drill notice still says "Regolith sample collected." (`instruments.drillDone` is not overridden in `data/titan/text.json`; that section is T5's).

@@ -869,6 +869,21 @@ All 11 are built. Rules in `game/src/rules/milestones.ts` and `rules/titanMilest
 - **Titan final mark.** Kept at the placeholder 0 (`budget.minimumBudget.complete`): a Titan round fails only if the balance goes negative, and then restarts from the Titan snapshot. The "rover lost before dawn" condition is not added. Owner A sets the mark.
 - **Credits.** The Titan section lists the terrain and texture sources from the pipeline's files ("modeled on Cassini data"), the landing briefing sources, the rainstorm source once it is fact-checked, and the Dragonfly debrief sources.
 
+#### The Titan mission as played *(decided during implementation, Phase T6, Owner B to confirm)*
+
+How the Titan rules reach the player (`game/src/ui/titanMission.ts`, small hooks in `missionScreen.ts` and `hud.ts`). The words are in `data/titan/text.json` (`day`, `rain`, `cold`).
+
+- **Clock and Sun.** The scene, the sunlight test and photos all use the real Titan Sun. There is still no clock: the HUD line under the panel line reads only "Titan day" or "Titan night".
+- **Panel line.** On Titan it reads "Solar panel: almost no power in the haze" by day and "no power at night". It never says "in sunlight".
+- **Sleep fast-forward.** Asleep at night (P), the mission clock runs 4× until dawn. Physics stays on real time and the rover is parked. A banner reads "Sleeping · time runs 4× faster until dawn", and a warning says that only the heater keeps the rover warm. Asleep by day, the clock runs normally and the banner says the rover is powered down. The rover wakes by itself at dawn.
+- **Night.** Lights come on whenever the rover is awake at night, and the HUD says the battery is draining fast. Without lights the rover cannot drive at night, and a standing warning offers sleep.
+- **Notices.** The sunset notice offers lights or sleep, or sleep only for a rover without lights. Dawn says the rover made it through the night. None of the notices mention returning to the lander, which does not recharge on Titan.
+- **Rain.** The forecast notice comes 60 s ahead, and a countdown bar ("Methane rain in N s") uses the flare warning's place, since Titan has no flares. Notices mark the start and the end of the rain. The scene's haze follows the rain intensity. A photo in the rain goes into the album with the notice that it does not count.
+- **Cold.** The cold meter is always shown. The cold warning appears once the meter reads at least 1%.
+- **Soft ground.** On Titan, softness is read from the graded `soft-ground.png`, as the terrain file says (`maskIsAuthoritative`). The Moon and Mars keep their circles.
+- **Night light.** `look.nightLight` is 0.07, up from 0.04. The night stays near black (the sky-light test's ceiling is about 0.072), but the rover is no longer a black silhouette and the dune skyline shows faintly.
+- **Handling.** `rover.gravityScale` stays 4.8. On the real terrain, the saddle crossing (at most 7.8° and softness 0.23) runs at full speed with all wheels down. The loose face up to the Dune sea viewpoint (10 to 12.5°, softness up to 0.84) slips about 0.1 but does not dig in.
+
 #### Spine decisions *(decided during implementation, Phase T0, Owner B to confirm)*
 
 - **Campaign end marker.** The campaign order is Moon → Mars → Titan → `complete`. Titan is playable; `complete` is the end screen. Saves at the old `titan` end marker (after a passed Mars round) now open the Titan design screen.
