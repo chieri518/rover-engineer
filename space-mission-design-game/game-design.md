@@ -420,9 +420,9 @@ Every version is at least 45 over budget. Decided: **accept it for the Moon.** I
 
 ### Moon parts
 
-The Moon parts table: six slots with two options each, plus the payload bay with six instrument options (built, Phases 1 to 3). The slots are listed in the table below; the instruments, with their costs, masses and sizes, are in the second table. For lights and heater, one option is **None**: skipping them saves cost, mass, and size (maybe a cheaper ticket) but closes off the dark crater. All Moon parts are available from the start, so budget, mass, and size are the only limits. Locked parts first appear on Mars, greyed out with "needs X RP".
+The Moon parts table: six slots with two options each, plus the payload bay with six instrument options (built, Phases 1 to 3). The slots are listed in the table below; the instruments, with their costs, masses and sizes, are in the second table. For lights and heater, one option is **None**: skipping them saves cost, mass, and size (maybe a cheaper ticket) but closes off the dark crater. *(Superseded November 16: see [Payload: instruments and systems](#payload-instruments-and-systems).)* All Moon parts are available from the start, so budget, mass, and size are the only limits. Locked parts first appear on Mars, greyed out with "needs X RP".
 
-**Empty start** *(decided November 15)*. In a new campaign the design screen starts with all slots and the payload bay empty, so there is no default build to copy. The rover can go to the launch ticket only once every slot has a part and the bay is confirmed; "No lights", "No heater" and "No instruments" count as choices. While slots are empty, the specification sheet shows the totals of the parts chosen so far, a dash for driving numbers that need a missing part, and a warning listing the empty slots. A restart keeps the last design, so the player can adjust it.
+**Empty start** *(decided November 15)*. In a new campaign the design screen starts with all slots and the payload bay empty, so there is no default build to copy. The rover can go to the launch ticket only once every slot has a part and the bay is confirmed; "No lights", "No heater" and "No instruments" count as choices. *(Superseded November 16: see [Payload: instruments and systems](#payload-instruments-and-systems).)* While slots are empty, the specification sheet shows the totals of the parts chosen so far, a dash for driving numbers that need a missing part, and a warning listing the empty slots. A restart keeps the last design, so the player can adjust it.
 
 | Slot | What it affects |
 | --- | --- |
@@ -432,7 +432,7 @@ The Moon parts table: six slots with two options each, plus the payload bay with
 | Battery | Energy storage |
 | Lights | None, or floodlights. Needed to drive into permanent shadow: without them the rover stops at its edge. |
 | Heater | None, or radioisotope heater units. Slows freezing in the cold. |
-| Payload bay | Any mix of the instruments, one of each, or none. Decides which milestones the rover can complete. The chassis sets the bay's mounting points (steel 3, titanium 2), one per instrument. **Built (Phases 1 to 3):** the bay, instrument operating costs, and the six Moon instruments (science camera, regolith drill, neutron spectrometer, X-ray spectrometer, seismometer station, laser retroreflector); see [rover engineering design](rover-engineering-design.md#7-the-moon-payload). *(Decided November 15, not built yet:)* every instrument now has milestones; see [Moon milestones](#moon-milestones). |
+| Payload bay | Any mix of the instruments, one of each, or none. Decides which milestones the rover can complete. The chassis sets the bay's mounting points (steel 3, titanium 2), one per instrument. *(Since November 16: steel 5, titanium 4, shared with the lights, heater, arm and mast; see [Payload: instruments and systems](#payload-instruments-and-systems).)* **Built (Phases 1 to 3):** the bay, instrument operating costs, and the six Moon instruments (science camera, regolith drill, neutron spectrometer, X-ray spectrometer, seismometer station, laser retroreflector); see [rover engineering design](rover-engineering-design.md#7-the-moon-payload). *(Decided November 15, not built yet:)* every instrument now has milestones; see [Moon milestones](#moon-milestones). |
 
 **Moon instrument options** *(built, Phases 1 to 3)*. The bay takes any mix of these, one of each, up to the chassis's mounting points. Numbers are in `game/data/parts.json`; mission behavior is described below.
 
@@ -531,6 +531,57 @@ The Moon parts table: six slots with two options each, plus the payload bay with
 | Cold and dark | An instrument the cold can slow is aboard: one that holds the rover still and is not cold tolerant (the drill and the two stations; not the camera, which is instant, the neutron spectrometer, a switch, or the X-ray spectrometer) | Yellow without a heater; green ("Solved") with one |
 | A colder X-ray detector | The X-ray spectrometer is aboard | Green |
 | No lights, no permanent shadow | No lights | Red, always shown |
+
+### Payload: instruments and systems
+
+*Decided November 16, 2026, by the user. Replaces the lights and heater slots of the Moon table above, the "None" options, the bay's instruments-only limit, and the Mars rule that support hardware takes no mounting point. The user knows this is a gameplay and balance change.*
+
+**The rule.**
+
+- **The payload bay holds instruments and systems.** Systems are the lights, a heater, and, on worlds that offer them, the robotic arm and the remote sensing mast (Mars). They go in the bay and compete with the instruments for mounting points.
+- **Each payload item takes one mounting point**, instrument or system.
+- **At most one heater:** radioisotope heater units or, on Mars, the electric heater. Fitting one replaces the other. There is one lights part, so at most one lights.
+- **The arm and the mast are offered only where the world offers them** (Mars). Elsewhere they are not shown at all.
+- **Leaving a part off is just not fitting it.** There are no "No lights", "No heater", "No arm", "No mast" or "No instruments" choices on the desk any more.
+- **The required bus is the chassis, wheels, power and battery,** one of each. The rover can go to the launch ticket once those four are chosen (and the rest of the existing checks pass); the bay may be empty.
+- Everything else about the bay stays: one of each instrument, the needs (an instrument that needs the arm or the mast is refused until it is fitted, and one left in the bay after its support is taken off blocks the launch with the existing warning), the mission keys (instruments only, in the order fitted; systems have no key), and the over-capacity warning.
+- What the systems do does not change: a rover without lights fitted still stops at permanent shadow (the hard block), the heater and an RTG's waste heat work as before, milestone requirements still read whether lights or a heater are fitted, and the lessons and the review read the same parts.
+
+**Numbers** (starting values, balanced by hand, generous and quick; no model):
+
+| Chassis | Mounting points before | Now |
+| --- | --- | --- |
+| Steel | 3 (instruments only) | **5** |
+| Titanium | 2 (instruments only) | **4** |
+
+The raise keeps a Moon build's instrument count when it fits both lights and a heater: titanium with lights and heater units still carries two instruments, steel three.
+
+**Arithmetic check** (parts + ticket; Mars finals use the [generous pass on Mars](#generous-pass-on-mars-mars-step-7-november-15-2026) player model at B = 800):
+
+| Build | Points used | Parts + ticket | Result |
+| --- | --- | --- | --- |
+| Moon: titanium, mesh, panel, Li-ion, lights, heater units, camera + X-ray | 4 of 4 | as before | Same instruments as before: unchanged |
+| Moon: steel, lights, heater units, three instruments | 5 of 5 | as before | Unchanged |
+| Moon: empty bay (steel, mesh, panel, NiH2) | 0 of 5 | 400 | Unchanged: about 650 to 760, **loses or scrapes** |
+| Moon: idle camera scout | 1 of 4 | 450 | Unchanged: about 480, **loses** |
+| Mars, first-timer: steel, solid, panel, Li-ion, heater units, arm, X-ray + camera | 4 of 5 | 460 + Large 200 = 660 | 800 − 660 + 310 + 550 = about 1,000: **wins** |
+| Mars: rock hound (titanium, heater units, arm, X-ray + camera) | 4 of 4 | 670 | about 990: **wins** (unchanged) |
+| Mars: RTG geologist (titanium, RTG, lights, no heater, camera + drill) | 3 of 4 | 775 | about 975: **wins** (unchanged) |
+| Mars: camera + drill with heater units (titanium) | 3 of 4 | 640 | about 1,010: **wins** (unchanged) |
+| Mars: remote geologist (titanium, heater units, mast, laser + camera) | 4 of 4 | 700 | about 965: **wins** (unchanged) |
+| Mars: empty bay with lights and heater (steel), both Night drive stages | 2 of 5 | 445 | Unchanged: 765, **loses** at B = 800 (the known risk at B ≈ 835 stays) |
+| Mars: titanium, lights, heater units, arm, X-ray + camera | 5 of 4 | | **Does not fit**: take the lights off or move to steel. This is the intended trade-off |
+| Mars: steel, lights, heater, arm + mast, laser + X-ray + camera (the old Heavy example) | 7 of 5 | | **Does not fit any more** |
+
+- **Mars:** every winning row of the generous pass on Mars still fits, because none of them fits lights, a heater and support hardware and two instruments on titanium. The arm and the mast now cost a mounting point, so on titanium a contact or remote instrument with its support and a heater leaves room for one more instrument; steel leaves two.
+- **Moon builds are unchanged in practice** for a player who fits the lights and a heater. *New:* a Moon rover that leaves both off has two more points, so titanium can carry four instruments and steel five. Within the 750 budget and the tiers, a scan of the Moon catalog finds 237 such builds that did not exist before (the cheapest: steel or titanium, solid wheels, panel, Li-ion, camera, X-ray, seismometer and reflector, about 640 to 650 with the ticket). They cannot enter permanent shadow (no lights) and work slowly in the cold (no heater). This makes the Moon a little more generous, which suits the generous rule; flagged for the user.
+- **Mars** gains 261 such builds within B = 800, but a Mars rover with neither a heater nor an RTG freezes in its first night, so few of them are real choices.
+
+*Lead decisions for the build (November 16):*
+
+- **No bay confirmation.** With "No instruments" gone, an empty bay needs no confirmation: a build is complete when the four bus parts are chosen. The old "unconfirmed bay" state is read as an empty bay.
+- **A smaller chassis drops instruments first.** Choosing a chassis with fewer points drops the instruments fitted last, with the existing notice. Systems are never dropped this way: the four systems together take at most four points, which every chassis has.
+- **Carry-over and saves.** A carried build loses the parts its new world does not offer (the arm and the mast leave on Titan, the Moon-only stations on Mars), with the existing notice. A save from before this change loads as it is: its "None" choices read as not fitted, and a build now over capacity (for example an old Mars steel rover with lights, heater, arm, mast and three instruments) loads with the over-capacity warning, so the player takes something out.
 
 ### Mass versus cost
 
@@ -1178,7 +1229,7 @@ The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the 
 
 - Instrument parts gain `needs` (`arm`, `mast`). The desk refuses an instrument whose support part is missing, with a reason ("Needs the robotic arm"), and greys its card as a full bay does.
 - **The X-ray spectrometer needs the arm on Mars only** (Mars M6). On the Moon it keeps Pragyan's built-in deploy mechanism. This one per-world effect lives in a small overlay, `data/mars/parts.json`, not in a second part. With the arm, the X-ray costs about 120 and 10 kg on Mars.
-- Support parts take no mounting point (the bay's limit is for instruments only). `Build.support` is optional, so every Moon build and save stays valid.
+- Support parts take no mounting point (the bay's limit is for instruments only). *(Superseded November 16: see [Payload: instruments and systems](#payload-instruments-and-systems).)* `Build.support` is optional, so every Moon build and save stays valid.
 - Milestones have no support requirement of their own (Mars M18): the debrief's "needs the robotic arm" comes from the instrument's `needs`.
 - **Real basis.** Curiosity's and Perseverance's arms are about 2.1 to 2.2 m long, with turrets of 33 kg and 45 kg. The game scales every part down (the Moon's drill is 8 kg).
 
@@ -1206,7 +1257,7 @@ The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the 
 *Decided during implementation (Mars step 3; built):*
 
 - **Data.** Every Mars part is in `data/parts.json` with `worlds: ["mars"]` and its Mars wording there (ids `power-rtg`, `power-arrays`, `battery-large`, `heater-electric`, `wheels-grouser`, `arm-none`, `arm-robotic`, `mast-none`, `mast-remote`, `instrument-weather`, `instrument-radar`, `instrument-laser`, `instrument-organics`). `data/mars/parts.json` is the parts overlay: `supportSlots: ["arm", "mast"]` and effects by part id (the X-ray's `needs: ["arm"]`). The robotic arm and the mast carry `arm: true` and `mast: true`; "No arm" and "No mast" carry nothing. The RTG carries a `neutronNoise: true` flag that nothing reads until step 5b, and the desk never shows it. Support slot names and the "Needs the robotic arm" wording are in `data/mars/text.json` (`slots`, `support`).
-- **Support slots are a choice like the lights.** On Mars the desk shows Arm and Mast after the bus slots, and a build is complete only when both are chosen ("No arm" counts), so `missingSlots` names them. Support parts come after the bus parts and before the bay in the part list, and take no mounting point.
+- **Support slots are a choice like the lights.** On Mars the desk shows Arm and Mast after the bus slots, and a build is complete only when both are chosen ("No arm" counts), so `missingSlots` names them. Support parts come after the bus parts and before the bay in the part list, and take no mounting point. *(Superseded November 16: see [Payload: instruments and systems](#payload-instruments-and-systems).)*
 - **Needs on the desk.** An instrument whose support part is missing (or not chosen yet) has its card greyed with the reason as for a full bay, and every instrument with `needs` says so on its card ("Needs the robotic arm."). If the arm is taken away while the X-ray is in the bay, the X-ray stays in the bay (so the player can put the arm back), the warnings say "X-ray spectrometer needs the robotic arm. Choose it, or take the instrument out of the bay.", and the build cannot continue to the ticket (the ticket screen gives the same line).
 - **Desk numbers.** The RTG's card shows "Steady income 0.6 energy/s, day and night", the electric heater's "Heat output 3 · draws 1.2 energy/s every night". On Mars "No heater" reads "Without another source of heat the rover freezes in its first night", since an RTG keeps it warm.
 - **The four Mars instruments as data until step 4a** (superseded: see step 4a below). The weather mast (0.05/s) and the radar (0.1/s) are switches; the laser spectrometer is an 8-energy reading with a 2 s hold; the organics spectrometer is charged its 30 at the start of a 20 s hold until step 4a charges 1.5 per second of the hold. A rover carrying them launches and runs; their readings give no result yet, and the mission's controls line says "no results yet in this version". On Mars the card line is "Earns no milestones yet." (the shared line also promises an instrument log entry, which the new instruments do not write yet). The mast's `photoRangeFactor` waits for step 4a. *Flagged:* if step 3 ships before step 4a, players can pay energy for readings that do nothing; the controls line says so.
@@ -1848,6 +1899,20 @@ Not planned for now: two-player mode and randomly generated maps.
 | Look *(decided November 15)* | "Mission control" screens: Chakra Petch for headings and labels, IBM Plex Sans for body text, IBM Plex Mono for numbers and readouts (self-hosted). Deep-space navy background and panels with thin cyan-tinted borders and corner brackets; amber is the main accent (primary buttons, money, highlights), cyan the secondary (HUD info and hints); orange-red still means warning and green means good. The title screen shows a live 3D cover: the game's rover on regolith under a low raking Sun with long shadows and Earth low on the horizon, as at the south pole site, with a slow orbiting camera (held still for reduced motion; a plain star background if WebGL is unavailable). The 3D mission view is unchanged. |
 | Build preview *(decided November 15)* | The design screen shows the rover being assembled in 3D, live, as in a vehicle editor: part list on the left, a large viewport in the middle, the specification sheet on the right (on narrow screens the viewport becomes a strip above the parts and the sheet). The rover stands on a lit turntable in a dark assembly bay with a faint cyan grid. Only chosen parts appear; empty slots show nothing, and parts chosen before the chassis float where they would mount. A new or changed part drops into place with a brief cyan flash. The turntable turns slowly and the player can drag to rotate it; there are no labels. Reduced motion: no turning by itself and instant swaps. Without WebGL the viewport is hidden and the desk works as before. Presentation only: the preview uses the same model as the mission, and the complete rover looks the same in both. |
 | Real facts | **Optional.** A "Mission history" setting, on by default, that players who just want to play can turn off. When on: a one-sentence real fact on each milestone pop-up, and a debrief comparing the rover's fate with a real rover's. Tutorial text is always shown. The same optional pattern is used for other extra learning, such as the real-speed pop-up on the design screen. |
+
+### The engineer's desk as a parts editor
+
+*Decided November 16, 2026, by the user. Replaces the part list of the build preview row above; the turntable, grid, snap-in flash and reduced-motion rules stay. Presentation only: no rule changes here (the payload rule is in [Payload: instruments and systems](#payload-instruments-and-systems)).*
+
+The desk plays like a creature-creator parts editor: a big 3D rover in the middle, and a palette of part thumbnails grouped by category. Only that interaction pattern is borrowed; the look is the game's own (the dark-blue mission-control screens, the grid floor and turntable).
+
+- **Layout.** The palette is on the left: a category list (Frame, Wheels, Power, Battery, Payload) and the thumbnails of the chosen category. The rover is large in the centre on the turntable. A stats panel on the right shows the budget, cost, mass and size with the ticket-tier gauges, the driving numbers, energy (with the Mars night-energy line), and the warnings. The launch-ticket button stays reachable at the bottom of the stats panel. The world story text, the not-offered notice, Help, the notebook button and the carried-over budget stay in the desk's header and notes.
+- **Categories.** Frame (chassis), Wheels, Power and Battery are required: one each. Payload holds instruments and systems, in two groups, "Science instruments" and "Support and systems", with the mounting points used out of available.
+- **Thumbnails.** Each part is a small rendered image of that part, built from the same 3D model as the rover, so it looks the way it will on the rover. Rendered once with one shared renderer, cached, and freed. Without WebGL each is a plain labelled tile.
+- **Hover card.** Hovering a thumbnail, or focusing it with the keyboard, shows an info card: name, cost, mass, size, key effect, energy, "Can earn" and "Where" lines, and needs. The rover does not change on hover. The card's text is the old part card's text; lesson-blind rules still apply.
+- **Click to fit.** Clicking a thumbnail fits it: in a required category it replaces the part; in the payload it toggles the item (a second click takes it off). Fitted thumbnails are clearly marked. Clicking a part on the 3D rover opens its category in the palette. No drag and drop: parts snap to their fixed places.
+- **Blocked states** show on the thumbnail (dimmed), with the reason in the hover card: a full bay, a part that needs the arm or the mast, and a part the budget cannot cover. A part the world does not offer is not shown at all. *(Lead decision:)* a full bay and a missing need refuse the click, as the old cards did; a part that would take the build over budget is marked but can still be fitted, since the player may then trade down elsewhere (the launch stays blocked while over budget, as before).
+- **Accessibility.** Thumbnails are buttons with accessible names and a pressed state; the keyboard reaches every one. On narrow screens the palette stacks above the rover, and the stats below.
 
 ## 12. Tech stack and fit with the brief
 
