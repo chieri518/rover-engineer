@@ -41,9 +41,25 @@ describe('how-to lines from the data', () => {
     expect(howTo('science-station')).toContain(`within ${trigger<{ near: { withinM: number } }>('science-station').near.withinM} m of each other`);
   });
 
-  it('a milestone with no how-to line (Mars, from before step 4b) has none', () => {
-    expect(mars.milestones.milestones.some((m) => !m.howTo)).toBe(true);
-    for (const m of mars.milestones.milestones.filter((x) => !x.howTo)) expect(milestoneHowTo(m, mars)).toBeUndefined();
+  it('every Mars milestone has a how-to line with no number of its own (Mars step 8 added the eight carried over)', () => {
+    for (const m of mars.milestones.milestones) {
+      expect(milestoneHowTo(m, mars)?.length ?? 0, m.id).toBeGreaterThan(0);
+      expect(m.howTo, m.id).not.toMatch(/\d/);
+    }
+    const noHowTo = { ...byId('touchdown'), howTo: undefined };
+    expect(milestoneHowTo(noHowTo, data)).toBeUndefined();
+  });
+
+  it('the carried-over Mars lines show the numbers from the Mars triggers and tuning', () => {
+    const marsHowTo = (id: string) => milestoneHowTo(mars.milestones.milestones.find((m) => m.id === id)!, mars)!;
+    const mt = mars.tuning.milestones;
+    expect(marsHowTo('mars-odometer')).toBe('Drive 500 m, 1.5 km and 3 km in one mission.');
+    expect(marsHowTo('mars-mapper')).toBe('Explore 2.5% of the map in one mission.');
+    expect(marsHowTo('night-drive')).toBe("Drive 100 m and 300 m after dark, over the mission's nights.");
+    expect(marsHowTo('night-drive')).not.toMatch(/\blights?\b/i); // the no-lights block is the desk's to state
+    expect(marsHowTo('core-sample')).toContain(`at least ${mt.sampleMinDistanceM} m from the lander. Up to 3 sites, each ${mt.sampleSpacingM} m`);
+    expect(marsHowTo('blue-sunset')).toContain(`within ${mt.sunsetMaxElevationDeg}° of the horizon, at least ${mt.sunsetPhotoMinDistanceM} m from the lander`);
+    expect(marsHowTo('mars-clean-run')).toContain(`all ${mars.tuning.mission.gameDays} sols`);
   });
 
   it('a changed number in the data shows in the line', () => {

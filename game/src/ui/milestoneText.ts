@@ -37,8 +37,9 @@ function listText(items: (string | number)[], text: TextFile): string {
  * The how-to-earn line with its numbers filled from the trigger and the tuning, so it cannot drift from
  * the rules: {distances} (Odometer), {share} (Mapper), {depth} (Crater descent), {days}, {minDistance}
  * (the near-lander zone: drill samples and stations), {sampleSpacing}, {earthMinDistance}, {sites},
- * {meters} (a transect), {rocks} (Rock collection), {range} (boulder photos), {percent} (the ice signal)
- * and {withinM} (Science station). Undefined for a milestone with no how-to line (the Mars milestones carried over from before step 4b).
+ * {meters} (a transect), {rocks} (Rock collection), {range} (boulder photos), {percent} (the ice signal),
+ * {withinM} (Science station), and {sunsetMinDistance} and {sunsetMaxElevation} (Mars's Blue sunset).
+ * Undefined for a milestone with no how-to line (every milestone on both worlds has one since Mars step 8).
  */
 export function milestoneHowTo(m: Milestone, data: GameData): string | undefined {
   if (!m.howTo) return undefined;
@@ -58,6 +59,10 @@ export function milestoneHowTo(m: Milestone, data: GameData): string | undefined
   if (tr.type === 'photo' && tr.target === 'rolled-boulder') vars.range = mt.boulderTrackPhotoRangeM;
   if (tr.type === 'photo' && tr.target === 'read-boulder') vars.range = mt.documentedSampleRangeM;
   if (tr.type === 'deploy' && tr.near) vars.withinM = tr.near.withinM;
+  if (tr.type === 'photo' && tr.target === 'sunset') {
+    vars.sunsetMinDistance = mt.sunsetPhotoMinDistanceM ?? 0;
+    vars.sunsetMaxElevation = mt.sunsetMaxElevationDeg ?? 0;
+  }
   return fill(m.howTo, vars);
 }
 

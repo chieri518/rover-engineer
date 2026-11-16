@@ -1,5 +1,5 @@
 {
-  "_about": "Mars overlay: replaces the Moon's milestone list (arrays replace). Ids are prefixed or distinct from the Moon's, because records are kept per campaign. Rules in rules/milestones.ts; zone sizes and the sunset band in data/mars/tuning.json milestones. Facts fact-checked November 15, 2026 (M5). Mars step 4b adds the twenty new milestones of the Mars sites plan (game-design.md, New Mars milestones; triggers provisional, for Chieri's review): 28 in all. Their trigger rules come in Mars step 5a, so until then some never fire (photo crater-wall and dustdevil, record with seconds, transects with zones or no zone, the delta-foot zone); none fires wrongly. howTo lines (new milestones only) hold no numbers: ui/milestoneText.ts milestoneHowTo fills them.",
+  "_about": "Mars overlay: replaces the Moon's milestone list (arrays replace). Ids are prefixed or distinct from the Moon's, because records are kept per campaign. Rules in rules/milestones.ts; zone sizes and the sunset band in data/mars/tuning.json milestones. Facts fact-checked November 15, 2026 (M5). Mars step 4b adds the twenty new milestones of the Mars sites plan (game-design.md, New Mars milestones; triggers provisional, for Chieri's review): 28 in all. Their trigger rules are built in Mars step 5 and wired into the mission in step 6. howTo lines hold no numbers: ui/milestoneText.ts milestoneHowTo fills them. The eight milestones carried over from the demo got theirs in Mars step 8, so all 28 have one.",
   "_interface": "money and rp are placeholders set with Owner A. Sized so a run that drives, photographs or drills earns several times what a rover idling at the lander earns (Touchdown, perhaps Storm survivor).",
   "_rewards": "Money and RP of the twenty new milestones are the decided starting values (game-design.md, New Mars milestones); the Mars balance step (7) tunes them. Clean run pays no money until then (decided in Phase 0: no money for what an idle rover earns). Blue sunset 70 -> 100 (decided November 15).",
   "milestones": [
@@ -13,6 +13,7 @@
       "money": 80,
       "rp": 8,
       "summary": "The rover has landed on the floor of Jezero crater and deployed from the lander.",
+      "howTo": "Land on Mars for the first time.",
       "fact": "The Soviet Mars 3 lander made the first soft landing on Mars on December 2, 1971, but stopped transmitting within seconds; NASA's Viking 1 made the first lasting, successful landing on July 20, 1976.",
       "source": "NASA JPL, \"NASA Mars Orbiter Images May Show 1971 Soviet Lander\" (jpl.nasa.gov/news/nasa-mars-orbiter-images-may-show-1971-soviet-lander/); NASA Science, \"Viking 1\" (science.nasa.gov/mission/viking-1/)"
     },
@@ -26,6 +27,7 @@
       "money": 30,
       "rp": 2,
       "summary": "Total distance driven: {meters} m.",
+      "howTo": "Drive {distances} in one mission.",
       "fact": "Opportunity drove 45.16 km on Mars between 2004 and 2018, a record for another world until Perseverance passed it in October 2026.",
       "source": "NASA Science, \"NASA's Perseverance Sets Off-World Record for Total Distance Driven\" (science.nasa.gov/blogs/perseverance-mars-rover/2026/10/12/nasas-perseverance-sets-off-world-record-for-total-distance-driven/)"
     },
@@ -39,6 +41,7 @@
       "money": 60,
       "rp": 3,
       "summary": "The rover has surveyed {share}% of the map.",
+      "howTo": "Explore {share}% of the map in one mission.",
       "fact": "During its 2021 landing, Perseverance's Terrain-Relative Navigation matched descent-camera images to an onboard map made from Mars Reconnaissance Orbiter images, then steered toward a safe spot in Jezero.",
       "source": "USGS, \"Mars 2020 Mission to be Guided by USGS Astrogeology Maps\" (usgs.gov/news/mars-2020-mission-be-guided-usgs-astrogeology-maps)"
     },
@@ -52,6 +55,7 @@
       "money": 50,
       "rp": 3,
       "summary": "Distance driven after dark, by the rover's own lights: {meters} m.",
+      "howTo": "Drive {distances} after dark, over the mission's nights.",
       "fact": "Martian nights are brutally cold: on its 43rd and 44th sols (April 2021), Perseverance's weather station recorded a low of -83 °C at Jezero, so the rover keeps its electronics warm with heat from its nuclear power source and electric heaters.",
       "source": "NASA, \"NASA's First Weather Report from Jezero Crater on Mars\" (nasa.gov/feature/nasa-s-first-weather-report-from-jezero-crater-on-mars); NASA JPL, Mars 2020 press kit, \"Power\" (jpl.nasa.gov/news/press_kits/mars_2020/launch/mission/spacecraft/power/)"
     },
@@ -65,6 +69,7 @@
       "money": 60,
       "rp": 3,
       "summary": "The dust storm has cleared and the rover is still operating.",
+      "howTo": "Keep the rover going until the dust storm clears. A rover asleep through the storm counts.",
       "fact": "A 2018 planet-wide dust storm blocked sunlight to Opportunity, which last contacted Earth on June 10; NASA ended its mission on February 13, 2019. Nuclear-powered Curiosity kept working.",
       "source": "NASA JPL, \"NASA's Opportunity Rover Mission on Mars Comes to End\" (jpl.nasa.gov/news/nasas-opportunity-rover-mission-on-mars-comes-to-end/)"
     },
@@ -106,6 +111,7 @@
       "money": 100,
       "rp": 25,
       "summary": "The camera imaged the layered front of Jezero's ancient river delta.",
+      "howTo": "Photograph the layered delta front from the delta viewpoint.",
       "fact": "Perseverance's 2021 images of the 'Kodiak' butte showed delta layers laid down by a river flowing into a lake, confirming that Jezero once held a lake.",
       "source": "Mangold et al., Science 374 (2021), \"Perseverance rover reveals an ancient delta-lake system and flood deposits at Jezero crater, Mars\" (doi.org/10.1126/science.abl4051)"
     },
@@ -119,6 +125,7 @@
       "money": 100,
       "rp": 12,
       "summary": "The drill collected a rock core, away from the ground the lander disturbed.",
+      "howTo": "Drill a sample at least {minDistance} m from the lander. Up to {sites} sites, each {sampleSpacing} m from the others.",
       "fact": "Perseverance's first coring attempt on Jezero's crater floor, in August 2021, came back empty: the rock was too crumbly to hold together as a core, so the rover drove on and tried again.",
       "source": "NASA JPL, \"NASA's Perseverance Team Assessing First Mars Sampling Attempt\" (jpl.nasa.gov/news/nasas-perseverance-team-assessing-first-mars-sampling-attempt/)"
     },
@@ -132,6 +139,7 @@
       "money": 100,
       "rp": 3,
       "summary": "The camera photographed the Sun setting over Jezero crater.",
+      "howTo": "Photograph the setting Sun within {sunsetMaxElevation}° of the horizon, at least {sunsetMinDistance} m from the lander: face west as the Sun goes down.",
       "fact": "Curiosity photographed a blue sunset in Gale crater on April 15, 2015 (sol 956): fine dust in Mars' air lets blue light pass through more efficiently, so blue stays closer to the Sun.",
       "source": "NASA JPL, \"Sunset in Mars' Gale Crater\" (science.nasa.gov/photojournal/sunset-in-mars-gale-crater)"
     },
