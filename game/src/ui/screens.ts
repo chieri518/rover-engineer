@@ -1,8 +1,11 @@
 // Screens: title, settings, landing, debrief and "coming soon" (after the last playable mission:
 // "Titan: coming soon" with the campaign summary). The design, ticket and mission screens have their own files.
-import { milestoneStages } from '../rules/payout';
+import { milestoneStages, type EarnedMilestone } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
-import type { GameData, HistoryKey, Instrument, TextFile } from '../rules/types';
+import type { GameData, HistoryKey, Instrument, Milestone } from '../rules/types';
+import { earnedWith, groupMilestones, notReached, rockTypeTally, stagesEarned, type MilestoneGroupKey } from '../rules/milestoneLists';
+import { instrumentsOf } from '../rules/payload';
+import { isCompleteBuild, selectedParts } from '../rules/rover';
 import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
 import { openNotebook, type NotebookHandle } from './notebook';
 import type { InstrumentLog } from '../rules/instruments';
@@ -156,28 +159,50 @@ function albumView(photos: AlbumPhoto[]): HTMLElement {
   );
 }
 
-/** The debrief's instrument log: one line per carried new instrument (an X-ray line per rock read), with plain wording when unused. */
-function instrumentLogLines(log: InstrumentLog | null, text: TextFile): string[] {
+/**
+ * The debrief's instrument log: one line per carried new instrument (an X-ray line per rock read), with
+ * plain wording when unused. The X-ray adds the rock types read out of all the suites' types (when the
+ * world has a rock-collection milestone and a rock was read), and each instrument's last line names the
+ * milestones earned that need it ("Earned: ...").
+ */
+function instrumentLogLines(log: InstrumentLog | null, data: GameData, earned: readonly EarnedMilestone[]): string[] {
   if (!log) return [];
+  const { text } = data;
   const t = text.debrief;
   const has = (i: Instrument) => log.carried.includes(i);
   const lines: string[] = [];
-  // One line per carried new instrument; nothing for instruments not carried.
+  // One group of lines per carried new instrument; nothing for instruments not carried.
+  const add = (inst: Instrument, own: string[]) => {
+    const names = earnedWith(inst, data.milestones.milestones, earned).map((m) => m.name);
+    if (names.length > 0 && own.length > 0) own[own.length - 1] += ` ${fill(t.logEarned, { names: names.join(t.logEarnedJoin) })}`;
+    lines.push(...own);
+  };
   if (has('neutron')) {
-    lines.push(log.hydrogenPeak === null ? t.logHydrogenNone : fill(t.logHydrogen, { percent: Math.round(log.hydrogenPeak * 100) }));
+    add('neutron', [log.hydrogenPeak === null ? t.logHydrogenNone : fill(t.logHydrogen, { percent: Math.round(log.hydrogenPeak * 100) })]);
   }
   if (has('xray')) {
-    if (log.rocks.length === 0) lines.push(t.logNoRocks);
-    for (const r of log.rocks) {
+    const own = log.rocks.length === 0 ? [t.logNoRocks] : log.rocks.map((r) => {
       const rock = text.rocks[r.rock];
-      lines.push(fill(t.logRock, { rock: rock?.name ?? r.rock, elements: rock?.elements ?? '' }));
-    }
+      return fill(t.logRock, { rock: rock?.name ?? r.rock, elements: rock?.elements ?? '' });
+    });
+    const tally = rockTypeTally(log.rocks, data.tuning.instruments.xray);
+    const collection = data.milestones.milestones.some((m) => m.trigger.type === 'reading' && m.trigger.rocks);
+    if (collection && tally.count > 0 && tally.total > 0) own.push(fill(t.logRockTypes, tally));
+    add('xray', own);
   }
   if (has('seismometer')) {
-    lines.push(!log.stationPlaced ? t.logStationNone : log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone);
+    add('seismometer', [!log.stationPlaced ? t.logStationNone : log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone]);
   }
-  if (has('reflector')) lines.push(log.reflectorPlaced ? t.logReflector : t.logReflectorNone);
+  if (has('reflector')) add('reflector', [log.reflectorPlaced ? t.logReflector : t.logReflectorNone]);
   return lines;
+}
+
+/** A debrief group's heading: "The rover", the instrument's part name, or "Instruments together". */
+function groupHeading(key: MilestoneGroupKey, data: GameData): string {
+  const t = data.text.debrief;
+  if (key.kind === 'rover') return t.groupRover;
+  if (key.kind === 'combo') return t.groupCombo;
+  return data.parts.parts.find((p) => p.slot === 'instrument' && p.effects.instrument === key.instrument)?.name ?? key.instrument;
 }
 
 /**
@@ -212,25 +237,36 @@ const debrief: Screen = (game, root) => {
   const historyKey: HistoryKey = result.survived ? 'survived' : result.detail === 'rollover' ? 'rollover' : (result.cause ?? 'energy');
   const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
 
-  const logLines = instrumentLogLines(game.instrumentLog, text);
+  const logLines = instrumentLogLines(game.instrumentLog, data, result.earned);
   const taught = taughtItems(result.relationships, data, history);
 
-  // Milestones in catalog order; records already held this campaign are listed without a reward.
-  const items = data.milestones.milestones.flatMap((m) => {
-    const earned = result.earned.find((e) => e.id === m.id);
-    if (!earned) return [];
+  // The rover as launched (the mission flies game.build) and the records held before this mission.
+  const launchParts = isCompleteBuild(game.build, data.parts) ? selectedParts(game.build, data.parts) : [];
+  const bay = launchParts.length ? instrumentsOf(launchParts) : (game.instrumentLog?.carried ?? []);
+  const recordsHeldAtLaunch = state.records.filter((id) => !payout.newRecords.includes(id));
+
+  // Milestones grouped by instrument (rules: groupMilestones), catalog order within a group; a staged
+  // milestone is one line with its count; records already held this campaign are listed without a reward.
+  const item = (m: Milestone) => {
     const paid = payout.milestones.find((p) => p.milestone.id === m.id);
-    const stages = earned.stages ?? 1;
     const maxStages = milestoneStages(m);
-    return [el('li', {},
-      el('span', {}, el('strong', {}, maxStages > 1 ? `${m.name} ×${stages}` : m.name), ` · ${categoryLabel(m.category, text)}`),
+    const stages = Math.min(stagesEarned(result.earned, m.id), maxStages);
+    return el('li', {},
+      el('span', {}, el('strong', {}, maxStages > 1 ? fill(t.stagedCount, { name: m.name, stages, max: maxStages }) : m.name), ` · ${categoryLabel(m.category, text)}`),
       paid
         ? el('span', { class: 'reward' }, fill(text.milestone.reward, { money: money(paid.money, text), rp: paid.rp }))
         : el('span', { class: 'reward none' }, t.recordHeld),
       el('span', { class: 'sub' }, milestoneSummary(m, stages)),
       history && el('span', { class: 'sub fact' }, m.fact),
-    )];
-  });
+    );
+  };
+  const earnedList = data.milestones.milestones.filter((m) => stagesEarned(result.earned, m.id) > 0);
+  const groups = groupMilestones(earnedList, bay).flatMap((g) => [
+    el('h4', { class: 'debrief-group' }, groupHeading(g.key, data)),
+    el('ul', { class: 'debrief-milestones' }, ...g.milestones.map(item)),
+  ]);
+  // "Not reached": names only (game-design.md M11).
+  const missed = notReached(data.milestones.milestones, launchParts, result.earned, recordsHeldAtLaunch, bay);
 
   root.append(
     el('section', { class: 'panel debrief' },
@@ -240,7 +276,11 @@ const debrief: Screen = (game, root) => {
       el('p', { class: 'muted' }, fill(text.hud.lasted, { days, total: data.tuning.mission.gameDays })),
 
       el('h3', {}, t.milestonesHeading),
-      items.length ? el('ul', { class: 'debrief-milestones' }, ...items) : el('p', { class: 'muted' }, t.noMilestones),
+      groups.length ? el('div', { class: 'debrief-groups' }, ...groups) : el('p', { class: 'muted' }, t.noMilestones),
+
+      missed.length > 0 && el('h3', {}, t.notReachedHeading),
+      missed.length > 0 && el('p', { class: 'muted' }, t.notReachedNote),
+      missed.length > 0 && el('ul', { class: 'debrief-not-reached' }, ...missed.map((m) => el('li', {}, m.name))),
 
       el('h3', {}, t.payoutHeading),
       el('div', { class: 'ledger' },
