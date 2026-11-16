@@ -1,7 +1,7 @@
 // Wording for milestone pop-ups and the debrief, from text.json and milestones.json.
 import type { Missed, Reached } from '../rules/milestones';
 import type { MissionResult } from '../rules/payout';
-import type { GameData, Milestone, MilestoneCategory, TextFile } from '../rules/types';
+import type { BusSlot, GameData, Milestone, MilestoneCategory, TextFile } from '../rules/types';
 import { fill, money } from './dom';
 import type { MilestoneCard } from './hud';
 
@@ -42,7 +42,7 @@ export function milestoneCard(r: Reached, data: GameData, history: boolean, reco
 }
 
 export function missedText(missed: Missed, text: TextFile): string {
-  const names = missed.missing.map((s) => (s === 'camera' || s === 'drill' ? s : text.slots[s].toLowerCase()));
+  const names = missed.missing.map((s) => (s in text.instrumentText ? s : text.slots[s as BusSlot].toLowerCase()));
   return fill(text.milestone.notCredited, { name: missed.milestone.name, missing: names.join(text.ticket.and) });
 }
 

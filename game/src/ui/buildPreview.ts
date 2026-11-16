@@ -4,8 +4,8 @@
 // turntable turns slowly by itself and can be dragged (mouse or touch). Reduced motion: no turning
 // by itself and instant swaps. Presentation only; nothing here is a rule.
 import * as THREE from 'three';
-import type { Part, RoverHandling, Slot } from '../rules/types';
-import { buildRoverModel, roverLook, type RoverModel } from '../rover/roverModel';
+import type { Part, RoverHandling } from '../rules/types';
+import { buildRoverModel, roverLook, type ModelGroup, type RoverModel } from '../rover/roverModel';
 
 // Look and motion. Presentation settings, not game rules.
 const MAX_PIXEL_RATIO = 2;
@@ -272,16 +272,16 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
   }
 
   // --- The model: rebuilt for every change of parts; the changed parts snap in. ---
-  let model: { root: THREE.Group; slots: Map<Slot, THREE.Object3D> } | null = null;
-  let shownIds = new Map<Slot, string>();
+  let model: { root: THREE.Group; slots: Map<ModelGroup, THREE.Object3D> } | null = null;
+  let shownIds = new Map<ModelGroup, string>();
   let firstShow = true;
   let snaps: Snap[] = [];
 
-  function buildModel(parts: Part[]): { root: THREE.Group; slots: Map<Slot, THREE.Object3D> } {
+  function buildModel(parts: Part[]): { root: THREE.Group; slots: Map<ModelGroup, THREE.Object3D> } {
     const built: RoverModel = buildRoverModel(handling, connectY, roverLook(parts), { bySlot: true });
     const root = new THREE.Group();
     root.add(built.body);
-    const slots = new Map<Slot, THREE.Object3D>(Object.entries(built.slots) as [Slot, THREE.Group][]);
+    const slots = new Map<ModelGroup, THREE.Object3D>(Object.entries(built.slots) as [ModelGroup, THREE.Group][]);
     if (built.wheels.length) {
       const wheels = new THREE.Group();
       const corners: [number, number][] = [
@@ -332,7 +332,12 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
 
   function show(parts: Part[]): void {
     if (stopped) return;
-    const ids = new Map(parts.map((p) => [p.slot, p.id]));
+    // Each bus slot, and each instrument in the bay, is one group: a new or changed one snaps in.
+    const group = (p: Part): ModelGroup | undefined => (p.slot === 'instrument' ? p.effects.instrument : p.slot);
+    const ids = new Map(parts.flatMap((p): [ModelGroup, string][] => {
+      const g = group(p);
+      return g ? [[g, p.id]] : [];
+    }));
     const same = ids.size === shownIds.size && [...ids].every(([slot, id]) => shownIds.get(slot) === id);
     if (same && model) return;
     const changed = [...ids].filter(([slot, id]) => shownIds.get(slot) !== id).map(([slot]) => slot);

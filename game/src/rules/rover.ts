@@ -1,4 +1,4 @@
-import type { Build, DraftBuild, Milestone, Part, PartsFile, Slot } from './types';
+import type { BusSlot, Build, DraftBuild, Milestone, Part, PartsFile, Slot } from './types';
 
 export interface RoverTotals {
   cost: number;
@@ -6,29 +6,39 @@ export interface RoverTotals {
   size: number;
 }
 
-/** The selected part objects for a build, in slot order. Throws on an unknown or mismatched part id. */
+/**
+ * The selected part objects for a build: the bus parts in slot order, then the payload bay's
+ * instruments in bay order, as one flat list. Throws on an unknown or mismatched part id.
+ * Bay capacity and duplicates are not checked here (see payloadProblems in payload.ts).
+ */
 export function selectedParts(build: Build, catalog: PartsFile): Part[] {
-  return catalog.slots.map((slot) => {
-    const part = catalog.parts.find((p) => p.id === build[slot]);
-    if (!part) throw new Error(`unknown part "${build[slot]}" in slot ${slot}`);
+  const find = (id: string, slot: Slot): Part => {
+    const part = catalog.parts.find((p) => p.id === id);
+    if (!part) throw new Error(`unknown part "${id}" in slot ${slot}`);
     if (part.slot !== slot) throw new Error(`part ${part.id} does not belong in slot ${slot}`);
     return part;
-  });
+  };
+  return [...catalog.slots.map((slot) => find(build[slot], slot)), ...build.payload.map((id) => find(id, 'instrument'))];
 }
 
-/** The slots of a draft build that have no part chosen yet, in slot order. */
+/**
+ * What a draft build still needs, in slot order: the empty bus slots, then 'instrument' while the
+ * payload bay is not confirmed (an empty bay counts once the player has confirmed it).
+ */
 export function missingSlots(build: DraftBuild, catalog: PartsFile): Slot[] {
-  return catalog.slots.filter((slot) => !build[slot]);
+  const bus: Slot[] = catalog.slots.filter((slot) => !build[slot]);
+  return build.payload === undefined ? [...bus, 'instrument'] : bus;
 }
 
 export function isCompleteBuild(build: DraftBuild, catalog: PartsFile): build is Build {
   return missingSlots(build, catalog).length === 0;
 }
 
-/** The chosen parts of a draft build, in slot order, skipping empty slots. */
+/** The chosen parts of a draft build, as selectedParts orders them, skipping empty slots. */
 export function chosenParts(build: DraftBuild, catalog: PartsFile): Part[] {
-  const chosen = Object.fromEntries(catalog.slots.filter((s) => build[s]).map((s) => [s, build[s]!]));
-  return selectedParts(chosen as Build, { ...catalog, slots: catalog.slots.filter((s) => build[s]) });
+  const slots = catalog.slots.filter((s) => build[s]);
+  const chosen = { ...Object.fromEntries(slots.map((s) => [s, build[s]!])), payload: build.payload ?? [] };
+  return selectedParts(chosen as Build, { ...catalog, slots });
 }
 
 export function roverTotals(parts: Part[]): RoverTotals {
@@ -45,16 +55,14 @@ export function isChassisOverloaded(parts: Part[]): boolean {
   return roverTotals(parts).mass > chassis.effects.maxLoad;
 }
 
-/** Does the part in this slot actually provide its capability? (A future "none" option would not.) */
-function slotProvidesCapability(part: Part, slot: Slot): boolean {
+/** Does the part in this slot actually provide its capability? ("No lights" and "No heater" do not.) */
+function slotProvidesCapability(part: Part, slot: BusSlot): boolean {
   const e = part.effects;
   switch (slot) {
     case 'lights':
       return (e.lightRange ?? 0) > 0;
     case 'heater':
       return (e.heat ?? 0) > 0;
-    case 'instrument':
-      return e.instrument !== undefined;
     default:
       return true;
   }
@@ -71,9 +79,9 @@ export function meetsRequirements(parts: Part[], milestone: Milestone): boolean 
   return true;
 }
 
-/** The cheapest option in each slot. */
+/** The cheapest option in each bus slot, with an empty payload bay. */
 export function cheapestBuild(catalog: PartsFile): Build {
-  const build = {} as Build;
+  const build = { payload: [] as string[] } as Build;
   for (const slot of catalog.slots) {
     const options = catalog.parts.filter((p) => p.slot === slot).sort((a, b) => a.cost - b.cost);
     build[slot] = options[0]!.id;

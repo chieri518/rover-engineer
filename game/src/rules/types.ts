@@ -2,11 +2,15 @@
 import type { DamageCause } from './damage';
 import type { DustStormSpec, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
 
-export type Slot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater' | 'instrument';
-export type Instrument = 'camera' | 'drill';
+/** The rover's bus: one part per slot. */
+export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
+/** A part's catalog category: a bus slot, or 'instrument' for the payload bay (which holds a list). */
+export type Slot = BusSlot | 'instrument';
+export type Instrument = 'camera' | 'drill' | 'neutron' | 'xray' | 'seismometer' | 'reflector';
 
 export interface PartEffects {
   maxLoad?: number; // chassis: kg of total rover mass it can carry
+  mountingPoints?: number; // chassis: instruments the payload bay can hold (one point each)
   baseSpeed?: number; // wheels: m/s
   grip?: number; // wheels: 0..1, higher = less slip
   energyPerMeter?: number; // wheels: energy per meter at reference mass
@@ -14,7 +18,15 @@ export interface PartEffects {
   batteryCapacity?: number; // battery: energy units
   lightRange?: number; // lights: meters
   heat?: number; // heater: heat units, slows freezing
-  instrument?: Instrument; // instrument slot
+  instrument?: Instrument; // instrument parts (payload bay)
+  energyPerUse?: number; // instrument: energy each use costs (absent: none)
+  standbyEnergy?: number; // instrument: energy per second while switched on, not while powered down (absent: no standby; the instrument is a switch when it has one)
+  useSeconds?: number; // instrument: mission seconds the rover holds still for each use (absent: instant)
+  deploy?: boolean; // instrument: a use sets the part down on the ground for good; its mass leaves the rover
+  shadowHoldFactor?: number; // instrument: the hold time is multiplied by this (0..1) while the rover is in shadow (sunlight below tuning.instruments.shadowSunlight)
+  coldTolerant?: boolean; // instrument: exempt from the cold slowdown (its sensor head sits outside the warm body)
+  needsEarth?: boolean; // instrument: usable only where Earth is above the terrain horizon from the rover
+  needsBoulder?: boolean; // instrument: usable only with a boulder within tuning.instruments.xray.reachM
 }
 
 export interface Part {
@@ -29,7 +41,7 @@ export interface Part {
 }
 
 export interface PartsFile {
-  slots: Slot[];
+  slots: BusSlot[]; // the bus slots; instrument parts go in the payload bay instead
   parts: Part[];
 }
 
@@ -61,8 +73,8 @@ export type MilestoneTrigger =
   | MarsMilestoneTrigger;
 
 export interface MilestoneRequirements {
-  slots?: Slot[]; // the part in each slot must have a non-zero capability effect
-  instrument?: Instrument;
+  slots?: BusSlot[]; // the part in each slot must have a non-zero capability effect
+  instrument?: Instrument; // some part in the payload bay must provide it
 }
 
 export interface Milestone {
@@ -178,6 +190,28 @@ export interface Tuning {
   /** Mars only (data/mars/tuning.json): the sol clock and the night. See rules/marsTypes.ts. */
   sol?: SolTuning;
   night?: NightTuning;
+  instruments: InstrumentTuning;
+}
+
+/** How the instruments behave in a mission (rules/mission.ts, rules/instruments.ts). */
+export interface InstrumentTuning {
+  coldSlowdown: number; // an instrument's hold time is multiplied by this in a cold zone on a rover without a heater (cold-tolerant parts excepted)
+  shadowSunlight: number; // the rover counts as in shadow below this sunlight share (shadowHoldFactor)
+  stationOffsetM: number; // a deployed station is set down this far to the rover's left (from its center)
+  neutron: {
+    iceRangeM: number; // in permanent shadow, the hydrogen signal falls from 1 at the ice spot's center to 0 at this distance
+    coldBackground: number; // the reading anywhere in permanent shadow (0..1): a little hydrogen in every cold trap
+    noiseFloor: number; // the reading on ordinary ground (0..1)
+    jitter: number; // the live reading wobbles by up to this much (counting noise)
+  };
+  xray: {
+    reachM: number; // a boulder counts when its surface is this close to the rover's center
+    rocks: { id: string; weight: number }[]; // placeholder rock types, picked per boulder by weight (names in text.json rocks)
+  };
+  seismometer: {
+    recordWindowSeconds: number; // the station records the ground for this long before the moonquake
+    quietDistanceM: number; // the rover driving closer than this during the window makes the trace noisy
+  };
 }
 
 /** Zone sizes and actions for the milestones (zones come from terrain.json features). */
@@ -189,16 +223,12 @@ export interface MilestoneTuning {
   partialCrossingHint: boolean; // leaving a boulder field short of a crossing shows a notice, once per field (off: silent)
   craterDescentDepthM: number; // de Gerlache's inner wall: at least this far below the landing point...
   craterDescentExitDepthM: number; // ...and back out: climb back above this depth below landing
-  drillSeconds: number; // mission seconds the rover stands still while drilling
   albumMax: number; // photos kept per mission
   photoFrameMargin: number; // Earth counts as in view inside this share of the frame (NDC)
   sampleMinDistanceM: number; // drill samples count only this far from the landing point (ground the lander disturbed)
   sampleSpacingM: number; // a staged sample milestone counts a new site only this far from earlier sites
   earthPhotoMinLit: number; // the Earth photo counts only when at least this share of Earth's disc is lit (its phase)
   earthPhotoMinDistanceM: number; // ...and only this far from the landing point, so it is not free at the start
-  hydrogenSignal: boolean; // drill samples in the dark crater report a hydrogen signal that grows nearer the ice (off: no clue)
-  hydrogenStrongWithinM: number; // "strong" within this distance of the ice spot center...
-  hydrogenModerateWithinM: number; // ..."moderate" within this one, "weak" farther away
 }
 
 /** Orbital survey leads: rough bearings to areas of interest, given at the landing briefing. */
@@ -294,13 +324,20 @@ export interface SharedTextFile {
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
-    | 'previewLabel' | 'previewEmpty', // the live 3D build preview (aria label, empty-state hint)
+    | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
+    | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
+    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentNoMilestones' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
     string
   > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
   ticket: Record<
     'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
     string
   >;
+  review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'blocked' | 'hardBlock', string>; // the pre-launch review on the ticket screen
+  notebook: Record<
+    | 'open' | 'openTitle' | 'openMission' | 'unread' | 'heading' | 'count' | 'intro' | 'empty' | 'answers' | 'source' | 'newBadge' | 'close' | 'closeHint',
+    string
+  >; // the engineering notebook
   landing: Record<'heading' | 'briefing', string>;
   survey: Record<
     | 'heading' | 'intro' | 'lead' | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName' | 'loading',
@@ -325,7 +362,9 @@ export interface SharedTextFile {
   debrief: Record<
     | 'heading' | 'survived' | 'failedRound' | 'passedRound' | 'cause' | 'rollover' | 'milestonesHeading' | 'noMilestones'
     | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
-    | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue',
+    | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue'
+    | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
+    | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource', // "What the rover taught us": the relationships met
     string
   >;
   causes: Record<DeathCause, string>;
@@ -341,17 +380,20 @@ export interface SharedTextFile {
   >;
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
-    | 'cameraControls' | 'drillControls' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
-    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drilling' | 'drillMoving' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'
-    | 'captionEarth' | 'captionDay' | 'captionSurface',
+    | 'buttonsLabel' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull'
+    | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'
+    | 'captionEarth' | 'captionDay' | 'captionSurface'
+    | 'holding' | 'useMoving' | 'usePoweredDown' | 'useBusy' | 'useNoEnergy' | 'useSlowCold' | 'useFastShadow' | 'useDeployed'
+    | 'useNoEarth' | 'useNoBoulder' | 'standbyLowEnergy' | 'standbyOff' | 'standbyOn' | 'standbyAutoOff' | 'deployedButton'
+    | 'hydrogenMeter' | 'earthLight' | 'earthInView' | 'earthHidden' | 'xrayResult' | 'xrayAgain' | 'xrayNoTarget' | 'seismometerDeployed' | 'reflectorDeployed'
+    | 'quakeClean' | 'quakeNoisy' | 'quakeMissed' | 'quakeTrace' | 'boulderHint' | 'neutronHint',
     string
   >;
+  /** Per instrument: HUD button, controls line, refusal when not carried, and the history fact shown on first use. */
+  instrumentText: Record<Instrument, InstrumentText>;
+  /** X-ray spectrometer rock types (placeholder content), keyed by tuning.instruments.xray.rocks ids. */
+  rocks: Record<string, { name: string; elements: string }>;
   settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'back', string>;
-  drill: Record<
-    | 'searchHintHydrogen' | 'hydrogenSignal' | 'hydrogenWeak' | 'hydrogenModerate' | 'hydrogenStrong'
-    | 'hydrogenHistory' | 'hydrogenSource',
-    string
-  >;
   tutorial: Record<
     | 'label' | 'designHeading' | 'driveHeading' | 'help' | 'helpDesign' | 'helpDrive'
     | 'next' | 'back' | 'skip' | 'done' | 'step' | 'reopen' | 'tierItem' | 'tierJoin',
@@ -361,7 +403,7 @@ export interface SharedTextFile {
     | 'open' | 'heading' | 'intro' | 'disclaimer'
     | 'terrain' | 'imagery' | 'spaceWeather' | 'soil' | 'milestones' | 'debrief' | 'generatedHeading' | 'generated'
     | 'loading' | 'loadFailed' | 'imageryFallback' | 'provider' | 'imageCredit' | 'license' | 'productPage'
-    | 'flaresUsed' | 'speedLabel' | 'drillHydrogenLabel' | 'survivedLabel' | 'back',
+    | 'flaresUsed' | 'speedLabel' | 'instrumentsLabel' | 'relationshipsLabel' | 'survivedLabel' | 'back',
     string
   > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
 }
@@ -369,11 +411,21 @@ export interface SharedTextFile {
 /** text.json, with the Mars-only sections that data/mars/text.json adds. */
 export type TextFile = SharedTextFile & Partial<MarsTextSections>;
 
+/** An instrument's mission text. {key} is its mission key; controls may also use {energy} and {standby}. */
+export interface InstrumentText {
+  button: string; // HUD button label
+  controls: string; // the controls line under the HUD buttons
+  notCarried: string; // the notice when it is used on a rover that does not carry it
+  holding?: string; // the hint while the rover holds still for it (default: instruments.holding)
+  fact?: string; // one real-history sentence, shown on first use when Mission history is on
+  source?: string; // where the fact comes from (credits)
+}
+
 /** One page of a tutorial. {name} placeholders are filled from the game data. */
 export interface TutorialPage {
   title: string;
   body: string[]; // one paragraph per entry
-  instrument?: Partial<Record<Instrument, string>>; // shown only for the equipped instrument
+  instrument?: Partial<Record<Instrument, string>>; // shown only for the instruments carried, in bay order; {key} is the mission key
 }
 
 /** A hand-written credits entry, for sources with no metadata in the data files. */
@@ -391,12 +443,54 @@ export interface GameData {
   tuning: Tuning;
   events: EventsFile;
   text: TextFile;
+  relationships: RelationshipsFile;
 }
 
-/** A rover build: one part id per slot. */
-export type Build = Record<Slot, string>;
-/** A build on the design screen: a new campaign starts with every slot empty. */
-export type DraftBuild = Partial<Build>;
+/** The kinds of relationship between parts (rover-engineering-design.md, section 10). */
+export type RelationshipKind = 'needs' | 'conditions' | 'conflicts' | 'shares' | 'wear';
+
+/** The pre-launch review's status colors: fine, a risk to plan around, something will not work. */
+export type ReviewColor = 'green' | 'yellow' | 'red';
+
+/** What the player reads when a relationship happens: the mission notice, the debrief's why, the answers. */
+export interface RelationshipLesson {
+  notice: string; // shown in the mission the first time it happens (placeholders from FIRED_RELATIONSHIPS, filled by the mission screen)
+  debrief: string; // what happened and why, for the debrief and the notebook
+  answers: string[]; // at least two ways to solve it
+}
+
+/**
+ * One relationship between parts. When it happens, and which builds trigger it, is code in
+ * rules/relationships.ts, keyed by id; the text and the review color live here. A hard block
+ * (`hardBlock`) is red and the pre-launch review always shows it for a build that triggers it, even
+ * before it is discovered. Every relationship the mission fires has a lesson and a real fact.
+ */
+export interface Relationship extends Partial<RelationshipLesson> {
+  id: string;
+  world: 'moon';
+  kind: RelationshipKind;
+  name: string; // a short title, for the debrief, the notebook and the review
+  parts: string[]; // part ids involved (the cause at the desk)
+  review: ReviewColor;
+  reviewText: string; // the pre-launch review's line (without the color word; the review shows the color)
+  reviewSolved?: string; // the review's line when the build carries the answer (shown green)
+  hardBlock?: boolean;
+  fact?: string; // the real mission behind it (debrief with Mission history on; always in the notebook)
+  source?: string;
+}
+
+/** data/relationships.json */
+export interface RelationshipsFile {
+  relationships: Relationship[];
+}
+
+/** A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order). */
+export type Build = Record<BusSlot, string> & { payload: string[] };
+/**
+ * A build on the design screen: a new campaign starts with every slot empty. `payload` undefined: the
+ * player has not confirmed the bay yet; `[]`: a confirmed empty bay.
+ */
+export type DraftBuild = Partial<Record<BusSlot, string>> & { payload?: string[] };
 
 /**
  * data/balance.json: the offline win-path analysis (rules/winPaths.ts). Drive legs between milestone
@@ -452,8 +546,9 @@ export interface RouteLeg {
 
 export interface PlanStop {
   node: string;
-  use?: boolean; // use the instrument here: a photo, or a drill sample
-  waitUntil?: number; // wait here (parked) until this mission second before using the instrument
+  use?: Instrument[]; // use these instruments here, in this order, each only if the build carries it (a held use parks the rover until it is done)
+  standby?: Instrument[]; // switch these standby instruments on (all others off) when leaving this stop, or once its uses are done at the last stop; ones the build does not carry are skipped
+  waitUntil?: number; // wait here (parked) until this mission second before using the instruments
 }
 
 export interface RoutePlan {

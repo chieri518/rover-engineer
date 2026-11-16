@@ -19,6 +19,7 @@ import { MARS_GROUND_HEX, marsLook, type MarsLook } from './marsLook';
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
+import { createStationMesh, disposeStationMesh } from './stations';
 import { RoverVehicle } from '../rover/vehicle';
 import { KeyboardInput } from '../rover/input';
 import type { DriveInput } from '../rover/vehicle';
@@ -100,6 +101,12 @@ export interface MoonScene {
   stopClock(): void;
   /** Pause or resume physics and mission time (e.g. while the tutorial is open). The view keeps drawing. */
   setPaused(paused: boolean): void;
+  /**
+   * Set a seismometer station or a laser retroreflector down on the ground beside the rover
+   * (tuning.instruments.stationOffsetM to its left, level with the body), drop its part from the rover's model, and drive on with
+   * the new build's mass and speed. Returns the station's ground position (terrain coordinates).
+   */
+  deploy(instrument: 'seismometer' | 'reflector', params: RoverParams, parts: Part[]): { x: number; z: number };
   /** Switch the floodlights (if the rover has them). */
   setFloodlights(on: boolean): void;
   /** Dust-storm haze, 0 (clear) to 1 (peak storm); the view eases toward it. Mars only (ignored on the Moon). */
@@ -249,9 +256,19 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     lamp.target.position.set(tuning.rover.body.lengthM / 2 + 10, mars ? -MARS_FLOODLIGHT.targetDrop : -1.2, 0);
     rover.object.add(lamp, lamp.target);
   }
+  const stations: THREE.Group[] = [];
+  let currentTopSpeed = opts.rover.topSpeed;
+  const patchObject = (object: THREE.Object3D) => {
+    object.traverse((obj) => {
+      if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshLambertMaterial) {
+        patchMoonLighting(obj.material, lightUniforms, false);
+      }
+    });
+  };
   const boulders = new Boulders(rapier, world, opts.boulderAreas ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
   patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, photometry);
   scene.add(boulders.mesh);
+  const earthAzimuthRad = (tuning.earth.azimuthDeg * Math.PI) / 180;
   const input = new KeyboardInput();
   const chase = new ChaseCamera(camera, (x, z) => terrain.heightAt(x, z));
 
@@ -510,7 +527,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
             y: p.y,
             z: p.z,
             speed: rover.speed,
-            topSpeed: opts.rover.topSpeed,
+            topSpeed: currentTopSpeed,
             forward: { x: f.x, y: f.y, z: f.z },
             wheelsInContact: rover.wheelsInContact,
           },
@@ -530,6 +547,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     },
     setPaused(p: boolean) {
       paused = p;
+      if (p) input.clear();
     },
     setStorm(intensity: number) {
       stormTarget = Math.min(1, Math.max(0, Number.isFinite(intensity) ? intensity : 0));
@@ -557,8 +575,33 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       const inFrame = ndc.z < 1 && Math.abs(ndc.x) <= frameMargin && Math.abs(ndc.y) <= frameMargin;
       return inFrame && horizonMarginTan(terrain, c.x, c.z, c.y, dir) > 0;
     },
+    deploy(instrument, params, parts) {
+      // To the rover's left (-z in the chassis frame), where the chase camera sees it.
+      const left = new THREE.Vector3(0, 0, -1).applyQuaternion(rover.object.quaternion);
+      left.y = 0;
+      left.normalize();
+      const x = rover.position.x + left.x * tuning.instruments.stationOffsetM;
+      const z = rover.position.z + left.z * tuning.instruments.stationOffsetM;
+      const station = createStationMesh(instrument);
+      station.position.set(x, fine.sample(x, z), z);
+      // Facing +x locally: the reflector toward Earth, the seismometer (round) like the rover.
+      const f = rover.forward(new THREE.Vector3());
+      const heading = instrument === 'reflector' ? Math.PI / 2 - earthAzimuthRad : Math.atan2(-f.z, f.x);
+      station.rotation.y = heading;
+      patchObject(station);
+      scene.add(station);
+      stations.push(station);
+      rover.setBuild(params, parts);
+      currentTopSpeed = params.topSpeed;
+      patchObject(rover.object);
+      return { x, z };
+    },
     dispose() {
       disposed = true;
+      for (const station of stations) {
+        station.removeFromParent();
+        disposeStationMesh(station);
+      }
       cancelAnimationFrame(frame);
       observer.disconnect();
       input.dispose();

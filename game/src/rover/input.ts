@@ -23,6 +23,11 @@ export class KeyboardInput {
     window.addEventListener('blur', this.onBlur);
   }
 
+  /** Forget every held key (the mission is paused by an overlay, which swallows the key-ups). */
+  clear(): void {
+    this.down.clear();
+  }
+
   read(): DriveInput {
     if (this.override) return this.override;
     const k = (a: string, b: string) => (this.down.has(a) || this.down.has(b) ? 1 : 0);

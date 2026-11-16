@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buyRover, canStartMission, finishMission, newCampaign, nextMission, normalizeCampaign, restartRound, startRound } from './campaign';
+import { buyRover, canStartMission, finishMission, newCampaign, nextMission, normalizeCampaign, recordLessons, restartRound, startRound } from './campaign';
 import { testMilestones, testParts, testTiers, testTuning } from './testData';
 import type { Build, GameData } from './types';
 
@@ -11,7 +11,7 @@ const data = {
 } as GameData;
 
 const build: Build = {
-  chassis: 'steel', wheels: 'solid', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', instrument: 'camera',
+  chassis: 'steel', wheels: 'solid', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', payload: ['camera'],
 };
 
 describe('campaign', () => {
@@ -72,6 +72,33 @@ describe('campaign', () => {
     const second = finishMission(first.state, { survived: true, secondsLasted: 300, earned: [{ id: 'touchdown' }] }, data);
     expect(second.payout.milestoneMoney).toBe(0);
     expect(second.state.records).toEqual(['touchdown']);
+  });
+
+  it('a new campaign starts with an empty notebook', () => {
+    expect(newCampaign(testTuning).notebook).toEqual([]);
+  });
+
+  it('finishing a mission adds the relationships met to the notebook, once each, in the order met', () => {
+    let s = startRound({ ...newCampaign(testTuning), notebook: ['xray-cold'] });
+    s = buyRover(s, build, 545);
+    const out = finishMission(s, {
+      survived: true, secondsLasted: 300, earned: [],
+      relationships: [{ id: 'cold-dark' }, { id: 'xray-cold' }, { id: 'seismometer-quiet' }],
+    }, data);
+    expect(out.state.notebook).toEqual(['xray-cold', 'cold-dark', 'seismometer-quiet']);
+    // A result without relationships leaves the notebook as it was.
+    expect(finishMission(out.state, { survived: true, secondsLasted: 300, earned: [] }, data).state.notebook).toEqual(out.state.notebook);
+  });
+
+  it('a failed round still adds to the notebook, and the restart keeps it (it is not in the snapshot)', () => {
+    let s = startRound(newCampaign(testTuning));
+    expect(s.snapshot).not.toHaveProperty('notebook');
+    s = buyRover(s, build, 700);
+    const out = finishMission(s, { survived: false, cause: 'froze', secondsLasted: 30, earned: [], relationships: [{ id: 'cold-dark' }] }, data);
+    expect(out.failed).toBe(true);
+    const restarted = startRound(restartRound(out.state));
+    expect(restarted.balance).toBe(750);
+    expect(restarted.notebook).toEqual(['cold-dark']);
   });
 
   it('the snapshot is not changed by later mutations', () => {
@@ -147,5 +174,24 @@ describe('campaign', () => {
     expect(s.snapshot).toEqual({ balance: 900, rp: 0, records: [] });
     const current = startRound(newCampaign(testTuning));
     expect(normalizeCampaign(current)).toBe(current);
+  });
+});
+
+describe('recordLessons', () => {
+  it('merges new ids into the notebook only, once each, leaving everything else alone', () => {
+    const s = buyRover(startRound(newCampaign(testTuning)), build, 545);
+    const next = recordLessons(s, ['cold-dark', 'no-lights', 'cold-dark']);
+    expect(next.notebook).toEqual(['cold-dark', 'no-lights']);
+    expect({ ...next, notebook: [] }).toEqual({ ...s, notebook: [] });
+    expect(next.snapshot).toBe(s.snapshot);
+    expect(recordLessons(next, ['no-lights', 'xray-cold']).notebook).toEqual(['cold-dark', 'no-lights', 'xray-cold']);
+  });
+
+  it('returns the same state when nothing is new, and finishMission stays idempotent after it', () => {
+    const s = recordLessons(startRound(newCampaign(testTuning)), ['no-lights']);
+    expect(recordLessons(s, ['no-lights'])).toBe(s);
+    expect(recordLessons(s, [])).toBe(s);
+    const out = finishMission(s, { survived: true, secondsLasted: 1, earned: [], relationships: [{ id: 'no-lights' }, { id: 'cold-dark' }] } as never, data);
+    expect(out.state.notebook).toEqual(['no-lights', 'cold-dark']);
   });
 });

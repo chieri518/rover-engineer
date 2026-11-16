@@ -1,5 +1,6 @@
 import type { Build, CampaignStep, GameData, HistoryKey, MissionId, Tuning } from './types';
 import { missionPayout, type MissionResult, type Payout } from './payout';
+import { addToNotebook, metIds } from './relationships';
 
 /** What a restart restores: balance, RP, and records, as they were at the start of the round. */
 export interface CampaignSnapshot {
@@ -18,6 +19,11 @@ export interface CampaignState {
   lastBuild: Build | null; // convenience: the design screen starts from the last build
   /** One entry per passed mission, for the campaign summary at the end. Optional: older saves have none. */
   log?: MissionLogEntry[];
+  /**
+   * The engineering notebook: relationship ids discovered, in the order discovered. Not part of the
+   * snapshot, so a restart keeps it: what a failed run taught carries over (game-design.md, section 3).
+   */
+  notebook: string[];
 }
 
 /** How a passed mission went, kept for the campaign summary. */
@@ -66,6 +72,7 @@ export function newCampaign(tuning: Tuning): CampaignState {
     snapshot: null,
     lastBuild: null,
     log: [],
+    notebook: [],
   };
 }
 
@@ -79,7 +86,7 @@ export function startRound(state: CampaignState): CampaignState {
   return { ...state, snapshot: { balance: state.balance, rp: state.rp, records: [...state.records] } };
 }
 
-/** Restart the round: restore balance, RP, and records from the snapshot. */
+/** Restart the round: restore balance, RP, and records from the snapshot. The notebook is kept. */
 export function restartRound(state: CampaignState): CampaignState {
   if (!state.snapshot) return state;
   const { balance, rp, records } = state.snapshot;
@@ -100,8 +107,9 @@ export interface RoundOutcome {
 }
 
 /**
- * Apply a mission result. The balance carries over even if negative. A passed round completes the
- * mission and moves the campaign to the next one, with that round's restart snapshot taken here.
+ * Apply a mission result. The balance carries over even if negative; the relationships met enter the
+ * notebook. A passed round completes the mission and moves the campaign to the next one, with that
+ * round's restart snapshot taken here.
  */
 export function finishMission(state: CampaignState, result: MissionResult, data: GameData): RoundOutcome {
   const payout = missionPayout(result, data.milestones.milestones, data.tuning, state.records);
@@ -114,6 +122,7 @@ export function finishMission(state: CampaignState, result: MissionResult, data:
     rp: state.rp + payout.rp,
     records: [...state.records, ...payout.newRecords],
     completed: failed ? state.completed : [...state.completed, state.mission],
+    notebook: addToNotebook(state.notebook, metIds(result.relationships ?? [])),
   };
   if (failed) return { state: newState, payout, failed };
   const entry: MissionLogEntry = {
@@ -127,4 +136,14 @@ export function finishMission(state: CampaignState, result: MissionResult, data:
   newState.log = [...(state.log ?? []).filter((e) => e.mission !== entry.mission), entry];
   if (next === null) return { state: newState, payout, failed };
   return { state: startRound({ ...newState, mission: next }), payout, failed };
+}
+
+/**
+ * A relationship met for the first time: merge it into the campaign's notebook (a lesson is saved when
+ * learned, not only at mission end). Only the notebook changes; balance, RP, records and the snapshot
+ * are untouched. Returns the same state when nothing is new.
+ */
+export function recordLessons(state: CampaignState, ids: readonly string[]): CampaignState {
+  const notebook = addToNotebook(state.notebook, ids);
+  return notebook.length === state.notebook.length ? state : { ...state, notebook };
 }

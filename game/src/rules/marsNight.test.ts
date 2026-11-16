@@ -16,12 +16,12 @@ const site = { latitudeDeg: 18.4447, longitudeDeg: 77.4508 };
 
 const base: Build = {
   chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
-  lights: 'lights-led', heater: 'heater-rhu', instrument: 'instrument-camera',
+  lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-camera'],
 };
 const builds: Record<string, Build> = {
   'cheap (fixed panel, small battery)': base,
   'big battery': { ...base, battery: 'battery-nih2' },
-  'light and fast (mast, mesh, titanium)': { ...base, chassis: 'chassis-titanium', wheels: 'wheels-mesh', power: 'power-solar-mast', instrument: 'instrument-drill' },
+  'light and fast (mast, mesh, titanium)': { ...base, chassis: 'chassis-titanium', wheels: 'wheels-mesh', power: 'power-solar-mast', payload: ['instrument-drill'] },
 };
 const withPart = (b: Build, slot: Slot, id: string): Build => ({ ...b, [slot]: id });
 

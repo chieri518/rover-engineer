@@ -15,7 +15,7 @@ describe('tutorial seen', () => {
     expect(loadTutorialSeen(store)).toEqual(unseen);
     expect(saveTutorialSeen({ moon: { design: true, drive: false }, mars: { design: false, drive: true } }, store)).toBe(true);
     expect(JSON.parse(store.getItem(TUTORIAL_KEY)!)).toEqual({ design: true, drive: false, mars: { design: false, drive: true } });
-    expect(TUTORIAL_KEY).toBe('rover-engineer.tutorial.v1');
+    expect(TUTORIAL_KEY).toBe('rover-engineer.tutorial.v2');
     expect(loadTutorialSeen(store)).toEqual({ moon: { design: true, drive: false }, mars: { design: false, drive: true } });
   });
 
@@ -23,6 +23,12 @@ describe('tutorial seen', () => {
     const store = memoryStore();
     store.setItem(TUTORIAL_KEY, JSON.stringify({ design: true, drive: true }));
     expect(loadTutorialSeen(store)).toEqual({ moon: { design: true, drive: true }, mars: none });
+  });
+
+  it('ignores a v1 save, so every tutorial shows once more', () => {
+    const store = memoryStore();
+    store.setItem('rover-engineer.tutorial.v1', JSON.stringify({ design: true, drive: true, mars: { design: true, drive: true } }));
+    expect(loadTutorialSeen(store)).toEqual(unseen);
   });
 
   it('falls back to unseen without storage, with a broken save, or when storage throws', () => {

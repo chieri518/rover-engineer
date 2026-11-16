@@ -36,7 +36,6 @@
   },
   "milestones": {
     "_note": "M5. Mars zones: the delta front (deltaFront.zoneRadius_m from terrain.json), Seitah's outline, and photoZoneRadiusM circles around the deltaLayers and sunset viewpoints. Samples: the Moon's 200 m from the lander and from each other. No hydrogen signal (no ice on Mars).",
-    "hydrogenSignal": false,
     "_sunset": "Blue sunset: the setting Sun's center between sunsetMinElevationDeg and sunsetMaxElevationDeg, in frame and not hidden by terrain, at least sunsetPhotoMinDistanceM from the lander (the Sun sets in view of the lander every sol). Widened from 10 to 15 deg at integration (M6): from the landing the crater rim is about 4.9 deg high at the sunset azimuth, so with 10 deg the Sun was in the band and above the rim only about 2.2 s per dusk; with 15 deg about 4 s.",
     "sunsetMinElevationDeg": 0,
     "sunsetMaxElevationDeg": 15,

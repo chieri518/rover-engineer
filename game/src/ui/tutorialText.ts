@@ -12,7 +12,7 @@ export interface TutorialPageText {
 export function tutorialPages(
   id: TutorialId,
   data: GameData,
-  opts: { mission: CampaignStep; instrument: Instrument | null; balance?: number },
+  opts: { mission: CampaignStep; instruments: Instrument[]; balance?: number }, // instruments: the payload bay, in bay order
 ): TutorialPageText[] {
   const { text, tuning, tiers } = data;
   const t = text.tutorial;
@@ -27,10 +27,15 @@ export function tutorialPages(
     nextMinimum: money(tuning.budget.minimumBudget[nextMission(opts.mission) ?? opts.mission], text),
   };
   return t[id].map((page) => {
-    const instrumentLine = opts.instrument ? page.instrument?.[opts.instrument] : undefined;
+    // One line per carried instrument, with its mission key (bay order).
+    const instrumentLines = opts.instruments.flatMap((inst, i) => {
+      const line = page.instrument?.[inst];
+      return line ? [fill(line, { ...vars, key: i + 1 })] : [];
+    });
     return {
       title: fill(page.title, vars),
-      paragraphs: [...(instrumentLine ? [instrumentLine] : []), ...page.body].map((p) => fill(p, vars)),
+      // In the drive tutorial, a body line that mentions the bay's number keys ({bayMax}) is left out for an empty bay.
+      paragraphs: [...instrumentLines, ...page.body.filter((p) => id !== 'drive' || opts.instruments.length > 0 || !p.includes('{bayMax}')).map((p) => fill(p, vars))],
     };
   });
 }
@@ -51,6 +56,8 @@ export function missionVars(data: GameData): Record<string, string | number> {
     warningSeconds: events.flare?.warningSeconds ?? 0,
     earthMinDistance: tuning.milestones.earthPhotoMinDistanceM,
     sampleSpacing: tuning.milestones.sampleSpacingM,
+    bayMax: Math.max(0, ...data.parts.parts.map((p) => p.effects.mountingPoints ?? 0)),
+    bayMin: Math.min(...data.parts.parts.flatMap((p) => (p.effects.mountingPoints === undefined ? [] : [p.effects.mountingPoints]))),
     sunlit: text.hud.sunlit,
     shadow: text.hud.shadow,
     revealRadius: tuning.explore.revealRadiusM,

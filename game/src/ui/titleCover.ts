@@ -34,7 +34,7 @@ const COVER_LOOK: RoverLook = {
   battery: 'pack',
   lights: true,
   heater: true,
-  instrument: 'camera',
+  instruments: ['camera'],
 };
 
 function seeded(seed: number): () => number {

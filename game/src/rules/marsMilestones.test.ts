@@ -4,7 +4,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import jezero from '../../public/terrain/mars/terrain.json';
-import { buildZones, distanceToPath, hydrogenSignal, MilestoneTracker, PHOTO_ZONE_IDS, zoneContains, type MilestoneFeatures, type Point3, type SunPhoto } from './milestones';
+import { buildZones, distanceToPath, MilestoneTracker, PHOTO_ZONE_IDS, zoneContains, type MilestoneFeatures, type Point3, type SunPhoto } from './milestones';
 import { buildLeads, buildSites, discover, distanceToArea, leadBearing, nearestOnPath, type SurveyFeatures } from './survey';
 import { selectedParts } from './rover';
 import { validateGameData } from './validate';
@@ -27,9 +27,9 @@ const zone = (id: string) => zones.find((z) => z.id === id)!;
 
 const camera: Build = {
   chassis: 'chassis-titanium', wheels: 'wheels-mesh', power: 'power-fixed-panel', battery: 'battery-li-ion',
-  lights: 'lights-led', heater: 'heater-rhu', instrument: 'instrument-camera',
+  lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-camera'],
 };
-const drill: Build = { ...camera, instrument: 'instrument-drill' };
+const drill: Build = { ...camera, payload: ['instrument-drill'] };
 const noLights: Build = { ...camera, lights: 'lights-none' };
 
 function tracker(build: Build) {
@@ -210,9 +210,7 @@ describe('Blue sunset', () => {
 });
 
 describe('Moon-only behaviors are off on Mars', () => {
-  it('no hydrogen signal, no Earth photo, no ice', () => {
-    expect(t.hydrogenSignal).toBe(false);
-    expect(hydrogenSignal(at(L.x + 500, L.z), zones, { ...t, hydrogenSignal: true })).toBeNull();
+  it('no Earth photo, no ice', () => {
     const tr = tracker(camera);
     expect(ids(tr.photo(far, true, 1))).toEqual([]); // Earth "in view" earns nothing on Mars
   });

@@ -1,11 +1,17 @@
 // The rover's look, built from three.js primitives and shaped by the selected parts: a titanium or
 // steel frame, solid or wire-mesh wheels, a flat solar panel or a vertical solar mast, the battery
-// pack, floodlights, the heater's gold thermal blanket, and a camera mast or a regolith drill.
+// pack, floodlights, the heater's gold thermal blanket, and the payload bay's instruments: a camera
+// mast and a regolith drill at the front, a neutron spectrometer and an X-ray spectrometer arm under
+// the body, a seismometer station and a laser retroreflector carried on the deck, each in its own
+// place, so any mix can be drawn. The two deployables are also drawn on the ground by world/stations.ts.
 // Visual only: the physics body stays the box and four ray-cast wheels in vehicle.ts.
 // A draft build (design screen preview) shows only the parts chosen so far.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import type { Part, RoverHandling, Slot } from '../rules/types';
+import type { BusSlot, Instrument, Part, RoverHandling } from '../rules/types';
+
+/** How the model groups its static parts: one group per bus slot, and one per instrument in the bay. */
+export type ModelGroup = BusSlot | Instrument;
 
 /** What the model shows, read from the selected parts. `null` / `false`: nothing drawn for that slot. */
 export interface RoverLook {
@@ -15,7 +21,7 @@ export interface RoverLook {
   battery: 'cylinders' | 'pack' | null;
   lights: boolean;
   heater: boolean;
-  instrument: 'camera' | 'drill' | null;
+  instruments: Instrument[]; // the payload bay, in bay order (empty: no instruments drawn)
 }
 
 /** The look for the chosen parts; a slot with no part shows nothing. A complete build fills every field. */
@@ -32,7 +38,7 @@ export function roverLook(parts: Part[]): RoverLook {
     battery: pick('battery', (id) => (id.includes('nih2') ? 'cylinders' : 'pack')),
     lights: (bySlot('lights')?.effects.lightRange ?? 0) > 0,
     heater: (bySlot('heater')?.effects.heat ?? 0) > 0,
-    instrument: bySlot('instrument')?.effects.instrument ?? null,
+    instruments: parts.flatMap((p) => (p.slot === 'instrument' && p.effects.instrument ? [p.effects.instrument] : [])),
   };
 }
 
@@ -42,14 +48,15 @@ export interface RoverModel {
   /** One per wheel, in the vehicle's wheel order: `wheel` follows suspension and steering, `spin` rolls. */
   wheels: { wheel: THREE.Object3D; spin: THREE.Object3D }[];
   /**
-   * With `bySlot`: the static parts of each slot as its own group (the children of `body`), so a
-   * preview can animate one part. The wheels belong to the wheels slot. Empty without `bySlot`.
+   * With `bySlot`: the static parts of each slot, and of each instrument, as its own group (the
+   * children of `body`), so a preview can animate one part. The wheels belong to the wheels slot.
+   * Empty without `bySlot`.
    */
-  slots: Partial<Record<Slot, THREE.Group>>;
+  slots: Partial<Record<ModelGroup, THREE.Group>>;
 }
 
 export interface RoverModelOptions {
-  /** Keep each slot's static parts in a separate group (a few more draw calls). Default: one mesh per material. */
+  /** Keep each slot's (and instrument's) static parts in a separate group (a few more draw calls). Default: one mesh per material. */
   bySlot?: boolean;
 }
 
@@ -68,6 +75,60 @@ const COLORS = {
   lamp: 0xfff6dc,
   drill: 0x8a8d92,
 };
+
+/** The seismometer station, origin at the ground: a gold-foil dome on a silver base, with three feet when set down. */
+export function seismometerGeometry(feet: boolean): { foil: THREE.BufferGeometry; metal: THREE.BufferGeometry } {
+  const lift = feet ? 0.05 : 0;
+  const base = new THREE.CylinderGeometry(0.14, 0.15, 0.03, 20);
+  base.translate(0, lift + 0.015, 0);
+  const metal: THREE.BufferGeometry[] = [base];
+  if (feet) {
+    for (let k = 0; k < 3; k++) {
+      const a = (k / 3) * Math.PI * 2 + Math.PI / 6;
+      const foot = new THREE.CylinderGeometry(0.012, 0.02, lift, 8);
+      foot.translate(Math.cos(a) * 0.12, lift / 2, Math.sin(a) * 0.12);
+      metal.push(foot);
+    }
+  }
+  const dome = new THREE.SphereGeometry(0.11, 18, 9, 0, Math.PI * 2, 0, Math.PI / 2);
+  dome.translate(0, lift + 0.03, 0);
+  const collar = new THREE.CylinderGeometry(0.115, 0.115, 0.02, 18);
+  collar.translate(0, lift + 0.04, 0);
+  const merged = mergeGeometries(metal)!;
+  metal.forEach((g) => g.dispose());
+  return { foil: mergeGeometries([dome, collar])!, metal: merged };
+}
+
+/**
+ * The laser retroreflector, origin at the ground, facing +x: a light square frame with a grid of dark
+ * corner-cube circles, tilted back by `tilt` radians from vertical-facing, on a small stand.
+ */
+export function reflectorGeometry(tilt: number): { frame: THREE.BufferGeometry; cells: THREE.BufferGeometry; stand: THREE.BufferGeometry } {
+  const size = 0.3;
+  const centerY = 0.14;
+  const place = (g: THREE.BufferGeometry) => {
+    g.rotateZ(-tilt);
+    g.translate(0, centerY, 0);
+    return g;
+  };
+  const frame = place(new THREE.BoxGeometry(size, 0.02, size));
+  const dots: THREE.BufferGeometry[] = [];
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
+    const d = new THREE.CylinderGeometry(0.026, 0.026, 0.006, 14);
+    d.translate((i - 1.5) * 0.068, 0.012, (j - 1.5) * 0.068);
+    dots.push(place(d));
+  }
+  const cells = mergeGeometries(dots)!;
+  dots.forEach((g) => g.dispose());
+  const block = new THREE.BoxGeometry(0.1, 0.06, 0.16);
+  block.translate(-0.05, 0.03, 0);
+  const strut = new THREE.BoxGeometry(0.03, 0.14, 0.03);
+  strut.translate(-0.07, 0.07, 0);
+  const stand = mergeGeometries([block, strut])!;
+  block.dispose();
+  strut.dispose();
+  return { frame, cells, stand };
+}
 
 /** A small canvas texture, drawn once per model. */
 function canvasTexture(size: number, draw: (g: CanvasRenderingContext2D, s: number) => void, repeat: [number, number]): THREE.Texture | null {
@@ -121,7 +182,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     if (!m) mats.set(key, (m = new THREE.MeshLambertMaterial(params)));
     return m;
   };
-  let slot: Slot = 'chassis'; // the slot the static parts added next belong to
+  let slot: ModelGroup = 'chassis'; // the group the static parts added next belong to
   const add = (geometry: THREE.BufferGeometry, material: THREE.Material, x: number, y: number, z: number, parent: THREE.Object3D = body) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
@@ -171,6 +232,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     }
   }
   const deckY = boxY + boxH / 2; // top of the box
+  const deckTop = look.power === 'panel' ? deckY + 0.07 : deckY + 0.02; // what deck-mounted instruments stand on
 
   // Power: a flat panel over the deck, or a vertical solar mast for a Sun on the horizon.
   const cells = (repeat: [number, number], key: string) => {
@@ -233,7 +295,8 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     }
   }
 
-  // Instrument: a tall camera mast with a stereo head, or a drill tower with a short navigation camera.
+  // Instruments, each in its own place: a tall camera mast with a stereo head near the front corner,
+  // and a drill tower at the front (with a short navigation camera when there is no camera mast).
   const cameraHead = (x: number, height: number, z: number) => {
     add(rod(0.03, height), frame, x, deckY + height / 2, z);
     add(box(0.16, 0.14, 0.4), dark, x, deckY + height + 0.06, z);
@@ -242,8 +305,9 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
       lens.rotation.z = Math.PI / 2;
     }
   };
-  slot = 'instrument';
-  if (look.instrument === 'drill') {
+  const hasCamera = look.instruments.includes('camera');
+  if (look.instruments.includes('drill')) {
+    slot = 'drill';
     const drill = mat('drill', { color: COLORS.drill });
     const dx = l / 2 + 0.08;
     const rail = 1.05;
@@ -257,9 +321,51 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     add(rod(0.022, stringLen), mat('string', { color: 0xd0d3d7 }), dx + 0.1, stringTop - stringLen / 2, 0);
     const bit = add(new THREE.ConeGeometry(0.04, 0.08, 10), dark, dx + 0.1, groundY + 0.08, 0);
     bit.rotation.z = Math.PI;
-    cameraHead(l * 0.3, 0.45, w * 0.3);
-  } else if (look.instrument === 'camera') {
+    if (!hasCamera) cameraHead(l * 0.3, 0.45, w * 0.3);
+  }
+  if (hasCamera) {
+    slot = 'camera';
     cameraHead(l * 0.32, 1.0, w * 0.28);
+  }
+
+  // Low on the body: the neutron spectrometer, a detector block on the front face between the front
+  // wheels (below the floodlights, beside the drill), and the X-ray spectrometer on the back, its
+  // sensor head on a short arm lowered toward the ground under the rear of the body.
+  const hasInstrument = (i: Instrument) => look.instruments.includes(i);
+  const casing = mat('casing', { color: 0xb4b8be });
+  if (hasInstrument('neutron')) {
+    slot = 'neutron';
+    const nx = l * 0.42;
+    add(box(0.2, 0.1, 0.34), casing, nx, 0.0, 0);
+    for (const z of [-1, 1]) {
+      const tube = add(rod(0.028, 0.14, 12), dark, nx + 0.11, 0.0, z * 0.09);
+      tube.rotation.x = Math.PI / 2;
+    }
+    add(box(0.05, 0.04, 0.3), frame, nx - 0.1, -0.06, 0);
+  }
+  if (hasInstrument('xray')) {
+    slot = 'xray';
+    const ax = -l * 0.43;
+    add(box(0.14, 0.1, 0.16), casing, ax, -0.28, 0);
+    const arm = add(rod(0.016, 0.26), frame, ax + 0.05, -0.4, 0);
+    arm.rotation.z = -0.38;
+    add(rod(0.05, 0.07, 14), dark, ax + 0.1, -0.52, 0);
+    add(rod(0.032, 0.012, 14), mat('apxs', { color: 0xc9ccd0 }), ax + 0.1, -0.563, 0);
+  }
+
+  // On the deck, until set down on the ground: the seismometer station and the laser retroreflector.
+  if (hasInstrument('seismometer')) {
+    slot = 'seismometer';
+    const g = seismometerGeometry(false);
+    add(g.metal, casing, l * 0.14, deckTop, -w * 0.22);
+    add(g.foil, foil, l * 0.14, deckTop, -w * 0.22);
+  }
+  if (hasInstrument('reflector')) {
+    slot = 'reflector';
+    const g = reflectorGeometry(0.95);
+    add(g.stand, dark, -l * 0.02, deckTop, w * 0.27);
+    add(g.frame, radiator, -l * 0.02, deckTop, w * 0.27);
+    add(g.cells, dark, -l * 0.02, deckTop, w * 0.27);
   }
 
   // Wheels with their suspension struts.
@@ -325,14 +431,14 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
  * shadow pass). With `bySlot`, one mesh per material within each slot's own group.
  */
 function mergeByMaterial(group: THREE.Group, bySlot: boolean): Pick<RoverModel, 'body' | 'slots'> {
-  const byKey = new Map<string, { slot: Slot; material: THREE.Material; geometries: THREE.BufferGeometry[] }>();
+  const byKey = new Map<string, { slot: ModelGroup; material: THREE.Material; geometries: THREE.BufferGeometry[] }>();
   for (const child of group.children) {
     if (!(child instanceof THREE.Mesh)) continue;
     child.updateMatrix();
     const g = (child.geometry as THREE.BufferGeometry).clone().applyMatrix4(child.matrix);
     child.geometry.dispose();
     const material = child.material as THREE.Material;
-    const slot = child.userData.slot as Slot;
+    const slot = child.userData.slot as ModelGroup;
     const key = bySlot ? `${slot}:${material.uuid}` : material.uuid;
     const entry = byKey.get(key) ?? { slot, material, geometries: [] };
     entry.geometries.push(g);

@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import * as THREE from 'three';
 import partsFile from '../../data/parts.json';
 import tuningFile from '../../data/tuning.json';
-import type { Part, PartsFile, RoverHandling, Slot } from '../rules/types';
-import { buildRoverModel, roverLook } from './roverModel';
+import type { Part, PartsFile, RoverHandling } from '../rules/types';
+import { buildRoverModel, roverLook, type ModelGroup } from './roverModel';
 
 const catalog = partsFile as PartsFile;
 const handling = (tuningFile as unknown as { rover: RoverHandling }).rover;
@@ -20,21 +20,25 @@ const meshCount = (obj: THREE.Object3D) => {
 describe('rover look', () => {
   it('shows nothing for an empty build', () => {
     expect(roverLook([])).toEqual({
-      frame: null, wheels: null, power: null, battery: null, lights: false, heater: false, instrument: null,
+      frame: null, wheels: null, power: null, battery: null, lights: false, heater: false, instruments: [],
     });
   });
 
   it('fills only the chosen slots of a draft build', () => {
     expect(roverLook([part('wheels-mesh'), part('power-solar-mast')])).toEqual({
-      frame: null, wheels: 'mesh', power: 'mast', battery: null, lights: false, heater: false, instrument: null,
+      frame: null, wheels: 'mesh', power: 'mast', battery: null, lights: false, heater: false, instruments: [],
     });
   });
 
   it('fills every field for a complete build', () => {
     const look = roverLook(['chassis-steel', 'wheels-solid', 'power-fixed-panel', 'battery-nih2', 'lights-led', 'heater-rhu', 'instrument-drill'].map(part));
     expect(look).toEqual({
-      frame: 'steel', wheels: 'solid', power: 'panel', battery: 'cylinders', lights: true, heater: true, instrument: 'drill',
+      frame: 'steel', wheels: 'solid', power: 'panel', battery: 'cylinders', lights: true, heater: true, instruments: ['drill'],
     });
+  });
+
+  it('lists every instrument in the bay, in bay order', () => {
+    expect(roverLook([part('chassis-steel'), part('instrument-drill'), part('instrument-camera')]).instruments).toEqual(['drill', 'camera']);
   });
 
   it('draws no lights or heater for the "none" options', () => {
@@ -54,9 +58,19 @@ describe('rover model for a draft build', () => {
 
   it('groups the static parts by slot, only for the chosen slots', () => {
     const model = buildRoverModel(handling, connectY, roverLook([part('power-fixed-panel'), part('heater-rhu'), part('wheels-mesh')]), { bySlot: true });
-    expect(Object.keys(model.slots).sort()).toEqual<Slot[]>(['heater', 'power']);
+    expect(Object.keys(model.slots).sort()).toEqual<ModelGroup[]>(['heater', 'power']);
     expect(model.wheels).toHaveLength(4);
     for (const group of Object.values(model.slots)) expect(group.parent).toBe(model.body);
+  });
+
+  it('draws the camera and the drill together, each as its own group', () => {
+    const both = buildRoverModel(handling, connectY, roverLook([part('chassis-steel'), part('instrument-camera'), part('instrument-drill')]), { bySlot: true });
+    expect(Object.keys(both.slots).sort()).toEqual<ModelGroup[]>(['camera', 'chassis', 'drill']);
+    const drillOnly = buildRoverModel(handling, connectY, roverLook([part('instrument-drill')]), { bySlot: true });
+    const cameraOnly = buildRoverModel(handling, connectY, roverLook([part('instrument-camera')]), { bySlot: true });
+    // With a camera mast aboard, the drill leaves out its own short navigation camera.
+    expect(meshCount(both.slots.drill!)).toBeLessThan(meshCount(drillOnly.slots.drill!));
+    expect(meshCount(both.slots.camera!)).toBe(meshCount(cameraOnly.slots.camera!));
   });
 
   it('keeps one mesh per material without bySlot', () => {
@@ -66,5 +80,23 @@ describe('rover model for a draft build', () => {
     expect(merged.body.children.every((c) => c instanceof THREE.Mesh)).toBe(true);
     const grouped = buildRoverModel(handling, connectY, roverLook(all), { bySlot: true });
     expect(meshCount(grouped.body)).toBeGreaterThanOrEqual(meshCount(merged.body));
+  });
+
+  it('draws each new instrument in its own group', () => {
+    for (const id of ['neutron', 'xray', 'seismometer', 'reflector'] as const) {
+      const model = buildRoverModel(handling, connectY, roverLook([part(`instrument-${id}`)]), { bySlot: true });
+      expect(Object.keys(model.slots)).toEqual([id]);
+      expect(meshCount(model.slots[id]!)).toBeGreaterThan(0);
+    }
+  });
+
+  it('builds any three instruments of the six', () => {
+    const ids = ['camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector'] as const;
+    for (let a = 0; a < 6; a++) for (let b = a + 1; b < 6; b++) for (let c = b + 1; c < 6; c++) {
+      const picked = [ids[a]!, ids[b]!, ids[c]!];
+      const look = roverLook([part('chassis-steel'), part('wheels-solid'), ...picked.map((i) => part(`instrument-${i}`))]);
+      const model = buildRoverModel(handling, connectY, look, { bySlot: true });
+      for (const i of picked) expect(model.slots[i]).toBeDefined();
+    }
   });
 });

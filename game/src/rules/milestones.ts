@@ -4,8 +4,8 @@
 // milestones reached. Required parts are enforced here. Mars adds its own zones (delta front, delta
 // layers and sunset viewpoints, Séítah), night driving, the dust storm and the sunset photo; the Moon's
 // zones, Earth photo and hydrogen signal simply never apply there. Pure: no rendering, no DOM.
-import type { Milestone, MilestoneTuning, Part, Slot } from './types';
-import type { MarsMilestoneTuning, MarsViewpointKind, MarsZoneId } from './marsTypes';
+import type { BusSlot, Instrument, Milestone, MilestoneTuning, Part } from './types';
+import type { MarsMilestoneTuning, MarsViewpointKind } from './marsTypes';
 import type { DamageCause } from './damage';
 import { milestoneStages, type EarnedMilestone } from './payout';
 import { meetsRequirements } from './rover';
@@ -27,7 +27,15 @@ export interface MilestoneFeatures {
 }
 
 /** Zone ids that milestones.json triggers refer to. */
-export type ZoneId = 'large-crater' | 'boulder-field' | 'shadowed-crater' | 'crater-wall' | 'ice-spot' | 'rim-viewpoint' | 'near-lander' | MarsZoneId;
+/**
+ * Every zone buildZones makes, the Moon's then Mars's (marsTypes.ts MarsZoneId); milestone triggers may
+ * name only these (validate.ts checks). buildZones's own zone literals fail to typecheck if one is missing.
+ */
+export const ZONE_IDS = [
+  'large-crater', 'boulder-field', 'shadowed-crater', 'crater-wall', 'ice-spot', 'rim-viewpoint', 'near-lander',
+  'delta-front', 'delta-layers', 'seitah', 'sunset-viewpoint',
+] as const;
+export type ZoneId = (typeof ZONE_IDS)[number];
 
 /** Zones where a photograph is of a place (its caption names the zone). */
 export const PHOTO_ZONE_IDS: readonly ZoneId[] = ['rim-viewpoint', 'crater-wall', 'delta-layers', 'sunset-viewpoint'];
@@ -154,23 +162,6 @@ function aroundDeg(a: Point, b: Point): number {
   return Math.acos(Math.max(-1, Math.min(1, cos))) * (180 / Math.PI);
 }
 
-export type HydrogenLevel = 'weak' | 'moderate' | 'strong';
-
-/**
- * The drill's hydrogen reading, a clue to the hidden ice spot (like LRO's LEND neutron detector, which maps
- * hydrogen from orbit): stronger nearer the ice. Only inside the dark crater, and only when the tuning flag
- * is on; otherwise null.
- */
-export function hydrogenSignal(p: Point3, zones: Zone[], t: MilestoneTuning): HydrogenLevel | null {
-  if (!t.hydrogenSignal) return null;
-  const crater = zones.find((z) => z.id === 'shadowed-crater');
-  const ice = zones.find((z) => z.id === 'ice-spot');
-  const center = ice && zoneCenter(ice);
-  if (!crater || !center || !zoneContains(crater, p)) return null;
-  const d = Math.hypot(p.x - center.x, p.z - center.z);
-  return d <= t.hydrogenStrongWithinM ? 'strong' : d <= t.hydrogenModerateWithinM ? 'moderate' : 'weak';
-}
-
 /** A milestone reached this step. For staged milestones (Odometer), `stage` counts from 1. */
 export interface Reached {
   milestone: Milestone;
@@ -181,7 +172,7 @@ export interface Reached {
 /** A trigger that fired on a rover without the required parts: not credited. */
 export interface Missed {
   milestone: Milestone;
-  missing: (Slot | 'camera' | 'drill')[];
+  missing: (BusSlot | Instrument)[];
 }
 
 export interface MilestoneUpdate {
