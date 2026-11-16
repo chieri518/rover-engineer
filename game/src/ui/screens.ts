@@ -18,6 +18,7 @@ import { renderDashboard } from './dashboard';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
 import { ticketScreen } from './ticketScreen';
+import { sound } from '../audio';
 
 const title: Screen = (game, root) => {
   const t = game.data.text.title;
@@ -116,6 +117,20 @@ const landing: Screen = (game, root) => {
   );
 };
 
+/** A volume slider (0..100 %) for a 0..1 setting; `onCommit` runs when the player lets go. */
+function volumeSlider(id: string, label: string, value: number, onInput: (v: number) => void, onCommit?: () => void): HTMLElement {
+  const shown = el('output', { for: id, class: 'volume-value' }, `${Math.round(value * 100)}%`);
+  const input = el('input', {
+    type: 'range', id, min: 0, max: 100, step: 1, value: Math.round(value * 100),
+    oninput: () => {
+      shown.textContent = `${input.value}%`;
+      onInput(Number(input.value) / 100);
+    },
+    onchange: () => onCommit?.(),
+  });
+  return el('div', { class: 'setting volume' }, el('label', { for: id }, label), input, shown);
+}
+
 const settings: Screen = (game, root) => {
   const t = game.data.text.settings;
   const box = el('input', {
@@ -124,6 +139,13 @@ const settings: Screen = (game, root) => {
     checked: game.settings.missionHistory,
     onchange: () => game.setSettings({ missionHistory: box.checked }),
   });
+  const mute = el('input', {
+    type: 'checkbox',
+    id: 'setting-muted',
+    checked: game.settings.muted,
+    onchange: () => game.setSettings({ muted: mute.checked }),
+  });
+  const stop = game.listen({ settings: (st) => void (mute.checked = st.muted) }); // the M key mutes too
   root.append(
     panel(
       el('h2', {}, t.heading),
@@ -132,9 +154,18 @@ const settings: Screen = (game, root) => {
         el('label', { for: 'setting-history' }, t.history),
         el('p', { class: 'muted' }, t.historyHelp),
       ),
+      volumeSlider('setting-music', t.music, game.settings.musicVolume, (v) => game.setSettings({ musicVolume: v })),
+      // Letting go of the effects slider plays a cue at the new level.
+      volumeSlider('setting-effects', t.effects, game.settings.effectsVolume, (v) => game.setSettings({ effectsVolume: v }), () => sound.cue('discover')),
+      el('div', { class: 'setting' },
+        mute,
+        el('label', { for: 'setting-muted' }, t.muted),
+        el('p', { class: 'muted' }, t.soundHelp),
+      ),
       el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => game.go('title') }, t.back)),
     ),
   );
+  return stop;
 };
 
 function row(label: string, value: string, cls = ''): HTMLElement {
