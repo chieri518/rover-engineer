@@ -106,7 +106,7 @@ The production build uses relative paths, so `game/dist` can be served from any 
 Areas we want to change or improve that we did not have time to finish before the challenge submission:
 
 - **Better worldbuilding, story and introduction.**
-- **Titan instruments, components and milestones.** Titan currently plays with the Moon's parts.
+- **Mars and Titan instruments, components and milestones.** Mars and Titan currently play with the Moon's parts. Planned but not implemented.
 - **Balance tuning** of the cost and reward of components and milestones.
 - **An unlock tree** for instruments and components, earned by doing science. Research points are earned but do not unlock anything yet.
 - **An improved rover engineering desk.** Show previews of each component while choosing it, not just its name.
