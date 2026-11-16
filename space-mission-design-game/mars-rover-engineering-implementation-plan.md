@@ -2,20 +2,22 @@
 
 How we build the Mars side of the engineer's desk: a Mars part catalog, a power model where the parts own their energy draws, support hardware (arm and mast), the first Mars instruments, the milestone triggers they need, and the Mars relationships. Written for our team. What the game does is defined in [game design](game-design.md) (source of truth) and the catalog in [rover engineering design](rover-engineering-design.md); this doc covers how we build it and in what order.
 
+Decisions recorded November 15, 2026.
+
 Written November 15, 2026, against `aon/merge-everything` (the merge of `chieri/mars`, `chieri/minimap` and `aon/engineer-desk`). The rules of [the first-version plan](implementation-plan.md) still apply: game numbers in `game/data/*.json`, pure rules in `game/src/rules/` with unit tests, `npm test` and `npm run build` passing before each commit.
 
-**Status: draft.** Everything below is *Proposed* until Phase 0 records it in game-design.md. The Mars part catalog, unlock tree, ticket tiers and economy are Owner A's (game-design.md open questions 3 and 8); the night, cold, dust and events are Owner B's ([The Mars mission](game-design.md#the-mars-mission)). Items that cross the line are marked **interface**. Numbers are **indicative**: they show the scale against today's parts and are settled in the balance phase; like the Moon's (Moon plan M1), they can be revisited in a later balance patch.
+**Status: draft.** Everything below is *Proposed* until Phase 0 records it in game-design.md, except M11 to M19, which are decided (see [Decisions needed](#decisions-needed)) and applied through the doc. The Mars part catalog, unlock tree, ticket tiers and economy are Owner A's (game-design.md open questions 3 and 8); the night, cold, dust and events are Owner B's ([The Mars mission](game-design.md#the-mars-mission)). Items that cross the line are marked **interface**. Numbers are **indicative**: they show the scale against today's parts and are settled in the balance phase; like the Moon's (Moon plan M1), they can be revisited in a later balance patch.
 
 **Revised November 15, 2026**, applying what we learned planning the Moon's sites and milestones ([Moon plan](moon-sites-and-milestones-plan.md)). Changed sections are marked *Revised*:
 
-- **Affordability.** Every relationship answer checked against the real part prices, ticket tiers and Mars rewards in `game/data/`. Four answers do not fit (an RTG, the laser spectrometer, the 900 battery, the arm builds). There are cost tables and proposed fixes in [Affordability check](#affordability-check-revised).
+- **Affordability.** Every relationship answer checked against the real part prices, ticket tiers and Mars rewards in `game/data/`. Four answers do not fit (an RTG, the laser spectrometer, the 900 battery, the arm builds). There are cost tables, the decided fixes (M11) and the findings left open for a balance patch (M13, M14) in [Affordability check](#affordability-check-revised).
 - **Shared triggers.** Milestone types now reuse the Moon's `reading`, `transect`, `record` and `deploy` and `MilestoneRequirements.instruments`, as game-design.md records them. Mars adds only the extensions listed in [Milestone types](#milestone-types-revised).
 - **Hand-off.** Mars sites, areas of interest and new milestones move to the coming [Mars sites and milestones plan](mars-sites-and-milestones-plan.md). This doc keeps the triggers, a minimum each instrument must earn, and the constraints that plan must respect ([Hand-off](#hand-off-to-the-mars-sites-and-milestones-plan-revised)).
-- **Spoiler guard.** One row per Mars lesson. The night budget line would show the electric heater lesson on the desk, which needs a decision (M15).
+- **Spoiler guard.** One row per Mars lesson. The electric heater lesson is dropped (M15): the heater is a plain part cost, and the night budget line stays.
 - **Every instrument earns.** In the draft's milestones, the X-ray and neutron spectrometers earn nothing on Mars. On today's rewards an empty-bay Mars run passes from a good Moon result. Both are flagged for the sites plan.
 - **Stations.** No Mars station in this wave. Later ones follow the Moon's near-lander rule.
 - **Real missions.** Claims checked and reworded: night lights, Ingenuity, Opportunity's sleep and storm, Spirit's cleaning, the MMRTG, wheels, RIMFAX, SHERLOC. Sources are in [Real anchors](#real-anchors-revised).
-- **Decisions.** New questions M11 to M19.
+- **Decisions.** M11 to M19 are decided: reprice as proposed (M11); design separate Mars ticket tiers before Phase 3 (M12); leave budget requirements and rewards to a future balance patch (M13); keep the original relationship answers (M14); drop the heater lesson (M15).
 
 Quick navigation: [Why](#why-this-plan) · [Scope](#scope-revised) · [Power model](#the-power-model-parts-own-their-draws) · [Catalog](#the-mars-catalog) · [Affordability](#affordability-check-revised) · [Milestone types](#milestone-types-revised) · [Relationships](#mars-relationships-revised) · [Hand-off](#hand-off-to-the-mars-sites-and-milestones-plan-revised) · [Real anchors](#real-anchors-revised) · [Phases](#phases) · [File map](#file-map) · [Tests](#tests) · [Risks](#risks) · [Decisions needed](#decisions-needed)
 
@@ -41,14 +43,14 @@ Mars's lesson is **energy through day and night**. Every piece of this plan is c
 - An affordability check: every relationship answer and every instrument archetype priced against the Mars budget.
 - *Revised:* the Mars extensions to the Moon's shared milestone triggers, and a minimum each Mars instrument must earn. The milestones themselves belong to the [Mars sites and milestones plan](mars-sites-and-milestones-plan.md).
 - Dust on the panels and dust devils (the power side of dust), since three parts and one relationship depend on them.
-- Four Mars relationships, with their spoiler guard, plus the review and notebook for Mars and relationships filtered by world.
+- Three Mars relationships (RTG noise, dust, the arm on a slope) and the no-lights entry, with their spoiler guard, plus the review and notebook for Mars and relationships filtered by world.
 - A Mars energy and balance check that covers the new parts.
 
 **Not in this plan**
 
 - *Revised:* **Mars sites, areas of interest, new milestones and their rewards.** These go to `mars-sites-and-milestones-plan.md`, written next. This plan gives it the triggers and [the constraints it must respect](#hand-off-to-the-mars-sites-and-milestones-plan-revised).
 - The RP unlock tree (open question 3). The catalog is built so parts can later carry an unlock cost, but every Mars part is offered from the start until Owner A decides the tree.
-- Mars ticket tiers and budget (open question 8). Mars keeps the Moon tiers. *Revised:* this holds only if the support hardware and the RTG get lighter (M11, M12). At the draft masses several Mars builds cannot launch.
+- Mars ticket tiers and budget (open question 8). *Decided (M12):* Mars gets its own ticket tiers, designed separately; it does not keep the Moon tiers. They are needed before Phase 3, because they decide which builds can launch. The reference builds here use the Moon tiers only as a yardstick until then.
 - Communications and data as a resource (open question 6, "designed later").
 - Instrument levels (multispectral camera, deep drill, active neutron spectrometer, broadband seismometer) and the remaining catalog (magnetometer, microscopic imager, penetrometer, dosimeter, dust monitor, heat flow probe, oxygen maker, coring drill and cache). They come in a second wave once the first one plays well.
 - The marsquake (optional event in game-design.md) and with it the seismometer on Mars.
@@ -78,7 +80,7 @@ Mars's lesson is **energy through day and night**. Every piece of this plan is c
 
 **Real basis** *(Revised wording)*. Real rovers also spend power at night just to stay alive. Curiosity is said to draw about 45 to 70 W asleep and at least 150 W awake (single-sourced, unverified). Opportunity needed about 120 Wh per sol to survive, and Spirit about 180 Wh. During dust-storm dormancy, Opportunity shut down most systems but kept its mission clock running, and the clock woke the computer from time to time to check the battery. In 2022 Ingenuity's battery could not hold enough charge through some winter nights, and each power loss reset its onboard clock. See [Real anchors](#real-anchors-revised) for sources. The game's 5:1 ratio between awake (1/s) and asleep (0.2/s) is steeper than Curiosity's reported 2 to 3:1. That is a game choice that makes sleeping clearly worth it; the text should not claim the ratio is real.
 
-**On the desk.** The spec sheet gains a **night budget** line for Mars: what one 15 s night costs asleep, and awake with lights, for this build (for example "Night: 3 asleep · 60 with lights · RTG +9"), next to the battery capacity. This is the single most useful number for Mars's lesson, and today the player can only find it by running out of energy. *Revised:* the line also shows the electric heater's draw, so it gives away the heater relationship (see [M15](#decisions-needed)).
+**On the desk.** The spec sheet gains a **night budget** line for Mars: what one 15 s night costs asleep, and awake with lights, for this build (for example "Night: 3 asleep · 60 with lights · RTG +9"), next to the battery capacity. This is the single most useful number for Mars's lesson, and today the player can only find it by running out of energy. *Decided (M15):* the line also shows the electric heater's draw. The heater is a plain part cost, not a lesson, so there is nothing to give away.
 
 ## The Mars catalog
 
@@ -93,10 +95,10 @@ Mars's lesson is **energy through day and night**. Every piece of this plan is c
 
 | Part | Slot | Indicative cost / mass / size | Effects | What it teaches |
 | --- | --- | --- | --- | --- |
-| Radioisotope generator (RTG) | Power | 260 / 25 kg / 6 (*Revised:* proposed 200 / 15 kg / 5, M11) | `steadyIncome` 0.6/s day and night (about 36 per sol, a fixed panel's clear sol), `heat` 2 (waste heat), `neutronNoise` | Power that does not care about night, dust or storms, at a high price and mass, and with neutron noise |
+| Radioisotope generator (RTG) | Power | 200 / 15 kg / 5 (M11, decided; draft was 260 / 25 kg / 6) | `steadyIncome` 0.6/s day and night (about 36 per sol, a fixed panel's clear sol), `heat` 2 (waste heat), `neutronNoise` | Power that does not care about night, dust or storms, at a high price and mass, and with neutron noise |
 | Deployable solar arrays | Power | 120 / 14 kg / 5 | `energyIncome` 2.6, `dustRate` ×1.5 | The most income in sunlight, the most lost to dust |
 | Fixed panel, solar mast | Power | Unchanged (Moon parts) | `dustRate` ×1 (fixed), ×0.8 (mast stands higher) | |
-| Larger battery pack | Battery | 150 / 26 kg / 4 (*Revised:* proposed 150 / 12 kg / 3, M11) | `batteryCapacity` 900 | Carry the night instead of avoiding it |
+| Larger battery pack | Battery | 150 / 12 kg / 3 (M11, decided; draft was 150 / 26 kg / 4) | `batteryCapacity` 900 | Carry the night instead of avoiding it |
 | Electric heater | Heater | 25 / 2 kg / 1 | `heat` 3 while powered, `heaterDraw` 1.2/s at night | Cheap and light, but it spends the battery at night, even asleep; an empty battery means freezing too |
 | Radioisotope heater units | Heater | Unchanged | `heat` 2, no draw | |
 | LED floodlights | Lights | Unchanged | gains `lightsDraw` 3 (Mars only, see above) | |
@@ -105,7 +107,7 @@ Mars's lesson is **energy through day and night**. Every piece of this plan is c
 *RTG income is a balance choice, not the real ratio.* Curiosity's MMRTG gives about 2,700 Wh per sol (roughly 110 to 120 W electric at the start, about 2,000 W of heat, about 45 kg). MER's folding arrays gave about 900 Wh per sol when new and about 600 after 90 sols. So a real RTG out-earns a real array by about 3 to 4 times. The game sets the RTG equal to one fixed panel's clear sol so it does not solve Mars by itself (see [Risks](#risks)); the balance phase can raise it if the RTG never gets picked.
 
 - The RTG has no `energyIncome`, so the low-Sun, storm, shadow and dust factors do not touch it.
-- *Revised:* **The RTG's waste heat already counts as a heater.** `missionSetup` adds up `heat` over all parts, so an RTG rover with "No heater" freezes no faster than one with heater units. That is real (the MMRTG's heat keeps Curiosity's electronics warm) and saves 60 on an RTG build. But milestones that require `slots: ["heater"]` (Night drive) would refuse it, so see [M17](#decisions-needed).
+- *Revised:* **The RTG's waste heat already counts as a heater.** `missionSetup` adds up `heat` over all parts, so an RTG rover with "No heater" freezes no faster than one with heater units. That is real (the MMRTG's heat keeps Curiosity's electronics warm) and saves 60 on an RTG build. But milestones that require `slots: ["heater"]` (Night drive) would refuse it, so any total heat above zero meets the requirement (M17, decided).
 - The RTG and the electric heater are both **interface** items: their numbers depend on Owner B's freeze rate (8/s at night, heater reduction 1.5 per heat unit).
 - *Not in this wave:* a rocker-bogie chassis. Its benefit is climbing, and today's slope rule is a single damage threshold; it waits for a mobility pass.
 
@@ -115,11 +117,11 @@ Two new optional slots, offered only on Mars (the Moon's slot list does not chan
 
 | Part | Slot | Indicative cost / mass / size | Effects |
 | --- | --- | --- | --- |
-| No arm / Robotic arm | `arm` | 0 / 0 / 0 · 90 / 18 kg / 3 (*Revised:* proposed 60 / 8 kg / 2, M11) | `arm: true`; contact instruments need it |
-| No mast / Remote sensing mast | `mast` | 0 / 0 / 0 · 70 / 6 kg / 2 (*Revised:* proposed 50 / 4 kg / 1, M11) | `mast: true`; the laser spectrometer needs it; the camera's photo zones grow (`photoRangeFactor`) |
+| No arm / Robotic arm | `arm` | 0 / 0 / 0 · 60 / 8 kg / 2 (M11, decided; draft was 90 / 18 kg / 3) | `arm: true`; contact instruments need it |
+| No mast / Remote sensing mast | `mast` | 0 / 0 / 0 · 50 / 4 kg / 1 (M11, decided; draft was 70 / 6 kg / 2) | `mast: true`; the laser spectrometer needs it; the camera's photo zones grow (`photoRangeFactor`) |
 
 - Instrument parts gain `needs?: ('arm' | 'mast')[]`. `payloadProblems` refuses an instrument whose support part is missing, with a desk reason ("Needs the robotic arm"); the desk greys the card the same way a full bay does.
-- The X-ray spectrometer gains `needs: ["arm"]` **on Mars only**, as the catalog says (on the Moon it keeps Pragyan's built-in deploy mechanism). This is the one per-world effect; it goes in a small `parts` overlay in `data/mars/` (`effects.needs` by part id) rather than a second part. *Revised:* at the draft arm price this turns the X-ray into a 150 cost, 20 kg instrument on Mars; see [Affordability](#affordability-check-revised).
+- The X-ray spectrometer gains `needs: ["arm"]` **on Mars only**, as the catalog says (on the Moon it keeps Pragyan's built-in deploy mechanism). This is the one per-world effect; it goes in a small `parts` overlay in `data/mars/` (`effects.needs` by part id) rather than a second part. *Revised:* at the draft arm price this turned the X-ray into a 150 cost, 20 kg instrument on Mars; at the decided arm price (M11) it is about 120 and 10 kg. See [Affordability](#affordability-check-revised).
 - `BusSlot` stays the six Moon slots; `arm` and `mast` are `SupportSlot`. `Build` gets `support?: Partial<Record<SupportSlot, string>>`, so every Moon build and save is still valid as it is.
 - Support parts take no mounting point (the bay's limit is instruments only).
 
@@ -135,8 +137,8 @@ Two new optional slots, offered only on Mars (the Moon's slot list does not chan
 | Laser retroreflector | Moon only | | | | |
 | **Weather mast** | New | Monitor | 60 / 5 kg / 2 | Standby, small | |
 | **Ground-penetrating radar** | New | Sense while driving | 90 / 3 kg / 2 | Standby | |
-| **Laser spectrometer** | New | Zap from a distance | 140 / 10 kg / 3 (*Revised:* proposed 100 / 6 kg / 2, M11) | Per reading, large | Mast |
-| **Organics spectrometer** | New | Touch | 160 / 5 kg / 2 (*Revised:* proposed 110 / 4 kg / 2, M11) | Per reading, very large; long hold | Arm |
+| **Laser spectrometer** | New | Zap from a distance | 100 / 6 kg / 2 (M11, decided; draft was 140 / 10 kg / 3) | Per reading, large | Mast |
+| **Organics spectrometer** | New | Touch | 110 / 4 kg / 2 (M11, decided; draft was 160 / 5 kg / 2) | Per reading, very large; long hold | Arm |
 
 **Why these four first.**
 
@@ -166,7 +168,7 @@ The Moon taught us that a lesson's answer has to be something the player can buy
 
 > B − (parts + ticket) + 50 survival + milestone money ≥ 800, so **milestone money needed = spend − B + 750**.
 
-The tables use B = 860, a middle Moon result. Spend above B cannot be bought at all, and 780 is the floor. Today's Mars milestones pay at most 740 together. An idle rover earns 140 (Touchdown and Storm survivor), and game-design.md puts a good camera or drill run at about 420 to 440 in milestone money (470 to 490 with survival). Tiers are the Moon's: Small up to 60 kg and size 20 for 60, Medium up to 75 kg and 23 for 120, Large up to 90 kg and 26 for 200. Titanium's maximum load is 72 kg.
+The tables use B = 860, a middle Moon result. Spend above B cannot be bought at all, and 780 is the floor. Today's Mars milestones pay at most 740 together. An idle rover earns 140 (Touchdown and Storm survivor), and game-design.md puts a good camera or drill run at about 420 to 440 in milestone money (470 to 490 with survival). Tiers below are the Moon's, used only as a yardstick because Mars's own tiers are not designed yet (M12, decided), so every mass and size check in this section is provisional. The Moon's: Small up to 60 kg and size 20 for 60, Medium up to 75 kg and 23 for 120, Large up to 90 kg and 26 for 200. Titanium's maximum load is 72 kg.
 
 **Reference builds** (titanium, solid wheels, fixed panel, Li-ion, heater units unless stated):
 
@@ -203,9 +205,9 @@ The tables use B = 860, a middle Moon result. Spend above B cannot be bought at 
 2. **Today's Mars rewards cannot pay for any new part.** A good run earns about 430. That covers a spend of about 540 at B = 860, and every archetype in the draft spends 600 to 850.
 3. **Two answers are not answers at all:** "a route past dust devils" (luck), and the larger battery (which costs more than the heater units it is meant to replace).
 
-**Proposed fixes** (M11 to M14):
+**Decided fixes and open findings** (M11 to M14):
 
-- **Lighter, cheaper support hardware and RTG** (the game already scales every part down): arm 60 / 8 kg / 2, mast 50 / 4 kg / 1, RTG 200 / 15 kg / 5, larger battery 150 / 12 kg / 3 (expensive and light, like Li-ion), organics spectrometer 110 / 4 kg / 2, laser spectrometer 100 / 6 kg / 2. Repriced, the same builds fit the Moon tiers:
+- **Lighter, cheaper support hardware and RTG (M11, decided; revisable in a later balance patch)** (the game already scales every part down): arm 60 / 8 kg / 2, mast 50 / 4 kg / 1, RTG 200 / 15 kg / 5, larger battery 150 / 12 kg / 3 (expensive and light, like Li-ion), organics spectrometer 110 / 4 kg / 2, laser spectrometer 100 / 6 kg / 2. Repriced, the same builds fit the Moon tiers (Mars's own tiers will set the real limits):
 
 | Build (repriced) | Mass / size | Spend | Money needed (B = 860) |
 | --- | --- | --- | --- |
@@ -218,11 +220,11 @@ The tables use B = 860, a middle Moon result. Spend above B cannot be bought at 
 | RTG + camera + LED, no heater | 63 kg / 18, Medium | 685 | 575 |
 | Electric heater + larger battery + camera + LED | 66 kg / 19, Medium | 600 | 490 |
 
-- **Mars rewards sized for Mars spending.** The Mars mission is twice the Moon's length, so its rewards can be larger. The sites plan must size them so a good run with one of these archetypes earns about 500 to 650 in milestone money (constraint C2). This is the main reason the sites plan cannot simply copy the Moon's reward scale.
-- **Reworded answers** (see [Mars relationships](#mars-relationships-revised)). For dust: the higher solar mast, planning the long drives for the early sols, or an RTG if the budget allows. For the electric heater: heater units, or a bigger battery. For the arm: park level beside the target, or choose targets on flat ground. The laser is mentioned only as the costly option.
-- **If M11 is rejected:** then Mars needs its own ticket tiers (open question 8) before Phase 3, because the draft masses do not fit the Moon's.
+- **Mars rewards (M13, left for now).** The Mars mission is twice the Moon's length, so its rewards can be larger. The sites plan's starting values aim for a good run with one of these archetypes earning about 500 to 650 in milestone money (constraint C2), so it cannot simply copy the Moon's reward scale. Exact budget requirements and rewards are tuned in future balance patches.
+- **Relationship answers (M14, decided: keep the original answers, not reworded).** The affordability findings above stay as **known issues for the balance patch**: an RTG as the dust answer needs about 85% of all Mars money; "a route past dust devils" is luck, not a plan; the laser as the arm's answer does not fit; and the RTG-plus-neutron cause is barely playable. See [Mars relationships](#mars-relationships-revised).
+- **Mars ticket tiers (M12, decided):** Mars does not keep the Moon tiers. Its own tiers (open question 8) must be designed **before Mars Phase 3**. The masses and sizes above are checked against the Moon tiers only as a yardstick.
 
-**The empty bay passes on today's rewards.** A titanium empty bay with lights and heater units spends 475. It can earn Touchdown (80), two Odometer stages (60), Mapper (60), both Night drive stages (100) and Storm survivor (60), so it ends at B − 65: it fails below about B = 865 and passes from a good Moon result (Camera scout 930, Rock hound 940). The cause is the carried balance. A pass mark that is a fixed number cannot hold both ends of a 160-wide arrival range with a 50 margin. Proposed fix (M13): the sites plan tests the empty bay at the top of the range (B = 950) and the archetypes at the bottom (B = 780). If no reward set satisfies both, Owner A makes the Titan test relative to the arrival balance (for example, a minimum net gain on Mars).
+**The empty bay passes on today's rewards.** A titanium empty bay with lights and heater units spends 475. It can earn Touchdown (80), two Odometer stages (60), Mapper (60), both Night drive stages (100) and Storm survivor (60), so it ends at B − 65: it fails below about B = 865 and passes from a good Moon result (Camera scout 930, Rock hound 940). The cause is the carried balance. A pass mark that is a fixed number cannot hold both ends of a 160-wide arrival range with a 50 margin. *Decided (M13): leave it for now.* Exact budget requirements and rewards are tuned in future balance patches. The empty-bay concern stays a **noted risk for that patch**: the options on file are testing the empty bay at the top of the range (B = 950) and the archetypes at the bottom (B = 780), or a Titan test relative to the arrival balance.
 
 ## Milestone types *(Revised)*
 
@@ -241,7 +243,7 @@ The Moon builds the shared triggers first (Moon plan M6, recorded in game-design
 
 **Mars extensions** (each is optional, so every Moon milestone stays valid):
 
-| Extension | Why Mars needs it | Proposed shape |
+| Extension | Why Mars needs it | Shape (decided) |
 | --- | --- | --- |
 | `record` for an instrument **aboard** (a switch, like the weather mast), with a lasting event (the 120 s dust storm) | A Moon station is on the ground, so "deployed when the event came" is one moment and power does not matter. A weather mast rides on the rover, and a storm lasts two sols, nights included | `seconds?`: the instrument was switched on, the rover powered up **and outside the near-lander zone**, for at least that many seconds while the event was active (a power-down pauses the count, as for `transect`). Stations keep the Moon rule. See M16 |
 | `requires.slots: ["heater"]` met by any `heat` | An RTG rover with "No heater" is warm, but would fail Night drive's requirement | Count the heater requirement as met when the rover's total `heat` is above zero. See M17 |
@@ -270,29 +272,27 @@ Sand crossing (capability, `zone` cross at Séítah, exists) stays a candidate f
 
 ## Mars relationships *(Revised)*
 
-Four for this wave, from rover-engineering-design.md's Mars table plus one the new power model makes possible. Each is solvable at least two ways (rule 3) and has one desk cause, one mission signal and one plain explanation (rule 4). *Revised:* the answers are changed where they did not fit the budget ([Affordability](#affordability-check-revised)).
+Three for this wave, from rover-engineering-design.md's Mars table, plus the no-lights entry below. *Decided (M15):* the electric heater lesson is dropped, so Mars has four lessons: RTG noise, dust, the arm on a slope, and no lights at night. Each relationship is solvable at least two ways (rule 3) and has one desk cause, one mission signal and one plain explanation (rule 4). *Decided (M14):* the original answers are kept as drafted; where they do not fit the budget, that is a known issue for the balance patch ([Affordability](#affordability-check-revised)).
 
 | Relationship | Kind | Fires when | What the player sees | Answers | Real basis |
 | --- | --- | --- | --- | --- | --- |
 | The RTG adds neutron noise | Conflicts | The neutron spectrometer is on, on an RTG rover | The hydrogen meter's floor is raised and jitters | Solar power; or leave the neutron spectrometer home | Jun et al. (2013), JGR Planets 118:2400: about 60% of DAN's thermal neutron counts at Rocknest came from Curiosity's MMRTG (in the design doc) |
-| Dust on the panels | Conditions | Solar income has fallen by a set share to dust | The energy income line shows a dust factor | *Revised:* The higher solar mast collects less; or plan the long drives for the early sols; or an RTG, if the budget allows | rover-engineering/02, dust factor (in the design doc) |
-| An electric heater spends the night | Shares | The electric heater's draw empties more than a set share of the battery in one night | A notice at dawn with the night's heater cost | *Revised:* Radioisotope heater units; or a bigger battery (the nickel-hydrogen pack) | *Revised:* Ingenuity's battery could not hold enough charge through some winter nights, and the power loss reset its clock; Opportunity needed about 120 Wh per sol just to survive (see [Real anchors](#real-anchors-revised)) |
-| The arm cannot reach on a slope | Conditions | A contact reading is refused because the ground is steeper than the arm's limit | A refusal notice that names the slope | *Revised:* Park level beside the target; or choose targets on flat ground; the laser spectrometer reads from a distance, at a price | Perseverance's PIXL and SHERLOC must sit close to the rock (in the design doc) |
+| Dust on the panels | Conditions | Solar income has fallen by a set share to dust | The energy income line shows a dust factor | An RTG; the mast's higher panel; a route past dust devils | rover-engineering/02, dust factor (in the design doc) |
+| The arm cannot reach on a slope | Conditions | A contact reading is refused because the ground is steeper than the arm's limit | A refusal notice that names the slope | Park on level ground; the laser spectrometer from a distance | Perseverance's PIXL and SHERLOC must sit close to the rock (in the design doc) |
 
 - `Relationship.world` widens to `WorldId`; the mission, the review and the notebook show only the current world's relationships; the notebook lists each world under its own heading with its own count.
-- A Moon lesson that also happens on Mars (no lights, so no driving at night) gets its own Mars entry rather than reusing the Moon id: the cause is the same part, but the place and the real basis differ. It is a hard block, always shown in the review, as on the Moon.
-- *Revised:* **The heater lesson triggers too rarely.** At 1.2/s the electric heater costs 18 per 15 s night: about 4.5% of a 400 battery and 2% of a 900 one. Over ten nights it costs 180, half of a fixed panel's mission income. So a per-night share threshold almost never trips. Fire it on the first dawn instead, with the night's cost and the mission total so far. M15 decides whether it stays a lesson at all.
+- The fourth Mars lesson is a Moon lesson that also happens on Mars (no lights, so no driving at night); it gets its own Mars entry rather than reusing the Moon id: the cause is the same part, but the place and the real basis differ. It is a hard block, always shown in the review, as on the Moon.
+- *Decided (M15):* **The electric heater is a plain part cost, not a relationship.** At 1.2/s it costs 18 per 15 s night (about 4.5% of a 400 battery and 2% of a 900 one), and 180 over ten nights, half of a fixed panel's mission income. The night budget line shows it on the desk. It has no notice or review entry. A cold-battery relationship can replace it in a later wave.
 - Moved to a later wave: big labs and driving cannot run together (the organics spectrometer's hold already stops the rover), scout-drill-analyze (needs a lab instrument), sharp rocks wear the wheels (needs wear).
 
 ### Spoiler guard *(Revised)*
 
-No milestone, site name, notice, lead, desk line or tutorial line may name a lesson's cause or its fix before the lesson happens. This is the Moon's rule (game-design.md, "No lesson is spoiled"). Desk cards list each instrument's milestones by name only (Moon M14), and the "earns no milestones yet" line follows from that list, so it disappears by itself once an instrument has a milestone.
+No milestone, site name, notice, lead, desk line or tutorial line may name a lesson's cause or its fix before the lesson happens. This is the Moon's rule (game-design.md, "No lesson is spoiled"). Desk cards list each instrument's milestones by name only (Moon M14), and the "earns no milestones yet" line follows from that list, so it disappears by itself once an instrument has a milestone. *Decided (MS11):* no milestone is visible to the player before it is reached, and the debrief's "Not reached" list comes after the mission, so a combo's part pairing cannot give a lesson away in advance. There is therefore no ban on combos; they are added only where they make good science.
 
 | Lesson | Where it happens | Why it matters | What keeps text from naming it |
 | --- | --- | --- | --- |
-| RTG neutron noise | Anywhere the neutron spectrometer is on, on an RTG rover | Only if a neutron milestone can be lost to the raised floor (C6); otherwise it is cosmetic | The RTG's desk card says nothing about neutrons, and the neutron card says nothing about power sources. No milestone needs solar power and the neutron spectrometer together. Neutron milestone text says only "survey" or "locate". The grep test adds "noise", "generator" and "RTG" for neutron texts |
+| RTG neutron noise | Anywhere the neutron spectrometer is on, on an RTG rover | Only if a neutron milestone can be lost to the raised floor (C6); otherwise it is cosmetic | The RTG's desk card says nothing about neutrons, and the neutron card says nothing about power sources. Neutron milestone text says only "survey" or "locate". The grep test adds "noise", "generator" and "RTG" for neutron texts |
 | Dust on the panels | Every solar rover, sol by sol; worst for the deployable arrays | Late-mission income, so late milestones and night driving | The desk shows no `dustRate`. Part descriptions say "more income" and "stands higher", never "less dust". **The Dust devil milestone's fact must not be Spirit's panel cleaning**: use another dust devil fact, and keep the cleaning story for the notebook entry. Weather mast and storm texts talk about the storm, not about panels |
-| Electric heater spends the night | The first night on an electric-heater rover | Less battery for the next sol; 180 over the mission | **Not guarded today**: the night budget line shows the heater's draw on the desk. See M15 |
 | The arm cannot reach on a slope | A contact reading tried on steep ground | A lost reading and the time spent to reposition | The arm's desk card does not mention slopes or level ground. Contact-reading milestone texts do not say "level" or "flat". The laser's milestone text (for example "Rock from afar") never compares the laser with the arm. Some attractive contact targets sit on slopes, so the lesson can happen (C7) |
 | No lights, no night driving (Mars entry) | Dusk, on a rover without lights | No night driving; Night drive cannot be earned | A hard block, so the desk and review state it openly, as on the Moon. The guard does not apply |
 
@@ -312,15 +312,15 @@ A separate plan, `mars-sites-and-milestones-plan.md`, written after this one, ow
 | --- | --- |
 | C1 | **Use the shared triggers** (`reading`, `transect`, `record`, `deploy`, `instruments[]`) and only the Mars extensions in [Milestone types](#milestone-types-revised). A new trigger needs a reason no extension can meet, and must be agreed with the Moon's owner, because `milestones.ts` is shared |
 | C2 | **Price for Mars spending.** Instrument archetypes spend about 600 to 760 even at the M11 prices. A good run with each must earn at least spend − B + 750 + 50 margin at B = 780, the lowest arrival. Today's rewards (at most 740, a good run about 430) are not enough |
-| C3 | **The empty bay and idling fail at the top of the arrival range** (B = 950, about the best Moon result). Today an empty bay with lights ends at B − 65, so either capability rewards come down (as the Moon cut Boulder field and Mapper), new capability milestones (Sand crossing, Clean run) are priced low, or M13's relative pass test is adopted |
+| C3 | **The empty bay and idling fail at the top of the arrival range** (B = 950, about the best Moon result). Today an empty bay with lights ends at B − 65, so either capability rewards come down (as the Moon cut Boulder field and Mapper), new capability milestones (Sand crossing, Clean run) are priced low. *Decided (M13):* left for the balance patch; the empty-bay concern is a noted risk until then |
 | C4 | **Every instrument on the Mars desk earns at least one milestone** that needs it, on a route a passing build can drive. X-ray and neutron (if M3 keeps it) have none today. An instrument with nothing to earn leaves the Mars desk instead |
 | C5 | **Density over distance.** The delta front sample point is a 2.5 km drive and the cheap build covers about 2 km per mission, so instrument milestones that live only at the delta front are out of reach for most builds. Put a target for each instrument within about 1.5 km (Rocky area 2 at 224 m, Rocky area 1 at 744 m, Séítah entry at 1,230 m, delta viewpoint at 1,482 m) |
 | C6 | **The RTG noise lesson must be able to cost something.** If the neutron spectrometer stays, its milestone must depend on the meter rising above its floor (a small target found by the reading, not just "switched on in the zone"), so a noisy meter can miss it |
 | C7 | **The arm lesson must be able to happen.** Some contact targets that are worth reading should sit on slopes steeper than the arm's limit, and level ones must exist too, so "park level" works |
 | C8 | **Spoiler guard.** Follow the [table above](#spoiler-guard-revised), especially the Dust devil fact and the arm and laser wording. Site notices are instrument-aware but lesson-blind, as on the Moon |
 | C9 | **Near the lander.** No instrument milestone counts within 200 m of the lander. Stations follow the Moon's rule; aboard instruments follow the `record` extension |
-| C10 | **Stay within the Moon tiers' 90 kg and size 26** unless M12 gives Mars its own tiers; no milestone may need a build that cannot launch (for example, a combo of the arm, a contact instrument, the mast and the laser on steel is right at the limit) |
-| C11 | **No combo spells out a lesson** (the Moon's rule): no combo of the laser with a contact instrument (it would teach the arm lesson's answer), and none of the neutron spectrometer with solar power |
+| C10 | **The Mars ticket tiers set the limits** once designed (M12, decided: Mars gets its own tiers, needed before Phase 3). Until then the Moon's 90 kg and size 26 are only a yardstick. No milestone may need a build that cannot launch under them (for example, a combo of the arm, a contact instrument, the mast and the laser on steel is right at the limit) |
+| C11 | **Combos are allowed** (MS11, decided). No milestone is visible before it is reached, desk cards list names only and the debrief's "Not reached" list comes after the mission, so a combo's pairing cannot give a lesson away. Add combos only where they make good science; wording still never spells out a lesson (C8) |
 | C12 | **Honest placement.** Anything placed by design (a hydrated zone, a rare rock) is marked as such in the facts, as on the Moon |
 
 ### Inputs for the sites plan
@@ -330,7 +330,7 @@ A separate plan, `mars-sites-and-milestones-plan.md`, written after this one, ow
 - **Rewards today** (`data/mars/milestones.json`): Touchdown 80, Odometer 30 per stage (500 m, 1.5 km and 3 km), Mapper 60, Night drive 50 per stage (100 m and 300 m), Storm survivor 60, Delta layers 100, Core sample 60 per site (×3), Blue sunset 70.
 - **The draft's candidate milestones**, for the sites plan to keep, change or drop: Sand crossing, Signs of an ancient lake, Delta stratigraphy (radar), Rock from afar (laser), Organic molecules (organics), Storm log (weather mast), Dust devil (camera). Their real basis is in [Real anchors](#real-anchors-revised).
 - **Archetypes to balance:** cheap camera, camera and drill, the RTG, the arm and X-ray, the arm and organics, the mast and laser, the weather mast, the radar, plus the empty bay and idling. Spend for each is in [Affordability](#affordability-check-revised).
-- **Open inputs the sites plan depends on:** M3 (Mars hydrogen), M11 (prices), M12 (tiers), M13 (pass test), and Phase 5 (dust devils exist).
+- **Inputs the sites plan depends on:** M3 (Mars hydrogen, still proposed), M11 (prices, decided), M12 (Mars tiers decided but not yet designed), M13 (pass test, left for the balance patch), and Phase 5 (dust devils exist).
 
 ## Real anchors *(Revised)*
 
@@ -368,7 +368,7 @@ What this changes in the plan:
 
 - **Dust is compressed, like time.** At the real 0.2% per sol, ten sols would lose 2%, too little to feel. The game's rate is a game-feel choice, as the 3× faster night is; the text says dust settles steadily, not how fast.
 - **Night driving with lights is a game choice, not history.** game-design.md already decided the lights-on-or-sleep choice. *Revised:* Mission history text and the night tutorial must not say real Mars rovers drive at night or carry floodlights. They can say real rovers sleep through the night, and that NASA's VIPER, a Moon rover, was designed with headlights for dark craters (it has not flown).
-- **The arm is heavier than first sketched,** so the draft gave it 18 kg (the real turrets alone are 33 to 45 kg). *Revised:* that does not fit the Moon tiers alongside a contact instrument (see [Affordability](#affordability-check-revised)), so the proposal is 8 kg. The game scales every part down: the Moon's drill is 8 kg.
+- **The arm is heavier than first sketched,** so the draft gave it 18 kg (the real turrets alone are 33 to 45 kg). *Revised:* that does not fit the Moon tiers alongside a contact instrument (see [Affordability](#affordability-check-revised)), so M11 decided 8 kg. The game scales every part down: the Moon's drill is 8 kg.
 
 **Sources checked for this revision:** JPL, "Mars Rover Curiosity Uses Arm Camera at Night" (jpl.nasa.gov/news/mars-rover-curiosity-uses-arm-camera-at-night); Universe Today, "Ingenuity is doing surprisingly well" (quoting JPL); Planetary Society, MER update on Opportunity's dust storm sleep (planetary.org/articles/06-mer-update-opportunity-dust-storm-sleep) and MER update 4 (planetary.org/articles/07-31-mer-update-4); NASA Photojournal, "Solar Panel Dust Accumulation and Cleanings"; US DOE, "Powering Curiosity: Multi-Mission Radioisotope Thermoelectric Generators"; JPL Mars 2020 press kit, rover and power pages; Hamran et al. (2022), Science Advances; Sharma et al. (2023), Nature 619; CNES SuperCam page. Several were read only as search summaries; each fact is checked again before it reaches `text.json`.
 
@@ -379,9 +379,9 @@ Each phase ends with tests and the build passing, a browser check on both worlds
 ### Phase 0: Design first
 
 - Owner A and Owner B agree on this plan's *Proposed* items, at least the [decisions needed](#decisions-needed).
-- *Revised:* Settle the affordability decisions (M11 to M14) before anything else, because the prices and masses decide which builds exist.
+- *Decided:* M11 to M14 are settled: reprice (M11); Mars ticket tiers to be designed (M12); budget requirements and rewards left for the balance patch (M13); original relationship answers kept (M14). **Design the Mars ticket tiers before Phase 3**, because prices and masses decide which builds can launch.
 - game-design.md: the Mars parts (open question 8 answered for this wave), the power model in [How the Mars rules work](game-design.md#how-the-mars-rules-work-decided-during-implementation-m3), the Mars trigger extensions next to the Moon's in [Rules for the new milestones](game-design.md#rules-for-the-new-milestones).
-- rover-engineering-design.md: section 8 marks which instruments are built for Mars; section 9 records the bus parts; section 10 records the four Mars relationships with the revised answers.
+- rover-engineering-design.md: section 8 marks which instruments are built for Mars; section 9 records the bus parts; section 10 records the three Mars relationships with their original answers (the heater lesson is dropped, M15).
 - *Revised:* `mars-sites-and-milestones-plan.md` is written against this plan's [constraints](#constraints-the-sites-plan-must-respect), and its Phase 0 records the Mars milestones.
 
 **Done when:** both docs say *Decided* for everything Phases 1 to 4 build.
@@ -411,12 +411,13 @@ Small, and it settles two open items from the merge on its own, so it can ship b
 
 ### Phase 3: Mars bus parts and support hardware
 
+- **Prerequisite:** the Mars ticket tiers are designed (M12).
 - `parts.json`: the RTG, deployable arrays, larger battery, electric heater, grouser wheels, arm and mast parts, each `worlds: ["mars"]`, at the prices M11 decides.
 - `SupportSlot`, `Build.support`, `parts.supportSlots` per world (Mars overlay); `selectedParts`, `isCompleteBuild`, `missingSlots`, the quote and the tier check include support parts.
 - `needs` on instrument parts; `payloadProblems` and the desk enforce it; the Mars X-ray overlay.
 - Build preview and rover model: the RTG fins at the back, the deployable arrays as wings, the mast with a head, the arm folded at the front.
-- Balance model: `allBuilds` per world, with support slots.
-- *Revised:* a data test that every reference build in [Affordability](#affordability-check-revised) can launch, and that each relationship's answers can be bought below 780.
+- Build enumeration: `allBuilds` per world, with support slots, for the affordability data test (no Mars `winPaths` model; see MS13 in the sites plan).
+- *Revised:* a data test that every reference build in [Affordability](#affordability-check-revised) can launch (under the Mars tiers, once designed), and that reports which relationship answers can be bought below 780. The known failures (M14) are listed, not asserted, until the balance patch.
 
 **Done when:** a Mars rover can be built with each new part, the spec sheet's night budget changes with the power source and heater, and the Moon desk is unchanged.
 
@@ -450,7 +451,7 @@ Designed in game-design.md (*Proposed* there) and listed as "next after the demo
 
 - **No new trigger code beyond the Mars extensions.** `reading`, `transect`, `record`, `deploy` and `instruments[]` come from the Moon plan's Phase 3 (one implementation, Moon first). Mars adds `record.seconds`, the heater-by-heat requirement and Mars zone ids, with tests. `MarsMilestoneTrigger` keeps only the Mars-only types (`night-distance`, `storm-survive`).
 - The Mars milestones from `mars-sites-and-milestones-plan.md` in `data/mars/milestones.json`; validation checks their instrument ids and zones per world.
-- The four relationships in `relationships.json` with `world: "mars"`, their checks in `rules/relationships.ts`, build predicates for the review, and notebook text; the revised answers.
+- The three Mars relationships (RTG noise, dust, the arm on a slope) in `relationships.json` with `world: "mars"`, their checks in `rules/relationships.ts`, build predicates for the review, and notebook text; the original answers (M14). The no-lights entry is a hard block, as on the Moon.
 - Desk cards list each Mars instrument's milestones by name (as on the Moon), from the same derivation.
 - Debrief: the missed-milestones list names a missing support part from the instrument's `needs` ("needs the robotic arm").
 - Spoiler check: the Moon's text grep extended with the Mars lessons' key words ([Spoiler guard](#spoiler-guard-revised)).
@@ -459,13 +460,13 @@ Designed in game-design.md (*Proposed* there) and listed as "next after the demo
 
 ### Phase 7: Balance, text and playtest
 
-- A Mars energy check that covers the new parts, extending `marsNight.test.ts` (or a Mars `winPaths`): the cheap build, an RTG build, an arrays-and-big-battery build, and an organics build, each over the storm seeds.
-- Targets: several builds pass Mars (the Moon's "several ways to pass" rule); an RTG is never the only way; an electric heater build can survive if it sleeps; no build passes while idling at the lander. *Revised:* each archetype passes from B = 780 and fails without its instruments; the empty bay fails from B = 950 (or the M13 test); every relationship answer is affordable.
+- A Mars energy check that covers the new parts, extending `marsNight.test.ts`. *Decided (MS13):* no Mars `winPaths` model; balance is by hand estimates and browser playtests. The check covers the cheap build, an RTG build, an arrays-and-big-battery build, and an organics build, each over the storm seeds.
+- Targets (for the hand estimates and playtests): several builds pass Mars (the Moon's "several ways to pass" rule); an RTG is never the only way; an electric heater build can survive if it sleeps; no build passes while idling at the lander. *Revised:* each archetype passes from B = 780 and fails without its instruments; the empty bay fails from B = 950; every relationship answer is affordable. *Decided (M13, M14):* exact budget requirements and rewards are tuned in a future balance patch, which also takes the known affordability issues and the empty-bay risk.
 - Tutorial: a Mars design page for power at night (the night budget line, RTG versus arrays, the two heaters) and a support hardware paragraph; drive tutorial lines for the four instruments.
 - Credits: sources for the new parts, instruments and relationships.
 - A Mars playtest checklist, as for the Moon.
 
-**Done when:** the balance targets hold in tests, the playtest checklist is run, and game-design.md marks each piece built.
+**Done when:** the balance targets hold in the energy check, the hand estimates and the playtests, the playtest checklist is run, and game-design.md marks each piece built.
 
 ### Shipping
 
@@ -485,16 +486,16 @@ Phase 1 can ship alone. Phases 2 and 3 ship together (the power parts are the po
 ## Tests
 
 - **Regression:** `marsNight.test.ts` unchanged after Phase 2; every Moon test unchanged throughout (the Moon desk, quote, balance, relationships and the shared triggers must not move).
-- **New:** per-world catalog and save carry-over; part draws (lights, electric heater asleep, RTG income at night and in the storm); support needs; each new instrument rule; the Mars trigger extensions (`record.seconds` with power-downs and the near-lander zone, heater met by RTG heat); the four relationships and their build predicates; dust and dust devils; the Mars balance check. *Revised:* affordability (every reference build launches, every answer costs below 780) and the spoiler grep for Mars texts.
+- **New:** per-world catalog and save carry-over; part draws (lights, electric heater asleep, RTG income at night and in the storm); support needs; each new instrument rule; the Mars trigger extensions (`record.seconds` with power-downs and the near-lander zone, heater met by RTG heat); the three Mars relationships and their build predicates; dust and dust devils; the Mars balance check. *Revised:* affordability (every reference build launches under the Mars tiers; answers' costs are reported, with the M14 known issues listed) and the spoiler grep for Mars texts.
 
 ## Risks
 
 | Risk | Why | Mitigation |
 | --- | --- | --- |
 | The RTG solves Mars by itself | Steady power removes the night puzzle | High cost and mass, a heavier ticket, neutron noise, and an income no higher than a panel's clear sol; balance target "an RTG is never the only way" |
-| *Revised:* The RTG is never picked | At the draft price it needs 85% of all Mars money | M11 price; the sites plan's rewards (C2); the balance model reports how often it passes |
-| *Revised:* Answers the player cannot buy | Moon tiers stop at 90 kg; the carried balance is 780 to about 950 | [Affordability check](#affordability-check-revised); Phase 3 data test |
-| *Revised:* A capability-only Mars run passes | The carried balance shifts every Mars result by up to 160 | C3; M13 |
+| *Revised:* The RTG is never picked | At the draft price it needs 85% of all Mars money | M11 price; the sites plan's rewards (C2); hand estimates and playtests show how often it passes (no Mars `winPaths`) |
+| *Revised:* Answers the player cannot buy | Mars tiers are not designed yet; the carried balance is 780 to about 950; the original answers are kept (M14) | Mars tier design before Phase 3 (M12); [Affordability check](#affordability-check-revised); Phase 3 data test; known issues go to the balance patch |
+| *Revised:* A capability-only Mars run passes | The carried balance shifts every Mars result by up to 160 | C3; a noted risk for the balance patch (M13, left for now) |
 | Support slots touch the build shape again | `Build` is used everywhere | Optional `support` field, so Moon builds and saves are untouched; same approach as Phase 1 of the payload bay plan |
 | Mars desk overload | Eight slots, ten instruments, two heaters, three power sources | The night budget line does the explaining; the review only shows what was met; instruments stay at four new ones |
 | Instruments without content | The neutron and X-ray spectrometers have no Mars milestone; the laser needs targets | C4 for the sites plan; decide Mars hydrogen with Owner B before Phase 4, or take the neutron spectrometer off the Mars desk |
@@ -505,24 +506,24 @@ Phase 1 can ship alone. Phases 2 and 3 ship together (the power parts are the po
 
 ## Decisions needed
 
-| # | Question | Proposal | Owner |
+| # | Question | Proposal (M11 to M19: **Decided**, November 15, 2026) | Owner |
 | --- | --- | --- | --- |
 | M1 | Parts own their draws (lights, electric heater, RTG), the world keeps the electronics draw | Yes, Mars only for now | Interface |
 | M2 | Seismometer station and retroreflector off the Mars desk | Yes, until a marsquake exists | Owner A |
 | M3 | Mars hydrogen for the neutron spectrometer | A hydrated-mineral zone at the delta, or the instrument leaves the Mars desk. *Revised:* if it stays, its milestone must be one the RTG's noise can cost (C6) | Owner B, with the sites plan |
 | M4 | The first four Mars instruments | Weather mast, radar, laser spectrometer, organics spectrometer | Owner A |
 | M5 | Arm and mast as optional slots offered only on Mars | Yes | Owner A |
-| M6 | The X-ray spectrometer needs the arm on Mars | Yes, as the catalog says, if M11's arm price is adopted; otherwise it leaves the X-ray close to unaffordable on Mars | Owner A |
+| M6 | The X-ray spectrometer needs the arm on Mars | Yes, as the catalog says (M11's arm price is adopted) | Owner A |
 | M7 | Milestone triggers | *Revised:* decided by Moon M6. Reuse the Moon's `reading`, `transect` ("touches"), `record` (stations: any power state), `deploy` and `instruments[]`; Mars adds only the extensions in M16 and M17 | Interface |
 | M8 | Dust on the panels and dust devils in this plan | Yes, Phase 5 | Owner B |
-| M9 | Mars relationships in this wave | The four above, with the revised answers (M14); the heater one depends on M15 | Interface |
+| M9 | Mars relationships in this wave | Three: RTG noise, dust, the arm on a slope, with the original answers (M14), plus the no-lights entry. The heater lesson is dropped (M15) | Interface |
 | M10 | Unlocks | All Mars parts offered from the start until the unlock tree is decided | Owner A |
-| M11 | *New.* At the draft prices the arm builds, the RTG and the laser cannot be bought or cannot pass, and several cannot launch. Reprice? | Yes (indicative, revisable in a later balance patch): arm 60 / 8 kg / 2, mast 50 / 4 kg / 1, RTG 200 / 15 kg / 5, larger battery 150 / 12 kg / 3, organics 110 / 4 kg / 2, laser 100 / 6 kg / 2 | Owner A |
-| M12 | *New.* Mars ticket tiers | Keep the Moon tiers if M11 is adopted (every reference build then fits under 90 kg and size 26); if not, Mars tiers are needed before Phase 3 | Owner A |
-| M13 | *New.* An empty-bay Mars run passes from a good Moon result, because the pass mark is fixed and the carried balance varies by about 160 | The sites plan balances the empty bay at B = 950 and the archetypes at B = 780. If no reward set satisfies both with a 50 margin, the Titan test becomes relative (a minimum net gain on Mars) | Owner A, with the sites plan |
-| M14 | *New.* Reword relationship answers that do not fit | Dust: the higher mast, early long drives, or an RTG if the budget allows (drop "a route past dust devils"). Heater: heater units, or a bigger battery (the nickel-hydrogen pack). Arm: park level, or choose flat targets; the laser is the costly option | Interface |
-| M15 | *New.* The night budget line shows the electric heater's draw on the desk, which gives away "An electric heater spends the night" | Keep the night budget line (it is Mars's main teaching tool) and drop the heater relationship to a plain part cost, like the reflector's need for Earth. Mars then has four lessons: RTG noise, dust, the arm on a slope, and no lights at night. A cold-battery relationship can replace it in a later wave | Interface |
-| M16 | *New.* `record` for an instrument aboard the rover during a lasting event (the weather mast through the storm) | Add `seconds?`: switched on, the rover powered up and outside the near-lander zone for that many seconds of the event (power-downs pause the count). Stations keep the Moon rule (any power state) | Interface |
-| M17 | *New.* An RTG rover with "No heater" is warm but fails Night drive's `slots: ["heater"]` | Treat the heater requirement as met by any total `heat` above zero | Owner B |
-| M18 | *New.* `MilestoneRequirements.support` from the draft | Drop it; derive "needs the arm" from the instrument's `needs` | Interface |
-| M19 | *New.* Later Mars stations and the lander | They follow the Moon's near-lander rule (200 m, warning and second press, `record`/`deploy` outside, records whatever the power state); none ships in this wave | Interface |
+| M11 | *New.* At the draft prices the arm builds, the RTG and the laser cannot be bought or cannot pass, and several cannot launch. Reprice? | **Decided: reprice as proposed** (indicative, revisable in a later balance patch): arm 60 / 8 kg / 2, mast 50 / 4 kg / 1, RTG 200 / 15 kg / 5, larger battery 150 / 12 kg / 3, organics 110 / 4 kg / 2, laser 100 / 6 kg / 2 | Owner A |
+| M12 | *New.* Mars ticket tiers | **Decided: design separate Mars ticket tiers.** Mars does not keep the Moon tiers. Needed before Mars Phase 3. C10 now says the Mars tiers set the limits once designed | Owner A |
+| M13 | *New.* An empty-bay Mars run passes from a good Moon result, because the pass mark is fixed and the carried balance varies by about 160 | **Decided: leave it for now.** Exact budget requirements and rewards are tuned in future balance patches. The empty-bay concern stays a noted risk for that patch (the options: balance the empty bay at B = 950 and the archetypes at B = 780, or a relative Titan test) | Owner A, with the sites plan |
+| M14 | *New.* Reword relationship answers that do not fit | **Decided: keep the original answers, not reworded.** Dust: an RTG, the mast's higher panel, a route past dust devils. Arm: park on level ground, or the laser spectrometer from a distance. The affordability findings (RTG as the dust answer does not fit, dust devils are luck, the laser does not fit) are known issues for the balance patch | Interface |
+| M15 | *New.* The night budget line shows the electric heater's draw on the desk, which gives away "An electric heater spends the night" | **Decided: drop as proposed.** The heater is a plain part cost, like the reflector's need for Earth; the night budget line stays (it is Mars's main teaching tool). Mars has four lessons: RTG noise, dust, the arm on a slope, and no lights at night. A cold-battery relationship can replace it in a later wave | Interface |
+| M16 | *New.* `record` for an instrument aboard the rover during a lasting event (the weather mast through the storm) | **Decided: add `record.seconds` as proposed.** Switched on, the rover powered up and outside the near-lander zone for that many seconds of the event (power-downs pause the count). Stations keep the Moon rule (any power state) | Interface |
+| M17 | *New.* An RTG rover with "No heater" is warm but fails Night drive's `slots: ["heater"]` | **Decided: as proposed.** Any total `heat` above zero meets the heater requirement | Owner B |
+| M18 | *New.* `MilestoneRequirements.support` from the draft | **Decided: drop `support` as proposed.** Derive "needs the arm" from the instrument's `needs` | Interface |
+| M19 | *New.* Later Mars stations and the lander | **Decided: same as the Moon, as proposed.** They follow the Moon's near-lander rule (200 m, warning and second press, `record`/`deploy` outside, records whatever the power state); none ships in this wave | Interface |

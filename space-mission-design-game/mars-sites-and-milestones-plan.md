@@ -2,6 +2,8 @@
 
 This plan adds new areas of interest on the Jezero map, and milestones that give every Mars instrument something to earn. It is the Mars counterpart of the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md) and is written for our team. The design comes first ([Goals](#1-goals-and-principles) to [Rock types](#5-rock-types)), then the build plan ([Phases](#6-implementation-phases)).
 
+Decisions recorded November 15, 2026.
+
 Written November 15, 2026, against `aon/moon-milestones` (at `7ddec31`). Game rules stay in [game-design.md](game-design.md), the source of truth. The Mars desk (parts, triggers, relationships) is in the [Mars rover engineering plan](mars-rover-engineering-implementation-plan.md), and this plan respects its [hand-off constraints C1 to C12](mars-rover-engineering-implementation-plan.md#constraints-the-sites-plan-must-respect). The repo rules still apply:
 
 - game numbers go in `game/data/*.json`;
@@ -10,7 +12,7 @@ Written November 15, 2026, against `aon/moon-milestones` (at `7ddec31`). Game ru
 - design changes go into game-design.md before code;
 - nobody hand-edits `game/tools/` or `game/public/terrain/`.
 
-**Status: draft.** Everything here is *Proposed* until Phase 0 records it in game-design.md. The plan assumes the Mars plan's *proposed* answers to M11 to M19 (see [What this plan depends on](#what-this-plan-depends-on)). **Owner B owns level layout and milestone placement** ([team-plan.md](team-plan.md)), so every placement here is a proposal to Owner B. [Changes to the built Mars world](#changes-to-the-built-mars-world) lists what this plan would change in the Mars world Owner B has built. Coordinates come from a quick offline scan of the game's own Mars layers ([How placement uses the terrain layers](#how-placement-uses-the-terrain-layers)), and the pipeline confirms them. Rewards are starting values, and the balance model sets the final ones.
+**Status: draft.** Everything here is *Proposed* until Phase 0 records it in game-design.md, except the open questions MS1 to MS15 ([§7](#7-open-questions)) and the Mars plan's M11 to M19, which are decided and applied below (see [What this plan depends on](#what-this-plan-depends-on)). **Owner B owns level layout and milestone placement** ([team-plan.md](team-plan.md)), so every placement here is a proposal to Owner B. [Changes to the built Mars world](#changes-to-the-built-mars-world) lists what this plan would change in the Mars world Owner B has built. Coordinates come from a quick offline scan of the game's own Mars layers ([How placement uses the terrain layers](#how-placement-uses-the-terrain-layers)), and the pipeline confirms them. Rewards are starting values; a future balance patch sets the final ones (MS1), and balance is by hand estimates and browser playtests (MS13).
 
 Quick navigation: [Goals](#1-goals-and-principles) · [Sites](#2-sites-and-areas-of-interest) · [Milestones](#3-milestones) · [Balance](#4-balance) · [Rock types](#5-rock-types) · [Phases](#6-implementation-phases) · [Open questions](#7-open-questions) · [Sources](#sources-and-what-is-not-verified)
 
@@ -147,7 +149,7 @@ The neutron's "hydrated ground" and the rare boulder are design choices, not ter
 
 ### New milestones
 
-There are **nineteen new milestones**. Every Mars instrument gets at least one (C4), and one of them is a combo. Three come from game-design.md's *Proposed* Mars list: Sand crossing, Signs of an ancient lake and Dust devil. Rewards use the existing units ([§6](game-design.md#6-economy-and-milestones)), sized for Mars spending (C2; see [§4](#4-balance)). "Outside the near-lander zone" means the existing 200 m zone (C9).
+There are **twenty new milestones**. Every Mars instrument gets at least one (C4), and one of them is a combo. Four come from game-design.md's *Proposed* Mars list: Sand crossing, Clean run, Signs of an ancient lake and Dust devil. Rewards use the existing units ([§6](game-design.md#6-economy-and-milestones)), sized for Mars spending (C2; see [§4](#4-balance)). "Outside the near-lander zone" means the existing 200 m zone (C9).
 
 | Milestone | Category | Instrument(s) | Site / condition | Money / RP | Real science (source) |
 | --- | --- | --- | --- | --- | --- |
@@ -170,14 +172,15 @@ There are **nineteen new milestones**. Every Mars instrument gets at least one (
 | **Night weather** | Scientific: new information | Weather mast | Switched on, awake and outside the near-lander zone for 12 s of one night (`record`, event `night`, `seconds` 12) | 110 / 15 | MEDA measures temperature, pressure, wind and dust through the night as well as by day. Jezero nights fall below −80 °C (NASA MEDA reports; the exact source is *to check*) |
 | **Dust devil pass** | Scientific: new information | Weather mast | Switched on, powered up and outside the near-lander zone when a dust devil passes within 150 m (`record`, event `dustdevil`). Needs Phase 5 | 60 / 10 | Perseverance's microphone recorded the first sound of a Martian dust devil passing over it, on sol 215 (Murdoch et al. 2022) |
 | **Sand crossing** | Capability: difficulty | None | As game-design.md proposes: cross Séítah's ripples without getting stuck. Owner B's rule | 40 / 3 | Spirit was stuck in sand at Troy in 2009 (in game-design.md) |
+| **Clean run** | Capability: robustness | None | As game-design.md proposes: finish all 10 sols without damage ([MS7](#7-open-questions)). Idle rovers earn it too | Tuned in the balance patch | None needed (a capability milestone) |
 
-**Changed existing milestones** (balance, [§4](#4-balance); the rewards assume [MS1](#7-open-questions)):
+**Changed existing milestones** (balance, [§4](#4-balance)). *Decided ([MS1](#7-open-questions)):* today's fixed 800 Titan mark and today's capability rewards stay for now, and figures that relied on the relative test are provisional:
 
-- Blue sunset 70 → **100**.
-- Night drive 50 → **30** per stage.
+- Blue sunset 70 → **100** (camera money near the lander, C2; provisional).
+- Night drive stays **50** per stage for now. The 30 proposed under the relative test is deferred to the balance patch, and the §4 rows that use Night drive were computed at 30 (provisional).
 - Delta layers stays 100.
 - Core sample stays 60 per site. A sample that earns Séítah core or Signs of an ancient lake still counts as a Core sample site: one drill action can earn both, as on the Moon.
-- **Clean run** (proposed) is dropped. An idle rover earns it, and it would add to the idle and empty-bay money that C3 must keep down.
+- **Clean run** (proposed in game-design.md) is **added** to Mars ([MS7](#7-open-questions)): finish all 10 sols without damage. An idle rover earns it too, so its reward is tuned in the balance patch together with the idle and empty-bay money that C3 watches.
 
 **What each instrument now earns:**
 
@@ -195,7 +198,7 @@ There are **nineteen new milestones**. Every Mars instrument gets at least one (
 
 **Why these and not others:**
 
-- **One combo only, and it teaches nothing.** Documented sample (camera + X-ray) reuses the Moon's photo target. There is no laser + contact combo, and no neutron + solar combo (C11).
+- **One combo for now.** Documented sample (camera + X-ray) reuses the Moon's photo target. *Decided ([MS11](#7-open-questions)):* combos are not banned. No milestone is visible to the player before it is reached (desk cards list names only, and the debrief's "Not reached" list comes after the mission), so a part pairing cannot give a lesson away in advance. More combos can be added later where they make good science.
 - **The weather mast gets a plannable milestone.** Dust devils are random, so a weather rover cannot count on Dust devil pass. Night weather is always there, and it ties the mast to Mars's lesson: staying awake at night costs battery (1/s plus the mast's standby).
 - **Organics earns at two sites, not five.** Each reading is a long hold that costs much energy, so two readings are a full mission's work. That is the energy lesson (Mars plan, "Long hold").
 - **Lake organics and Rare rock live only at the delta foot.** The far destination should hold the rarest things. The near clusters still pay every instrument enough to pass ([§4](#4-balance)).
@@ -204,7 +207,6 @@ There are **nineteen new milestones**. Every Mars instrument gets at least one (
   - a Wright Brothers Field photo (nothing to see; MS12);
   - a sand-ripple photo (no source found that Perseverance photographed Séítah's megaripples);
   - a "hydrogen + drill" combo (it would blur Hydrated ground);
-  - Clean run (see above);
   - anything at Hawksbill Gap or the sunset viewpoint (too far, and they are optional already).
 
 ### How the milestones work (rules)
@@ -241,14 +243,13 @@ The RTG relationship raises the meter's floor and makes it jitter (Mars plan). I
 
 ### Milestones and the relationship lessons
 
-The Mars lessons are the Mars plan's ([Spoiler guard](mars-rover-engineering-implementation-plan.md#spoiler-guard-revised)). This plan adds none. Each row says where the new map makes the lesson happen, and what keeps it unspoken until then.
+The Mars lessons are the Mars plan's ([Spoiler guard](mars-rover-engineering-implementation-plan.md#spoiler-guard-revised)). This plan adds none. The electric heater lesson is dropped (Mars plan M15), so it has no row. Each row says where the new map makes the lesson happen, and what keeps it unspoken until then.
 
 | Lesson | Where the new map makes it happen | What makes it matter now | Spoiler guard |
 | --- | --- | --- | --- |
-| The arm cannot reach on a slope | Rocky area 2's NW inner wall (the first site out), the knob beside it, East crater's rim, the Séítah knob, and the flood boulder on the delta foot's slope. Each has level ground within reach (Rocky area 1 is almost all level) | Rock collection, Rare rock and Organic signals send arm rovers to those boulders. The rare boulder can be read from its downhill side, so "park level" works (C7) | No site notice or milestone text says "slope", "level", "flat" or "steep". The laser's texts ("Remote reading", "Rock from afar") never mention the arm. There is no laser + contact combo (C11) |
-| The RTG adds neutron noise | Hydrated ground, found by following the meter | It is worth 180, and noise hides the meter's rise ([above](#how-the-neutron-milestone-can-be-lost)) | Neutron texts say "switched on", "survey", "locate" and never mention power. No milestone needs solar power and the neutron spectrometer together (C11). The grep test checks "noise", "generator" and "RTG" in neutron texts |
+| The arm cannot reach on a slope | Rocky area 2's NW inner wall (the first site out), the knob beside it, East crater's rim, the Séítah knob, and the flood boulder on the delta foot's slope. Each has level ground within reach (Rocky area 1 is almost all level) | Rock collection, Rare rock and Organic signals send arm rovers to those boulders. The rare boulder can be read from its downhill side, so "park level" works (C7) | No site notice or milestone text says "slope", "level", "flat" or "steep". The laser's texts ("Remote reading", "Rock from afar") never mention the arm. The guard does not rely on combos (C11) |
+| The RTG adds neutron noise | Hydrated ground, found by following the meter | It is worth 180, and noise hides the meter's rise ([above](#how-the-neutron-milestone-can-be-lost)) | Neutron texts say "switched on", "survey", "locate" and never mention power. The grep test checks "noise", "generator" and "RTG" in neutron texts |
 | Dust on the panels | Every solar rover. The south cluster is dense enough to finish early, and the delta route is long, so it rewards early long drives (one of the revised answers) | Late milestones (Storm log, Night weather, a delta arrival late in the mission) need late income | Dust devil's fact is Newman et al. 2022 (whirlwind counts). Dust devil pass's fact is the microphone recording. **Neither mentions panels or cleaning.** Spirit's cleaning stays in the notebook entry (C8) |
-| An electric heater spends the night | Night weather keeps a rover awake through a night | A night awake costs 15 or more, on top of the heater | Night weather's text says "record the night's weather" and never mentions heaters or the battery. If M15 drops this lesson, the row goes |
 | No lights, no night driving | Unchanged (a hard block) | Night weather needs no lights: a rover can stay awake parked | The guard does not apply. Night weather's notice must not imply that lights are needed |
 
 ## 4. Balance
@@ -259,13 +260,14 @@ These are hand estimates, as the Moon's were before `winPaths`:
 
 > Final = B − (parts + ticket) + 50 survival + milestone money.
 
-- Parts are priced at the Mars plan's M11 prices, with the Moon tiers (M12).
+- Parts are priced at the Mars plan's M11 prices (decided). Tickets use the Moon tiers only as a yardstick: Mars gets its own tiers (M12, to be designed before Mars Phase 3), so every ticket and mass check here is provisional until then.
 - Each archetype must pass from **B = 780** by at least 50 (C2). The empty bay and idling must fail from **B = 950** by at least 50 (C3).
 - Routes assume the rover sleeps at night and drives about 1.6 to 2.0 km, which is within the cheap build's 2 km in `marsNight.test.ts`.
 - Dust devil milestones are left out (random, and they wait on Phase 5).
-- A Mars `winPaths` must confirm every row (Phase 6, MP5). Mars has none yet.
+- *Decided ([MS13](#7-open-questions)):* there is no Mars `winPaths` model. Every row is a hand estimate, checked by browser playtests (Phase 6).
+- *Decided ([MS1](#7-open-questions)):* the fixed 800 mark and today's capability rewards stay for now. Figures that relied on the relative test (the empty-bay and idle rows, and anything using Night drive at 30) are **provisional**; the B = 780 archetype rows do not depend on the test.
 
-### The pass test, and why this plan recommends a relative one
+### The pass test (MS1: deferred to the balance patch)
 
 Mars has no fixed budget, so the test has to hold across a 170-wide arrival range. Let *cap* be the capability money (milestones any rover can earn).
 
@@ -280,7 +282,7 @@ Mars has no fixed budget, so the test has to hold across a 170-wide arrival rang
    - The empty bay now fails because it loses money, not because capability pays little. It must earn at most spend − 100: 310 for the cheapest empty bay, 485 for a fast one.
    - Owner B's capability rewards can stay as built, except Night drive (50 → 30 per stage).
 
-**Proposed ([MS1](#7-open-questions)): adopt the relative test.** M13 says to switch when no reward set satisfies both ends with a 50 margin. Here, the only set that does so also gives up C5. The tables below use the relative test ("set B": today's capability rewards with Night drive at 30) and show the set A final alongside.
+**Decided ([MS1](#7-open-questions)): defer to the balance patch.** Keep today's fixed 800 mark and today's capability rewards for now. The analysis above stays on file as the options for that patch: the relative test (M13's own fallback), or set A's capability cuts, which would give up C5. The tables below were computed for the relative test ("set B": today's capability rewards with Night drive at 30) and show the set A final alongside. **All empty-bay and idle figures below are provisional.**
 
 ### Sample builds and routes
 
@@ -308,7 +310,7 @@ Builds are titanium, solid wheels, fixed panel, Li-ion and heater units unless s
 
 **What this shows:**
 
-- **Every instrument has a passing archetype from B = 780** under set B (C2, C4), and every archetype fails without using its instruments.
+- **Every instrument has a passing archetype from B = 780** under today's capability rewards (C2, C4; this does not depend on the pass test), and every archetype fails without using its instruments.
 - **Three routes pass.** The delta route is richest (the far destination). The south cluster passes for the drill, radar, neutron, weather and steel X-ray builds. East crater passes for the radar.
 - **The organics hunter and the camera scout depend on the delta.** That fits: the organics are the slow, power-hungry instrument, and Delta layers is the iconic photo. Both margins are thin (+60, +70), and the organics hunter's energy needs checking (Phase 6).
 - **The south Rock hound misses by 20.** The X-ray's near route passes only with the drill (Steel geologist) or from B ≥ 800. A fifth rock type in the south (a carbonate boulder at the Séítah knob, for example) would fix it if wanted.
@@ -317,16 +319,16 @@ Builds are titanium, solid wheels, fixed panel, Li-ion and heater units unless s
 
 ### The empty-bay and idle check
 
-Under the relative test, an empty bay fails at every arrival balance, because its net gain on Mars is −100 to −145. Under the fixed test it fails only with set A's capability cuts. Idling earns at most 140 and fails under either.
+Under the relative test, an empty bay fails at every arrival balance, because its net gain on Mars is −100 to −145. Under the fixed test it fails only with set A's capability cuts. Idling earns at most 140 and fails under either. *Decided (MS1):* the fixed mark stays for now, so with today's rewards **an empty bay passes from a good Moon result** (about B = 865 and up). That is a noted risk for the balance patch (Mars plan M13); idling still fails.
 
 ### Targets for the balance tests
 
-These go into a Mars `winPaths` (Phase 6):
+These are targets for hand estimates and playtests (no Mars `winPaths`, MS13; the empty-bay and 40% targets are for the balance patch):
 
 - Each archetype above passes by at least 50 from B = 780, on at least one route.
 - Each fails without its instruments, at both ends of the range.
-- The empty bay and idling fail by at least 50 at B = 950.
-- At B = 860, fewer than 40% of affordable builds pass with their best route. This is looser than the Moon's 35%, because Mars has twice as many instruments.
+- The empty bay and idling fail by at least 50 at B = 950. *Provisional:* today's rewards under the fixed mark do not meet this for the empty bay (MS1).
+- At B = 860, fewer than 40% of affordable builds pass with their best route. This is looser than the Moon's 35%, because Mars has twice as many instruments. With no Mars `winPaths`, it is checked by hand on the archetype list and by playtests.
 
 If the last target breaks, lower the delta-only rewards first (Rare rock, Lake organics, Rock from afar, Signs of an ancient lake), then the others evenly. Do not lower the near rewards that the south and east archetypes depend on.
 
@@ -334,12 +336,12 @@ If the last target breaks, lower the delta-only rewards first (Rare rock, Lake o
 
 | File | What changes |
 | --- | --- |
-| `game/data/mars/milestones.json` | 19 new milestones (triggers, rewards, summaries, facts, sources); Blue sunset 100; Night drive 30; the Core sample fact (see [Changes](#changes-to-the-built-mars-world)) |
+| `game/data/mars/milestones.json` | 20 new milestones, Clean run included (triggers, rewards, summaries, facts, sources; Clean run's reward is tuned in the balance patch); Blue sunset 100 (provisional); Night drive stays 50 for now; the Core sample fact (see [Changes](#changes-to-the-built-mars-world)) |
 | `game/data/mars/tuning.json` | `milestones`: `deltaFootRadiusM` 50, `youngCraterEjectaFactor` 1.5, `craterWallRimBand` [0.8, 1.3], `documentedSampleRangeM` 15, `dustDevilSenseM` 150. `instruments.neutron`: `background` 0.1, `unitShares` (Séítah 0.15, delta foot 0.15), `anomalyPeak` 0.45, `anomalyRangeM` 80, `anomalyCoreM` 25. `instruments.xray.suites` and `rocks` (Mars, see §5). `boulders`: per-site counts (§5). `survey.leads`: adds `youngCrater` |
 | `game/data/mars/sites.json` (new overlay) | Design choices on top of pipeline features: which crater is "East crater", the hydrated ground's position, the flood boulder, the rock suite of each site, display names |
 | `game/data/mars/text.json` | Site names and notices, the lead, Mars rock names, readouts, debrief lines, desk card lines, credits |
-| `game/data/tuning.json` → `budget` | The relative Titan test, if MS1 is accepted (Owner A) |
-| Mars balance data (new) | Nodes, legs (MP5) and archetype plans for a Mars `winPaths` |
+| `game/data/tuning.json` → `budget` | Unchanged for now (MS1 deferred); the balance patch decides (Owner A) |
+| Mars balance data (new) | Nodes and legs (MP5) for the hand estimates and the energy check (no Mars `winPaths`, MS13) |
 | `game/public/terrain/mars/terrain.json` | Pipeline output only (MP1 to MP4) |
 
 ## 5. Rock types
@@ -389,15 +391,15 @@ Each phase ends with tests and the build passing, a browser check on both worlds
 
 ### What this plan depends on
 
-| Mars plan item | Proposed answer | What here depends on it |
+| Mars plan item | Answer | What here depends on it |
 | --- | --- | --- |
 | M3 | The neutron spectrometer stays if it has a target | Hydrated ground and Hydrogen traverse. If M3 drops it, both go and the neutron prospector goes |
 | M6 | The X-ray spectrometer needs the arm on Mars | The Rock hound's spend; the arm lesson's targets |
-| M11 | Repricing: arm, mast, RTG, organics, laser, larger battery | Every spend in [§4](#sample-builds-and-routes). At draft prices the arm and laser builds cannot pass |
-| M12 | Moon tiers | Every ticket. All builds here are under 90 kg and size 26 (C10) |
-| **M13** | Fixed test, relative if no reward set works | **[MS1](#7-open-questions):** this plan invokes the fallback. Capability rewards depend on the answer |
-| M14 | Reworded answers ("park level beside the target") | The rare boulder's level side; Rocky area 1 as level ground |
-| M15 | Drop the electric heater lesson | One spoiler-guard row |
+| M11 | Decided: reprice as proposed (revisable in a later balance patch) | Every spend in [§4](#sample-builds-and-routes). At draft prices the arm and laser builds cannot pass |
+| M12 | Decided: separate Mars ticket tiers, to be designed before Mars Phase 3 | Every ticket. The tickets here use the Moon tiers as a yardstick (all builds under 90 kg and size 26); the Mars tiers set the real limits (C10) |
+| **M13** | Decided: left for now; exact requirements and rewards tuned in a future balance patch | **[MS1](#7-open-questions):** the fixed 800 mark and today's capability rewards stay. Figures that relied on the relative test are provisional |
+| M14 | Decided: the original answers are kept ("park on level ground") | The rare boulder's level side; Rocky area 1 as level ground |
+| M15 | Decided: drop the electric heater lesson | The heater's spoiler-guard row is removed |
 | **M16** | `record.seconds` for instruments aboard | Storm log, Night weather, Dust devil pass: all three weather mast milestones |
 | M17 | Any `heat` meets the heater requirement | The RTG geologist's Night drive (no heater part) |
 | M18 | Derive "needs the arm" from `needs` | The debrief's "Not reached" list |
@@ -413,13 +415,13 @@ Owner B built the Mars world and owns placement. This plan would change:
 | What | Today | Proposed | Why |
 | --- | --- | --- | --- |
 | Blue sunset | 70 | 100 | Camera money near the lander (C2) |
-| Night drive | 50 per stage | 30 per stage | The empty bay with lights must fail (C3, relative test) |
-| Capability rewards | Touchdown 80, Odometer 30, Mapper 60, Storm survivor 60 | Unchanged under MS1; cut about 60% if MS1 is rejected (set A) | C3 |
+| Night drive | 50 per stage | Unchanged for now (30 proposed under the relative test, deferred) | The empty bay with lights must fail (C3); balance patch |
+| Capability rewards | Touchdown 80, Odometer 30, Mapper 60, Storm survivor 60 | Unchanged (MS1 deferred to the balance patch) | C3 |
 | Core sample's fact | Wildcat Ridge, and "detected the mission's most abundant organic molecules" | A crater-floor fact (the first sample attempt in August 2021, when the rock crumbled; NASA) | Wildcat Ridge moves to Signs of an ancient lake and Lake organics. The Mars plan's wording rule says "signals consistent with", never "detected organic molecules" |
 | Night drive's fact | "lows near −83 °C" from "NASA's First Weather Report" | Check the source | The fact check found the −83 °C low in a later MEDA report, while the first report showed about −20 to −26 °C. Not verified against NASA's page |
 | Rocky area 2 | `radius_m` 204, "about 255 m across" | Ask the pipeline to re-measure (MP1) | Measured about 300 m across and 14 m deep, not round |
 | Signs of an ancient lake (proposed) | The `delta-front` zone (150 m) | A 50 m `delta-foot` zone | The 150 m zone includes igneous crater floor |
-| Clean run (proposed) | In game-design.md | Dropped | Idle rovers earn it (C3) |
+| Clean run (proposed) | In game-design.md | Added to Mars (MS7); reward tuned in the balance patch | Idle rovers earn it too (C3), a noted risk for the patch |
 | Survey leads | Delta, Séítah, rocks | + "Young crater" to East crater | Something to the east |
 | Boulders | Rocky areas only | + young craters, Séítah edge, delta foot, knobs, the flood boulder | Contact targets in every cluster |
 
@@ -427,12 +429,12 @@ Owner B's Mars milestones and rules otherwise stay as built: their zones, the su
 
 ### Phase 0: Design first
 
-- Decide the [open questions](#7-open-questions) with Owner B (placement) and Owner A (MS1, rewards).
-- The Mars plan's Phase 0 decides M11 to M19. This plan's numbers move with them.
+- The [open questions](#7-open-questions) are decided (November 15, 2026); Phase 0 records them, and Owner B accepts the placements.
+- The Mars plan's Phase 0 records M11 to M19. This plan's numbers move with them.
 - Record in game-design.md:
   - the Mars milestones table and "How the Mars milestones work" (new milestones, changed rewards, zones, the arm limit);
   - Site: Jezero (new site kinds, the fourth lead);
-  - Balance (the relative test if accepted; archetypes as targets).
+  - Balance (the fixed mark stays for now; archetypes as hand-estimate targets; Clean run on Mars).
 - Record in rover-engineering-design.md: Mars rock types; what each Mars instrument earns.
 
 **Done when:** both docs say *Decided* for everything Phases 2 to 6 build, and Owner B has accepted the placements.
@@ -447,7 +449,7 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 | MP2 | **Slope target cells.** Please find cells with 10 to 18° slope that lie within 5 m of ground under 8°, at the young craters, the knobs (305, −835) and (620, 445), and the delta foot. They are listed as patches per site | `features.slopeTargets[]` |
 | MP3 | **Delta foot.** Please give the nearest 400 m of the scarp-foot line to the landing, and one spot for the flood boulder. The ground must be 12 to 18° on its uphill and side faces, under 10° within 3 m of its downhill face, and outside the 1,350 m ring, so the delta stays the far destination | `features.deltaFront.footNear`, `features.deltaFront.floodBoulder` |
 | MP4 | **Perseverance's sample sites within 1.6 km.** Please list the abrasion and sampling waypoints from the M20 waypoints file, with sol, name and position. We found Brac at (557, 632) and would like the others confirmed (the first sample attempt, August 2021; Issole) | `features.perseveranceSites[]`, as landmarks and fact anchors |
-| MP5 | **Route legs for Mars.** Please measure drive legs between the landing, Rocky area 2, the knob, the delta viewpoint, the delta foot, the two south craters, Rocky area 1, the hydrated ground (once chosen), the Séítah knob, Brac, East crater and the ESE crater, on the 10 m grid with slopes up to 18°. Please commit the tool under `game/tools/` (the Moon plan's P5 asks the same) | Nodes and legs for a Mars balance model |
+| MP5 | **Route legs for Mars (for hand estimates; there is no Mars `winPaths`, MS13).** Please measure drive legs between the landing, Rocky area 2, the knob, the delta viewpoint, the delta foot, the two south craters, Rocky area 1, the hydrated ground (once chosen), the Séítah knob, Brac, East crater and the ESE crater, on the 10 m grid with slopes up to 18°. Please commit the tool under `game/tools/` (the Moon plan's P5 asks the same) | Nodes and legs for the hand estimates and the energy check |
 | MP6 | **Optional: Wright Brothers Field and the Mars 2020 backshell and parachute,** positions from the Ingenuity flight log, if MS12 wants them for the briefing | Coordinates, or "outside the play area" |
 
 **Parallel:** MP1 to MP4 can run alongside Phases 2 and 3, which use stub features in `testData.ts`. MP5 needs MP1 to MP3 and the hydrated ground's position. MP6 is independent.
@@ -459,7 +461,7 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 - `rules/marsTypes.ts`: `MarsZoneId` gains `delta-foot`. Plus feature types for MP1 to MP4, Mars rock ids, and a `SitesFile` overlay for Mars (the Moon's type).
 - `data/mars/milestones.json`, `tuning.json`, `sites.json` (new), `text.json`, including facts with sources, checked again before they go in.
 - `rules/validate.ts`: Mars trigger zones, instrument ids (Mars catalog), rock ids, and `sites.json` references.
-- `data.test.ts`: the Mars milestone count (8 → 27) and the new checks.
+- `data.test.ts`: the Mars milestone count (8 → 28) and the new checks.
 
 **Parallel:** with Phase 1. Must land before Phase 3. Needs the Mars plan's Phase 1 (catalog per world) so instrument ids validate.
 
@@ -475,6 +477,7 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 | Hydrogen reading on Mars: unit shares, the anomaly and its core | `rules/instruments.ts` `hydrogenReading` | Reading at the core, at 80 m, in Séítah; with the RTG's raised floor and jitter |
 | Mars rock suites; the flood boulder | `rules/instruments.ts` `rockTypeFor`, `rules/boulders.ts` | The same boulder gives the same rock; each site gives only its suite; the flood boulder is fixed |
 | Boulders at the new sites; slope bias; no boulders on soft ground | `rules/boulders.ts` `scatterBoulders` | Counts per site; a share on 10 to 18° cells |
+| Clean run on Mars: no damage over all sols (the Moon's rule, reused) | `rules/milestones.ts` | Fires after a damage-free mission; any damage loses it; idle rovers earn it |
 | Survey: new site kinds, the fourth lead, hydrated ground hidden until found | `rules/survey.ts` | The reveal circle never discovers the hydrated ground |
 
 **Parallel:** zones, instruments and boulders can be three tasks. **Not parallel with the Moon plan's Phase 3:** the triggers are shared, so they are built once, Moon first. `record.seconds` comes from the Mars plan's Phase 6.
@@ -509,11 +512,11 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 
 ### Phase 6: Balance and browser check
 
-- A Mars balance model: either `winPaths` per world, or a Mars energy-and-route check built on `marsNight.test.ts`, with the MP5 legs ([MS13](#7-open-questions)).
-- Targets as in [§4](#targets-for-the-balance-tests); retune rewards in `data/mars/milestones.json` until they hold.
+- *Decided ([MS13](#7-open-questions)):* no Mars `winPaths` model. Balance by hand estimates and browser playtests, with a Mars energy-and-route check built on `marsNight.test.ts` and the MP5 legs.
+- Targets as in [§4](#targets-for-the-balance-tests); a first pass on rewards in `data/mars/milestones.json`. Exact budget requirements and rewards, Clean run included, are tuned in the balance patch ([MS1](#7-open-questions)).
 - Browser autopilot runs from an unexplored map at B = 780 and B = 950: idle, empty bay, and each archetype in §4.
 
-**Done when:** the model and browser agree within about 50 per run, and game-design.md has the result tables.
+**Done when:** the hand estimates and the browser autopilot runs agree within about 50 per run, and game-design.md has the result tables.
 
 ### Phase 7: Playtest and docs
 
@@ -526,37 +529,37 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 
 | Risk | Why | Mitigation |
 | --- | --- | --- |
-| MS1 is rejected | The fixed test forces set A's capability cuts and pushes most archetypes to the delta | Raise every instrument route by about 140 and accept the delta's large margins; or give Mars its own budget rule (Owner A) |
+| The empty bay passes under the fixed mark | MS1 is deferred, so today's rewards let an empty bay pass from a good Moon result (about B = 865 and up), and Clean run adds to idle money | A noted risk for the balance patch (Mars plan M13). Options on file: the relative test, or set A's cuts with every instrument route raised by about 140 |
 | Too many builds pass | The delta route pays two-instrument builds 175 to 220 over | The 40% target; lower the delta-only rewards first |
 | The arm lesson never happens | Players read on level ground by chance | Rocky area 2 is the first site out and its rim approach is the steep side. Slope bias in the scatter |
 | The arm lesson blocks the rare rock | A flood boulder that the arm can reach from no side | MP3's level downhill face; a test that the boulder is readable from level ground |
 | RTG noise costs nothing | A noisy rover can still drive over the core | Small hidden core; jitter tuned against the gradient; the `dwellS` fallback (MS4) |
 | Dust devils are too rare to plan for | Random events | They are bonuses in the balance; MS8 sets a rate so a whole mission usually has one |
 | Designed placements read as real | Hydrated ground, flood boulder, olivine at Rocky area 2 | "Inspired by" in the facts; this doc marks them *placed by design* |
-| 27 Mars milestones overwhelm a child | Long debrief | Cards list only carried instruments' milestones; the debrief groups by instrument; staged ones show as one line |
+| 28 Mars milestones overwhelm a child | Long debrief | Cards list only carried instruments' milestones; the debrief groups by instrument; staged ones show as one line |
 | Organics runs out of energy | Two long holds plus a 1.8 km route | Phase 6 energy check; if it fails, Organic signals drops to one stage at a higher reward |
 
 ## 7. Open questions
 
-All of these are proposed, not decided.
+All of these are decided (November 15, 2026) and applied through the doc.
 
-| # | Question | Proposed answer |
+| # | Question | Decision |
 | --- | --- | --- |
-| MS1 | Titan pass test: keep the fixed 800 mark (and cut capability rewards about 60%), or switch to M13's relative fallback? | Switch: Mars passes at a final of at least 800 and at least the arrival balance ("Mars must pay for itself"). Capability rewards stay, except Night drive at 30. Owner A decides |
-| MS2 | The arm's slope limit for contact readings (Mars plan Phase 4) | 10°: the arm lesson then has a drivable 10 to 18° band, and Rocky area 2's inner wall is about half under 8° and half over |
-| MS3 | The rare rock | One flood boulder at the delta foot, flood conglomerate, *placed by design*, readable from its downhill side |
-| MS4 | How the RTG noise can cost the neutron milestone (C6) | A small hidden core (25 m), with jitter at least the anomaly's rise at 30 m. Add `transect.dwellS` only if playtests show noisy rovers still find it |
-| MS5 | Signs of an ancient lake's zone | A new 50 m `delta-foot` zone, not the 150 m `delta-front` zone |
-| MS6 | East crater as a site, with a fourth lead | Yes, if MP1 confirms it is fresh; otherwise use the ESE crater and no lead |
-| MS7 | Clean run (proposed in game-design.md) | Drop it: idle rovers earn it |
-| MS8 | Dust devil rate (Phase 5) | Frequent enough that most missions show one within 300 m: real Jezero has about four vortices per sol. The milestones stay out of the balance until Phase 5 |
-| MS9 | Olivine rock in Rocky area 2's suite | Yes, *placed by design*, inspired by RIMFAX's dipping layers and crater excavation |
-| MS10 | Mars rock types | The six in §5, with plain readouts |
-| MS11 | Combos | Only Documented sample (camera + X-ray). No laser + contact, no neutron + solar |
-| MS12 | Wright Brothers Field and other mission landmarks | No milestone (nothing to see). Optionally a briefing line if MP6 gives a position. Brac is named in Séítah core's fact |
-| MS13 | Mars balance model | Extend `winPaths` per world before Phase 6, with the MP5 legs and the Mars night energy; `marsNight.test.ts` stays the regression check |
-| MS14 | Does Night weather count for a parked, awake rover with no lights? | Yes: awake is enough (1/s plus standby). Lights are not needed, so the no-lights block is not spoiled |
-| MS15 | Should the Rock hound's south route pass from B = 780? | Not required. If wanted, add carbonate-bearing olivine rock to the Séítah knob as a fifth type there |
+| MS1 | Titan pass test: keep the fixed 800 mark (and cut capability rewards about 60%), or switch to M13's relative fallback? | **Defer to the balance patch.** Keep today's fixed 800 Titan mark and today's capability rewards for now (Night drive stays 50). Balance figures that relied on the relative test are provisional. The relative test and set A stay on file as the options. Owner A tunes in the patch |
+| MS2 | The arm's slope limit for contact readings (Mars plan Phase 4) | **10°.** The arm lesson then has a drivable 10 to 18° band, and Rocky area 2's inner wall is about half under 8° and half over |
+| MS3 | The rare rock | **The flood boulder:** one flood boulder at the delta foot, flood conglomerate, *placed by design*, readable from its downhill side |
+| MS4 | How the RTG noise can cost the neutron milestone (C6) | **A small hidden core** (25 m), with jitter at least the anomaly's rise at 30 m. Add `transect.dwellS` only if playtests show noisy rovers still find it |
+| MS5 | Signs of an ancient lake's zone | **The new 50 m `delta-foot` zone**, not the 150 m `delta-front` zone |
+| MS6 | East crater as a site, with a fourth lead | **Yes, if the pipeline (MP1) confirms the crater is fresh;** otherwise use the ESE crater and no lead |
+| MS7 | Clean run (proposed in game-design.md) | **Add Clean run on Mars,** as game-design.md proposes (finish all 10 sols without damage). Idle rovers earn it too; rewards are tuned in the balance patch |
+| MS8 | Dust devil rate (Phase 5) | **Most missions see one:** frequent enough that most missions show one within 300 m: real Jezero has about four vortices per sol. The milestones stay out of the balance until Phase 5 |
+| MS9 | Olivine rock in Rocky area 2's suite | **Yes,** *placed by design*, inspired by RIMFAX's dipping layers and crater excavation |
+| MS10 | Mars rock types | **The six rock types** in §5, with plain readouts |
+| MS11 | Combos | **Only Documented sample (camera + X-ray) for now.** The "no laser + contact, no neutron + solar combo" rule is lifted: no milestone is visible before it is reached (desk cards list names only; the debrief's "Not reached" list comes after the mission), so a pairing cannot give a lesson away. Combos may be added later where they make good science |
+| MS12 | Wright Brothers Field and other mission landmarks | **No milestone** (nothing to see). Optionally a briefing line if MP6 gives a position. Brac is named in Séítah core's fact |
+| MS13 | Mars balance model | **Hand estimates only: no Mars `winPaths` model.** Balance Mars by hand estimates and browser playtests; `marsNight.test.ts` stays the regression check and the energy check |
+| MS14 | Does Night weather count for a parked, awake rover with no lights? | **Yes:** awake is enough (1/s plus standby). Lights are not needed, so the no-lights block is not spoiled |
+| MS15 | Should the Rock hound's south route pass from B = 780? | **Not required.** If wanted, add carbonate-bearing olivine rock to the Séítah knob as a fifth type there |
 
 ## Sources and what is not verified
 
