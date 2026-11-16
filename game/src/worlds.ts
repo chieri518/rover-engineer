@@ -23,7 +23,7 @@ export const MARS_TERRAIN_BASE = 'terrain/mars/';
 
 /**
  * Where the Titan terrain is loaded from: the Shangri-La dunes from the pipeline (tools/build_terrain_titan.py), modeled on
- * Cassini data. The placeholder in terrain/titan-placeholder/ (scripts/make-titan-placeholder.mjs) has the same file names and shape.
+ * Cassini data. The early placeholder is not shipped; scripts/make-titan-placeholder.mjs regenerates it in terrain/titan-placeholder/ if needed.
  */
 export const TITAN_TERRAIN_BASE = 'terrain/titan/';
 
