@@ -1917,6 +1917,19 @@ The desk plays like a creature-creator parts editor: a big 3D rover in the middl
 - **Click to fit.** Clicking a thumbnail fits it: in a required category it replaces the part; in the payload it toggles the item (a second click takes it off). Fitted thumbnails are clearly marked. Clicking a part on the 3D rover opens its category in the palette. No drag and drop: parts snap to their fixed places.
 - **Blocked states** show on the thumbnail (dimmed), with the reason in the hover card: a full bay, a part that needs the arm or the mast, and a part the budget cannot cover. A part the world does not offer is not shown at all. *(Lead decision:)* a full bay and a missing need refuse the click, as the old cards did; a part that would take the build over budget is marked but can still be fitted, since the player may then trade down elsewhere (the launch stays blocked while over budget, as before).
 - **Accessibility.** Thumbnails are buttons with accessible names and a pressed state; the keyboard reaches every one. On narrow screens the palette stacks above the rover, and the stats below.
+- *Decided during implementation (November 16):*
+  - The category list is a vertical tab list; each required tab shows its chosen part's name (or "Not chosen"), and Payload shows the mounting points used of available. The desk opens on the first required category still empty (Frame on a new rover), else on Payload. Choosing a part keeps its category open (no jump to the next one), so parts can be compared.
+  - The Payload tab lists "Science instruments" first, then "Support and systems".
+  - "Over budget" marks only a part that would raise the total cost and leave it over the budget. A part already fitted, or a cheaper swap, is never marked, so a player over budget can see which changes help.
+  - The hover card sits right of the tile, else left, else below or above it (narrow screens), always inside the window. A refused tile stays focusable (marked unavailable to screen readers) so its card can explain why.
+  - Keyboard: one Tab stop in the category list and one in the open category's tiles; the arrow keys move between tabs and between tiles (up and down by row), Enter or Space fits, Escape hides the card.
+  - Clicking a part on the rover opens its category and flashes its tile; focus stays where it was.
+  - On wide screens the desk fits one screen (1280 by 800 and up): the columns take the height left under the header and the notes; the palette and the specification scroll on their own, and the launch-ticket button stays pinned at the bottom of the specification. When less than 520 px would be left, the columns take the screen under the header and the page scrolls past the notes.
+  - The notes are compact: the story and the carry-over show two lines each until "More" (the full text stays in the page for screen readers); the not-offered notice and Titan's solar note always show in full. On wide screens the story sits left and the world notes right.
+  - The hover card follows the mouse's hover and the keyboard's focus only: a mouse click or a tap does not leave a card behind, leaving a hovered tile returns the card to the keyboard's tile, and scrolling hides it (or moves it with the keyboard's tile while that tile is still in view).
+  - Touch: the first tap on a tile opens its card, a second tap on the same tile fits it (or takes it off); a tap elsewhere closes the card. Mouse and keyboard fit at once.
+  - Each tile's state (fitted, its key, bay full, needs support, over budget) is in its screen-reader description at all times, not only in the card.
+  - Clicking the rover picks the nearest drawn part only: a click on something that belongs to no part picks nothing rather than a part behind it.
 
 ## 12. Tech stack and fit with the brief
 

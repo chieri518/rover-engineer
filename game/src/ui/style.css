@@ -186,25 +186,45 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   margin: 0 0 12px; padding: 10px 16px; background: var(--panel); border: 1px solid var(--edge); border-top: 3px solid var(--info); border-radius: 4px;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
 }
-.desk-notes { margin-bottom: 12px; }
+.desk-notes {
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 24px; align-items: start;
+  margin-bottom: 12px; font-size: 0.85rem; line-height: 1.4;
+}
+.desk-notes-main, .desk-notes-side { display: grid; gap: 6px; min-width: 0; }
+.desk-notes-side:empty { display: none; }
+.desk-notes:has(.desk-notes-side:empty) { grid-template-columns: minmax(0, 1fr); }
 .desk-notes p { margin: 0; }
-.desk-notes p.story-site { margin-bottom: 6px; max-width: 72ch; }
+.desk-notes p.story-site { max-width: 72ch; }
+/* Collapsed (the default): the story and the carry-over show two lines; "More" opens them. */
+.desk-notes.collapsed .clamp { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
+.notes-toggle { grid-column: 1 / -1; justify-self: start; padding: 1px 10px; font-size: 0.78rem; color: var(--info); border-color: var(--line); background: none; }
+.notes-toggle[hidden] { display: none; }
 .desk-head h2 { margin: 0; }
 .desk-head .title-kicker { margin: 0 0 2px; }
 .desk-head p { margin: 0; }
 .budget { text-align: right; white-space: nowrap; }
 .budget strong { display: block; font-family: var(--font-mono); font-weight: 500; font-size: 1.5rem; color: var(--accent); }
 .label { color: var(--muted); }
-/* Layout: wide screens put parts | 3D preview | sheet side by side; medium screens put the preview on
-   top with parts and sheet below; narrow screens stack preview, parts, sheet. Without WebGL the
-   preview is hidden (.no-preview) and the desk is parts | sheet. */
-.desk-grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: 'preview preview' 'slots sheet'; gap: 16px; align-items: start; }
-.desk.no-preview .desk-grid { grid-template-areas: 'slots sheet'; }
-.slots { grid-area: slots; display: grid; gap: 6px; min-width: 0; }
-.sheet { grid-area: sheet; }
+/* Layout (game-design.md, "The engineer's desk as a parts editor"): palette | 3D rover | specification.
+   Wide screens fit the three columns to the viewport under the sticky header (--desk-top, set from the
+   header's height in designScreen.ts); the palette and the sheet scroll inside themselves, and the
+   launch button stays at the bottom of the sheet. Below 1000 px they stack: palette, rover, sheet.
+   Without WebGL the preview is hidden (.no-preview) and the desk is palette | sheet. */
+.desk { --desk-top: 96px; --desk-col-h: max(440px, calc(100vh - var(--desk-top) - 16px)); }
+.desk:not(.no-preview) { width: min(1680px, 100%); }
+.desk-grid {
+  display: grid; gap: 16px; align-items: start;
+  grid-template-columns: clamp(300px, 25vw, 400px) minmax(0, 1fr) clamp(300px, 23vw, 350px);
+  grid-template-areas: 'palette preview sheet';
+}
+.desk.no-preview .desk-grid { grid-template-columns: minmax(0, 1fr) clamp(300px, 32vw, 380px); grid-template-areas: 'palette sheet'; }
+.palette {
+  grid-area: palette; position: relative; min-width: 0; max-height: var(--desk-col-h); overflow-y: auto; overscroll-behavior: contain;
+  padding: 10px; background: var(--panel); border: 1px solid var(--edge); border-radius: 4px;
+}
 /* The live 3D preview (buildPreview.ts): a dark assembly bay behind a transparent canvas. */
 .preview {
-  grid-area: preview; position: relative; min-width: 0; height: clamp(340px, 54vh, 540px);
+  grid-area: preview; position: relative; min-width: 0; height: var(--desk-col-h); max-height: 980px;
   border: 1px solid var(--edge); border-radius: 4px;
   background:
     radial-gradient(ellipse 70% 55% at 50% 38%, rgba(40, 72, 112, 0.42) 0%, rgba(16, 28, 46, 0.2) 55%, rgba(7, 11, 20, 0) 100%),
@@ -221,51 +241,105 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   text-shadow: 0 0 12px rgba(94, 200, 255, 0.35);
 }
 .preview-hint[hidden] { display: none; }
-@media (min-width: 1181px) {
-  .desk:not(.no-preview) { width: min(1680px, 100%); }
-  .desk:not(.no-preview) .desk-grid { grid-template-columns: clamp(320px, 26vw, 400px) minmax(0, 1fr) clamp(320px, 23vw, 340px); grid-template-areas: 'slots preview sheet'; }
-  .desk:not(.no-preview) .slot { grid-template-columns: 1fr; gap: 4px; }
-  .desk:not(.no-preview) .slot legend { padding: 4px 0 0; }
-  .preview { position: sticky; top: 16px; height: clamp(460px, calc(100vh - 140px), 900px); }
+.preview-pick-hint { position: absolute; left: 12px; right: 12px; bottom: 10px; margin: 0; text-align: center; pointer-events: none; font-size: 0.75rem; color: var(--muted); }
+.preview-hint:not([hidden]) ~ .preview-pick-hint { display: none; }
+
+/* The parts palette (deskPalette.ts): the category tabs, then the open category's tiles. */
+.palette-tabs { display: grid; gap: 3px; margin-bottom: 10px; }
+.palette-tab {
+  display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-width: 0;
+  padding: 6px 10px; text-align: left; font-size: 0.85rem; border-radius: 4px; border-color: var(--line); background: var(--sunk);
 }
-.slot { display: grid; grid-template-columns: 96px 1fr; align-items: stretch; gap: 8px; border: 0; margin: 0; padding: 0; }
-.slot legend { float: left; padding: 10px 0 0; font-weight: 600; font-size: 0.9rem; }
-.slot-empty { display: none; margin-top: 2px; font-family: var(--font-body); font-weight: 400; font-size: 0.75rem; color: var(--accent); }
-.slot.empty .slot-empty { display: block; }
-.options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-.option { position: relative; display: grid; align-content: start; gap: 2px; padding: 8px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
-.option:hover { border-color: var(--line-strong); }
-.option.selected { border-color: var(--accent); background: var(--accent-bg); }
-.option:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
-.option input { position: absolute; opacity: 0; pointer-events: none; }
-.option-name { font-weight: 600; font-size: 0.95rem; }
-.option-desc { color: var(--muted); }
-.option-stats { display: flex; flex-wrap: wrap; gap: 0 12px; font-variant-numeric: tabular-nums; }
-.option-effect { color: var(--accent-soft); }
-.option-note { color: var(--muted); font-size: 0.85rem; }
-/* The payload bay: mounting-point sockets, and the instrument and system cards (instruments show their mission key). */
-.bay-body { display: grid; gap: 6px; min-width: 0; }
-.bay-head { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.palette-tab:hover { border-color: var(--line-strong); }
+.palette-tab .tab-name { flex: none; font-family: var(--font-head); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.8rem; }
+.palette-tab .tab-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.palette-tab .tab-check { color: var(--good); }
+.palette-tab.empty .tab-value { color: var(--accent); }
+.palette-tab[aria-selected='true'] { border-color: var(--info); background: rgba(94, 200, 255, 0.1); box-shadow: inset 3px 0 0 var(--info); }
+.palette-tab[aria-selected='true'] .tab-name { color: var(--info); }
+.palette-tab:focus-visible, .part-tile:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+.palette-panel[hidden] { display: none; }
+.palette-group { margin: 12px 0 6px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
+.tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
+.part-tile {
+  position: relative; display: grid; align-content: start; gap: 4px; min-width: 0; padding: 6px 6px 8px;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; text-align: center; font-size: 0.78rem; line-height: 1.2;
+  transition: border-color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+.part-tile:hover { border-color: var(--line-strong); transform: translateY(-1px); }
+.tile-thumb {
+  display: block; aspect-ratio: 1; border-radius: 4px; overflow: hidden;
+  background:
+    radial-gradient(ellipse 70% 60% at 50% 55%, rgba(40, 72, 112, 0.5) 0%, rgba(10, 16, 27, 0) 75%),
+    linear-gradient(rgba(94, 200, 255, 0.07) 1px, transparent 1px) 0 0 / 12px 12px,
+    linear-gradient(90deg, rgba(94, 200, 255, 0.07) 1px, transparent 1px) 0 0 / 12px 12px;
+}
+.tile-thumb img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.tile-name { font-weight: 600; overflow-wrap: anywhere; }
+.tile-check {
+  display: none; position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; border-radius: 50%;
+  background: var(--accent); color: var(--on-accent); font-size: 0.72rem; font-weight: 700; line-height: 20px;
+}
+.tile-key { position: absolute; top: 4px; left: 4px; padding: 1px 5px; border-radius: 3px; font-family: var(--font-mono); font-size: 0.68rem; background: var(--accent); color: var(--on-accent); }
+.tile-key:empty, .tile-badge:empty { display: none; }
+.tile-badge { justify-self: center; padding: 0 5px; border: 1px solid currentColor; border-radius: 3px; font-size: 0.66rem; color: var(--warn); }
+.part-tile.fitted { border-color: var(--accent); background: var(--accent-bg); box-shadow: inset 0 0 0 1px var(--accent), 0 0 14px rgba(240, 180, 41, 0.22); }
+.part-tile.fitted .tile-check { display: block; }
+.part-tile.blocked { cursor: not-allowed; }
+.part-tile.blocked .tile-thumb, .part-tile.blocked .tile-name { opacity: 0.4; }
+.part-tile.blocked:hover { transform: none; border-color: var(--line); }
+.part-tile.over-budget .tile-thumb { opacity: 0.55; }
+.part-tile.flash { animation: tile-flash 0.9s ease-out; }
+@keyframes tile-flash {
+  0% { box-shadow: 0 0 0 3px var(--info), 0 0 20px rgba(94, 200, 255, 0.7); }
+  100% { box-shadow: 0 0 0 0 rgba(94, 200, 255, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .part-tile { transition: none; }
+  .part-tile:hover { transform: none; }
+  .part-tile.flash { animation: none; outline: 2px solid var(--info); outline-offset: 2px; }
+}
+.palette .bay-hint { margin: 10px 0 0; font-size: 0.78rem; }
+.palette .bay-notice { margin-top: 8px; }
+/* The payload panel's head: mounting-point sockets and the count. */
+.bay-head { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .bay-sockets { display: inline-flex; gap: 4px; }
 .socket { width: 12px; height: 12px; border-radius: 50%; border: 1px solid var(--line-strong); }
 .socket.filled { background: var(--accent); border-color: var(--accent); }
-.option.disabled { opacity: 0.45; cursor: not-allowed; }
-.option.disabled:hover { border-color: var(--line); }
-.option-key { justify-self: start; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); }
-.option-key:empty { display: none; }
-.bay-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 0.8rem; }
 .bay-notice { margin: 0; font-size: 0.8rem; color: var(--warn); }
 .bay-notice[hidden] { display: none; }
-.sheet { position: sticky; top: 16px; background: var(--panel); border-radius: 4px; padding: 16px 18px; border: 1px solid var(--edge); }
+/* The hover card (partCard.ts): beside the tile, never over it, never taking the pointer. */
+.part-card {
+  position: fixed; z-index: 30; width: 290px; max-width: calc(100vw - 16px); padding: 10px 12px; pointer-events: none;
+  background: var(--panel); border: 1px solid var(--info); border-radius: 6px; font-size: 0.82rem; line-height: 1.4;
+  box-shadow: 0 0 24px rgba(94, 200, 255, 0.12), 0 14px 36px rgba(0, 0, 0, 0.55);
+}
+.part-card[hidden] { display: none; }
+.part-card p { margin: 0 0 5px; }
+.part-card p:last-child { margin-bottom: 0; }
+.part-card-name { font-family: var(--font-head); font-weight: 600; font-size: 0.98rem; }
+.part-card-desc, .part-card-note { color: var(--muted); }
+.part-card-stats { display: flex; flex-wrap: wrap; gap: 0 12px; font-family: var(--font-mono); font-size: 0.95em; font-variant-numeric: tabular-nums; }
+.part-card-effect { color: var(--accent-soft); }
+.part-card-state.fitted { color: var(--accent); font-weight: 600; }
+.part-card-state.blocked { color: var(--warn); }
+/* The specification sheet: its content scrolls; the launch button stays at the bottom. */
+.sheet {
+  grid-area: sheet; position: relative; display: flex; flex-direction: column; max-height: var(--desk-col-h); padding: 0;
+  background: var(--panel); border-radius: 4px; border: 1px solid var(--edge);
+}
+.sheet-scroll { min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 14px 18px 8px; }
 .sheet h2 { font-size: 1.1rem; margin-bottom: 4px; }
 .sheet h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 14px 0 4px; font-weight: 600; }
-.sheet .actions { margin-top: 12px; }
+.sheet .sheet-actions { position: sticky; bottom: 0; margin: 0; padding: 10px 18px 14px; border-top: 1px solid var(--line); background: var(--panel); border-radius: 0 0 4px 4px; }
 .sheet .actions button { width: 100%; }
 .sheet .warnings { margin: 10px 0 0; font-size: 0.85rem; }
 .row { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 2px 0; font-size: 0.9rem; font-variant-numeric: tabular-nums; }
 .row .value { font-family: var(--font-mono); font-size: 0.95em; display: inline-flex; align-items: center; gap: 6px; text-align: right; }
 .row.total { border-top: 1px solid var(--line); margin-top: 2px; padding-top: 4px; font-weight: 600; }
-.row.bad .value { color: var(--warn); font-weight: 600; }
+/* The mono face ships in 400 and 500 only: a 600 value is synthesized, and its doubled strokes read as a strike-through at this size. */
+.row.total .value, .row.bad .value { font-weight: 500; }
+.row.bad .value { color: var(--warn); }
 .row.good .value { color: var(--good); }
 .why { font-size: 0.8rem; color: var(--muted); margin: 2px 0 0; }
 .gauge { position: relative; height: 8px; background: var(--sunk); box-shadow: inset 0 0 0 1px var(--line); border-radius: 4px; margin: 2px 0 14px; }
@@ -303,16 +377,17 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .badge { margin-left: 8px; font-size: 0.7rem; padding: 1px 6px; border-radius: 4px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .ticket .sheet-body { margin-top: 12px; max-width: 360px; }
 
-@media (max-width: 900px) {
-  .desk-grid { grid-template-columns: 1fr; grid-template-areas: 'preview' 'slots' 'sheet'; }
-  .desk.no-preview .desk-grid { grid-template-areas: 'slots' 'sheet'; }
-  .preview { height: clamp(260px, 46vh, 400px); }
-  .sheet { position: relative; top: auto; } /* relative, not static: anchors its corner brackets */
+@media (max-width: 999px) {
+  .desk-notes { grid-template-columns: minmax(0, 1fr); }
+  .desk-grid, .desk.no-preview .desk-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'palette' 'preview' 'sheet'; }
+  .desk.no-preview .desk-grid { grid-template-areas: 'palette' 'sheet'; }
+  .palette { max-height: none; overflow: visible; }
+  .preview { height: clamp(260px, 50vh, 420px); }
+  .sheet { max-height: none; }
+  .sheet-scroll { overflow: visible; }
 }
 @media (max-width: 560px) {
-  .slot { grid-template-columns: 1fr; }
-  .slot legend { padding: 4px 0 0; }
-  .options { grid-template-columns: 1fr; }
+  .tile-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 6px; }
   .desk-head { padding: 8px 12px; gap: 6px 12px; flex-wrap: wrap; }
   .desk-head-side { flex-wrap: wrap; gap: 8px 12px; }
   .budget { text-align: left; }
@@ -444,7 +519,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 
 /* The campaign moves on to a new world: the note under the design heading, the landing's "new here" list. */
-.desk-notes p.world-transition { margin-top: 8px; padding: 8px 12px; max-width: 72ch; border-left: 2px solid var(--info); background: var(--sunk); font-size: 0.9rem; }
+.desk-notes p.world-transition { padding: 6px 10px; max-width: 72ch; border-left: 2px solid var(--info); background: var(--sunk); font-size: 0.82rem; }
 .new-on-world { padding-left: 20px; }
 .new-on-world li { margin-bottom: 6px; }
 

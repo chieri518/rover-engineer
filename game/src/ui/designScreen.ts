@@ -1,78 +1,31 @@
-// The design screen ("the engineer's desk"): pick one part per required bus slot, fit the payload bay
-// (instruments and payload systems: lights, heater, and on Mars the arm and the mast), and watch the
-// specification sheet.
+// The design screen ("the engineer's desk", game-design.md "The engineer's desk as a parts editor"): the
+// parts palette on the left (deskPalette.ts: one part per required bus slot, and the payload bay's
+// instruments and systems), the live 3D rover in the middle (buildPreview.ts), and the specification
+// sheet on the right with the launch-ticket button.
 // All numbers come from rules/ (quoteBuild); this file only lays them out.
 import type { Screen } from '../flow/flow';
 import { canStartMission, isPlayable, nextMission } from '../rules/campaign';
-import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
-import {
-  bayCapacity, bayParts, fitBayToChassis, fitRefusal, instrumentCosts, instrumentKeys, isFitted, pointsUsed, toggleBayPart, type InstrumentCosts,
-} from '../rules/payload';
-import { chosenParts, requiredSlots, slotPartId, withSlotPart } from '../rules/rover';
-import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
+import { bayCapacity, instrumentCosts } from '../rules/payload';
+import { chosenParts } from '../rules/rover';
+import type { DraftBuild, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
+import { categoryOfGroup, choosePart, mountPalette, partForGroup } from './deskPalette';
 import { el, fill, money } from './dom';
-import { deskCardNotes } from './milestoneText';
+import { costsText, titanSolar } from './partCard';
 import { tierWhyText } from './tierText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
 import { missionVars, tutorialPages } from './tutorialText';
 import { nightBudgetLine } from './marsMission';
-import { missingSupportWarnings, needsText } from './supportText';
+import { missingSupportWarnings } from './supportText';
 
 const KMH = 3.6;
-
-/** An instrument's operating costs as text ("10 energy per use, holds the rover 3 s"), or null when it has none. */
-function costsText(c: InstrumentCosts, data: GameData, withHold: boolean): string | null {
-  const t = data.text.design;
-  const items = [
-    c.energyPerUse > 0 && fill(t.energyPerUse, { energy: c.energyPerUse }),
-    c.standbyEnergy > 0 && fill(t.energyStandby, { energy: c.standbyEnergy }),
-    withHold && c.useSeconds > 0 && fill(t.useHold, { seconds: c.useSeconds }),
-  ].filter((x): x is string => Boolean(x));
-  return items.length ? items.join(', ') : null;
-}
-
-/** The one number that matters most for each part, shown on its card. */
-function keyEffect(part: Part, data: GameData): string | null {
-  const e = part.effects;
-  switch (part.slot) {
-    case 'chassis':
-      return e.maxLoad !== undefined ? `Max load ${e.maxLoad} kg · ${e.mountingPoints ?? 0} mounting points` : null;
-    case 'wheels':
-      return e.baseSpeed !== undefined
-        ? `Top speed ${gameSpeed(e.baseSpeed, data.tuning.speed).toFixed(1)} m/s · grip ${(e.grip ?? 0).toFixed(2)}`
-        : null;
-    case 'power':
-      if (e.steadyIncome) return `Steady income ${e.steadyIncome.toFixed(1)} energy/s, day and night`;
-      if (e.energyIncome === undefined) return null;
-      return titanSolar(e.energyIncome, data) ?? `Solar income ${e.energyIncome.toFixed(1)} energy/s`;
-    case 'battery':
-      return e.batteryCapacity !== undefined ? `Capacity ${e.batteryCapacity} energy` : null;
-    case 'lights':
-      return e.lightRange ? `Light range ${e.lightRange} m` : null;
-    case 'heater':
-      return e.heat ? `Heat output ${e.heat}${e.heaterDraw ? ` · draws ${e.heaterDraw} energy/s every night` : ''}` : null;
-    case 'arm':
-    case 'mast':
-      return null; // support hardware: the description says what it carries
-    case 'instrument': {
-      // The description says what the instrument does; the card adds what it costs to run.
-      const c = instrumentCosts([part])[0];
-      return c ? costsText(c, data, true) : null;
-    }
-  }
-}
-
-/** Titan: a panel's solar income at Titan (the Moon rate times the Titan solar factor), or null elsewhere. */
-function titanSolar(income: number, data: GameData): string | null {
-  const factor = data.tuning.titanPower?.solarFactor;
-  const t = data.text.titanCampaign;
-  if (factor === undefined || !t) return null;
-  return fill(t.solarIncome, { income: Number((income * factor).toPrecision(1)) });
-}
+/** Below this many pixels left for the columns under the notes, the columns take the screen under the header instead. */
+const MIN_GRID_PX = 520;
+/** #app's padding above and below the desk (style.css). */
+const APP_PADDING_PX = 16;
 
 /** A horizontal gauge with a tick at each tier limit. */
 function tierGauge(value: number, limits: { tier: Tier; limit: number }[], unit: string): HTMLElement {
@@ -111,114 +64,20 @@ export const designScreen: Screen = (game, root) => {
     update();
   };
 
-  const cards = new Map<string, HTMLElement>();
-  const fieldsets = new Map<string, HTMLElement>();
-  const card = (part: Part, input: HTMLInputElement, ...extra: (Node | null)[]) => {
-    const effect = keyEffect(part, data);
-    const node = el('label', { class: 'option' },
-      input,
-      el('span', { class: 'option-name' }, part.name),
-      part.description ? el('span', { class: 'option-desc' }, part.description) : null, // none/empty options have no description
-      el('span', { class: 'option-stats' },
-        el('span', {}, money(part.cost, text)),
-        el('span', {}, `${part.mass} kg`),
-        el('span', {}, `size ${part.size}`),
-      ),
-      effect && el('span', { class: 'option-effect' }, effect),
-      // What the instrument can earn here, by milestone name only (M14), and on Mars where it is used.
-      ...(part.effects.instrument ? deskCardNotes(part.effects.instrument, data).map((note) => el('span', { class: 'option-note' }, note)) : []),
-      part.effects.needs && needsText(part.effects.needs, data) ? el('span', { class: 'option-note' }, needsText(part.effects.needs, data)) : null,
-      ...extra,
-    );
-    cards.set(part.id, node);
-    return node;
-  };
-
-  // Part cards: one radio group per required bus slot (chassis, wheels, power, battery). The payload
-  // systems are cards in the payload bay.
-  const slots = requiredSlots(data.parts).map((slot) => {
-    const options = data.parts.parts.filter((p) => p.slot === slot);
-    const fieldset = el('fieldset', { class: 'slot' },
-      el('legend', {}, text.slots[slot] ?? slot, el('span', { class: 'slot-empty' }, t.slotEmpty)),
-      el('div', { class: 'options' },
-        ...options.map((part) => card(part, el('input', {
-          type: 'radio',
-          name: `slot-${slot}`,
-          value: part.id,
-          checked: part.id === slotPartId(game.build, slot),
-          onchange: () => {
-            const build: DraftBuild = withSlotPart(game.build, slot, part.id);
-            // A chassis with fewer mounting points drops the instruments added last (systems stay).
-            if (slot !== 'chassis') return setBuild(build);
-            const fitted = fitBayToChassis(build, data.parts);
-            if (!fitted.dropped.length) return setBuild(build);
-            const names = fitted.dropped.map((id) => partById(id)?.name ?? id).join(text.ticket.and);
-            const points = bayCapacity(build, data.parts).points;
-            setBuild(fitted.build, fill(t.bayDropped, { chassis: part.name, points, parts: names }));
-          },
-        }))),
-      ),
-    );
-    fieldsets.set(slot, fieldset);
-    return fieldset;
+  // The parts palette (deskPalette.ts): a click fits the part (a required part replaces its slot's part; a
+  // payload item toggles), a chassis with fewer mounting points drops the instruments fitted last.
+  const palette = mountPalette({
+    data,
+    balance: game.state.balance,
+    getBuild: () => game.build,
+    onChoose: (part) => {
+      const { build, dropped } = choosePart(game.build, part, data.parts);
+      if (!dropped.length) return setBuild(build);
+      const names = dropped.map((id) => partById(id)?.name ?? id).join(text.ticket.and);
+      const points = bayCapacity(build, data.parts).points;
+      setBuild(build, fill(t.bayDropped, { chassis: part.name, points, parts: names }));
+    },
   });
-
-  // The payload bay: a toggle card per payload item, the systems first (lights, heater, and on Mars the
-  // arm and the mast; the two heaters swap), then the instruments, which take their mission keys in the
-  // order they were added. "None" parts are never shown: leaving an item off is just not fitting it.
-  const bayInputs = new Map<string, HTMLInputElement>();
-  const bayKeys = new Map<string, HTMLElement>();
-  const bayCounter = el('span', { class: 'bay-counter' });
-  const baySockets = el('span', { class: 'bay-sockets', 'aria-hidden': 'true' });
-  const bayStatus = el('p', { class: 'bay-notice', role: 'status' });
-  const bay = el('fieldset', { class: 'slot bay' },
-    el('legend', {}, text.slots.instrument),
-    el('div', { class: 'bay-body' },
-      el('p', { class: 'bay-head' }, baySockets, bayCounter),
-      el('div', { class: 'options' },
-        ...bayParts(data.parts).map((part) => {
-          const input = el('input', {
-            type: 'checkbox',
-            name: 'payload',
-            value: part.id,
-            onchange: () => setBuild(toggleBayPart(game.build, part.id, data.parts)),
-          });
-          bayInputs.set(part.id, input);
-          const key = el('span', { class: 'option-key' });
-          bayKeys.set(part.id, key);
-          return card(part, input, key);
-        }),
-      ),
-      el('div', { class: 'bay-foot' }, el('span', { class: 'muted' }, t.bayHint)),
-      bayStatus,
-    ),
-  );
-  fieldsets.set('instrument', bay);
-  slots.push(bay);
-
-  function updateBay(): void {
-    const used = pointsUsed(game.build, data.parts);
-    const capacity = bayCapacity(game.build, data.parts);
-    // The same mission keys as in the mission (rules/payload instrumentKeys), from the bay's instruments in bay order.
-    const keys = instrumentKeys((game.build.payload ?? []).flatMap((id) => partById(id) ?? []));
-    bayCounter.textContent = capacity.chassis ? fill(t.bayPoints, { used, points: capacity.points }) : t.bayNoChassis;
-    baySockets.replaceChildren(...Array.from({ length: capacity.chassis ? capacity.points : 0 }, (_, i) => el('span', { class: `socket${i < used ? ' filled' : ''}` })));
-    for (const [id, input] of bayInputs) {
-      // A full bay, or an instrument whose support part is not fitted, refuses the card (a fitted item can always come out).
-      const fitted = isFitted(game.build, id, data.parts);
-      const refusal = fitted ? null : fitRefusal(game.build, id, data.parts);
-      input.checked = fitted;
-      input.disabled = refusal !== null;
-      const node = cards.get(id)!;
-      node.classList.toggle('disabled', input.disabled);
-      node.title = !refusal ? '' : refusal.kind === 'full' ? t.bayFull : needsText(refusal.support, data) ?? '';
-      const inst = partById(id)?.effects.instrument;
-      const key = fitted && inst ? keys.get(inst) : undefined;
-      bayKeys.get(id)!.textContent = key ? fill(t.bayKey, { key }) : '';
-    }
-    bayStatus.textContent = bayNotice;
-    bayStatus.hidden = !bayNotice;
-  }
 
   // Specification sheet.
   const sheet = el('div', { class: 'sheet-body' });
@@ -271,34 +130,44 @@ export const designScreen: Screen = (game, root) => {
 
   // Live 3D preview of the rover as built so far (loaded on demand, with three.js). Without WebGL the
   // viewport is hidden and the desk falls back to parts and sheet only.
+  // Clicking a part on the rover opens its category in the palette and flashes its tile.
   const previewHint = el('p', { class: 'preview-hint' }, t.previewEmpty);
-  const viewport = el('div', { class: 'preview', role: 'img', 'aria-label': t.previewLabel }, previewHint);
+  const viewport = el('div', { class: 'preview', role: 'img', 'aria-label': t.previewLabel }, previewHint,
+    el('p', { class: 'preview-pick-hint', 'aria-hidden': 'true' }, t.pickHint));
   let preview: BuildPreview | null = null;
   let left = false;
   const hidePreview = () => {
     viewport.hidden = true;
     desk.classList.add('no-preview');
   };
+  // The palette's thumbnails (partThumbs.ts, with three.js) render after the live preview has mounted,
+  // one part at a time; leaving the desk stops the batch.
+  const thumbs = new AbortController();
+  const renderThumbs = () => {
+    if (left) return;
+    void import('./partThumbs')
+      .then(({ renderPartThumbs }) =>
+        renderPartThumbs(palette.parts, data.tuning.rover, { signal: thumbs.signal, onThumb: (id, url) => palette.setThumb(id, url) }))
+      .catch((err) => console.warn('Part thumbnails unavailable:', err));
+  };
   void import('./buildPreview')
     .then(({ mountBuildPreview }) => {
       if (left) return;
       preview = mountBuildPreview(viewport, data.tuning.rover, hidePreview);
       preview.show(chosenParts(game.build, data.parts));
+      preview.onPick((group) => palette.open(categoryOfGroup(group), partForGroup(group, game.build, data.parts)));
     })
     .catch((err) => {
       console.warn('Build preview unavailable:', err);
       hidePreview();
-    });
+    })
+    .finally(renderThumbs);
 
   function update(): void {
     const chosen = chosenParts(game.build, data.parts);
     preview?.show(chosen);
     previewHint.hidden = chosen.length > 0;
-    const bus = requiredSlots(data.parts);
-    const selected = new Set(bus.map((s) => slotPartId(game.build, s)));
-    for (const [id, node] of cards) node.classList.toggle('selected', selected.has(id) || isFitted(game.build, id, data.parts));
-    for (const slot of bus) fieldsets.get(slot)?.classList.toggle('empty', !slotPartId(game.build, slot));
-    updateBay();
+    palette.update(bayNotice);
     const q = quoteBuild(game.build, data, game.state.balance);
     const d = q.drive;
     const why = q.tierWhy;
@@ -309,6 +178,13 @@ export const designScreen: Screen = (game, root) => {
     const nightLine = nightBudgetLine(data, chosen); // Mars only (null on the Moon)
 
     sheet.replaceChildren(
+      el('h3', {}, 'Cost'),
+      row('Budget', money(game.state.balance, text)),
+      row('Parts', money(q.cost, text)),
+      row('Ticket', q.tier ? money(q.ticketPrice, text) : '—'),
+      row('Total', money(q.totalCost, text), 'total'),
+      row('Remaining', money(q.remaining, text), q.remaining < 0 ? 'bad' : 'good'),
+
       el('h3', {}, 'Mass and size'),
       row('Mass', `${q.mass} kg`, 'gauge-row'),
       tierGauge(q.mass, tiers.map((tier) => ({ tier, limit: tier.massLimit })), 'kg'),
@@ -322,13 +198,6 @@ export const designScreen: Screen = (game, root) => {
       el('p', { class: 'why' }, q.complete ? tierWhyText(why, text) : t.tierSoFar,
         q.complete && why.saving > 0 ? ` ${fill(t.tierSaving, { tier: why.exceeded!.tier.name, saving: money(why.saving, text) })}` : ''),
 
-      el('h3', {}, 'Cost'),
-      row('Parts', money(q.cost, text)),
-      row('Ticket', q.tier ? money(q.ticketPrice, text) : '—'),
-      row('Total', money(q.totalCost, text), 'total'),
-      row('Budget', money(game.state.balance, text)),
-      row('Remaining', money(q.remaining, text), q.remaining < 0 ? 'bad' : 'good'),
-
       el('h3', {}, 'Driving'),
       el('div', { class: 'row speed' },
         el('span', { class: 'label' }, 'Max speed'),
@@ -337,11 +206,13 @@ export const designScreen: Screen = (game, root) => {
       infoPanel,
       row('Grip', has('wheels') ? d.grip.toFixed(2) : dash),
       row('Drive energy', has('wheels') ? `${(d.energyPerMeter * 1000).toFixed(0)} energy/km` : dash),
-      row('Battery', has('battery') ? `${d.batteryCapacity} energy` : dash),
-      ...(nightLine ? [row(nightLine.label, nightLine.value)] : []),
       row('Range on battery', has('wheels') && has('battery') ? `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground` : dash),
-      row(t.instrumentEnergy, instrumentEnergyText()),
+
+      el('h3', {}, t.sheetEnergy),
+      row('Battery', has('battery') ? `${d.batteryCapacity} energy` : dash),
       row('Solar income', has('power') ? (titanSolar(d.energyIncome, data) ?? `${d.energyIncome.toFixed(1)} energy/s in full sun`) : dash),
+      row(t.instrumentEnergy, instrumentEnergyText()),
+      ...(nightLine ? [row(nightLine.label, nightLine.value)] : []),
     );
     renderInfo(q);
 
@@ -385,12 +256,12 @@ export const designScreen: Screen = (game, root) => {
   // power there.
   const mars = text.campaign;
   const nextStep = nextMission(game.state.mission);
-  const transition = mars && el('p', { class: 'world-transition' },
+  const transition = mars && el('p', { class: 'world-transition' }, el('span', { class: 'clamp' }, // the span clamps; the box keeps its padding
     fill(mars.carryOver, { balance: money(game.state.balance, text) }), ' ',
     nextStep && isPlayable(nextStep) ? fill(mars.passMark, { minimum: money(data.tuning.budget.minimumBudget[nextStep], text) })
       : nextStep ? fill(mars.passMark, missionVars(data)) : '', ' ',
     mars.sameParts,
-  );
+  ));
 
   // Engineering notebook: what REL has learned in the field, for planning the next rover.
   let notebook: NotebookHandle | null = null;
@@ -404,43 +275,93 @@ export const designScreen: Screen = (game, root) => {
     },
   }, text.notebook.open);
 
-  const desk = el('section', { class: 'desk' },
-    // The top bar stays in view while the desk scrolls: title, help, notebook and balance. The longer notes sit below it.
-    el('header', { class: 'desk-head' },
-      el('div', {},
-        el('p', { class: 'title-kicker' }, text.story.kicker),
-        el('h2', {}, t.heading),
-      ),
-      el('div', { class: 'desk-head-side' },
-        help,
-        notebookButton,
-        el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
-      ),
+  const head = el('header', { class: 'desk-head' },
+    el('div', {},
+      el('p', { class: 'title-kicker' }, text.story.kicker),
+      el('h2', {}, t.heading),
     ),
-    el('div', { class: 'desk-notes' },
-      el('p', { class: 'story-site' }, text.story.site), // why REL is going to this site
+    el('div', { class: 'desk-head-side' },
+      help,
+      notebookButton,
+      el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
+    ),
+  );
+  // Palette | rover | specification. The sheet scrolls inside itself so the launch button stays in view.
+  const grid = el('div', { class: 'desk-grid' },
+    palette.element,
+    viewport,
+    el('aside', { class: 'sheet', 'aria-label': t.sheetHeading },
+      el('div', { class: 'sheet-scroll' },
+        el('h2', {}, t.sheetHeading),
+        sheet,
+        warnings,
+      ),
+      el('div', { class: 'actions sheet-actions' }, next),
+    ),
+  );
+
+  // The notes: compact, so the desk fits one screen. The story and the carry-over show two lines each until
+  // "More" (the full text is always in the page, so screen readers read all of it); the not-offered notice
+  // and Titan's solar note always show in full.
+  const notesToggle = el('button', {
+    type: 'button',
+    class: 'notes-toggle',
+    'aria-expanded': 'false',
+    'aria-controls': 'desk-notes',
+    hidden: true,
+    onclick: () => {
+      const open = notes.classList.toggle('collapsed') === false;
+      notesToggle.setAttribute('aria-expanded', String(open));
+      notesToggle.textContent = open ? t.notesLess : t.notesMore;
+    },
+  }, t.notesMore);
+  const notes = el('div', { class: 'desk-notes collapsed', id: 'desk-notes' },
+    el('div', { class: 'desk-notes-main' },
+      el('p', { class: 'story-site clamp' }, text.story.site), // why REL is going to this site
       el('p', { class: 'muted' }, t.tutorial),
+    ),
+    el('div', { class: 'desk-notes-side' },
       transition,
       notOffered.length > 0 && el('p', { class: 'world-transition not-offered', role: 'status' },
         fill(t.notOffered, { parts: notOffered.map((p) => p.name).join(text.ticket.and) })),
       text.titanCampaign && el('p', { class: 'world-transition world-warning' }, text.titanCampaign.solarNote),
     ),
-    el('div', { class: 'desk-grid' },
-      el('div', { class: 'slots' }, ...slots),
-      viewport,
-      el('aside', { class: 'sheet' },
-        el('h2', {}, 'Specification'),
-        sheet,
-        warnings,
-        el('div', { class: 'actions' }, next),
-      ),
-    ),
+    notesToggle,
+  );
+  const desk = el('section', { class: 'desk' },
+    // The top bar stays in view while the desk scrolls: title, help, notebook and balance. The longer notes sit below it.
+    head,
+    notes,
+    grid,
   );
   root.append(desk);
+  // Fit the desk to one screen: the columns take the height left under the header and the notes. On a short
+  // screen (under MIN_GRID_PX left) the columns take the screen under the sticky header instead, and the
+  // page scrolls past the notes. "More" shows only when a note is cut short.
+  const fit = () => {
+    const clamped = [...notes.querySelectorAll<HTMLElement>('.clamp')].some((p) => p.scrollHeight > p.clientHeight + 1);
+    notesToggle.hidden = !clamped && notes.classList.contains('collapsed');
+    const top = head.offsetHeight + 12;
+    desk.style.setProperty('--desk-top', `${top}px`);
+    // From the desk's own top (not the page's: #app centers a short desk), with #app's padding above and below.
+    const gridTop = grid.getBoundingClientRect().top - desk.getBoundingClientRect().top;
+    const left = window.innerHeight - 2 * APP_PADDING_PX - gridTop;
+    const height = left >= MIN_GRID_PX ? left : Math.max(MIN_GRID_PX - 80, window.innerHeight - top - APP_PADDING_PX);
+    desk.style.setProperty('--desk-col-h', `${Math.floor(height)}px`);
+  };
+  const deskSize = new ResizeObserver(fit);
+  deskSize.observe(head);
+  deskSize.observe(notes);
+  window.addEventListener('resize', fit);
   update();
+  fit(); // at once, not a frame later (the observers then follow font loads and the More toggle)
   if (!game.tutorialSeen.design) openHelp();
   return () => {
     left = true;
+    thumbs.abort();
+    deskSize.disconnect();
+    window.removeEventListener('resize', fit);
+    palette.dispose();
     preview?.dispose();
     preview = null;
     tutorial?.dispose();

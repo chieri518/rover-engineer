@@ -614,9 +614,15 @@ export interface SharedTextFile {
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
     | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay (instruments and systems)
     | 'notOffered' // parts a carried build lost because this world does not offer them ({parts}; reworded per world)
-    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
+    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold' // instrument operating costs
+    // The parts palette (game-design.md, "The engineer's desk as a parts editor"): its label, the payload tab's
+    // points ({used}, {points}), the payload groups, the tile badges, the hover card's state lines, the pick hint
+    | 'paletteLabel' | 'tabPoints' | 'groupInstruments' | 'groupSystems' | 'tileFitted' | 'badgeFull' | 'badgeNeeds' | 'badgeOverBudget'
+    | 'cardOverBudget' | 'cardFitted' | 'pickHint' | 'sheetHeading' | 'sheetEnergy' | 'notesMore' | 'notesLess',
     string
   > & {
+    /** The palette's category names: the four required bus slots and the payload. */
+    categories: Record<RequiredSlot | 'payload', string>;
     speedInfo: string[]; // the optional real-speed pop-up, one paragraph per entry
     /** By instrument: a desk card's short line on where the instrument is used (Mars step 6d; none on the Moon). Names places, never a lesson. */
     instrumentWhere?: Partial<Record<Instrument, string>>;

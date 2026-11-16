@@ -1,7 +1,8 @@
 // Design screen build preview: the rover being assembled in 3D, live, in a dark assembly bay. The
 // rover stands on a lit turntable over a faint cyan grid floor, under studio lights (key, fill, rim).
 // Only chosen parts show; a new or changed part drops into place with a brief cyan flash. The
-// turntable turns slowly by itself and can be dragged (mouse or touch). Reduced motion: no turning
+// turntable turns slowly by itself and can be dragged (mouse or touch); a click or tap on a part
+// (not a drag) picks it, and the pointer shows over a pickable part. Reduced motion: no turning
 // by itself and instant swaps. Presentation only; nothing here is a rule.
 import * as THREE from 'three';
 import type { Part, RoverHandling } from '../rules/types';
@@ -31,6 +32,10 @@ const DROP_HEIGHT_M = 0.45;
 const FLASH_MS = 520;
 const FLASH_PEAK = 0.85;
 const CYAN = 0x5ec8ff;
+const CLICK_SLOP_PX = 5; // a press that moves less than this (mouse or pen) and...
+const TAP_SLOP_PX = 10; // ...this (a finger jitters more)...
+const CLICK_MS = 400; // ...and lets go within this time is a click on a part, not a turntable drag
+const HOVER_RECHECK_MS = 200; // while the turntable turns under a resting pointer, look again this often
 
 /** The live preview on the design screen. */
 export interface BuildPreview {
@@ -38,9 +43,14 @@ export interface BuildPreview {
   show(parts: Part[]): void;
   /** Stop and free every GPU resource. */
   dispose(): void;
+  /**
+   * Call `handler` with the model group (bus or support slot, or instrument) under the pointer when the
+   * player clicks the rover (a click, not a turntable drag). One handler; a later call replaces it.
+   */
+  onPick(handler: ((group: ModelGroup) => void) | null): void;
 }
 
-const noPreview: BuildPreview = { show: () => {}, dispose: () => {} };
+const noPreview: BuildPreview = { show: () => {}, dispose: () => {}, onPick: () => {} };
 
 /** Grid floor: thin cyan lines fading out from the center, over a soft pool of light. */
 function floorTexture(): THREE.CanvasTexture {
@@ -272,16 +282,19 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
   }
 
   // --- The model: rebuilt for every change of parts; the changed parts snap in. ---
-  let model: { root: THREE.Group; slots: Map<ModelGroup, THREE.Object3D> } | null = null;
+  // `owners`: each slot's group (the static wheels hardware and the wheels themselves both own 'wheels'), for picking.
+  interface Model { root: THREE.Group; slots: Map<ModelGroup, THREE.Object3D>; owners: Map<THREE.Object3D, ModelGroup> }
+  let model: Model | null = null;
   let shownIds = new Map<ModelGroup, string>();
   let firstShow = true;
   let snaps: Snap[] = [];
 
-  function buildModel(parts: Part[]): { root: THREE.Group; slots: Map<ModelGroup, THREE.Object3D> } {
+  function buildModel(parts: Part[]): Model {
     const built: RoverModel = buildRoverModel(handling, connectY, roverLook(parts), { bySlot: true });
     const root = new THREE.Group();
     root.add(built.body);
     const slots = new Map<ModelGroup, THREE.Object3D>(Object.entries(built.slots) as [ModelGroup, THREE.Group][]);
+    const owners = new Map<THREE.Object3D, ModelGroup>([...slots].map(([group, object]) => [object, group]));
     if (built.wheels.length) {
       const wheels = new THREE.Group();
       const corners: [number, number][] = [
@@ -298,11 +311,12 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
       });
       root.add(wheels);
       slots.set('wheels', wheels);
+      owners.set(wheels, 'wheels');
     }
     root.traverse((obj) => {
       if (obj instanceof THREE.Mesh) obj.receiveShadow = true;
     });
-    return { root, slots };
+    return { root, slots, owners };
   }
 
   function endSnap(snap: Snap): void {
@@ -323,6 +337,7 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
     const ghosts = meshes.map((mesh) => {
       const ghost = new THREE.Mesh(mesh.geometry, flash);
       ghost.renderOrder = 1;
+      ghost.raycast = () => {}; // never picked: the part under it is
       mesh.add(ghost);
       return ghost;
     });
@@ -359,6 +374,7 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
     firstShow = false;
     shownIds = ids;
     kick();
+    queueHover(); // the part under the pointer may have come or gone
   }
 
   // --- Framing, turning and dragging. ---
@@ -423,6 +439,13 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
   let spin = 0; // radians per second from a flick
   let drag: { id: number; x: number; t: number } | null = null;
   let lastTouch = -Infinity; // when the player last let go of the turntable
+  // The press that may yet be a click: where and when it went down, and whether it moved too far since.
+  let press: { id: number; x: number; y: number; t: number; slop: number; moved: boolean } | null = null;
+  let pickHandler: ((group: ModelGroup) => void) | null = null;
+  let hover: { x: number; y: number } | null = null; // a mouse or pen over the canvas (no hover for touch)
+  let hoverFrame = 0;
+  let hoverAt = -Infinity; // when the hover was last checked
+  let pointerCursor = false;
 
   /** Whether the next frame changes anything (with motion on, the turntable is always turning or about to). */
   function animating(): boolean {
@@ -461,6 +484,7 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
       return true;
     });
     render();
+    if (hover && !drag && t - hoverAt > HOVER_RECHECK_MS) queueHover(); // the parts turn under a resting pointer
     if (inView && animating()) frame = requestAnimationFrame(tick);
   };
 
@@ -477,16 +501,72 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
     frame = 0;
   }
 
+  // --- Picking: a click or tap on a part (a press that hardly moved and let go soon) names its group. ---
+  const raycaster = new THREE.Raycaster();
+  const ndc = new THREE.Vector2();
+  /** The group of the nearest part under a point on the page, if any (the turntable, floor and flash ghosts never count). */
+  function pickAt(clientX: number, clientY: number): ModelGroup | null {
+    if (!model || stopped || lost) return null;
+    const rect = canvas.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return null;
+    ndc.set(((clientX - rect.left) / rect.width) * 2 - 1, -((clientY - rect.top) / rect.height) * 2 + 1);
+    rover.updateWorldMatrix(true, true); // the turntable may have turned since the last frame
+    raycaster.setFromCamera(ndc, camera);
+    for (const hit of raycaster.intersectObject(model.root, true)) {
+      if (!(hit.object instanceof THREE.Mesh) || !shownInModel(hit.object, model.root)) continue;
+      // The nearest shown mesh decides: its group, or nothing (a click never reaches through to a part behind it).
+      for (let obj: THREE.Object3D | null = hit.object; obj && obj !== model.root; obj = obj.parent) {
+        const group = model.owners.get(obj);
+        if (group) return group;
+      }
+      return null;
+    }
+    return null;
+  }
+  /** Is this object drawn: it and every parent up to the model root visible (the raycaster ignores `visible`)? */
+  function shownInModel(obj: THREE.Object3D, root: THREE.Object3D): boolean {
+    for (let o: THREE.Object3D | null = obj; o && o !== root; o = o.parent) if (!o.visible) return false;
+    return root.visible;
+  }
+  function setPointerCursor(on: boolean): void {
+    if (on === pointerCursor) return;
+    pointerCursor = on;
+    canvas.style.cursor = on ? 'pointer' : ''; // '' falls back to the stylesheet's grab / grabbing
+  }
+  function checkHover(): void {
+    hoverFrame = 0;
+    hoverAt = performance.now();
+    setPointerCursor(Boolean(pickHandler && hover && !drag && pickAt(hover.x, hover.y)));
+  }
+  /** Check what is under the pointer at most once per frame. */
+  function queueHover(): void {
+    if (stopped || hoverFrame || !hover || !pickHandler) return;
+    hoverFrame = requestAnimationFrame(checkHover);
+  }
+
   const onPointerDown = (e: PointerEvent) => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     drag = { id: e.pointerId, x: e.clientX, t: e.timeStamp };
+    press = {
+      id: e.pointerId, x: e.clientX, y: e.clientY, t: e.timeStamp,
+      slop: e.pointerType === 'touch' ? TAP_SLOP_PX : CLICK_SLOP_PX, moved: false,
+    };
     spin = 0;
     canvas.setPointerCapture?.(e.pointerId);
     container.classList.add('dragging');
+    setPointerCursor(false); // the stylesheet's grabbing cursor while held
     kick();
   };
+  const movedTooFar = (e: PointerEvent): boolean =>
+    !press || press.id !== e.pointerId || press.moved || Math.hypot(e.clientX - press.x, e.clientY - press.y) > press.slop;
   const onPointerMove = (e: PointerEvent) => {
-    if (!drag || e.pointerId !== drag.id) return;
+    if (e.pointerType !== 'touch') hover = { x: e.clientX, y: e.clientY };
+    if (!drag) {
+      queueHover();
+      return;
+    }
+    if (e.pointerId !== drag.id) return;
+    if (press && press.id === e.pointerId && movedTooFar(e)) press.moved = true;
     const dx = e.clientX - drag.x;
     const dt = Math.max(1, e.timeStamp - drag.t) / 1000;
     turntable.rotation.y += dx * DRAG_RADIANS_PER_PX;
@@ -496,13 +576,25 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
   };
   const onPointerUp = (e: PointerEvent) => {
     if (!drag || e.pointerId !== drag.id) return;
-    // A flick keeps turning briefly; a drag that stopped before letting go does not.
-    if (e.timeStamp - drag.t > 80) spin = 0;
+    // A click: let go (not cancelled, as when the page takes over a touch to scroll), soon, close to where it went down.
+    const click = e.type === 'pointerup' && !movedTooFar(e) && e.timeStamp - press!.t <= CLICK_MS;
+    press = null;
+    // A flick keeps turning briefly; a drag that stopped before letting go does not; a click does not.
+    if (e.timeStamp - drag.t > 80 || click) spin = 0;
     spin = THREE.MathUtils.clamp(spin, -8, 8);
     drag = null;
     lastTouch = performance.now();
     container.classList.remove('dragging');
     kick();
+    if (e.pointerType === 'touch') hover = null;
+    else queueHover();
+    const group = click && pickHandler ? pickAt(e.clientX, e.clientY) : null;
+    if (group) pickHandler!(group); // last: the handler may rebuild the desk, or even dispose this preview
+  };
+  const onPointerLeave = (e: PointerEvent) => {
+    if (drag && e.pointerId === drag.id) return; // still held (no pointer capture): the drag goes on
+    hover = null;
+    setPointerCursor(false);
   };
 
   // Reduced motion: stop turning at once; turning it off resumes.
@@ -546,16 +638,25 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
   canvas.addEventListener('pointermove', onPointerMove);
   canvas.addEventListener('pointerup', onPointerUp);
   canvas.addEventListener('pointercancel', onPointerUp);
+  canvas.addEventListener('pointerleave', onPointerLeave);
   canvas.addEventListener('webglcontextlost', onContextLost);
   canvas.addEventListener('webglcontextrestored', onContextRestored);
   onResize();
 
   return {
     show,
+    onPick: (handler) => {
+      pickHandler = handler;
+      if (handler) queueHover();
+      else setPointerCursor(false);
+    },
     dispose: () => {
       if (stopped) return;
       stopped = true;
       stopLoop();
+      if (hoverFrame) cancelAnimationFrame(hoverFrame);
+      hoverFrame = 0;
+      pickHandler = null;
       resizeObserver?.disconnect();
       if (!resizeObserver) window.removeEventListener('resize', onResize);
       viewObserver?.disconnect();
@@ -564,6 +665,7 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
       canvas.removeEventListener('pointermove', onPointerMove);
       canvas.removeEventListener('pointerup', onPointerUp);
       canvas.removeEventListener('pointercancel', onPointerUp);
+      canvas.removeEventListener('pointerleave', onPointerLeave);
       canvas.removeEventListener('webglcontextlost', onContextLost);
       canvas.removeEventListener('webglcontextrestored', onContextRestored);
       for (const snap of snaps) endSnap(snap);
