@@ -55,7 +55,11 @@ export const ticketScreen: Screen = (game, root) => {
 
   root.append(
     el('section', { class: 'panel ticket' },
-      el('h2', {}, t.heading),
+      // The top bar stays in view while the ticket scrolls.
+      el('header', { class: 'ticket-head' },
+        el('h2', {}, t.heading),
+        el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
+      ),
       el('p', {}, t.briefing),
       el('p', { class: 'muted' }, t.tierRule),
       text.campaign && el('p', { class: 'muted' }, text.campaign.ticketNote),
