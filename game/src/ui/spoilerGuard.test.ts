@@ -36,6 +36,13 @@ const NEW_MILESTONES = [
   'documented-sample', 'fresh-ejecta-sample', 'moonquake-record', 'clean-seismogram', 'laser-ranging-site', 'science-station',
 ];
 
+/** The drive tutorial's line for one station; fails loudly if the line is missing, so the guard never checks the wrong text. */
+function stationLine(instrument: Instrument, start: RegExp): string {
+  const lines = tutorialPages('drive', data, { mission: 'moon', instruments: [instrument] }).flatMap((p) => p.paragraphs).filter((s) => start.test(s));
+  if (lines.length !== 1) throw new Error(`expected one drive tutorial line for ${instrument}, found ${lines.length}`);
+  return lines[0]!;
+}
+
 /** Every player-facing text Phase 5 added, labelled. */
 function newTexts(): [string, string][] {
   const s = text.survey;
@@ -51,8 +58,9 @@ function newTexts(): [string, string][] {
     ...(['instrumentMilestones'] as const).map((k): [string, string] => [`design.${k}`, text.design[k]]),
     ...(['logNote', 'logRockTypes', 'logEarned', 'stagedCount', 'groupRover', 'groupCombo', 'notReachedHeading', 'notReachedNote'] as const)
       .map((k): [string, string] => [`debrief.${k}`, text.debrief[k]]),
-    ['tutorial.drive.seismometer', tutorialPages('drive', data, { mission: 'moon', instruments: ['seismometer'] }).flatMap((p) => p.paragraphs)[0]!],
-    ['tutorial.drive.reflector', tutorialPages('drive', data, { mission: 'moon', instruments: ['reflector'] }).flatMap((p) => p.paragraphs)[0]!],
+    // The stations' tutorial lines: pick the paragraph that names the instrument (not the first drive paragraph).
+    ['tutorial.drive.seismometer', stationLine('seismometer', /^Seismometer station/)],
+    ['tutorial.drive.reflector', stationLine('reflector', /^Laser retroreflector/)],
   ];
   // The desk cards: the milestone names each instrument lists.
   for (const i of ALL) out.push([`desk card ${i}`, instrumentMilestones(i, data.milestones.milestones).map((m) => m.name).join(', ')]);

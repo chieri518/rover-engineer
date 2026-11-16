@@ -133,7 +133,7 @@
     "siteKindNotes": {
       "rocky-area": "a fresh crater ringed by boulders.",
       "young-crater": "a small crater with boulders around it.",
-      "cold-trap": "a small, very cold patch of ground.",
+      "cold-trap": "a small patch of ground where hydrogen may collect.",
       "rolled-boulder": "a large boulder at the foot of the crater wall, with a track up the slope behind it.",
       "hidden-hydrogen": "where the neutron spectrometer reads more hydrogen than in the cold traps."
     },

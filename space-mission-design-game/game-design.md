@@ -583,7 +583,7 @@ The map is **bigger than one mission can cover**, so the player feels they could
 | Kind | Before discovery | When discovered | After discovery |
 | --- | --- | --- | --- |
 | Young crater | Hidden (fog) | Ring icon; the notice names it and, for instruments aboard only, what they can do there ("East crater: fresh boulders and ejecta. X-ray spectrometer: read the rocks.") | Ring; a small check once every milestone this rover can earn there is earned |
-| Cold trap | Hidden | Its outline, a small dashed patch in its own style; notice "Cold trap: a small, very cold patch of ground." plus a neutron line if one is aboard (no word about shadow, light or temperature beyond the name, per the spoiler guard) | Outline; a check once surveyed |
+| Cold trap | Hidden | Its outline, a small dashed patch in its own style; notice "Cold trap: a small patch of ground where hydrogen may collect." plus a neutron line if one is aboard (no word about shadow, light, cold or temperature beyond the name, per the spoiler guard; reworded after the Phase 5 review) | Outline; a check once surveyed |
 | Rolled boulder | Hidden | Boulder icon with a short track line up the slope | A check once read and photographed (whichever this rover can) |
 | Hidden hydrogen | **Never drawn until found.** The reveal circle does not discover it; only the neutron meter's rise does | When Hidden hydrogen is earned: a dotted area labeled "Hydrogen-rich ground" | Stays drawn |
 | Ice signal | Never drawn | Not drawn: earning it would show where the ice is, which is the meter's job. The ice spot stays unmarked | |

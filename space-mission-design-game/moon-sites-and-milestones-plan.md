@@ -71,7 +71,7 @@ The exploring minimap's rules stay ([Minimap and exploration](game-design.md#min
 | Kind | Before discovery | When discovered | After discovery |
 | --- | --- | --- | --- |
 | Young crater | Hidden (fog) | Ring icon; notice names it and, for instruments aboard only, what they can do there ("East crater: fresh boulders and ejecta. X-ray spectrometer: read the rocks.") | Ring; a small check once every milestone this rover can earn there is earned |
-| Cold trap | Hidden | Its outline, a small dashed patch in its own style; notice "Cold trap: a small, very cold patch of ground." plus the neutron line if aboard (reworded after the Phase 0 review: no "shadow", per the spoiler guard) | Outline; check when surveyed |
+| Cold trap | Hidden | Its outline, a small dashed patch in its own style; notice "Cold trap: a small patch of ground where hydrogen may collect." plus the neutron line if aboard (reworded after the Phase 0 and Phase 5 reviews: no "shadow" or "very cold", per the spoiler guard) | Outline; check when surveyed |
 | Rolled boulder | Hidden | Boulder icon with a short track line up the slope | Check when read and photographed (whichever the rover can) |
 | Hidden hydrogen | **Never drawn until found.** Only the neutron meter can find it (it rises as the rover nears) | When the survey milestone fires: a dotted area labelled "Hydrogen-rich ground" | Stays drawn |
 | Ice signal | Never drawn; the ice spot stays unmarked, as decided | Not drawn: earning it tells the player where the ice is, which is the meter's job | |
