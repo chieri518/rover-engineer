@@ -326,7 +326,7 @@ export interface FramedBoulder {
 
 /** Mars: what else the camera saw when a photo was taken (the world's frame test, photoFrameMargin). */
 export interface PhotoView {
-  /** Whether a ground point (at the terrain height) is inside the frame and not hidden by terrain: Crater wall asks it about craters' centers. */
+  /** Whether a ground point (at the terrain height) is inside the frame (projection only: terrain does not hide it, which is generous for a crater center below the near rim): Crater wall asks it about craters' centers. */
   groundInFrame?: (p: Point) => boolean;
   /** Where each dust devil standing now and inside the frame is (rules/dust.ts dustDevilPosition): Dust devil. */
   dustDevilsInFrame?: readonly Point[];

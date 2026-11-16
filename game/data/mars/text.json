@@ -41,6 +41,16 @@
   },
   "design": {
     "notOffered": "Not offered on Mars: {parts}.",
+    "instrumentWhere": {
+      "camera": "Where: the delta front, young crater rims, and the sky at sunset.",
+      "drill": "Where: rock away from the lander. Séítah and the foot of the delta hold rock of their own.",
+      "xray": "Where: boulders at the boulder fields, young craters, knobs, Séítah and the foot of the delta. Each site has its own rocks.",
+      "neutron": "Where: switched on while driving through Séítah and along the delta front. Watch the meter for ground that reads higher.",
+      "weather": "Where: anywhere away from the lander, switched on through the dust storm and through the night.",
+      "radar": "Where: switched on for long drives away from the lander, past young craters, Séítah and the delta front.",
+      "laser": "Where: boulders at different sites, and the delta cliff from the foot of the delta.",
+      "organics": "Where: boulders away from the lander, at different sites. The foot of the delta holds rock from the old lake."
+    },
     "overTopTier": "Exceeds the Heavy ticket limits. The rover cannot launch.",
     "speedInfo": [
       "The mission compresses {sols} sols on Mars into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
