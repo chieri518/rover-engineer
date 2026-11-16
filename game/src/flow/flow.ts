@@ -1,7 +1,7 @@
 // Screen flow: title → design → ticket → landing → mission → debrief, then restart the round (back to
 // design, snapshot restored) or continue to the next world's design screen (Moon → Mars), and after the
 // last world the "coming soon" screen (comingSoon: "Titan: coming soon", with the campaign summary).
-import type { DraftBuild, GameData, MissionId } from '../rules/types';
+import type { DraftBuild, GameData, MissionId, Part } from '../rules/types';
 import {
   buyRover, finishMission, isPlayable, newCampaign, normalizeCampaign, recordLessons, restartRound, startRound,
   type CampaignState, type RoundOutcome,
@@ -11,7 +11,7 @@ import type { MissionResult } from '../rules/payout';
 import type { InstrumentLog } from '../rules/instruments';
 import { quoteBuild } from '../rules/quote';
 import { isCompleteBuild } from '../rules/rover';
-import { upgradeSavedBuild } from '../rules/payload';
+import { carryBuild } from '../rules/payload';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 import { loadSettings, saveSettings, type Settings } from '../save/settings';
 import { loadTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen, type TutorialSeenByWorld } from '../save/tutorialSeen';
@@ -31,6 +31,11 @@ export class Game {
   campaign: CampaignState | null;
   /** The rover on the design screen. A new campaign starts with every slot empty; a restart keeps the last design. */
   build: DraftBuild;
+  /**
+   * Parts the carried design lost because this world does not offer them (the desk's "Not offered" notice):
+   * from the build on the desk or the last rover bought. Empty once a rover is bought on this world.
+   */
+  notOffered: Part[] = [];
   outcome: RoundOutcome | null = null;
   lastResult: MissionResult | null = null;
   /** Photographs from the last mission (not saved: data URLs are too large for localStorage). */
@@ -58,8 +63,19 @@ export class Game {
     const saved = loadCampaign();
     this.campaign = saved && normalizeCampaign(saved);
     this.world = this.campaign ? worldOfStep(this.campaign.mission) : 'moon';
-    // Drops part ids the catalog no longer has; old saves move their instrument into the bay.
-    this.build = upgradeSavedBuild(this.campaign?.lastBuild, this.data.parts);
+    // Drops part ids the catalog no longer has, and parts this world does not offer (with a notice); old
+    // saves move their instrument into the bay.
+    this.build = {};
+    this.carryToWorld(this.campaign?.lastBuild);
+  }
+
+  /** The design (from a save, or the desk's build) brought to the current world, and what it lost there. */
+  private carryToWorld(design: unknown): void {
+    const { allParts, world } = this.data;
+    const desk = carryBuild(design, allParts, world);
+    const last = carryBuild(this.campaign?.lastBuild, allParts, world);
+    this.build = desk.build;
+    this.notOffered = [...desk.dropped, ...last.dropped].filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i);
   }
 
   /** The current world's game data (shared data with the world's overlay). */
@@ -109,6 +125,7 @@ export class Game {
     clearCampaign();
     this.setCampaign(startRound(newCampaign(this.data.tuning)));
     this.build = {};
+    this.notOffered = [];
     this.outcome = null;
     this.go('design');
   }
@@ -121,6 +138,7 @@ export class Game {
     if (!isPlayable(mission)) return this.go('comingSoon');
     // Any round in progress is rolled back to its snapshot, as on a restart.
     this.setCampaign(startRound(restartRound(this.state)));
+    this.carryToWorld(this.build);
     this.go('design');
   }
 
@@ -137,6 +155,7 @@ export class Game {
     const balance = Math.max(fresh.balance, this.data.tuning.budget.minimumBudget[world] ?? 0);
     this.setCampaign(startRound({ ...fresh, balance, mission: world, completed: order.slice(0, order.indexOf(world)) }));
     this.build = {};
+    this.notOffered = [];
     this.outcome = null;
     this.go('design');
   }
@@ -147,6 +166,7 @@ export class Game {
     const quote = quoteBuild(build, this.data, this.state.balance);
     if (!quote.canLaunch || !quote.canAfford) return;
     this.setCampaign(buyRover(this.state, build, quote.totalCost));
+    this.notOffered = [];
     this.go('landing');
   }
 
@@ -178,6 +198,7 @@ export class Game {
 
   restartRound(): void {
     this.setCampaign(startRound(restartRound(this.state)));
+    this.carryToWorld(this.build); // the snapshot may bring back a last rover with parts this world does not offer
     this.outcome = null;
     this.go('design');
   }

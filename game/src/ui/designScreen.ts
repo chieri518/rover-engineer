@@ -6,7 +6,7 @@ import { canStartMission, nextMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
-import { carryBuild, earnsMilestones, fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
+import { earnsMilestones, fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
 import { chosenParts } from '../rules/rover';
 import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
@@ -79,13 +79,9 @@ export const designScreen: Screen = (game, root) => {
   const tiers = data.tiers.tiers;
   const allowed = canStartMission(game.state, data.tuning);
 
-  // A build carried from another world (the Moon's, continued to Mars) loses the parts this world does not
-  // offer. The notice names them while the carried design is the one on the desk or the last rover bought
-  // (a reload has already dropped them from the desk's build); it goes once a rover is bought here.
-  const carried = carryBuild(game.build, data.allParts, data.world);
-  if (carried.dropped.length > 0) game.build = carried.build;
-  const notOffered = [...carried.dropped, ...carryBuild(game.state.lastBuild, data.allParts, data.world).dropped]
-    .filter((p, i, all) => all.findIndex((q) => q.id === p.id) === i);
+  // A build carried from another world (the Moon's, continued to Mars) has lost the parts this world does
+  // not offer (src/flow/flow.ts carryToWorld); the notice names them until a rover is bought here.
+  const notOffered = game.notOffered;
 
   const partById = (id: string) => data.parts.parts.find((p) => p.id === id);
   const chassisPoints = (build: DraftBuild): number | null => {

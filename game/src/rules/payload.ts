@@ -160,8 +160,12 @@ export function upgradeSavedBuild(saved: unknown, catalog: PartsFile): DraftBuil
 
 // --- A catalog per world ---
 
-/** Every world id, for checking `Part.worlds` and `Relationship.world` (the type keeps it in step with MissionId). */
-export const KNOWN_WORLDS: readonly MissionId[] = Object.keys({ moon: true, mars: true } satisfies Record<MissionId, true>) as MissionId[];
+const WORLD_LIST = ['moon', 'mars'] as const satisfies readonly MissionId[];
+/** Every world id, for checking `Part.worlds` and `Relationship.world`. */
+export const KNOWN_WORLDS: readonly MissionId[] = WORLD_LIST;
+/** A type error here means a MissionId is missing from KNOWN_WORLDS. */
+type ListsEvery<Missing extends never> = Missing;
+export type KnownWorldsComplete = ListsEvery<Exclude<MissionId, (typeof WORLD_LIST)[number]>>;
 
 /** Does this world's desk offer the part? A part without `worlds` is offered everywhere. */
 export function offeredOn(part: Part, world: MissionId): boolean {
