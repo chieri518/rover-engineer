@@ -26,7 +26,8 @@ function keyEffect(part: Part, data: GameData): string | null {
         ? `Top speed ${gameSpeed(e.baseSpeed, data.tuning.speed).toFixed(1)} m/s · grip ${(e.grip ?? 0).toFixed(2)}`
         : null;
     case 'power':
-      return e.energyIncome !== undefined ? `Solar income ${e.energyIncome.toFixed(1)} energy/s` : null;
+      if (e.energyIncome === undefined) return null;
+      return titanSolar(e.energyIncome, data) ?? `Solar income ${e.energyIncome.toFixed(1)} energy/s`;
     case 'battery':
       return e.batteryCapacity !== undefined ? `Capacity ${e.batteryCapacity} energy` : null;
     case 'lights':
@@ -36,6 +37,14 @@ function keyEffect(part: Part, data: GameData): string | null {
     case 'instrument':
       return null; // the description already says what the instrument does
   }
+}
+
+/** Titan: a panel's solar income at Titan (the Moon rate times the Titan solar factor), or null elsewhere. */
+function titanSolar(income: number, data: GameData): string | null {
+  const factor = data.tuning.titanPower?.solarFactor;
+  const t = data.text.titanCampaign;
+  if (factor === undefined || !t) return null;
+  return fill(t.solarIncome, { income: Number((income * factor).toPrecision(1)) });
 }
 
 /** A horizontal gauge with a tick at each tier limit. */
@@ -202,7 +211,7 @@ export const designScreen: Screen = (game, root) => {
       row('Drive energy', has('wheels') ? `${(d.energyPerMeter * 1000).toFixed(0)} energy/km` : dash),
       row('Battery', has('battery') ? `${d.batteryCapacity} energy` : dash),
       row('Range on battery', has('wheels') && has('battery') ? `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground` : dash),
-      row('Solar income', has('power') ? `${d.energyIncome.toFixed(1)} energy/s in full sun` : dash),
+      row('Solar income', has('power') ? (titanSolar(d.energyIncome, data) ?? `${d.energyIncome.toFixed(1)} energy/s in full sun`) : dash),
     );
     renderInfo(q);
 
@@ -238,8 +247,9 @@ export const designScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
 
-  // After the Moon (Mars only): which mission this is, the balance carried over, the next pass mark,
-  // and that parts and tickets are the Moon's for now.
+  // After the Moon (Mars, Titan): which mission this is, the balance carried over, the next pass mark
+  // (on Titan the final mark), and that parts and tickets are the Moon's for now. Titan adds a plain
+  // warning that solar panels give almost no power there.
   const mars = text.campaign;
   const nextStep = nextMission(game.state.mission);
   const transition = mars && el('p', { class: 'world-transition' },
@@ -255,6 +265,7 @@ export const designScreen: Screen = (game, root) => {
         el('h2', {}, t.heading),
         el('p', { class: 'muted' }, t.tutorial),
         transition,
+        text.titanCampaign && el('p', { class: 'world-transition world-warning' }, text.titanCampaign.solarNote),
       ),
       el('div', { class: 'desk-head-side' },
         help,

@@ -44,6 +44,8 @@ export function missionVars(data: GameData): Record<string, string | number> {
   const sol = tuning.sol;
   const perSol = sol?.secondsPerSol || 1;
   const storm = events.duststorm;
+  const rain = events.rainstorm;
+  const minutes = (seconds: number) => +(Math.max(0, seconds) / 60).toFixed(1);
   return {
     minutes: +(tuning.mission.lengthSeconds / 60).toFixed(1),
     days: tuning.mission.gameDays,
@@ -62,5 +64,12 @@ export function missionVars(data: GameData): Record<string, string | number> {
     stormSols: storm ? +(storm.durationSeconds / perSol).toFixed(1) : 0,
     stormSolarPercent: storm ? Math.round(storm.solarFactor * 100) : 0,
     sunsetNotice: text.night?.sunset ?? '',
+    // Titan: one day with the mission starting after sunrise, the sleep fast-forward and the rainstorm.
+    dayLeftMinutes: sol ? minutes(sol.daySeconds - (sol.startSecondsIntoDay ?? 0)) : 0,
+    nightMinutes: sol ? minutes(sol.nightSeconds) : 0,
+    dawnMinutes: sol ? minutes(tuning.mission.lengthSeconds - sol.daySeconds - sol.nightSeconds + (sol.startSecondsIntoDay ?? 0)) : 0,
+    nightClockRate: tuning.sleep?.nightClockRate ?? 1,
+    rainWarningSeconds: rain?.warningSeconds ?? 0,
+    rainSeconds: rain?.durationSeconds ?? 0,
   };
 }

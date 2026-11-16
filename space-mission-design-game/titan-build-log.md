@@ -110,3 +110,13 @@ Format: `- **[time] [agent]** what changed or is needed; who it affects.`
   - Crossing start and end are at least 70 m inside their corridor masks and are checked to be ≥ 30 m inside the outlines (T5): 75 m and 94 m.
   - The crossing route reaches 6.9° and softness 0.23 at most; the viewpoint route's slip is at most 0.16.
   - Albedo mean is now 0.214. Relative to the mean: dune 0.53, interdune 1.27, ejecta 1.41, patch 1.79.
+- **[16:10] campaign (T4)** Titan campaign screens landed in worktree-agent-a169058ca09f95db9. Interfaces:
+  - **Screen id** `comingSoon` is now `complete` (`flow.ts` ScreenId, `continueCampaign`). Text keeps the `comingSoon` section (Titan overrides heading, body, balance); the extra strings are `titanCampaign.complete`.
+  - **`TitanCampaignText`** (titanTypes.ts, T4 section) is rebuilt: solarNote, solarIncome, factsHeading, facts, selk, dragonflyHeading, dragonfly[], compareHeading, colRover, colDragonfly, compare[], lesson, dragonflySource, complete. `newHeading`/`newOnTitan` are gone: the "New on Titan" list is `campaign.newOnMars` (the shape the landing renders).
+  - **`missionVars`** (ui/tutorialText.ts) adds `dayLeftMinutes`, `nightMinutes`, `dawnMinutes` (from `tuning.sol`), `nightClockRate` (`tuning.sleep`), `rainWarningSeconds`, `rainSeconds` (`events.rainstorm`). T6 may use them in the day, rain and cold notices.
+  - **Titan text** sets `causes.stuck` "Stuck in dune sand" and `causes.froze` "Froze in the Titan cold", and Titan `partText` for the batteries and heater.
+  - **Shared:** `data/text.json` `title.kicker` is "Campaign · The Moon, Mars and Titan" (one string).
+  - **Credits** show `events.rainstorm.source` once it no longer starts with "[to fact-check" (T3), plus `rain.credit` if T6 fills it; `rain.credit` is optional (T4 does not need it).
+  - **Debrief:** the Titan debrief always shows the Dragonfly comparison and hides the per-outcome rover history (Moon facts).
+  - Final mark stays 0 (`budget.minimumBudget.complete`), placeholder for Owner A.
+  - Fact-check: research R checked every fact; corrections applied ("many kilometers", "late 2034", Huygens DISR and credit wording).
