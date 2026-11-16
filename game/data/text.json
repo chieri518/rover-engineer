@@ -36,6 +36,8 @@
     "instrumentEnergyItem": "{name}: {costs}",
     "instrumentEnergyNone": "None",
     "instrumentNoMilestones": "Records to the instrument log. Earns no milestones yet.",
+    "instrumentMilestones": "Can earn: {names}.",
+    "instrumentMilestonesJoin": ", ",
     "energyPerUse": "{energy} energy per use",
     "energyStandby": "{energy} energy/s while switched on",
     "useHold": "holds the rover {seconds} s",
@@ -263,7 +265,15 @@
     "restart": "Restart round",
     "continue": "Continue to Mars",
     "logHeading": "Instrument log",
-    "logNote": "What the instruments recorded. These readings earn no money or research points yet.",
+    "logNote": "What the instruments recorded on this mission.",
+    "logRockTypes": "Rock collection: {count} of {total} rock types.",
+    "logEarned": "Earned: {names}.",
+    "logEarnedJoin": ", ",
+    "stagedCount": "{name}: {stages} of {max}",
+    "groupRover": "The rover",
+    "groupCombo": "Instruments together",
+    "notReachedHeading": "Not reached",
+    "notReachedNote": "Milestones this rover carried the parts for but did not reach on this mission.",
     "logRock": "X-ray spectrometer: {rock}. {elements}.",
     "logNoRocks": "X-ray spectrometer: no rocks were read.",
     "logQuakeClean": "Seismometer station: recorded the moonquake, a clean trace.",
@@ -490,7 +500,7 @@
         "body": [
           "The payload bay holds the instruments, one of each. Each instrument takes one mounting point, and the chassis sets how many there are: {bayMin} or {bayMax}, depending on the frame. A full bay cannot take another instrument, and a chassis with fewer points removes the last ones added.",
           "Each instrument card shows its cost, mass and size, and what it costs in energy: some use energy every time they work, and some draw a little while switched on. The specification sheet adds these to the range estimate. \"No instruments\" is also a choice, but a rover with no instruments cannot earn much.",
-          "Some instruments only record to the debrief's instrument log and earn no milestones yet; their cards say so.",
+          "Each instrument card lists the milestones it can earn.",
           "The order of the bay is the order of the number keys in the mission: the first instrument added is key 1."
         ]
       },
@@ -547,8 +557,8 @@
           "drill": "Drill: stop the rover, then press {key} (or its button) to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other.",
           "neutron": "Neutron spectrometer: {key} (or its button) switches it on or off. While on, a hydrogen meter beside the meters reads the ground as the rover drives, and it draws a little energy.",
           "xray": "X-ray spectrometer: stop beside a boulder, then press {key} (or its button) to read the rock's main elements.",
-          "seismometer": "Seismometer station: stop and press {key} (or its button) to set it down before the moonquake.",
-          "reflector": "Laser retroreflector: stop where Earth is in view (the Earth light beside the meters) and press {key} (or its button) to set it down."
+          "seismometer": "Seismometer station: stop and press {key} (or its button) to set it down before the moonquake. Stations count only more than {stationMinDistance} m from the lander; closer in, the key must be pressed twice.",
+          "reflector": "Laser retroreflector: stop where Earth is in view (the Earth light beside the meters) and press {key} (or its button) to set it down. Stations count only more than {stationMinDistance} m from the lander; closer in, the key must be pressed twice."
         },
         "body": [
           "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",

@@ -64,9 +64,10 @@ describe('tutorial text', () => {
     expect(lines(['camera'])).toMatch(/number key/);
   });
 
-  it('the design tutorial says some instruments earn no milestones yet', () => {
+  it('the design tutorial says each instrument card lists its milestones (every Moon instrument earns some)', () => {
     const design = tutorialPages('design', data, { mission: 'moon', instruments: [] }).flatMap((p) => p.paragraphs).join('\n');
-    expect(design).toMatch(/earn no milestones yet/);
+    expect(design).toMatch(/lists the milestones it can earn/);
+    expect(design).not.toMatch(/earn no milestones yet/);
     expect(design).not.toMatch(/a few problems/);
   });
 });

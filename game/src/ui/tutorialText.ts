@@ -56,6 +56,7 @@ export function missionVars(data: GameData): Record<string, string | number> {
     warningSeconds: events.flare?.warningSeconds ?? 0,
     earthMinDistance: tuning.milestones.earthPhotoMinDistanceM,
     sampleSpacing: tuning.milestones.sampleSpacingM,
+    stationMinDistance: tuning.milestones.sampleMinDistanceM, // stations count outside the near-lander zone (game-design.md, M9)
     bayMax: Math.max(0, ...data.parts.parts.map((p) => p.effects.mountingPoints ?? 0)),
     bayMin: Math.min(...data.parts.parts.flatMap((p) => (p.effects.mountingPoints === undefined ? [] : [p.effects.mountingPoints]))),
     sunlit: text.hud.sunlit,

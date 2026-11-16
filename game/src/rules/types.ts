@@ -404,7 +404,7 @@ export interface SharedTextFile {
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
     | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
-    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentNoMilestones' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
+    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentNoMilestones' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
     string
   > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
   ticket: Record<
@@ -448,6 +448,7 @@ export interface SharedTextFile {
     | 'heading' | 'survived' | 'failedRound' | 'passedRound' | 'cause' | 'rollover' | 'milestonesHeading' | 'noMilestones'
     | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
     | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue'
+    | 'logRockTypes' | 'logEarned' | 'logEarnedJoin' | 'stagedCount' | 'groupRover' | 'groupCombo' | 'notReachedHeading' | 'notReachedNote' // Moon sites plan, Phase 5
     | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
     | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource', // "What the rover taught us": the relationships met
     string
