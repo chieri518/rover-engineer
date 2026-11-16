@@ -410,7 +410,8 @@ export const missionScreen: Screen = (game, root) => {
     if (rain) hud.setFlareWarning(rain.message, rain.remaining);
     else hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / (data.events.flare?.warningSeconds ?? 1) : 0);
     const ids = (lastSample ? missionWarnings(state, lastSample, lastSlip, blockedByShadow, setup, tuning) : [])
-      .filter((id) => !(titan && id === 'poweredDown')); // Titan: the sleep banner says it
+      // Titan: the sleep banner says it; the cold warning waits until the meter shows at least 1%.
+      .filter((id) => !(titan && (id === 'poweredDown' || (id === 'cold' && Math.round((state.freeze / tuning.cold.freezeMax) * 100) < 1))));
     const noLights = mars && marsNow ? mars.noLightsWarning(marsNow, state.poweredDown, setup.hasLights)
       : titan && titanNow ? titan.noLightsWarning(titanNow, state.poweredDown, setup.hasLights) : null;
     hud.setWarnings([...(nearBoundary ? [text.mission.boundary] : []), ...(noLights ? [noLights] : []), ...ids.map(warningText)]);
