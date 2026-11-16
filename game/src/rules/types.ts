@@ -1,5 +1,6 @@
 // Types for the JSON files in game/data/. These are the data contract.
 import type { DamageCause } from './damage';
+import type { DustStormSpec, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
 
 export type Slot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater' | 'instrument';
 export type Instrument = 'camera' | 'drill';
@@ -56,7 +57,8 @@ export type MilestoneTrigger =
   | { type: 'drill'; zone?: string; sites?: number }
   | { type: 'event'; event: 'flare' | 'quake'; condition: 'no-damage' }
   /** no-damage: no damage from any cause except those listed (moonquakes cannot be avoided). */
-  | { type: 'survive'; condition?: 'no-damage'; except?: DamageCause[] };
+  | { type: 'survive'; condition?: 'no-damage'; except?: DamageCause[] }
+  | MarsMilestoneTrigger;
 
 export interface MilestoneRequirements {
   slots?: Slot[]; // the part in each slot must have a non-zero capability effect
@@ -84,11 +86,19 @@ export interface MilestonesFile {
 export type DeathCause = 'energy' | 'stuck' | 'froze' | 'destroyed';
 /** Debrief real-rover comparisons: one per ending; a rollover is 'destroyed' with its own comparison. */
 export type HistoryKey = DeathCause | 'survived' | 'rollover';
+/** A playable world, and the mission played on it. See src/worlds.ts. */
 export type MissionId = 'moon' | 'mars';
+/** A step of the campaign: a playable mission, or the end marker after the last one ("Titan: coming soon"). */
+export type CampaignStep = MissionId | 'titan';
 
 export interface Tuning {
+  /** gravity: the world's surface gravity in m/s² (Mars sets its own in data/mars/tuning.json). */
   mission: { lengthSeconds: number; gameDays: number; gravity: number };
-  budget: { startingBudget: number; minimumBudget: Record<MissionId, number> };
+    budget: {
+    startingBudget: number;
+    /** A step's minimum is the pass mark of the mission before it (titan: the Mars pass mark). */
+    minimumBudget: Record<CampaignStep, number>;
+  };
   payout: {
     survivalPayout: number;
     deathPenalty: Record<DeathCause, number>;
@@ -164,7 +174,10 @@ export interface Tuning {
     boundaryInsetM: number; // the operating boundary sits this far inside the 8 km play area
     warningDistanceM: number; // the "leaving the area" notice shows this close to the boundary
   };
-  milestones: MilestoneTuning;
+  milestones: MilestoneTuning & Partial<MarsMilestoneTuning>; // Mars fields: rules/marsTypes.ts
+  /** Mars only (data/mars/tuning.json): the sol clock and the night. See rules/marsTypes.ts. */
+  sol?: SolTuning;
+  night?: NightTuning;
 }
 
 /** Zone sizes and actions for the milestones (zones come from terrain.json features). */
@@ -227,7 +240,7 @@ export interface RoverHandling {
   maxLateralAccelMps2: number; // steering lock shrinks with speed so a full turn stays below this
   steerRateDegPerSecond: number;
   /**
-   * Gravity on the rover body on the ground, as a multiple of lunar gravity. Driving is compressed ~4×
+   * Gravity on the rover body on the ground, as a multiple of the world's gravity (mission.gravity). Driving is compressed ~4×
    * like time; a true time-lapse would also scale accelerations by 4² = 16, which would stop the rover
    * climbing. airGravityScale applies the time-lapse value while the wheels are off the ground.
    */
@@ -254,17 +267,25 @@ export interface RealFlare {
   donkiId: string;
 }
 
-export interface EventsFile {
-  flare: EventSpec & {
-    shelterSunlight: number; // a rover receiving less sunlight than this is sheltered in shadow
-    damagePerX?: number; // extra damage per X-class unit above X1; `damage` is the X1 baseline
-    source: string;
-    realFlares: RealFlare[];
-  };
-  quake: EventSpec & { shakeSeconds: number };
+export interface FlareSpec extends EventSpec {
+  shelterSunlight: number; // a rover receiving less sunlight than this is sheltered in shadow
+  damagePerX?: number; // extra damage per X-class unit above X1; `damage` is the X1 baseline
+  source: string;
+  realFlares: RealFlare[];
 }
 
-export interface TextFile {
+export interface QuakeSpec extends EventSpec {
+  shakeSeconds: number;
+}
+
+/** Each world has its own events: the Moon has flares and quakes, Mars a dust storm (data/mars/events.json). */
+export interface EventsFile {
+  flare?: FlareSpec;
+  quake?: QuakeSpec;
+  duststorm?: DustStormSpec;
+}
+
+export interface SharedTextFile {
   moneyPrefix: string;
   moneySuffix: string;
   moneyNote: string;
@@ -289,7 +310,7 @@ export interface TextFile {
     compass: string[]; // 16 points from north, full words
     compassShort: string[]; // 16 points from north, abbreviated
   };
-  mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading', string>;
+  mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading' | 'loadFailed', string>; // loadFailed: {error}
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
     | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief'
@@ -310,7 +331,14 @@ export interface TextFile {
   causes: Record<DeathCause, string>;
   history: Record<HistoryKey, string>;
   historySources: Record<HistoryKey, string>;
-  marsSoon: Record<'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle', string>;
+  /** Each world's name, for the credits and the campaign summary. */
+  worlds: Record<MissionId, string>;
+  /** After the last playable mission ("Titan: coming soon"): banked RP and the campaign summary. */
+  comingSoon: Record<
+    | 'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle' | 'summaryHeading' | 'colMission' | 'colOutcome'
+    | 'colNet' | 'colRp' | 'colMilestones' | 'completed' | 'records' | 'noLog',
+    string
+  >;
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
     | 'cameraControls' | 'drillControls' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull' | 'noCamera' | 'noDrill'
@@ -337,6 +365,9 @@ export interface TextFile {
     string
   > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
 }
+
+/** text.json, with the Mars-only sections that data/mars/text.json adds. */
+export type TextFile = SharedTextFile & Partial<MarsTextSections>;
 
 /** One page of a tutorial. {name} placeholders are filled from the game data. */
 export interface TutorialPage {

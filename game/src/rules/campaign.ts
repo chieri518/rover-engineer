@@ -1,4 +1,4 @@
-import type { Build, GameData, MissionId, Tuning } from './types';
+import type { Build, CampaignStep, GameData, HistoryKey, MissionId, Tuning } from './types';
 import { missionPayout, type MissionResult, type Payout } from './payout';
 
 /** What a restart restores: balance, RP, and records, as they were at the start of the round. */
@@ -9,20 +9,51 @@ export interface CampaignSnapshot {
 }
 
 export interface CampaignState {
-  mission: MissionId; // the mission this round is for
+  mission: CampaignStep; // the mission this round is for ('titan': the campaign is over, "Titan: coming soon")
   balance: number;
   rp: number;
   records: string[]; // record milestone ids, earned once per campaign
-  completed: MissionId[];
+  completed: CampaignStep[];
   snapshot: CampaignSnapshot | null; // taken at the start of the current round
   lastBuild: Build | null; // convenience: the design screen starts from the last build
+  /** One entry per passed mission, for the campaign summary at the end. Optional: older saves have none. */
+  log?: MissionLogEntry[];
 }
 
-/** Mission order. Mars is not playable yet; it is used only for its minimum budget. */
-const MISSION_ORDER: MissionId[] = ['moon', 'mars'];
+/** How a passed mission went, kept for the campaign summary. */
+export interface MissionLogEntry {
+  mission: MissionId;
+  outcome: HistoryKey; // 'survived', or how the rover was lost
+  secondsLasted: number;
+  money: number; // net change to the balance
+  rp: number;
+  milestones: number; // milestones reached (records already held included)
+}
 
-export function nextMission(mission: MissionId): MissionId | null {
+/** Campaign order. Titan is the end marker: it is not playable yet ("Titan: coming soon"). */
+export const MISSION_ORDER: readonly CampaignStep[] = ['moon', 'mars', 'titan'];
+
+export function isCampaignStep(v: unknown): v is CampaignStep {
+  return typeof v === 'string' && (MISSION_ORDER as string[]).includes(v);
+}
+
+export function nextMission(mission: CampaignStep): CampaignStep | null {
   return MISSION_ORDER[MISSION_ORDER.indexOf(mission) + 1] ?? null;
+}
+
+/** A step that can be played (titan is the end marker). */
+export function isPlayable(step: CampaignStep): step is MissionId {
+  return step !== 'titan';
+}
+
+/**
+ * Saves from before the campaign advanced on its own kept mission 'moon' after the Moon was completed:
+ * move such a campaign on to the first mission it has not completed, with a fresh round snapshot.
+ */
+export function normalizeCampaign(state: CampaignState): CampaignState {
+  let mission = state.mission;
+  for (let next = nextMission(mission); state.completed.includes(mission) && next; next = nextMission(mission)) mission = next;
+  return mission === state.mission ? state : startRound({ ...state, mission });
 }
 
 export function newCampaign(tuning: Tuning): CampaignState {
@@ -34,6 +65,7 @@ export function newCampaign(tuning: Tuning): CampaignState {
     completed: [],
     snapshot: null,
     lastBuild: null,
+    log: [],
   };
 }
 
@@ -67,7 +99,10 @@ export interface RoundOutcome {
   failed: boolean;
 }
 
-/** Apply a mission result. The balance carries over even if negative. */
+/**
+ * Apply a mission result. The balance carries over even if negative. A passed round completes the
+ * mission and moves the campaign to the next one, with that round's restart snapshot taken here.
+ */
 export function finishMission(state: CampaignState, result: MissionResult, data: GameData): RoundOutcome {
   const payout = missionPayout(result, data.milestones.milestones, data.tuning, state.records);
   const balance = state.balance + payout.money;
@@ -80,5 +115,16 @@ export function finishMission(state: CampaignState, result: MissionResult, data:
     records: [...state.records, ...payout.newRecords],
     completed: failed ? state.completed : [...state.completed, state.mission],
   };
-  return { state: newState, payout, failed };
+  if (failed) return { state: newState, payout, failed };
+  const entry: MissionLogEntry = {
+    mission: state.mission as MissionId,
+    outcome: result.survived ? 'survived' : result.detail === 'rollover' ? 'rollover' : (result.cause ?? 'energy'),
+    secondsLasted: result.secondsLasted,
+    money: payout.money,
+    rp: payout.rp,
+    milestones: result.earned.length,
+  };
+  newState.log = [...(state.log ?? []).filter((e) => e.mission !== entry.mission), entry];
+  if (next === null) return { state: newState, payout, failed };
+  return { state: startRound({ ...newState, mission: next }), payout, failed };
 }

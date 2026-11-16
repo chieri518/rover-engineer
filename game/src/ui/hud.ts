@@ -1,6 +1,7 @@
 // Mission HUD: energy, damage and cold meters, sunlight on the panel, the power-down toggle,
 // standing warnings, short event notices, a flare warning bar, and the end-of-mission panel.
-// No clock: time reads only from the Sun and shadows.
+// No clock: time reads only from the Sun and shadows. On Mars a sol line ("Sol 3 of 10") and the night
+// state (asleep, lights on) sit under the sunlight line.
 import type { TextFile } from '../rules/types';
 import { el } from './dom';
 
@@ -50,6 +51,9 @@ export class Hud {
   private readonly damage;
   private readonly cold;
   private readonly sun = el('div', { class: 'sun-state' });
+  private readonly sol = el('div', { class: 'sol-state', hidden: true });
+  private readonly solText = el('span', {});
+  private readonly nightText = el('span', { class: 'night-state' });
   private readonly power: HTMLButtonElement;
   private readonly warnings = el('ul', { class: 'hud-warnings', 'aria-live': 'polite' });
   private readonly notices = el('div', { class: 'hud-notices', 'aria-live': 'assertive' });
@@ -72,12 +76,14 @@ export class Hud {
     this.cold = meter(h.cold, 'cold');
     this.power = el('button', { class: 'power-toggle', type: 'button', onclick: () => onTogglePower() }, h.powerDown);
     this.flare.append(this.flareText, el('div', { class: 'flare-bar' }, this.flareBar));
+    this.sol.append(this.solText, this.nightText);
     this.root = el('div', { class: 'hud-layer' },
       el('div', { class: 'hud' },
         this.energy.root,
         this.damage.root,
         this.cold.root,
         this.sun,
+        this.sol,
         this.power,
         extra,
       ),
@@ -96,6 +102,14 @@ export class Hud {
     this.sun.classList.toggle('shadow', m.sunlight <= 0.5);
     this.power.textContent = m.poweredDown ? h.powerUp : h.powerDown;
     this.power.classList.toggle('active', m.poweredDown);
+  }
+
+  /** Mars: the sol line and the night state under it (null hides each). */
+  setSol(sol: string | null, night: string | null): void {
+    this.sol.hidden = sol === null;
+    if (this.solText.textContent !== (sol ?? '')) this.solText.textContent = sol ?? '';
+    if (this.nightText.textContent !== (night ?? '')) this.nightText.textContent = night ?? '';
+    this.nightText.hidden = night === null;
   }
 
   /** Standing warnings, already worded. Rebuilt only when they change. */

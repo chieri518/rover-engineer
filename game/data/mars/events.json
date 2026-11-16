@@ -1,0 +1,20 @@
+{
+  "_about": "Mars overlay, deep-merged over data/events.json. Solar flares and moonquakes stay on the Moon (null removes them). Types: rules/types.ts EventsFile, rules/marsTypes.ts DustStormSpec.",
+  "flare": null,
+  "quake": null,
+  "duststorm": {
+    "_note": "Rules track (M3), placeholders. One regional storm per mission (rules/storm.ts): it starts at a random time in sols 4 to 7 (180-360 s), is forecast one sol (60 s) ahead, blows for 2 sols (120 s), building up and dying down over 10 s. At full strength solar income is a third and night freezing is halved.",
+    "windowsSeconds": [
+      [
+        180,
+        360
+      ]
+    ],
+    "warningSeconds": 60,
+    "durationSeconds": 120,
+    "rampSeconds": 10,
+    "solarFactor": 0.33,
+    "freezeFactor": 0.5,
+    "source": "2018 Mars global dust storm: Opportunity's solar power fell from about 645 Wh per sol (early June) to 22 Wh on June 10 (The Planetary Society, planetary.org/articles/06-mer-update-opportunity-dust-storm-sleep); the dust also absorbs heat and narrows the rover's temperature swings (NASA JPL, jpl.nasa.gov/news/opportunity-hunkers-down-during-dust-storm). Forecasts like MRO's MARCI weekly Mars weather reports (Malin Space Science Systems, msss.com)."
+  }
+}

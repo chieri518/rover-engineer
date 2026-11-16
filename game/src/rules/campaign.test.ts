@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buyRover, canStartMission, finishMission, newCampaign, restartRound, startRound } from './campaign';
+import { buyRover, canStartMission, finishMission, newCampaign, nextMission, normalizeCampaign, restartRound, startRound } from './campaign';
 import { testMilestones, testParts, testTiers, testTuning } from './testData';
 import type { Build, GameData } from './types';
 
@@ -78,5 +78,74 @@ describe('campaign', () => {
     const s = startRound(newCampaign(testTuning));
     s.records.push('x');
     expect(s.snapshot!.records).toEqual([]);
+  });
+
+  it('runs Moon, then Mars, then the Titan end marker', () => {
+    expect(nextMission('moon')).toBe('mars');
+    expect(nextMission('mars')).toBe('titan');
+    expect(nextMission('titan')).toBeNull();
+  });
+
+  it('a passed Moon round moves the campaign to Mars with a fresh restart snapshot', () => {
+    let s = startRound(newCampaign(testTuning));
+    s = buyRover(s, build, 545);
+    const out = finishMission(s, { survived: true, secondsLasted: 300, earned: [{ id: 'touchdown' }] }, data);
+    expect(out.failed).toBe(false);
+    expect(out.state.mission).toBe('mars');
+    expect(out.state.completed).toEqual(['moon']);
+    expect(out.state.snapshot).toEqual({ balance: out.state.balance, rp: out.state.rp, records: ['touchdown'] });
+  });
+
+  it('a failed round stays on its mission', () => {
+    let s = startRound(newCampaign(testTuning));
+    s = buyRover(s, build, 700);
+    const out = finishMission(s, { survived: false, cause: 'destroyed', secondsLasted: 0, earned: [] }, data);
+    expect(out.failed).toBe(true);
+    expect(out.state.mission).toBe('moon');
+  });
+
+  it('a Mars restart restores the Mars snapshot, not the Moon one', () => {
+    let s = startRound(newCampaign(testTuning));
+    s = buyRover(s, build, 545);
+    const moon = finishMission(s, { survived: true, secondsLasted: 300, earned: [{ id: 'touchdown' }] }, data).state;
+    const atMars = moon.balance;
+    const m = buyRover(moon, build, atMars - 50);
+    const mars = finishMission(m, { survived: false, cause: 'energy', secondsLasted: 10, earned: [{ id: 'layers' }] }, data);
+    expect(mars.failed).toBe(true);
+    expect(mars.state.mission).toBe('mars');
+    const restarted = restartRound(mars.state);
+    expect(restarted.balance).toBe(atMars);
+    expect(restarted.records).toEqual(['touchdown']);
+  });
+
+  it('a passed Mars round ends the campaign at the Titan marker', () => {
+    const s = startRound({ ...newCampaign(testTuning), mission: 'mars' as const, completed: ['moon' as const], balance: 1000 });
+    const out = finishMission(s, { survived: true, secondsLasted: 600, earned: [] }, data);
+    expect(out.failed).toBe(false);
+    expect(out.state.mission).toBe('titan');
+    expect(out.state.completed).toEqual(['moon', 'mars']);
+  });
+
+  it('logs each passed mission for the campaign summary, and not a failed one', () => {
+    let s = startRound(newCampaign(testTuning));
+    s = buyRover(s, build, 545);
+    const moon = finishMission(s, { survived: true, secondsLasted: 300, earned: [{ id: 'touchdown' }, { id: 'layers' }] }, data);
+    expect(moon.state.log).toEqual([{ mission: 'moon', outcome: 'survived', secondsLasted: 300, money: 420, rp: 30, milestones: 2 }]);
+    const lost = finishMission(buyRover(moon.state, build, moon.state.balance), { survived: false, cause: 'froze', secondsLasted: 40, earned: [] }, data);
+    expect(lost.failed).toBe(true);
+    expect(lost.state.log).toHaveLength(1);
+    const rolled = finishMission(moon.state, { survived: false, cause: 'destroyed', detail: 'rollover', secondsLasted: 90, earned: [] }, data);
+    expect(rolled.failed).toBe(false);
+    expect(rolled.state.mission).toBe('titan');
+    expect(rolled.state.log!.map((e) => [e.mission, e.outcome])).toEqual([['moon', 'survived'], ['mars', 'rollover']]);
+  });
+
+  it('a save from before the campaign advanced moves on to Mars', () => {
+    const old = { ...newCampaign(testTuning), completed: ['moon' as const], balance: 900 };
+    const s = normalizeCampaign(old);
+    expect(s.mission).toBe('mars');
+    expect(s.snapshot).toEqual({ balance: 900, rp: 0, records: [] });
+    const current = startRound(newCampaign(testTuning));
+    expect(normalizeCampaign(current)).toBe(current);
   });
 });

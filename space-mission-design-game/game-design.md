@@ -550,9 +550,20 @@ The Moon teaches one trade-off. Mars and Titan add more intricate ones about wha
 - **Detailed play area.** *Proposed:* 8 km × 8 km at 5 m, resampled from the 1 m model. This is the Moon's size and format, so the terrain pipeline and the loader carry over.
 - **Distant terrain.** The rest of the HiRISE model, then CTX 20 m, then MOLA, so the rim of the 45 km crater rings the horizon. From rover camera height the Mars horizon is about 3.4 km away.
 - **Ground imagery.** The HiRISE 25 cm mosaic, resampled.
-- **Landing point.** *Proposed:* a flat spot on the crater floor near Perseverance's 2021 landing site (Octavia E. Butler Landing, 18.4447°N, 77.4508°E), picked by the pipeline from the real slope map, with the delta front and Séítah inside the play area. REL lands near the site, not on it.
-- **Sites to place** (*Proposed*; the pipeline measures the distances): the delta front, whose layered cliffs record an ancient lake; Séítah, a ridged rock unit with sand ripples (soft ground); and rocky areas on the crater floor (boulder fields, as on the Moon).
-- **Soft ground.** The sand ripples use the Moon's sinkage and slip rules. Spirit was stuck in sand at "Troy" in 2009 ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#terrain-sand-rocks-slopes)).
+- **Landing point.** *Decided (pipeline, November 15):* 18.4529°N, 77.44796°E on the crater floor, 517 m north-northwest of Perseverance's 2021 landing site (Octavia E. Butler Landing, 18.4447°N, 77.4508°E), with a mean slope of 1.3°. REL lands near the site, not on it, and Perseverance's site is a landmark on the map.
+- **Sites** *(decided, pipeline)*. Drive distances from the landing, on a 10 m grid with slopes up to 18°:
+
+| Site | What it is | Drive | Source |
+| --- | --- | --- | --- |
+| Rocky area 2 | A fresh crater about 255 m across | 224 m | The elevation data |
+| Rocky area 1 (survey lead) | A block field just south of Perseverance's site | 744 m | Published maps |
+| Séítah entry | A ridged rock unit with sand ripples | 1,230 m | Traced on HiRISE, guided by published maps (±100 m) |
+| Delta viewpoint (Delta layers) | Faces a 48 m cliff of the delta front | 1,482 m | Delta front at the foot of the cliff in the HiRISE model |
+| Delta front sample point | At Hawksbill Gap | 2,501 m | Published maps |
+| West sunset viewpoint | On the delta top, facing the setting Sun (azimuth 261°) | 3,616 m | The elevation data |
+
+- **Soft ground** *(decided, pipeline)*. Only Séítah and a 150 m margin around it (0.86 km²), from ripples detected in the HiRISE image and those mapped by Crumpler et al. (2023). Real ripple fields elsewhere, such as at the delta front, stay firm ground for now. The ripples use the Moon's sinkage and slip rules. Spirit was stuck in sand at "Troy" in 2009 ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#terrain-sand-rocks-slopes)).
+- **Western horizon.** From near the landing, the crater rim stands about 5° high in the west, so the Sun sets behind it. The Blue sunset photo counts anywhere at least 300 m from the lander, so the far sunset viewpoint is optional.
 - **Season.** *Proposed:* early northern autumn (Ls about 200), the start of the dust storm season, so a storm is realistic. At 18°N, day and night are close to equal then.
 
 #### Time: 10 sols in 10 minutes
@@ -562,6 +573,7 @@ The Moon teaches one trade-off. Mars and Titan add more intricate ones about wha
 - **60 s per sol:** 45 s of day (dawn to dusk), then 15 s of night. Night is time-lapsed three times faster than day. Like the Moon's speed compression, this is a game-feel choice: real rovers sleep through most of the night. Night adds up to 150 s per mission.
 - **The player sits through the night.** There is no skip.
 - **No clock,** as on the Moon. The Sun follows the real path for Jezero's latitude and the chosen season.
+- **The mission starts in the morning.** *Decided (main, fix pass, November 15):* the first sol starts with the Sun about 15° up, 7.25 s after sunrise, because a start at sunrise read dark and gloomy for the first seconds. Every sol still has 45 s of day and 15 s of night. Sol 1 is 7.25 s shorter, and the mission still lasts 10 minutes, so it ends 7.25 s after the dawn that follows the tenth night. Sol numbers change at dawn.
 
 #### Night: lights on or sleep
 
@@ -591,6 +603,41 @@ All *Proposed*. Solar flares and moonquakes stay on the Moon.
 | Dust devil | A random devil sweeps past and cleans the panels | A free power boost; a camera can photograph it | Spirit's power jumped about 50% in one day in 2005 |
 | Marsquake (optional) | The Moon's quake rule reused | As on the Moon | InSight recorded marsquakes, including a magnitude 4.7 in 2022 |
 
+#### How the Mars rules work *(decided during implementation, M3)*
+
+The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the Mars parts of `energy.ts`, `cold.ts`, `mission.ts`). The numbers are in `game/data/mars/tuning.json` (`sol`, `night`) and `events.json` (`duststorm`). All numbers are placeholders, tuned against the Moon parts.
+
+- **Sol clock and Sun.** The clock starts at sunrise on sol 1, and the mission starts 7.25 s later, with the Sun about 15° up (`sol.startSecondsIntoDay`, see [Time](#time-10-sols-in-10-minutes)). The Sun follows real local solar time at Jezero:
+  - Solar declination is sin δ = sin 25.19° × sin Ls (Mars24). It is −8.4° at Ls 200, and the season moves on 0.6° of Ls per sol.
+  - The Sun rises at azimuth about 99°, is due south at 63° elevation at noon, and sets at about 261°.
+  - Within each day and each night, the clock eases the Sun's speed: about a quarter of its mean day speed at the horizon, faster at noon and midnight. So 0 to 10° of elevation lasts about 5.5 s at sunset, and twilight (0 to −8°) about 3.5 s. This gives the blue sunset look and photo time. Day stays 45 s and night 15 s.
+- **Solar income on Mars:**
+  - The Moon's shadow test (sunlight).
+  - Times a low-Sun factor: full rate with the Sun at 15° or higher, sin(el) / sin 15° below that. A fixed panel earns about 36 per clear sol.
+  - Times the storm factor.
+  - Nothing at night.
+- **Night energy.** Battery drain per second of night, on top of driving:
+  - 4 awake with lights on (lights and electronics). A parked night costs 60.
+  - 1 awake without lights (electronics only; the rover cannot drive).
+  - 0.2 asleep: P powers down, as on the Moon.
+  - Sleep ends at dawn by itself. An empty battery ends the mission as out of energy. The radioisotope heater draws no power. An electric heater that draws power at night would come with Owner A's Mars parts.
+- **No lights, no night driving.** A rover without lights cannot drive at night (`night.driveWithoutLights` false).
+- **Night cold:**
+  - The freeze meter rises 8 per second everywhere at night. Without a heater, the rover freezes 12.5 s into its first 15 s night, even asleep.
+  - The radioisotope heater takes off 1.5 per heat unit (the Moon value), so it rises 5 per second and reaches 75 of 100 by dawn.
+  - It recovers 6 per second by day.
+  - During the storm, freezing is multiplied by down to 0.5.
+- **Dust storm:**
+  - It starts at a random time in sols 4 to 7 (180 to 360 s), is forecast 60 s (one sol) ahead and lasts 120 s (two sols).
+  - It builds up and dies down over 10 s.
+  - At full strength, solar income is ×0.33 and night freezing ×0.5.
+  - Real basis: in the 2018 global storm, Opportunity's power fell from about 645 to 22 Wh per sol, and the dust absorbed heat and narrowed its temperature swings (Planetary Society, JPL).
+- **Night-energy check** (`marsNight.test.ts`, stands in for a Mars `winPaths`). Over 8 storm seeds:
+  - A cheap build (fixed panel, small battery) survives all 10 sols when it sleeps at night and drives by day above a 30% reserve, covering about 2 km. A big-battery build also survives, and so does a light build (mast, mesh wheels), at about 5 km.
+  - The cheap build runs out by sol 4 if it drives with lights every night, and by sol 6 if it only parks with lights on.
+  - One night of driving with lights is affordable.
+  - With the Moon parts, the heater is effectively required. The heater choice becomes real only with Owner A's Mars catalog.
+
 #### Mars milestones
 
 All *Proposed*. Rewards are interface numbers. Every real fact gets fact-checked before it goes into `text.json`.
@@ -605,7 +652,7 @@ All *Proposed*. Rewards are interface numbers. Every real fact gets fact-checked
 | Storm survivor | Capability: robustness | Still be running when the dust storm clears | None |
 | Clean run | Capability: robustness | Finish all 10 sols without damage | None |
 | Delta layers | Scientific: historical formation | Image the layered delta front | Camera |
-| Lake sediment sample | Scientific: new information | Drill samples at up to three sites, at least 200 m apart (Moon rule) | Drill |
+| Core sample | Scientific: new information | Drill samples at up to three sites, at least 200 m apart (Moon rule) | Drill |
 | Signs of an ancient lake | Record: first discovery | The first sample drilled at the delta front | Drill |
 | Blue sunset | Pretty picture | Photograph the Sun setting (Martian sunsets look blue; Curiosity, 2015) | Camera |
 | Dust devil | Pretty picture | Photograph a passing dust devil | Camera |
@@ -613,9 +660,32 @@ All *Proposed*. Rewards are interface numbers. Every real fact gets fact-checked
 - Air samples start on Mars (Moon milestones), but they need an instrument from Owner A's catalog, so they wait for question 8.
 - Survey leads, fog and discovery work as on the Moon ([Minimap and exploration](#minimap-and-exploration)). New leads would point to the delta front, Séítah and a rocky area.
 
+##### How the Mars milestones work *(decided during implementation, Phase M5, November 15)*
+
+The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta layers, Core sample and Blue sunset. Rules in `game/src/rules/milestones.ts`; triggers, rewards and facts in `game/data/mars/milestones.json`; zone sizes and the sunset band in the `milestones` section of `data/mars/tuning.json`. Money and RP are placeholders (`interface`, Owner A), sized so a run that drives, photographs or drills earns several times what a rover idling at the lander earns.
+
+- **Core sample, renamed from Lake sediment sample** *(approved by the main session)*. Perseverance found that Jezero's crater floor, where the rover lands and drives, is igneous rock; only the delta rocks are lake sediment (JPL, 2022). A drill-anywhere milestone named for lake sediment would teach the wrong thing. The rule is unchanged: up to three sites, at least 200 m from the lander and from each other. Its fact is about Wildcat Ridge, the delta mudstone Perseverance cored in July 2022.
+- **Zones** come from the Mars `terrain.json` features: the delta front (within `zoneRadius_m` of its scarp line), Séítah's outline, and 60 m circles around the delta-layers and sunset viewpoints. The Moon's zones, the Earth photo, the hydrogen signal and the ice are absent on Mars (`hydrogenSignal: false`).
+- **Night drive** counts only the distance driven while it is night, in two stages (100 m and 300 m). A full night of driving covers roughly 150 m. Lights and a heater are required.
+- **Storm survivor** is earned when the dust storm clears while the mission is still running. A rover that sleeps through the storm earns it too, because surviving the storm is the point.
+- **Blue sunset** needs no zone. It counts when the setting Sun (after local noon) is 0° to 15° above the horizon, in the camera frame and not hidden by terrain, and the rover is at least 300 m from the lander. The Sun sets in view of the lander every sol, so, like the Moon's Earth photo, the photo is not free at the start. The band is in data so playtests can tune it. The western sunset viewpoint is simply a good place to take it. Notices say why a photo does not count (Sun too high, too close to the lander).
+  - *Widened from 10° to 15° at integration (M6), on the real terrain.* The crater rim stands about 4.9° high in the west, at the sunset azimuth, as seen from the landing. With a 10° band, the Sun was in the band and above the rim for only about 2.2 s per dusk. With 15° it is about 4 s. From the delta top in the west the rim is lower, so the window is longer there.
+- **Odometer** stages are 500 m, 1.5 km and 3 km; **Mapper** is 2.5% of the map. Mars runs last 10 minutes against the Moon's 5.
+- **Survey leads:** the delta front (aimed at the scarp's nearest point, because the front runs for kilometers), Séítah, and the first rocky area in `terrain.json`. The minimap draws the delta front as a line, Séítah as a dashed outline, and Perseverance's landing site as a landmark once discovered; Mars has no cold-zone legend. Lead text is in `data/mars/text.json` → `survey`.
+
 #### Communications
 
 *Decided:* data and communications are a real constraint on Mars: delay to Earth, bandwidth through relay orbiter passes, and possibly science that counts only once it is sent home. It is a design decision for now and is not built in the first Mars version.
+
+#### Campaign and screens *(decided during implementation, Phase M4)*
+
+- **Moon to Mars.** The Moon debrief's button reads "Continue to Mars" and states the Mars minimum budget. The Mars design screen shows "Mission 2 · Mars, Jezero crater", the balance carried over, the Titan pass mark, and that parts and ticket tiers are the Moon's in this version. The ticket screen repeats the tier note.
+- **Mars tutorials.** Mars has its own design tutorial (the transition, designing for the night, the dust storm) and drive tutorial (sols, lights on or sleep, night cold, the storm forecast, instrument and map). Each opens by itself on the first Mars visit, even if the Moon tutorials were seen; tutorials seen are saved per world.
+- **Landing briefing.** Jezero crater and its ancient lake (sourced), the distance and direction to Perseverance's landing site (computed from the terrain data), and a "New on Mars" list: sols, the night choice, night cold, the dust storm forecast.
+- **Titan: coming soon.** After a passed Mars round: banked RP, balance, records held, and a campaign record table with one row per passed mission (outcome, net change, RP, milestones). A failed Mars round (balance below the Titan pass mark) restarts from the Mars snapshot.
+- **Titan pass mark.** *Decided November 15 by Owner B: a fixed placeholder of 800 (`budget.minimumBudget.titan`, was 0); Owner A to revisit.* From the current Mars rewards: a rover that idles at the lander and survives earns about 190, so it ends at about 770 at most from a 1,000 arrival and fails; a frozen run fails; a good camera or drill run (about 470 to 490) passes from a typical Moon result (about 820 to 990 on arrival, 450 to 550 spent on rover and ticket).
+- **Title screen.** The kicker reads "Campaign · The Moon, then Mars"; the cover and its caption stay the Moon's.
+- **Credits.** The credits list every world, each with its own terrain, imagery, events, milestone facts and debrief comparisons, whichever world the campaign is on.
 
 ### Build order
 

@@ -1,8 +1,11 @@
 // Milestone triggers, data-driven from data/milestones.json. Zones are built from terrain.json features
 // (passed in as plain data) and sized by tuning.milestones. The mission screen feeds the tracker the
 // rover's position each step, plus photo and drill actions and flare outcomes; the tracker returns the
-// milestones reached. Required parts are enforced here. Pure: no rendering, no DOM.
+// milestones reached. Required parts are enforced here. Mars adds its own zones (delta front, delta
+// layers and sunset viewpoints, Séítah), night driving, the dust storm and the sunset photo; the Moon's
+// zones, Earth photo and hydrogen signal simply never apply there. Pure: no rendering, no DOM.
 import type { Milestone, MilestoneTuning, Part, Slot } from './types';
+import type { MarsMilestoneTuning, MarsViewpointKind, MarsZoneId } from './marsTypes';
 import type { DamageCause } from './damage';
 import { milestoneStages, type EarnedMilestone } from './payout';
 import { meetsRequirements } from './rover';
@@ -10,21 +13,30 @@ import { meetsRequirements } from './rover';
 export interface Point { x: number; z: number }
 export interface Point3 { x: number; y: number; z: number }
 
-/** The terrain.json features the milestones use. */
+/** terrain.json features the milestone zones read: the Moon's own features are absent on Mars, and Mars's on the Moon. */
 export interface MilestoneFeatures {
   landing: Point3;
-  rimViewpoints: { name: string; local: Point; lookToward: Point }[];
+  rimViewpoints?: { name: string; local: Point; lookToward: Point }[];
   rockyAreas: { name: string; local: Point; radius_m: number }[];
-  shadowedCrater: { outlineLocal_xz: [number, number][]; iceCandidate: { local: Point } };
-  craterDescent: { name: string; local: Point };
+  shadowedCrater?: { outlineLocal_xz: [number, number][]; iceCandidate: { local: Point } };
+  craterDescent?: { name: string; local: Point };
+  // Mars (rules/marsTypes.ts MarsTerrainFeatures)
+  deltaFront?: { name: string; scarpLocal_xz: [number, number][]; zoneRadius_m: number };
+  seitah?: { name: string; outlineLocal_xz: [number, number][] };
+  viewpoints?: { name: string; local: Point; kind: MarsViewpointKind }[];
 }
 
 /** Zone ids that milestones.json triggers refer to. */
-export type ZoneId = 'large-crater' | 'boulder-field' | 'shadowed-crater' | 'crater-wall' | 'ice-spot' | 'rim-viewpoint' | 'near-lander';
+export type ZoneId = 'large-crater' | 'boulder-field' | 'shadowed-crater' | 'crater-wall' | 'ice-spot' | 'rim-viewpoint' | 'near-lander' | MarsZoneId;
+
+/** Zones where a photograph is of a place (its caption names the zone). */
+export const PHOTO_ZONE_IDS: readonly ZoneId[] = ['rim-viewpoint', 'crater-wall', 'delta-layers', 'sunset-viewpoint'];
 
 export type ZoneShape =
   | { kind: 'circle'; x: number; z: number; r: number }
   | { kind: 'polygon'; points: [number, number][] }
+  /** Within r of a polyline (the delta front's scarp). */
+  | { kind: 'path'; points: [number, number][]; r: number }
   /** Below a height, on one side of a line: in when y < enterBelowY, out again once y > exitAboveY. */
   | { kind: 'below'; enterBelowY: number; exitAboveY: number; origin: Point; normal: Point };
 
@@ -37,33 +49,47 @@ export interface Zone {
 
 export function buildZones(f: MilestoneFeatures, t: MilestoneTuning): Zone[] {
   const zones: Zone[] = [];
-  f.rimViewpoints.forEach((v, i) => zones.push({
+  const { rimViewpoints = [], craterDescent: wall, shadowedCrater: dark } = f;
+  rimViewpoints.forEach((v, i) => zones.push({
     id: 'rim-viewpoint', key: `rim-viewpoint-${i}`, name: v.name,
     shape: { kind: 'circle', x: v.local.x, z: v.local.z, r: t.photoZoneRadiusM },
   }));
-  zones.push({
-    id: 'crater-wall', key: 'crater-wall', name: f.craterDescent.name,
-    shape: { kind: 'circle', x: f.craterDescent.local.x, z: f.craterDescent.local.z, r: t.photoZoneRadiusM },
+  if (wall) zones.push({
+    id: 'crater-wall', key: 'crater-wall', name: wall.name,
+    shape: { kind: 'circle', x: wall.local.x, z: wall.local.z, r: t.photoZoneRadiusM },
   });
   f.rockyAreas.forEach((a, i) => zones.push({
     id: 'boulder-field', key: `boulder-field-${i}`, name: a.name,
     shape: { kind: 'circle', x: a.local.x, z: a.local.z, r: a.radius_m * t.boulderCrossRadiusFactor },
   }));
-  zones.push({
+  if (dark) zones.push({
     id: 'shadowed-crater', key: 'shadowed-crater', name: 'Shadowed crater',
-    shape: { kind: 'polygon', points: f.shadowedCrater.outlineLocal_xz },
+    shape: { kind: 'polygon', points: dark.outlineLocal_xz },
   });
+  // Mars: the delta front (within its zone radius of the scarp), Séítah, and the two kinds of viewpoint.
+  if (f.deltaFront) zones.push({
+    id: 'delta-front', key: 'delta-front', name: f.deltaFront.name,
+    shape: { kind: 'path', points: f.deltaFront.scarpLocal_xz, r: f.deltaFront.zoneRadius_m },
+  });
+  if (f.seitah) zones.push({ id: 'seitah', key: 'seitah', name: f.seitah.name, shape: { kind: 'polygon', points: f.seitah.outlineLocal_xz } });
+  (f.viewpoints ?? []).forEach((v, i) => zones.push({
+    id: v.kind === 'deltaLayers' ? 'delta-layers' : 'sunset-viewpoint', key: `viewpoint-${i}`, name: v.name,
+    shape: { kind: 'circle', x: v.local.x, z: v.local.z, r: t.photoZoneRadiusM },
+  }));
   // Ground the lander's engine plume disturbed: drill samples here do not count.
   zones.push({
     id: 'near-lander', key: 'near-lander', name: 'Lander',
     shape: { kind: 'circle', x: f.landing.x, z: f.landing.z, r: t.sampleMinDistanceM },
   });
   // The ice spot is hidden from the player (no marker); they find it by drilling in the dark crater.
-  const ice = f.shadowedCrater.iceCandidate.local;
-  zones.push({ id: 'ice-spot', key: 'ice-spot', name: 'Ice spot', shape: { kind: 'circle', x: ice.x, z: ice.z, r: t.iceSpotRadiusM } });
+  if (dark) {
+    const ice = dark.iceCandidate.local;
+    zones.push({ id: 'ice-spot', key: 'ice-spot', name: 'Ice spot', shape: { kind: 'circle', x: ice.x, z: ice.z, r: t.iceSpotRadiusM } });
+  }
   // de Gerlache's inner wall: the side of the rim the viewpoints look toward (the north flank, toward the
   // dark crater, also drops far below the landing point and must not count).
-  const toward = f.rimViewpoints[0]?.lookToward ?? { x: 0, z: 1 };
+  if (!wall) return zones; // not the Moon
+  const toward = rimViewpoints[0]?.lookToward ?? { x: 0, z: 1 };
   zones.push({
     id: 'large-crater', key: 'large-crater', name: 'de Gerlache inner wall',
     shape: {
@@ -87,6 +113,21 @@ function inPolygon(points: [number, number][], x: number, z: number): boolean {
   return inside;
 }
 
+/** Distance in the x-z plane from a point to a polyline. */
+export function distanceToPath(points: [number, number][], x: number, z: number): number {
+  if (points.length === 1) return Math.hypot(x - points[0]![0], z - points[0]![1]);
+  let best = Infinity;
+  for (let i = 1; i < points.length; i++) {
+    const [ax, az] = points[i - 1]!;
+    const [bx, bz] = points[i]!;
+    const ex = bx - ax;
+    const ez = bz - az;
+    const u = Math.max(0, Math.min(1, ((x - ax) * ex + (z - az) * ez) / (ex * ex + ez * ez || 1)));
+    best = Math.min(best, Math.hypot(x - (ax + u * ex), z - (az + u * ez)));
+  }
+  return best;
+}
+
 export function zoneContains(zone: Zone, p: Point3, wasInside = false): boolean {
   const s = zone.shape;
   switch (s.kind) {
@@ -94,6 +135,8 @@ export function zoneContains(zone: Zone, p: Point3, wasInside = false): boolean 
       return (p.x - s.x) ** 2 + (p.z - s.z) ** 2 <= s.r * s.r;
     case 'polygon':
       return inPolygon(s.points, p.x, p.z);
+    case 'path':
+      return distanceToPath(s.points, p.x, p.z) <= s.r;
     case 'below': {
       const side = (p.x - s.origin.x) * s.normal.x + (p.z - s.origin.z) * s.normal.z > 0;
       return side && p.y < (wasInside ? s.exitAboveY : s.enterBelowY);
@@ -153,7 +196,21 @@ export interface StepInput {
   distanceM: number; // total distance driven this mission
   exploredShare: number; // share of the map explored (rules/explore.ts)
   flareSurvived?: boolean; // a flare struck this step and the rover was protected
+  /** Mars: it is night now (dusk to dawn; rules/sol.ts solClock().isNight). Distance driven while true counts for Night drive. */
+  night?: boolean;
+  /** Mars: the dust storm is active now (rules/storm.ts stormPhase() === 'active'). Storm survivor fires when it clears. */
+  stormActive?: boolean;
 }
+
+/** Mars: the Sun as the camera saw it when a photo was taken, for Blue sunset. */
+export interface SunPhoto {
+  elevationDeg: number; // the Sun's center above the horizon (rules/marsSun.ts marsSunAt().elevationDeg)
+  setting: boolean; // after local noon (rules/sol.ts solClock().sunSetting)
+  inFrame: boolean; // inside the camera frame and not hidden by terrain (scene.inView(sunDir, photoFrameMargin))
+}
+
+/** Why a sunset photo would not count, or null when it would. */
+export type SunsetBlocker = 'not-in-frame' | 'not-setting' | 'too-high' | 'too-low' | 'too-close';
 
 function missingParts(parts: Part[], m: Milestone): Missed['missing'] {
   const missing: Missed['missing'] = [];
@@ -172,12 +229,15 @@ export class MilestoneTracker {
   private readonly partialHinted = new Set<string>(); // zone keys already reported as a partial crossing
   private readonly sampleSites: Point[] = []; // where counted drill samples were taken
   private readonly landing: Point;
+  private lastDistanceM: number | null = null;
+  private nightM = 0; // distance driven at night this mission
+  private stormWasActive = false;
 
   constructor(
     private readonly catalog: Milestone[],
     private readonly parts: Part[],
     readonly zones: Zone[],
-    private readonly t: MilestoneTuning,
+    private readonly t: MilestoneTuning & Partial<MarsMilestoneTuning>,
   ) {
     const lander = zones.find((z) => z.id === 'near-lander');
     this.landing = lander && lander.shape.kind === 'circle' ? { x: lander.shape.x, z: lander.shape.z } : { x: 0, z: 0 };
@@ -224,9 +284,19 @@ export class MilestoneTracker {
     return this.zones.filter((z) => this.inside.has(z.key));
   }
 
+  /** Distance driven at night so far this mission (Mars). */
+  nightDistanceM(): number {
+    return this.nightM;
+  }
+
   step(input: StepInput): MilestoneUpdate {
     const u = this.empty();
     const p = input.position;
+    const driven = this.lastDistanceM === null ? 0 : Math.max(0, input.distanceM - this.lastDistanceM);
+    this.lastDistanceM = input.distanceM;
+    if (input.night) this.nightM += driven;
+    const stormCleared = this.stormWasActive && !input.stormActive;
+    this.stormWasActive = input.stormActive ?? false;
     const exited: { zone: Zone; entry: Point | null }[] = [];
     for (const zone of this.zones) {
       const was = this.inside.has(zone.key);
@@ -256,6 +326,10 @@ export class MilestoneTracker {
         }
       } else if (tr.type === 'event') {
         if (tr.event === 'flare' && input.flareSurvived) this.fire(m, u);
+      } else if (tr.type === 'night-distance') {
+        this.fire(m, u, tr.meters.filter((d) => this.nightM >= d).length);
+      } else if (tr.type === 'storm-survive') {
+        if (stormCleared) this.fire(m, u);
       }
     }
     return u;
@@ -271,16 +345,35 @@ export class MilestoneTracker {
   /**
    * A photograph from the rover's position. `earthInView`: Earth is above the horizon and in frame;
    * `earthLit`: the sunlit share of Earth's disc (rules/sun.ts earthLitShare). The Earth photo needs both.
+   * `sun` (Mars): the Sun as the camera saw it, for the sunset photo.
    */
-  photo(p: Point3, earthInView: boolean, earthLit: number): MilestoneUpdate {
+  photo(p: Point3, earthInView: boolean, earthLit: number, sun?: SunPhoto): MilestoneUpdate {
     const u = this.empty();
     const zones = this.zones.filter((z) => zoneContains(z, p, this.inside.has(z.key)));
     this.each('photo', (m) => {
       const tr = m.trigger;
       if (tr.type !== 'photo') return;
-      if (tr.target === 'earth' ? this.earthPhotoCounts(p, earthInView, earthLit) : zones.some((z) => z.id === tr.zone)) this.fire(m, u);
+      const counts = tr.target === 'earth' ? this.earthPhotoCounts(p, earthInView, earthLit)
+        : tr.target === 'sunset' ? !!sun && this.sunsetBlocker(p, sun) === null
+          : zones.some((z) => z.id === tr.zone);
+      if (counts) this.fire(m, u);
     });
     return u;
+  }
+
+  /**
+   * Why a sunset photo here would not count (null: it counts): the Sun must be in frame, setting, low
+   * (sunsetMinElevationDeg to sunsetMaxElevationDeg), and the rover at least sunsetPhotoMinDistanceM from
+   * the lander. Without the Mars tuning there is no sunset photo ('not-in-frame').
+   */
+  sunsetBlocker(p: Point, sun: SunPhoto): SunsetBlocker | null {
+    const { sunsetMinElevationDeg: lo, sunsetMaxElevationDeg: hi, sunsetPhotoMinDistanceM: minM } = this.t;
+    if (lo === undefined || hi === undefined || !sun.inFrame) return 'not-in-frame';
+    if (!sun.setting) return 'not-setting';
+    if (sun.elevationDeg > hi) return 'too-high';
+    if (sun.elevationDeg < lo) return 'too-low';
+    if (Math.hypot(p.x - this.landing.x, p.z - this.landing.z) < (minM ?? 0)) return 'too-close';
+    return null;
   }
 
   /** Whether an Earth photo here would be too close to the lander to count. */

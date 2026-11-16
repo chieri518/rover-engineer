@@ -9,12 +9,17 @@ import './ui/style.css';
 import { loadGameData } from './gameData';
 import { Game } from './flow/flow';
 import { screens } from './ui/screens';
+import { worldFromQuery } from './worlds';
 
 const root = document.querySelector<HTMLElement>('#app');
 if (!root) throw new Error('missing #app');
 
-const game = new Game(loadGameData(), root, screens);
-game.go('title');
+loadGameData('mars'); // check every world's data at startup, not when the campaign reaches it
+const game = new Game(loadGameData, root, screens);
+// Debug start: ?world=mars begins a throwaway campaign on Mars (not saved).
+const debugWorld = worldFromQuery(location.search);
+if (debugWorld && debugWorld !== 'moon') game.debugStart(debugWorld);
+else game.go('title');
 
 // Development hook for testing the screen flow (not in production builds).
 if (import.meta.env.DEV) (window as unknown as { __game?: Game }).__game = game;

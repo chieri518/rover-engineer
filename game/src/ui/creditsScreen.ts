@@ -1,8 +1,10 @@
 // Data sources and credits, generated from the source metadata in the data files: terrain.json and
 // texture.json (fetched at runtime, as the mission does), events.json, milestones.json and text.json.
+// Every world is listed, whichever world the campaign is on.
 import type { Screen } from '../flow/flow';
-import type { CreditEntry, HistoryKey, TextFile } from '../rules/types';
+import type { CreditEntry, GameData, HistoryKey, TextFile } from '../rules/types';
 import { el, fill } from './dom';
+import { terrainUrl, WORLD_IDS, type WorldId } from '../worlds';
 
 /** The fields of public/terrain/terrain.json this screen reads. */
 interface TerrainSources {
@@ -61,8 +63,8 @@ function handEntry(e: CreditEntry): HTMLLIElement {
   return entry(e.label, e.text, e.citation, urls(e.url));
 }
 
-async function fetchJson<T>(file: string): Promise<T> {
-  const res = await fetch(`${import.meta.env.BASE_URL}terrain/${file}`);
+async function fetchJson<T>(world: WorldId, file: string): Promise<T> {
+  const res = await fetch(terrainUrl(world, file));
   if (!res.ok) throw new Error(`${file}: ${res.status}`);
   return (await res.json()) as T;
 }
@@ -96,18 +98,17 @@ function fallback(c: TextFile['credits'], lines: string[]): Node[] {
   return [el('p', { class: 'note' }, c.loadFailed), ...lines.map((l) => el('p', {}, l))];
 }
 
-export const creditsScreen: Screen = (game, root) => {
-  const { data } = game;
-  const { text } = data;
-  const c = text.credits;
-  const flare = data.events.flare;
-  let disposed = false;
+/** A source line that is filled in (stub data files mark theirs "[placeholder]"). */
+function isReal(s: string | undefined): s is string {
+  return Boolean(s) && !s!.startsWith('[placeholder');
+}
 
-  const loading = () => el('div', { class: 'credit-async' }, el('p', { class: 'muted' }, c.loading));
-  const terrain = loading();
-  const imagery = loading();
-  const section = (heading: string, ...body: Node[]) => el('section', { class: 'credit-section' }, el('h3', {}, heading), ...body);
-  const historyLabel = (k: HistoryKey) => (k === 'survived' ? c.survivedLabel : k === 'rollover' ? text.debrief.rollover : text.causes[k]);
+export const creditsScreen: Screen = (game, root) => {
+  // The shared sections (intro, soil, drive speeds) come from the shared text; each world then lists
+  // its own terrain, imagery, events, milestone facts and debrief comparisons.
+  const shared = game.dataOf('moon');
+  const c = shared.text.credits;
+  const disposed = { value: false };
   const back = el('button', { class: 'primary', type: 'button', onclick: () => game.go('title') }, c.back);
 
   root.append(
@@ -115,40 +116,72 @@ export const creditsScreen: Screen = (game, root) => {
       el('h2', {}, c.heading),
       el('p', {}, c.intro),
       el('p', { class: 'credits-disclaimer' }, c.disclaimer),
-      el('p', { class: 'note' }, text.moneyNote),
+      el('p', { class: 'note' }, shared.text.moneyNote),
 
-      section(c.terrain, terrain),
-      section(c.imagery, imagery),
-      section(c.spaceWeather,
-        el('ul', { class: 'credit-list' },
-          entry(null, flare.source,
-            fill(c.flaresUsed, { list: flare.realFlares.map((f) => `${f.class} (${f.date})`).join(', ') })))),
-      section(c.soil,
-        el('ul', { class: 'credit-list' },
-          ...c.soilEntries.map(handEntry),
-          entry(c.speedLabel, text.design.speedInfoSources))),
-      section(c.milestones,
-        el('ul', { class: 'credit-list' },
-          ...data.milestones.milestones.filter((m) => m.source).map((m) => entry(m.name, m.source)),
-          entry(c.drillHydrogenLabel, text.drill.hydrogenSource))),
-      section(c.debrief,
-        el('ul', { class: 'credit-list' }, ...HISTORY_KEYS.map((k) => entry(historyLabel(k), text.historySources[k])))),
-      section(c.generatedHeading, el('p', {}, c.generated)),
+      ...WORLD_IDS.map((w) => worldCredits(w, game.dataOf(w), shared, disposed)),
+
+      el('section', { class: 'credit-world' },
+        section(c.soil,
+          el('ul', { class: 'credit-list' },
+            ...c.soilEntries.map(handEntry),
+            entry(c.speedLabel, shared.text.design.speedInfoSources))),
+        section(c.generatedHeading, el('p', {}, c.generated)),
+      ),
 
       el('div', { class: 'actions' }, back),
     ),
   );
 
-  void fetchJson<TerrainSources>('terrain.json')
-    .then((info) => terrainList(info, c))
-    .catch(() => fallback(c, c.terrainFallback))
-    .then((nodes) => { if (!disposed) terrain.replaceChildren(...nodes); });
-  void fetchJson<TextureSource>('texture.json')
-    .then((info) => imageryList(info, c))
-    .catch(() => fallback(c, [c.imageryFallback]))
-    .then((nodes) => { if (!disposed) imagery.replaceChildren(...nodes); });
-
   return () => {
-    disposed = true;
+    disposed.value = true;
   };
 };
+
+function section(heading: string, ...body: (Node | false | null | undefined)[]): HTMLElement {
+  return el('section', { class: 'credit-section' }, el('h3', {}, heading), ...body.filter((n): n is Node => Boolean(n)));
+}
+
+/** One world's sources: terrain and imagery (fetched from its terrain folder), events, milestones, debrief. */
+function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed: { value: boolean }): HTMLElement {
+  const { text } = data;
+  const c = text.credits;
+  const loading = () => el('div', { class: 'credit-async' }, el('p', { class: 'muted' }, c.loading));
+  const terrain = loading();
+  const imagery = loading();
+  const flare = data.events.flare;
+  const storm = data.events.duststorm;
+  const historyLabel = (k: HistoryKey) => (k === 'survived' ? c.survivedLabel : k === 'rollover' ? text.debrief.rollover : text.causes[k]);
+  // Other worlds list only the debrief comparisons they replace.
+  const historyKeys = HISTORY_KEYS.filter((k) => world === 'moon' || text.historySources[k] !== shared.text.historySources[k]);
+  const milestones = data.milestones.milestones.filter((m) => isReal(m.source));
+  const landing = text.campaign;
+
+  void fetchJson<TerrainSources>(world, 'terrain.json')
+    .then((info) => terrainList(info, c))
+    .catch(() => fallback(c, c.terrainFallback))
+    .then((nodes) => { if (!disposed.value) terrain.replaceChildren(...nodes); });
+  void fetchJson<TextureSource>(world, 'texture.json')
+    .then((info) => imageryList(info, c))
+    .catch(() => fallback(c, [c.imageryFallback]))
+    .then((nodes) => { if (!disposed.value) imagery.replaceChildren(...nodes); });
+
+  return el('section', { class: 'credit-world', 'data-world': world },
+    el('h2', { class: 'credit-world-heading' }, text.worlds[world]),
+    section(c.terrain, terrain),
+    section(c.imagery, imagery),
+    flare && section(c.spaceWeather,
+      el('ul', { class: 'credit-list' },
+        entry(null, flare.source,
+          fill(c.flaresUsed, { list: flare.realFlares.map((f) => `${f.class} (${f.date})`).join(', ') })))),
+    storm && (isReal(storm.source) || isReal(text.storm?.credit)) && section(c.spaceWeather,
+      el('ul', { class: 'credit-list' }, entry(null, isReal(storm.source) && storm.source, isReal(text.storm?.credit) && text.storm!.credit))),
+    landing && isReal(landing.sources) && section(landing.sourcesLabel,
+      el('ul', { class: 'credit-list' }, entry(null, landing.sources))),
+    (milestones.length > 0 || world === 'moon') && section(c.milestones,
+      el('ul', { class: 'credit-list' },
+        ...milestones.map((m) => entry(m.name, m.source)),
+        world === 'moon' && entry(c.drillHydrogenLabel, text.drill.hydrogenSource))),
+    historyKeys.length > 0 && section(c.debrief,
+      el('ul', { class: 'credit-list' }, ...historyKeys.map((k) => entry(historyLabel(k), text.historySources[k])))),
+  );
+}

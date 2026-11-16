@@ -1,7 +1,7 @@
 // The design screen ("the engineer's desk"): pick one part per slot and watch the specification sheet.
 // All numbers come from rules/ (quoteBuild); this file only lays them out.
 import type { Screen } from '../flow/flow';
-import { canStartMission } from '../rules/campaign';
+import { canStartMission, nextMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
@@ -11,7 +11,7 @@ import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
 import { tierWhyText } from './tierText';
 import { openTutorial, type TutorialHandle } from './tutorial';
-import { tutorialPages } from './tutorialText';
+import { missionVars, tutorialPages } from './tutorialText';
 
 const KMH = 3.6;
 
@@ -131,7 +131,7 @@ export const designScreen: Screen = (game, root) => {
         el('strong', {}, t.speedInfoTitle),
         el('button', { class: 'info-close', type: 'button', 'aria-label': 'Close', onclick: () => setInfo(false) }, '×'),
       ),
-      ...t.speedInfo.map((p) => el('p', {}, fill(p, { compression: data.tuning.speed.compression }))),
+      ...t.speedInfo.map((p) => el('p', {}, fill(p, { ...missionVars(data), compression: data.tuning.speed.compression }))),
       el('p', { class: 'info-build' },
         fill(t.speedInfoBuild, { game: q.drive.topSpeed.toFixed(1), real: (q.drive.realTopSpeed * KMH).toFixed(1) })),
       el('p', { class: 'note' }, t.speedInfoSources),
@@ -224,7 +224,7 @@ export const designScreen: Screen = (game, root) => {
   let tutorial: TutorialHandle | null = null;
   const openHelp = () => {
     if (tutorial) return;
-    const pages = tutorialPages('design', data, { mission: game.state.mission, instrument: null });
+    const pages = tutorialPages('design', data, { mission: game.state.mission, instrument: null, balance: game.state.balance });
     tutorial = openTutorial(root, 'design', pages, text.tutorial, () => {
       tutorial = null;
       game.markTutorialSeen('design');
@@ -238,11 +238,23 @@ export const designScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
 
+  // After the Moon (Mars only): which mission this is, the balance carried over, the next pass mark,
+  // and that parts and tickets are the Moon's for now.
+  const mars = text.campaign;
+  const nextStep = nextMission(game.state.mission);
+  const transition = mars && el('p', { class: 'world-transition' },
+    fill(mars.carryOver, { balance: money(game.state.balance, text) }), ' ',
+    nextStep ? fill(mars.passMark, { minimum: money(data.tuning.budget.minimumBudget[nextStep], text) }) : '', ' ',
+    mars.sameParts,
+  );
+
   const desk = el('section', { class: 'desk' },
     el('header', { class: 'desk-head' },
       el('div', {},
+        mars && el('p', { class: 'title-kicker' }, mars.kicker),
         el('h2', {}, t.heading),
         el('p', { class: 'muted' }, t.tutorial),
+        transition,
       ),
       el('div', { class: 'desk-head-side' },
         help,

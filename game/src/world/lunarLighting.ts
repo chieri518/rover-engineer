@@ -5,6 +5,8 @@
 // - Optional ground detail for the terrain: the LROC albedo map over the play area, plus fine
 //   procedural regolith (albedo speckle and small bumps) that fades out with distance so it never
 //   shimmers. See public/terrain/texture.json for the albedo map's grid and values.
+// - Mars ('mars' photometry): near-Lambert with a mild backscatter, and the grayscale HiRISE image
+//   used as relative brightness (contrast-limited) on the Mars ground color, darker areas greyer.
 import * as THREE from 'three';
 import type { HeightGrid } from './terrainData';
 
@@ -19,7 +21,12 @@ export interface MoonLightUniforms {
   moonAlbedo: THREE.IUniform<THREE.Texture | null>;
   /** Albedo map placement: x, z of its outer corner (min), span in meters, fade width at its edge. */
   moonAlbedoRect: THREE.IUniform<THREE.Vector4>;
+  /** Albedo map tone: x = its mean linear value (maps to the material color), y = contrast (1 = as is). */
+  moonAlbedoTone: THREE.IUniform<THREE.Vector2>;
 }
+
+/** How a patched material scatters sunlight: lunar regolith, Mars ground, or plain Lambert (false). */
+export type Photometry = boolean | 'mars';
 
 export function createMoonLightUniforms(fine: HeightGrid, near: HeightGrid, far: HeightGrid): MoonLightUniforms {
   return {
@@ -30,6 +37,7 @@ export function createMoonLightUniforms(fine: HeightGrid, near: HeightGrid, far:
     moonGridSpan: { value: new THREE.Vector3(fine.pixel * fine.n, near.pixel * near.n, far.pixel * far.n) },
     moonAlbedo: { value: null },
     moonAlbedoRect: { value: new THREE.Vector4(0, 0, 1, 1) },
+    moonAlbedoTone: { value: new THREE.Vector2(ALBEDO_MEAN, 1) },
   };
 }
 
@@ -41,6 +49,9 @@ const LUNAR_LS_WEIGHT = 0.85;
 /** Brightness factor with the Sun behind the viewer (phase 0°) and when looking into it (180°). */
 const PHASE_BRIGHT = 1.3;
 const PHASE_DARK = 0.45;
+/** Mars: dustier, more Lambertian ground with a weak backscatter. */
+const MARS_PHASE_BRIGHT = 1.12;
+const MARS_PHASE_DARK = 0.88;
 
 const PARS = /* glsl */ `
 uniform sampler2D moonMaskFine;
@@ -64,6 +75,7 @@ float moonSunVisibility( vec2 p ) {
 const GROUND_PARS = /* glsl */ `
 uniform sampler2D moonAlbedo;
 uniform vec4 moonAlbedoRect;
+uniform vec2 moonAlbedoTone;
 
 // Gradient noise with its analytic derivative (returns value, d/dx, d/dy), range about -0.7..0.7.
 // Lattice cells wrap every 289 so the hash stays exact in 32-bit floats far from the origin.
@@ -120,7 +132,7 @@ vec3 moonBump = vec3( 0.0 ); // height (unused), d/dx, d/dz in world meters
   vec2 auv = ( wp - moonAlbedoRect.xy ) / moonAlbedoRect.z;
   float edge = min( min( auv.x, 1.0 - auv.x ), min( auv.y, 1.0 - auv.y ) ) * moonAlbedoRect.z;
   float inside = smoothstep( 0.0, moonAlbedoRect.w, edge );
-  float albedo = texture2D( moonAlbedo, clamp( auv, 0.0, 1.0 ) ).r / ${ALBEDO_MEAN.toFixed(3)};
+  float albedo = 1.0 + ( texture2D( moonAlbedo, clamp( auv, 0.0, 1.0 ) ).r / moonAlbedoTone.x - 1.0 ) * moonAlbedoTone.y;
   float tone = mix( 1.0, albedo, inside );
   // Fine regolith: speckle and bumps far below the 5 m map resolution.
   float pixelM = max( length( fwidth( wp ) ), 1e-4 );
@@ -136,6 +148,10 @@ ${OCTAVES.map(([w, h, a], i) => `  {
     }
   }`).join('\n')}
   diffuseColor.rgb *= tone * ( 1.0 + speckle );
+  #ifdef MOON_MARS
+    // Dark basaltic sand is greyer than the bright red dust.
+    diffuseColor.rgb = mix( vec3( dot( diffuseColor.rgb, vec3( 0.2126, 0.7152, 0.0722 ) ) ), diffuseColor.rgb, 0.55 + 0.45 * smoothstep( 0.5, 1.1, tone ) );
+  #endif
 }
 `;
 
@@ -165,6 +181,9 @@ void RE_Direct_Lambert( const in IncidentLight directLight, const in vec3 geomet
     // Regolith scatters light back toward the Sun: darker when looking into the Sun.
     float phase = acos( clamp( dot( directLight.direction, geometryViewDir ), -1.0, 1.0 ) );
     f *= ${PHASE_BRIGHT.toFixed(3)} - ${(PHASE_BRIGHT - PHASE_DARK).toFixed(3)} * phase / PI;
+  #elif defined( MOON_MARS )
+    float phase = acos( clamp( dot( directLight.direction, geometryViewDir ), -1.0, 1.0 ) );
+    float f = mu0 * ( ${MARS_PHASE_BRIGHT.toFixed(3)} - ${(MARS_PHASE_BRIGHT - MARS_PHASE_DARK).toFixed(3)} * phase / PI );
   #else
     float f = mu0;
   #endif
@@ -181,18 +200,19 @@ void RE_IndirectDiffuse_Lambert( const in vec3 irradiance, const in vec3 geometr
 `;
 
 /**
- * Patch a Lambert material so the Sun is masked by terrain shadows; `lunar` adds regolith photometry,
- * `ground` the albedo map and fine regolith detail (terrain only).
+ * Patch a Lambert material so the Sun is masked by terrain shadows; `lunar` adds regolith photometry
+ * (true) or Mars ground photometry ('mars'), `ground` the albedo map and fine detail (terrain only).
  */
 export function patchMoonLighting(
   material: THREE.MeshLambertMaterial,
   uniforms: MoonLightUniforms,
-  lunar: boolean,
+  lunar: Photometry,
   ground = false,
 ): THREE.MeshLambertMaterial {
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
-    if (lunar) shader.defines = { ...shader.defines, MOON_LUNAR: '' };
+    if (lunar === 'mars') shader.defines = { ...shader.defines, MOON_MARS: '' };
+    else if (lunar) shader.defines = { ...shader.defines, MOON_LUNAR: '' };
     let fragment = shader.fragmentShader;
     if (ground) {
       fragment = fragment
@@ -218,6 +238,7 @@ export function patchMoonLighting(
         ),
       );
   };
-  material.customProgramCacheKey = () => (ground ? 'moon-ground' : lunar ? 'moon-lunar' : 'moon-lambert');
+  const mode = lunar === 'mars' ? 'mars' : lunar ? 'lunar' : 'lambert';
+  material.customProgramCacheKey = () => (ground ? `moon-ground-${mode}` : `moon-${mode}`);
   return material;
 }

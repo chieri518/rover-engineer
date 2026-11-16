@@ -5,7 +5,7 @@
   "title": {
     "heading": "Rover Engineer",
     "subtitle": "REL — Rover Exploration Laboratory",
-    "kicker": "Mission 1 · Lunar south pole",
+    "kicker": "Campaign · The Moon, then Mars",
     "coverCaption": "De Gerlache crater rim, lunar south pole. The Sun skims the horizon; Earth hangs low in the north.",
     "newCampaign": "Start new campaign",
     "continueCampaign": "Continue campaign"
@@ -123,7 +123,8 @@
     "briefing": "Fourteen days of daylight. The Sun stays low and circles the horizon.",
     "controls": "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
     "boundary": "Leaving the planned operating area",
-    "loading": "Loading terrain…"
+    "loading": "Loading terrain…",
+    "loadFailed": "The Moon failed to load: {error}"
   },
   "hud": {
     "energy": "Energy",
@@ -164,8 +165,8 @@
     "survived": "The rover completed the full mission.",
     "cause": "Mission ended early. Cause: {cause}.",
     "rollover": "Destroyed by rollover",
-    "failedRound": "The balance is below the minimum budget for the next mission. The round must be restarted. Balance, research points and records return to their values at the start of the round.",
-    "passedRound": "The balance meets the minimum budget for the next mission.",
+    "failedRound": "The balance is below the minimum budget for the next mission ({minimum}). The round must be restarted. Balance, research points and records return to their values at the start of the round.",
+    "passedRound": "The balance meets the minimum budget for the next mission, Mars ({minimum}).",
     "milestonesHeading": "Milestones reached",
     "noMilestones": "No milestones were reached.",
     "recordHeld": "Record already held this campaign. No reward.",
@@ -180,7 +181,7 @@
     "noPhotos": "No photographs were taken.",
     "historyHeading": "Mission history",
     "restart": "Restart round",
-    "continue": "Continue"
+    "continue": "Continue to Mars"
   },
   "causes": {
     "energy": "Out of energy",
@@ -196,12 +197,25 @@
     "destroyed": "The Soviet Lunokhod 2 rover was also lost to damage: its lid touched a crater wall on May 9, 1973, dust fell onto its radiator, it overheated, and the mission was closed on June 4, 1973.",
     "rollover": "No planetary rover is known to have been lost to a rollover. NASA's Spirit rover had a static tip-over angle of 45 degrees, and its software stopped a drive whenever its tilt passed a set limit."
   },
-  "marsSoon": {
-    "heading": "Mars: coming soon",
-    "body": "The Moon campaign is complete. Research points carry forward to Mars technology.",
+  "worlds": {
+    "moon": "The Moon: de Gerlache crater rim, lunar south pole",
+    "mars": "Mars: Jezero crater"
+  },
+  "comingSoon": {
+    "heading": "Next mission: coming soon",
+    "body": "The campaign is complete. Research points carry forward to the next mission.",
     "rpBanked": "Research points banked: {rp}",
     "balance": "Balance: {balance}",
-    "backToTitle": "Back to title"
+    "backToTitle": "Back to title",
+    "summaryHeading": "Campaign record",
+    "colMission": "Mission",
+    "colOutcome": "Outcome",
+    "colNet": "Net change",
+    "colRp": "RP",
+    "colMilestones": "Milestones",
+    "completed": "Full mission completed",
+    "records": "Records held: {n}",
+    "noLog": "No mission record is available for this campaign."
   },
   "historySources": {
     "survived": "ISRO, Chandrayaan-3 details (isro.gov.in/Chandrayaan3_Details.html) and mission updates (isro.gov.in/Chandrayaan3.html): rover deployed Aug 24, 2023; sleep mode Sept 4, 2023",

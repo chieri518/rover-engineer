@@ -1,5 +1,6 @@
 // Mission events: solar flares (with a warning) and moonquakes. One event at a random time inside
-// each window from events.json; each flare is a real past flare from NASA DONKI. Pure.
+// each window from events.json; each flare is a real past flare from NASA DONKI. Each world lists its
+// own events (Mars has neither flares nor quakes; its dust storm is scheduled by the Mars rules). Pure.
 import type { EventsFile, RealFlare } from './types';
 
 export type Rng = () => number; // uniform in [0, 1)
@@ -22,22 +23,25 @@ export type MissionEvent =
 
 export function scheduleEvents(events: EventsFile, rng: Rng): MissionEvent[] {
   const list: MissionEvent[] = [];
-  const pool = [...events.flare.realFlares];
-  for (const [a, b] of events.flare.windowsSeconds) {
-    const at = a + (b - a) * rng();
-    const flare = pool.splice(Math.floor(rng() * pool.length), 1)[0] ?? events.flare.realFlares[0]!;
-    list.push({ kind: 'flare', at, warningAt: Math.max(0, at - events.flare.warningSeconds), flare });
+  const { flare: flares, quake } = events;
+  if (flares) {
+    const pool = [...flares.realFlares];
+    for (const [a, b] of flares.windowsSeconds) {
+      const at = a + (b - a) * rng();
+      const flare = pool.splice(Math.floor(rng() * pool.length), 1)[0] ?? flares.realFlares[0]!;
+      list.push({ kind: 'flare', at, warningAt: Math.max(0, at - flares.warningSeconds), flare });
+    }
   }
-  for (const [a, b] of events.quake.windowsSeconds) {
+  for (const [a, b] of quake?.windowsSeconds ?? []) {
     const at = a + (b - a) * rng();
-    list.push({ kind: 'quake', at, warningAt: Math.max(0, at - events.quake.warningSeconds) });
+    list.push({ kind: 'quake', at, warningAt: Math.max(0, at - quake!.warningSeconds) });
   }
   return list.sort((x, y) => x.at - y.at);
 }
 
 /** A flare harms the rover unless it is powered down or sheltered in shadow when it hits. */
 export function flareProtected(poweredDown: boolean, sunlight: number, events: EventsFile): boolean {
-  return poweredDown || sunlight < events.flare.shelterSunlight;
+  return poweredDown || sunlight < (events.flare?.shelterSunlight ?? 0);
 }
 
 /** A flare's strength in X-class units from its GOES class: "X9.3" → 9.3, "M5.0" → 0.5. Unknown → 1. */
@@ -51,6 +55,7 @@ export function flareIntensityX(flareClass: string): number {
 /** Damage to an unprotected rover: the X1 baseline plus damagePerX per X-class unit above X1, never below 0. */
 export function flareDamage(flare: RealFlare, events: EventsFile): number {
   const f = events.flare;
+  if (!f) return 0;
   return Math.max(0, f.damage + (f.damagePerX ?? 0) * (flareIntensityX(flare.class) - 1));
 }
 

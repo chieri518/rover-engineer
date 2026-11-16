@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { clearCampaign, loadCampaign, saveCampaign } from './campaignSave';
-import { newCampaign, startRound } from '../rules/campaign';
+import { isPlayable, newCampaign, normalizeCampaign, restartRound, startRound } from '../rules/campaign';
 import { testTuning } from '../rules/testData';
 
 function memoryStore() {
@@ -46,5 +46,60 @@ describe('campaign save', () => {
     expect(loadCampaign(store)).toBeNull();
     store.setItem('rover-engineer.campaign.v1', '{"hello":1}');
     expect(loadCampaign(store)).toBeNull();
+  });
+});
+
+describe('campaign save across worlds', () => {
+  const key = 'rover-engineer.campaign.v1';
+
+  it('loads a save from before Mars (Moon completed, still on the Moon) and moves it on to Mars', () => {
+    const store = memoryStore();
+    // Written by the Moon-only build: no log, mission left at 'moon'.
+    store.setItem(key, JSON.stringify({
+      mission: 'moon', balance: 910, rp: 40, records: ['touchdown'], completed: ['moon'],
+      snapshot: { balance: 600, rp: 0, records: [] }, lastBuild: null,
+    }));
+    const s = normalizeCampaign(loadCampaign(store)!);
+    expect(s.mission).toBe('mars');
+    expect(s.snapshot).toEqual({ balance: 910, rp: 40, records: ['touchdown'] });
+  });
+
+  it('round-trips a Mars round in progress; restarting rolls back to the Mars snapshot', () => {
+    const store = memoryStore();
+    const atMars = startRound({ ...newCampaign(testTuning), mission: 'mars' as const, completed: ['moon' as const], balance: 900, rp: 30 });
+    const bought = { ...atMars, balance: 100 }; // the rover was bought, then the page was closed
+    saveCampaign(bought, store);
+    const loaded = normalizeCampaign(loadCampaign(store)!);
+    expect(loaded).toEqual(bought);
+    expect(restartRound(loaded).balance).toBe(900);
+  });
+
+  it('round-trips a finished campaign at the Titan marker, log included', () => {
+    const store = memoryStore();
+    const done = {
+      ...newCampaign(testTuning), mission: 'titan' as const, completed: ['moon' as const, 'mars' as const],
+      log: [{ mission: 'moon' as const, outcome: 'survived' as const, secondsLasted: 300, money: 400, rp: 30, milestones: 4 }],
+    };
+    saveCampaign(done, store);
+    const loaded = loadCampaign(store)!;
+    expect(loaded).toEqual(done);
+    expect(normalizeCampaign(loaded)).toBe(loaded);
+    expect(isPlayable(loaded.mission)).toBe(false);
+  });
+
+  it('rejects unknown missions', () => {
+    const store = memoryStore();
+    store.setItem(key, JSON.stringify({ ...newCampaign(testTuning), mission: 'venus' }));
+    expect(loadCampaign(store)).toBeNull();
+    store.setItem(key, JSON.stringify({ ...newCampaign(testTuning), completed: ['moon', 'pluto'] }));
+    expect(loadCampaign(store)).toBeNull();
+  });
+
+  it('a new campaign replaces a finished one', () => {
+    const store = memoryStore();
+    saveCampaign({ ...newCampaign(testTuning), mission: 'titan', completed: ['moon', 'mars'] }, store);
+    clearCampaign(store);
+    saveCampaign(startRound(newCampaign(testTuning)), store);
+    expect(loadCampaign(store)).toMatchObject({ mission: 'moon', completed: [], log: [] });
   });
 });

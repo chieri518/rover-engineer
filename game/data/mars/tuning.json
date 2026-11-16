@@ -1,0 +1,66 @@
+{
+  "_about": "Mars overlay, deep-merged over data/tuning.json (src/gameData.ts, rules/merge.ts). Keys starting with _ are notes and are dropped; null removes a shared key. Sections not listed here are the Moon's. Types: rules/types.ts Tuning, rules/marsTypes.ts.",
+  "_placeholder": "Values listed under a section's _placeholder are stubs for the track named there. Values under _interface are set with Owner A.",
+  "mission": {
+    "_note": "Decided: 10 sols in 10 minutes (sol.sols x sol.secondsPerSol = lengthSeconds). gameDays counts sols on Mars. gravity: Mars surface gravity, m/s^2.",
+    "lengthSeconds": 600,
+    "gameDays": 10,
+    "gravity": 3.71
+  },
+  "payout": {
+    "_interface": "survivalPayout: Mars survival payout, Owner A sets it (placeholder: the Moon value). The Titan pass mark is budget.minimumBudget.titan in data/tuning.json: a fixed placeholder of 800 (decided November 15 by Owner B; Owner A to revisit).",
+    "survivalPayout": 50
+  },
+  "rover": {
+    "_placeholder": "gravityScale keeps the ground gravity the Moon's handling was tuned for (3.71 x 1.75 = 6.5 m/s^2, the Moon's 1.62 x 4); airGravityScale stays the time-lapse value (16 x the world's gravity). Integration (M6) and verification tune these on the real terrain.",
+    "gravityScale": 1.75,
+    "airGravityScale": 16
+  },
+  "sun": {
+    "_note": "Fallback only: the Mars mission screen and scene use the real Sun (rules/marsSun.ts marsSunAt on the sol clock). Code that still reads the lunar model sees the Sun fixed near noon at Ls 200 (subsolar longitude = site longitude, solar declination -8.4 deg).",
+    "startAzimuthDeg": 77.45,
+    "degreesPerEarthDay": 0,
+    "subsolarLatitudeDeg": -8.4
+  },
+  "cold": {
+    "_note": "No cold zones on Mars: the night cold is map-wide (tuning.night, rules track M3).",
+    "zones": []
+  },
+  "survey": {
+    "_note": "Orbital survey leads (M5): the delta front (deltaFront, aimed at its nearest point), Seitah (seitah) and the first rocky area in terrain.json (rockyAreas.0, so the lead survives the pipeline renaming it). Text in data/mars/text.json survey.leads. Rounding is the Moon's.",
+    "leads": [
+      { "id": "delta", "site": "deltaFront" },
+      { "id": "seitah", "site": "seitah" },
+      { "id": "rocks", "site": "rockyAreas.0" }
+    ]
+  },
+  "milestones": {
+    "_note": "M5. Mars zones: the delta front (deltaFront.zoneRadius_m from terrain.json), Seitah's outline, and photoZoneRadiusM circles around the deltaLayers and sunset viewpoints. Samples: the Moon's 200 m from the lander and from each other. No hydrogen signal (no ice on Mars).",
+    "hydrogenSignal": false,
+    "_sunset": "Blue sunset: the setting Sun's center between sunsetMinElevationDeg and sunsetMaxElevationDeg, in frame and not hidden by terrain, at least sunsetPhotoMinDistanceM from the lander (the Sun sets in view of the lander every sol). Widened from 10 to 15 deg at integration (M6): from the landing the crater rim is about 4.9 deg high at the sunset azimuth, so with 10 deg the Sun was in the band and above the rim only about 2.2 s per dusk; with 15 deg about 4 s.",
+    "sunsetMinElevationDeg": 0,
+    "sunsetMaxElevationDeg": 15,
+    "sunsetPhotoMinDistanceM": 300
+  },
+  "sol": {
+    "_note": "Decided (game-design.md, The Mars mission): 10 sols of 60 s, 45 s of day then 15 s of night, season Ls about 200 (early northern autumn). Rules track (M3): clock time 0 is sunrise of sol 1. The Sun follows real local solar time at Jezero (rules/sol.ts, rules/marsSun.ts); the season advances about 0.6 deg of Ls per sol near Ls 200 (Mars24 orbit). horizonRateShare: the Sun moves at 0.25 x its mean day speed at sunrise and sunset (faster at noon and midnight), so 0 to 10 deg of elevation lasts about 5.5 s at sunset and twilight (0 to -8 deg) about 3.5 s. startSecondsIntoDay (fix pass, decided by main): the mission starts in the Mars morning, 7.25 s after sunrise of sol 1 with the Sun about 15 deg up, instead of at sunrise (the first seconds read dark). Sol 1 is that much shorter, the mission still lasts 600 s and ends 7.25 s after the dawn that follows the tenth night.",
+    "sols": 10,
+    "secondsPerSol": 60,
+    "daySeconds": 45,
+    "nightSeconds": 15,
+    "solarLongitudeDeg": 200,
+    "solarLongitudeDegPerSol": 0.6,
+    "horizonRateShare": 0.25,
+    "startSecondsIntoDay": 7.25
+  },
+  "night": {
+    "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving: lights on 4 (a parked night costs 60, about a fixed panel's whole sol of income), awake without lights 1 (electronics), asleep 0.2 (3 per night). Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
+    "lightsDrainPerSecond": 4,
+    "awakeDrainPerSecond": 1,
+    "sleepDrainPerSecond": 0.2,
+    "driveWithoutLights": false,
+    "freezeRatePerSecond": 8,
+    "warmRecoveryPerSecond": 6,
+    "fullSunElevationDeg": 15
+  }
+}

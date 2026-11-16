@@ -1,43 +1,76 @@
 // Exploration on the minimap: which sites the rover has discovered, the orbital survey leads (a rough
 // bearing and distance to an area, never an exact spot), and how far the map is zoomed out. Sites come
 // from terrain.json features (passed in as plain data); sizes and leads from tuning.survey and
-// tuning.minimap. Pure: no rendering, no DOM.
+// tuning.minimap. Mars adds the delta front (a scarp line), Séítah (an outline), its viewpoints and
+// Perseverance's landing site. Pure: no rendering, no DOM.
 import type { MilestoneTuning, SurveyTuning, Tuning } from './types';
 
 export interface Point { x: number; z: number }
 
-export type SiteKind = 'viewpoint' | 'rocky-area' | 'crater-wall' | 'shadowed-crater';
+/** delta-front: Mars's scarp line; region: Séítah; landmark: Perseverance's landing site. */
+export type SiteKind = 'viewpoint' | 'rocky-area' | 'crater-wall' | 'shadowed-crater' | 'delta-front' | 'region' | 'landmark';
 
 export type SiteArea =
   | { kind: 'circle'; x: number; z: number; r: number }
-  | { kind: 'polygon'; points: [number, number][] };
+  | { kind: 'polygon'; points: [number, number][] }
+  /** Within r of a polyline. */
+  | { kind: 'path'; points: [number, number][]; r: number };
 
 /** A place the minimap draws once the rover has discovered it. */
 export interface Site {
   key: string; // a terrain.json feature key or feature name, as the leads name them
+  alias?: string; // another name a lead may use: rocky areas are also "rockyAreas.<index>"
   name: string;
   kind: SiteKind;
   area: SiteArea; // discovered once the reveal circle touches this
   discovered: boolean;
 }
 
-/** The terrain.json features the survey uses. */
+/** terrain.json features the survey reads: the Moon's own features are absent on Mars, and Mars's on the Moon. */
 export interface SurveyFeatures {
-  rimViewpoints: { name: string; local: Point }[];
+  rimViewpoints?: { name: string; local: Point }[];
   rockyAreas: { name: string; local: Point; radius_m: number }[];
-  shadowedCrater: { outlineLocal_xz: [number, number][] };
-  craterDescent: { name: string; local: Point };
+  shadowedCrater?: { outlineLocal_xz: [number, number][] };
+  craterDescent?: { name: string; local: Point };
+  // Mars (rules/marsTypes.ts MarsTerrainFeatures)
+  deltaFront?: { name: string; scarpLocal_xz: [number, number][]; zoneRadius_m: number };
+  seitah?: { name: string; outlineLocal_xz: [number, number][] };
+  viewpoints?: { name: string; local: Point }[];
+  perseveranceLanding?: { name: string; local: Point };
 }
 
 /** Sites sized like the milestone zones: viewpoint and wall zones, the boulder spread, the shadow outline. */
 export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCraterName: string): Site[] {
   const circle = (x: number, z: number, r: number): SiteArea => ({ kind: 'circle', x, z, r });
+  const { craterDescent: wall, shadowedCrater: dark } = f;
   return [
-    ...f.rimViewpoints.map((v): Site => ({ key: v.name, name: v.name, kind: 'viewpoint', area: circle(v.local.x, v.local.z, m.photoZoneRadiusM), discovered: false })),
-    ...f.rockyAreas.map((a): Site => ({ key: a.name, name: a.name, kind: 'rocky-area', area: circle(a.local.x, a.local.z, a.radius_m * m.boulderCrossRadiusFactor), discovered: false })),
-    { key: 'craterDescent', name: f.craterDescent.name, kind: 'crater-wall', area: circle(f.craterDescent.local.x, f.craterDescent.local.z, m.photoZoneRadiusM), discovered: false },
-    { key: 'shadowedCrater', name: shadowedCraterName, kind: 'shadowed-crater', area: { kind: 'polygon', points: f.shadowedCrater.outlineLocal_xz }, discovered: false },
+    ...(f.rimViewpoints ?? []).map((v): Site => ({ key: v.name, name: v.name, kind: 'viewpoint', area: circle(v.local.x, v.local.z, m.photoZoneRadiusM), discovered: false })),
+    ...f.rockyAreas.map((a, i): Site => ({ key: a.name, alias: `rockyAreas.${i}`, name: a.name, kind: 'rocky-area', area: circle(a.local.x, a.local.z, a.radius_m * m.boulderCrossRadiusFactor), discovered: false })),
+    ...(wall ? [{ key: 'craterDescent', name: wall.name, kind: 'crater-wall', area: circle(wall.local.x, wall.local.z, m.photoZoneRadiusM), discovered: false } satisfies Site] : []),
+    ...(dark ? [{ key: 'shadowedCrater', name: shadowedCraterName, kind: 'shadowed-crater', area: { kind: 'polygon', points: dark.outlineLocal_xz }, discovered: false } satisfies Site] : []),
+    // Mars: sized like its milestone zones (the delta front's zone radius, Séítah's outline, viewpoint circles).
+    ...(f.viewpoints ?? []).map((v): Site => ({ key: v.name, name: v.name, kind: 'viewpoint', area: circle(v.local.x, v.local.z, m.photoZoneRadiusM), discovered: false })),
+    ...(f.deltaFront ? [{ key: 'deltaFront', name: f.deltaFront.name, kind: 'delta-front', area: { kind: 'path', points: f.deltaFront.scarpLocal_xz, r: f.deltaFront.zoneRadius_m }, discovered: false } satisfies Site] : []),
+    ...(f.seitah ? [{ key: 'seitah', name: f.seitah.name, kind: 'region', area: { kind: 'polygon', points: f.seitah.outlineLocal_xz }, discovered: false } satisfies Site] : []),
+    ...(f.perseveranceLanding ? [{ key: 'perseveranceLanding', name: f.perseveranceLanding.name, kind: 'landmark', area: circle(f.perseveranceLanding.local.x, f.perseveranceLanding.local.z, 0), discovered: false } satisfies Site] : []),
   ];
+}
+
+/** The point of a polyline nearest to p. */
+export function nearestOnPath(points: [number, number][], p: Point): Point {
+  let best = { x: points[0]?.[0] ?? 0, z: points[0]?.[1] ?? 0 };
+  let bestD = Math.hypot(p.x - best.x, p.z - best.z);
+  for (let i = 1; i < points.length; i++) {
+    const [ax, az] = points[i - 1]!;
+    const [bx, bz] = points[i]!;
+    const ex = bx - ax;
+    const ez = bz - az;
+    const u = Math.max(0, Math.min(1, ((p.x - ax) * ex + (p.z - az) * ez) / (ex * ex + ez * ez || 1)));
+    const q = { x: ax + u * ex, z: az + u * ez };
+    const d = Math.hypot(p.x - q.x, p.z - q.z);
+    if (d < bestD) [best, bestD] = [q, d];
+  }
+  return best;
 }
 
 function inPolygon(points: [number, number][], x: number, z: number): boolean {
@@ -53,6 +86,10 @@ function inPolygon(points: [number, number][], x: number, z: number): boolean {
 /** Distance from a point to the near edge of an area (0 inside it). */
 export function distanceToArea(area: SiteArea, p: Point): number {
   if (area.kind === 'circle') return Math.max(0, Math.hypot(p.x - area.x, p.z - area.z) - area.r);
+  if (area.kind === 'path') {
+    const q = nearestOnPath(area.points, p);
+    return Math.max(0, Math.hypot(p.x - q.x, p.z - q.z) - area.r);
+  }
   if (inPolygon(area.points, p.x, p.z)) return 0;
   let best = Infinity;
   const pts = area.points;
@@ -67,7 +104,7 @@ export function distanceToArea(area: SiteArea, p: Point): number {
   return best;
 }
 
-/** The middle of an area: a circle's center, a polygon's vertex average. */
+/** The middle of an area: a circle's center, a polygon's or path's vertex average. */
 export function areaCenter(area: SiteArea): Point {
   if (area.kind === 'circle') return { x: area.x, z: area.z };
   const n = area.points.length || 1;
@@ -115,7 +152,7 @@ export interface Lead {
 /** The survey leads from tuning, matched to their sites (a lead whose site is missing is dropped). */
 export function buildLeads(sites: Site[], t: SurveyTuning): Lead[] {
   return t.leads.flatMap((l) => {
-    const site = sites.find((s) => s.key === l.site);
+    const site = sites.find((s) => s.key === l.site || s.alias === l.site);
     return site ? [{ id: l.id, site }] : [];
   });
 }
@@ -126,9 +163,13 @@ export interface LeadBearing {
   distanceKm: number; // to the near edge, rounded
 }
 
-/** Where a lead's area lies from a point: a rough bearing and distance, not a spot. */
+/**
+ * Where a lead's area lies from a point: a rough bearing and distance, not a spot. The bearing is toward
+ * the area's center, or for a long line (the delta front) toward its nearest point.
+ */
 export function leadBearing(lead: Lead, from: Point, t: SurveyTuning): LeadBearing {
-  const azimuth = azimuthDeg(from, areaCenter(lead.site.area));
+  const a = lead.site.area;
+  const azimuth = azimuthDeg(from, a.kind === 'path' ? nearestOnPath(a.points, from) : areaCenter(a));
   return { azimuth, compass: compassPoint(azimuth), distanceKm: roundedKm(distanceToArea(lead.site.area, from), t) };
 }
 
