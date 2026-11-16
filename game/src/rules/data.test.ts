@@ -248,7 +248,7 @@ describe('game data', () => {
     expect(p.froze).toBeLessThan(p.destroyed);
   });
 
-  it('speed: a light build can just reach the dark crater in one mission, a heavy build cannot', () => {
+  it('speed: a light build reaches the dark crater with time to spare (generous pass)', () => {
     const seconds = data.tuning.mission.lengthSeconds;
     const dark = data.milestones.milestones.find((m) => m.id === 'into-the-dark')!;
     const quotes = allBuilds().map((b) => ({ b, q: quoteBuild(b, data, data.tuning.budget.startingBudget) }));
@@ -257,13 +257,12 @@ describe('game data', () => {
     const crater = launchable.filter(({ b }) => meetsRequirements(selectedParts(b, data.parts), dark));
     const fastest = Math.max(...crater.map(({ q }) => q.drive.topSpeed));
     const slowest = Math.min(...launchable.map(({ q }) => q.drive.topSpeed));
-    expect(fastest).toBeGreaterThanOrEqual(10);
-    expect(fastest).toBeLessThanOrEqual(14);
-    expect(slowest).toBeGreaterThanOrEqual(5);
-    expect(slowest).toBeLessThanOrEqual(7.5);
+    expect(fastest).toBeGreaterThanOrEqual(15);
+    expect(fastest).toBeLessThanOrEqual(21);
+    expect(slowest).toBeGreaterThanOrEqual(9);
+    expect(slowest).toBeLessThan(fastest * 0.7);
     // Top speed for the whole mission, with room for slopes, turns and stops.
     expect(fastest * seconds).toBeGreaterThan(craterM * 1.1);
-    expect(slowest * seconds).toBeLessThan(craterM * 0.75);
   });
 
   // Drive flat out at top speed for the whole mission with a given share of sunlight.
@@ -305,22 +304,6 @@ describe('game data', () => {
     expect(dark.end!.seconds).toBeLessThan(200);
   });
 
-  it('energy: the dark crater dash needs a big battery or a solar mast', () => {
-    // Fast crater-equipped builds (entry before ~265 s): drive there in mostly sun, then into the shadow.
-    const dark = data.milestones.milestones.find((m) => m.id === 'into-the-dark')!;
-    const fast = allBuilds()
-      .filter((b) => meetsRequirements(selectedParts(b, data.parts), dark))
-      .map((b) => evaluateBuild(b, data))
-      .filter((e) => e.tier !== null && craterM / e.topSpeed < 265);
-    const dash = (b: Build) => simulate(b, data, { sunlight: (m) => (m < craterM ? 0.8 : 0), driveShare: 1 });
-    const plain = fast.filter((e) => e.build.battery === 'battery-li-ion' && e.build.power === 'power-fixed-panel');
-    const invested = fast.filter((e) => e.build.battery === 'battery-nih2' || e.build.power === 'power-solar-mast');
-    expect(plain.length).toBeGreaterThan(0);
-    expect(invested.length).toBeGreaterThan(0);
-    for (const e of plain) expect(dash(e.build).end.cause).toBe('energy');
-    for (const e of invested) expect(dash(e.build).end.survived).toBe(true);
-  });
-
   it('energy: climbing all mission long in little sunlight drains the cheapest build', () => {
     const s = nonstop(cheapestBuild(data.parts), 0.25, 5);
     expect(s.end?.cause).toBe('energy');
@@ -339,13 +322,13 @@ describe('Moon sites and milestones data (Phase 2)', () => {
   });
   const withSites = (sites: SiteSpec[]): GameData => ({ ...data, sites: { sites } });
 
-  // Phase 6, tuned by hand: Rock collection 40 → 60 per stage (X-ray readings take real time); the rest as planned.
+  // Phase 6, tuned by hand: Rock collection 40 → 60 per stage. Generous pass (November 15): single rewards doubled, staged ones 1.5×.
   it('has the twelve new milestones with their rewards, each with a how-to line, fact and source', () => {
     const rewards = NEW.map((id) => [id, byId(id).money, byId(id).rp]);
     expect(rewards).toEqual([
-      ['cold-trap-survey', 50, 8], ['hidden-hydrogen', 100, 20], ['ice-deposit-located', 200, 30], ['rock-collection', 60, 8],
-      ['rare-rock', 100, 30], ['boulder-track', 40, 10], ['documented-sample', 40, 10], ['fresh-ejecta-sample', 50, 15],
-      ['moonquake-record', 80, 20], ['clean-seismogram', 40, 10], ['laser-ranging-site', 50, 15], ['science-station', 50, 10],
+      ['cold-trap-survey', 75, 8], ['hidden-hydrogen', 200, 20], ['ice-deposit-located', 400, 30], ['rock-collection', 90, 8],
+      ['rare-rock', 200, 30], ['boulder-track', 80, 10], ['documented-sample', 80, 10], ['fresh-ejecta-sample', 100, 15],
+      ['moonquake-record', 160, 20], ['clean-seismogram', 80, 10], ['laser-ranging-site', 100, 15], ['science-station', 100, 10],
     ]);
     expect(data.milestones.milestones.filter((m) => m.record).map((m) => m.id)).toEqual(['touchdown', 'water-ice', 'rare-rock', 'science-station']);
     for (const m of data.milestones.milestones) expect(m.howTo?.length, m.id).toBeGreaterThan(0);

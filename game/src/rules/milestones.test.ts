@@ -499,10 +499,10 @@ describe('drill: Fresh ejecta sample in a young crater ring', () => {
   });
 
   it('not within the near-lander zone, even inside a ring', () => {
-    const fake = buildZones(features, t, { sites: [{ ...site('east-crater'), center: { x: L.x + 150, z: L.z }, radiusM: 60 }] });
+    const fake = buildZones(features, t, { sites: [{ ...site('east-crater'), center: { x: L.x + 100, z: L.z }, radiusM: 60 }] });
     const tr = new MilestoneTracker(data.milestones.milestones, selectedParts(drill, data.parts), fake, t);
-    expect(ids(tr.drill(at(L.x + 150, L.z)))).toEqual([]);
-    expect(ids(tr.drill(at(L.x + 230, L.z)))).toEqual(['regolith-sample', 'fresh-ejecta-sample']);
+    expect(ids(tr.drill(at(L.x + 100, L.z)))).toEqual([]);
+    expect(ids(tr.drill(at(L.x + 180, L.z)))).toEqual(['regolith-sample', 'fresh-ejecta-sample']);
   });
 });
 
