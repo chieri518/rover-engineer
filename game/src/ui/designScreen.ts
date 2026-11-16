@@ -109,7 +109,7 @@ export const designScreen: Screen = (game, root) => {
     const node = el('label', { class: 'option' },
       input,
       el('span', { class: 'option-name' }, part.name),
-      el('span', { class: 'option-desc' }, part.description),
+      part.description ? el('span', { class: 'option-desc' }, part.description) : null, // none/empty options have no description
       el('span', { class: 'option-stats' },
         el('span', {}, money(part.cost, text)),
         el('span', {}, `${part.mass} kg`),
@@ -408,19 +408,22 @@ export const designScreen: Screen = (game, root) => {
   }, text.notebook.open);
 
   const desk = el('section', { class: 'desk' },
+    // The top bar stays in view while the desk scrolls: title, help, notebook and balance. The longer notes sit below it.
     el('header', { class: 'desk-head' },
       el('div', {},
         mars && el('p', { class: 'title-kicker' }, mars.kicker),
         el('h2', {}, t.heading),
-        el('p', { class: 'muted' }, t.tutorial),
-        transition,
-        text.titanCampaign && el('p', { class: 'world-transition world-warning' }, text.titanCampaign.solarNote),
       ),
       el('div', { class: 'desk-head-side' },
         help,
         notebookButton,
         el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
       ),
+    ),
+    el('div', { class: 'desk-notes' },
+      el('p', { class: 'muted' }, t.tutorial),
+      transition,
+      text.titanCampaign && el('p', { class: 'world-transition world-warning' }, text.titanCampaign.solarNote),
     ),
     el('div', { class: 'desk-grid' },
       el('div', { class: 'slots' }, ...slots),
@@ -430,7 +433,6 @@ export const designScreen: Screen = (game, root) => {
         sheet,
         warnings,
         el('div', { class: 'actions' }, next),
-        el('p', { class: 'note' }, text.moneyNote),
       ),
     ),
   );

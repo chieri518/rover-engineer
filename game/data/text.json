@@ -1,12 +1,10 @@
 {
   "moneyPrefix": "$",
   "moneySuffix": "k",
-  "moneyNote": "All amounts are game values for balancing, not real costs.",
   "title": {
     "heading": "Rover Engineer",
     "subtitle": "REL — Rover Exploration Laboratory",
     "kicker": "Campaign · The Moon, Mars and Titan",
-    "coverCaption": "De Gerlache crater rim, lunar south pole. The Sun skims the horizon; Earth hangs low in the north.",
     "newCampaign": "Start new campaign",
     "continueCampaign": "Continue campaign"
   },

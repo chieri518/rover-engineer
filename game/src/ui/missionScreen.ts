@@ -646,9 +646,11 @@ export const missionScreen: Screen = (game, root) => {
         const sun = sunPhoto();
         if (sun && tracker?.sunsetBlocker(roverPos, { ...sun, inFrame: true }) === null) return fill(ti.sunsetHint, { key });
       }
-      if (earthInView) {
+      // Earth is in view from the landing at the start: near the lander there is no standing hint (the photo
+      // would not count, and the notice saying why comes only when the player takes one).
+      if (earthInView && roverPos && !tracker?.earthPhotoTooClose(roverPos)) {
         const lit = earthLit();
-        return (roverPos && earthBlocker(roverPos, lit)) ?? fill(ti.earthHint, { key });
+        return earthBlocker(roverPos, lit) ?? fill(ti.earthHint, { key });
       }
     }
     // The exact ice spot is never revealed: inside the dark crater the hint only invites a test drill.

@@ -13,10 +13,10 @@
     { "id": "battery-nih2", "slot": "battery", "name": "Nickel-hydrogen battery", "description": "Proven and cheap. Stores the most, but heavy.", "cost": 40, "mass": 20, "size": 3, "effects": { "batteryCapacity": 600 } },
     { "id": "battery-li-ion", "slot": "battery", "name": "Lithium-ion battery", "description": "Light, but expensive and stores less.", "cost": 100, "mass": 6, "size": 2, "effects": { "batteryCapacity": 400 } },
 
-    { "id": "lights-none", "slot": "lights", "name": "No lights", "description": "Saves cost, mass, and space. The rover cannot drive into permanent shadow.", "cost": 0, "mass": 0, "size": 0, "effects": {} },
+    { "id": "lights-none", "slot": "lights", "name": "No lights", "description": "", "cost": 0, "mass": 0, "size": 0, "effects": {} },
     { "id": "lights-led", "slot": "lights", "name": "LED floodlights", "description": "Lets the rover see inside shadowed craters.", "cost": 35, "mass": 3, "size": 1, "effects": { "lightRange": 45 } },
 
-    { "id": "heater-none", "slot": "heater", "name": "No heater", "description": "Saves cost, mass, and space. The rover freezes quickly in the cold.", "cost": 0, "mass": 0, "size": 0, "effects": {} },
+    { "id": "heater-none", "slot": "heater", "name": "No heater", "description": "", "cost": 0, "mass": 0, "size": 0, "effects": {} },
     { "id": "heater-rhu", "slot": "heater", "name": "Radioisotope heater units", "description": "Steady heat from decaying isotopes. Slows freezing in the cold.", "cost": 60, "mass": 3, "size": 1, "effects": { "heat": 2 } },
 
     { "id": "instrument-camera", "slot": "instrument", "name": "Science camera", "description": "Photos and imaging science.", "cost": 50, "mass": 3, "size": 1, "effects": { "instrument": "camera" } },

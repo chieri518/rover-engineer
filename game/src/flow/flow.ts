@@ -14,7 +14,7 @@ import { isCompleteBuild } from '../rules/rover';
 import { upgradeSavedBuild } from '../rules/payload';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 import { loadSettings, saveSettings, type Settings } from '../save/settings';
-import { loadTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen, type TutorialSeenByWorld } from '../save/tutorialSeen';
+import { loadTutorialSeen, resetTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen, type TutorialSeenByWorld } from '../save/tutorialSeen';
 
 /** A photograph taken during the mission, kept in memory for the debrief album. */
 export interface AlbumPhoto {
@@ -107,6 +107,7 @@ export class Game {
     this.persist = true;
     this.world = 'moon';
     clearCampaign();
+    this.seenByWorld = resetTutorialSeen(); // a new campaign shows every tutorial again; Continue and round restarts keep them
     this.setCampaign(startRound(newCampaign(this.data.tuning)));
     this.build = {};
     this.outcome = null;

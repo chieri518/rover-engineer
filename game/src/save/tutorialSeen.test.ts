@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { loadTutorialSeen, saveTutorialSeen, TUTORIAL_KEY } from './tutorialSeen';
+import { allUnseen, loadTutorialSeen, resetTutorialSeen, saveTutorialSeen, TUTORIAL_KEY } from './tutorialSeen';
 
 function memoryStore() {
   const m = new Map<string, string>();
@@ -45,5 +45,13 @@ describe('tutorial seen', () => {
     };
     expect(loadTutorialSeen(blocked)).toEqual(unseen);
     expect(saveTutorialSeen({ moon: none, mars: none, titan: none }, blocked)).toBe(false);
+  });
+
+  it('resets every world at once, in memory and in storage', () => {
+    const store = memoryStore();
+    saveTutorialSeen({ moon: { design: true, drive: true }, mars: { design: true, drive: true }, titan: { design: true, drive: true } }, store);
+    expect(resetTutorialSeen(store)).toEqual(unseen);
+    expect(loadTutorialSeen(store)).toEqual(unseen);
+    expect(allUnseen()).toEqual(unseen);
   });
 });

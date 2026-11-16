@@ -34,6 +34,18 @@ function readSeen(v: unknown): TutorialSeen {
   return { design: o.design === true, drive: o.drive === true };
 }
 
+/** Nothing seen in any world: what a new campaign starts with, so every tutorial shows again. */
+export function allUnseen(): TutorialSeenByWorld {
+  return { moon: unseen(), mars: unseen(), titan: unseen() };
+}
+
+/** Forget every tutorial in every world and write that to storage (a new campaign). Returns the fresh state. */
+export function resetTutorialSeen(store: KeyValueStore | null = defaultStore()): TutorialSeenByWorld {
+  const fresh = allUnseen();
+  saveTutorialSeen(fresh, store);
+  return fresh;
+}
+
 export function loadTutorialSeen(store: KeyValueStore | null = defaultStore()): TutorialSeenByWorld {
   try {
     const raw = store?.getItem(TUTORIAL_KEY);
