@@ -200,8 +200,8 @@
   },
   "survey": {
     "_owner": "M5. Lead ids match data/mars/tuning.json survey.leads. Directions and distances are computed, so the text names none.",
-    "_sources": "Delta: Fassett and Head, GRL 32 (2005), doi.org/10.1029/2005GL023456. Seitah: NASA JPL, \"NASA's Perseverance Rover Begins Its First Science Campaign on Mars\" (jpl.nasa.gov/news/nasas-perseverance-rover-begins-its-first-science-campaign-on-mars/). HiRISE scale: uahirise.org/TRA_000823_1720; usgs.gov/news/mars-2020-mission-be-guided-usgs-astrogeology-maps.",
-    "intro": "Orbital data from Mars Reconnaissance Orbiter show three areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
+    "_sources": "Delta: Fassett and Head, GRL 32 (2005), doi.org/10.1029/2005GL023456. Seitah: NASA JPL, \"NASA's Perseverance Rover Begins Its First Science Campaign on Mars\" (jpl.nasa.gov/news/nasas-perseverance-rover-begins-its-first-science-campaign-on-mars/). HiRISE scale: uahirise.org/TRA_000823_1720; usgs.gov/news/mars-2020-mission-be-guided-usgs-astrogeology-maps. Young crater lead: the pipeline's freshness test on the 25 cm HiRISE mosaic (game/tools/mars_sites.py; terrain.json youngCraters young-crater-ene).",
+    "intro": "Orbital data from Mars Reconnaissance Orbiter show four areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
     "leads": {
       "delta": {
         "name": "Delta front",
@@ -214,13 +214,74 @@
       "rocks": {
         "name": "Boulder field",
         "source": "HiRISE images, at about 25 cm per pixel, show a rough patch of boulders on the crater floor."
+      },
+      "youngCrater": {
+        "name": "Young crater",
+        "source": "HiRISE images show a deep crater with a sharp, round rim strewn with blocks: a young crater, not yet worn down like the older craters around it."
       }
     },
     "legendRocky": "Boulder field",
     "legendDelta": "Delta front",
     "legendRegion": "Séítah",
     "_siteNames": "Display names for the terrain.json site names, which the pipeline keeps ASCII (shown in the Located notice).",
-    "siteNames": { "Seitah": "Séítah" }
+    "siteNames": { "Seitah": "Séítah" },
+    "_sites": "Mars step 4b: notes and instrument lines for the data/mars/sites.json sites (rules/types.ts TextFile survey; ui/surveyText.ts foundNotice). They replace the Moon's by key (deep merge), so the Moon's fresh rocky area does not reach Mars; its cold-trap and rolled-boulder lines stay merged but Mars has no such sites. Lesson-blind: no line names slope, level, flat, steep, dust, noise, generator or lights (Mars sites plan, Spoiler guard). Notes for the knobs, the Seitah edge, the delta foot and the flood boulder are ready for the survey sites Mars step 5c adds.",
+    "siteNotes": {
+      "rocky-area-1": "a field of blocks thrown out around a small crater.",
+      "rocky-area-2": "an old crater with blocks scattered on its rim.",
+      "east-crater": "a young crater with a sharp rim and fresh blocks."
+    },
+    "siteKindNotes": {
+      "rocky-area": "a field of blocks thrown out by an impact.",
+      "young-crater": "a small crater with blocks around its rim.",
+      "hidden-hydrogen": "ground where the neutron spectrometer reads more hydrogen than anywhere else nearby.",
+      "knob": "a small rocky hill rising from the crater floor.",
+      "seitah-edge": "the edge of Séítah, with rocks on firm ground beside the sand ripples.",
+      "delta-foot": "blocks fallen from the delta lie at its foot.",
+      "flood-boulder": "a large boulder fallen from the delta, unlike the rocks around it."
+    },
+    "siteLines": {
+      "rocky-area": {
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder from a distance.",
+        "radar": "Radar: switch it on and drive past it.",
+        "drill": "Drill: sample the rock around it."
+      },
+      "young-crater": {
+        "camera": "Camera: photograph its far inner wall from the rim.",
+        "drill": "Drill: sample the rock around it.",
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder from a distance.",
+        "radar": "Radar: switch it on and drive past it."
+      },
+      "knob": {
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder from a distance."
+      },
+      "seitah-edge": {
+        "drill": "Drill: sample Séítah.",
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder from a distance.",
+        "radar": "Radar: switch it on and drive past it.",
+        "neutron": "Neutron spectrometer: switch it on and drive near or through it."
+      },
+      "delta-foot": {
+        "drill": "Drill: sample the delta foot.",
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder, or the delta cliff.",
+        "radar": "Radar: switch it on and drive past it.",
+        "neutron": "Neutron spectrometer: switch it on and drive near or through it."
+      },
+      "flood-boulder": {
+        "xray": "X-ray spectrometer: read its rock.",
+        "camera": "Camera: photograph it after reading it, from within {documentedRange} m."
+      }
+    }
   },
   "instrumentText": {
     "_note": "Mars's own instruments (Mars M4, behavior built in Mars step 4a) and the X-ray's slope refusal. Real facts use the safe wording of the Mars engineering plan's Real anchors (ranges, \"signals consistent with\"); each cites its source. Placeholders: rules/types.ts InstrumentText.",
@@ -295,5 +356,17 @@
     "sunsetHint": "The setting Sun is low in view. Press {key} to take a photograph.",
     "sunsetTooHigh": "The Sun is in view but still high. The sunset photo counts once it is within {max}° of the horizon.",
     "sunsetTooClose": "The setting Sun is in view, but the rover is only {distance} m from the lander. The sunset photo counts at least {min} m away."
+  },
+  "_rocks": "Mars rock types (Mars step 4b; game-design.md, Mars rock types; ids in rules/marsTypes.ts MARS_ROCK_IDS). Merged with the Moon's names by id; Mars suites name only these. Readouts are plain words, as the X-ray and laser results show them. Sources: Farley et al. 2022 (Maaz, Seitah); Liu et al. 2022 (olivine cumulate); Tice et al. 2022 (carbonate in Seitah's olivine); Scheller et al. 2022 (salts from brines); Mangold et al. 2021 (delta lake layers, flood boulders). Flood conglomerate is placed by design.",
+  "rocks": {
+    "maaz-basalt": { "name": "Máaz basalt", "elements": "Iron-rich lava rock: pyroxene and feldspar" },
+    "salt-veined-basalt": { "name": "Salt-veined basalt", "elements": "Lava rock with salts in its pores, left by water" },
+    "olivine-cumulate": { "name": "Olivine cumulate", "elements": "Packed green olivine crystals, rich in magnesium" },
+    "carbonate-olivine-rock": { "name": "Carbonate-bearing olivine rock", "elements": "Olivine partly changed to carbonate by water" },
+    "lake-mudstone": { "name": "Lake mudstone", "elements": "Fine layers of mud laid down in still water" },
+    "flood-conglomerate": {
+      "name": "Flood conglomerate",
+      "elements": "Rounded pebbles and cobbles cemented together, carried by a flood"
+    }
   }
 }

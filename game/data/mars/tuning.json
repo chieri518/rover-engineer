@@ -27,19 +27,33 @@
     "zones": []
   },
   "survey": {
-    "_note": "Orbital survey leads (M5): the delta front (deltaFront, aimed at its nearest point), Seitah (seitah) and the first rocky area in terrain.json (rockyAreas.0, so the lead survives the pipeline renaming it). Text in data/mars/text.json survey.leads. Rounding is the Moon's.",
+    "_note": "Orbital survey leads (M5): the delta front (deltaFront, aimed at its nearest point), Seitah (seitah) and the first rocky area in terrain.json (rockyAreas.0, so the lead survives the pipeline renaming it). Mars step 4b (MS6): a fourth lead, youngCrater, to East crater (data/mars/sites.json id east-crater), because the pipeline found it fresh (terrain.json youngCraters young-crater-ene, freshness 'fresh'). Text in data/mars/text.json survey.leads. Rounding is the Moon's.",
     "leads": [
       { "id": "delta", "site": "deltaFront" },
       { "id": "seitah", "site": "seitah" },
-      { "id": "rocks", "site": "rockyAreas.0" }
+      { "id": "rocks", "site": "rockyAreas.0" },
+      { "id": "youngCrater", "site": "east-crater" }
     ]
   },
+  "boulders": {
+    "_note": "Boulders at the Mars sites (Mars sites plan section 5, Map impact; rules in Mars step 5c, world in 6a; provisional, for Chieri's review). The rocky areas keep perRockyArea (the Moon's 160). Each young crater in data/mars/sites.json gets perYoungCrater (the Moon's 30) spread at spreadRadiusFactor x its radius, East crater perSite 60; perSiteKind: knobs 15 each, the Seitah edge 40 (firm ground only), the delta foot 40 (along the zone); the one flood boulder is floodBoulderDiameterM across. Boulders skip soft ground. slopeTargetShare of each young crater's and knob's boulders go on terrain.json slopeTargets cells (10 to 18 deg, level ground beside: the arm lesson, C7); the share is decided in Mars step 4b (the plans give none), provisional.",
+    "perSiteKind": { "knob": 15, "seitah-edge": 40, "delta-foot": 40 },
+    "perSite": { "east-crater": 60 },
+    "floodBoulderDiameterM": 2.5,
+    "slopeTargetShare": 0.25
+  },
   "milestones": {
-    "_note": "M5. Mars zones: the delta front (deltaFront.zoneRadius_m from terrain.json), Seitah's outline, and photoZoneRadiusM circles around the deltaLayers and sunset viewpoints. Samples: the Moon's 200 m from the lander and from each other. No hydrogen signal (no ice on Mars).",
+    "_note": "M5. Mars zones: the delta front (deltaFront.zoneRadius_m from terrain.json), Seitah's outline, and photoZoneRadiusM circles around the deltaLayers and sunset viewpoints. Samples: the Moon's sampleMinDistanceM and sampleSpacingM (inherited, not set here). Mars step 4b (Mars sites plan S2; rules in step 5a): the delta-foot zone within deltaFootRadiusM of terrain.json deltaFront.footNear; young-crater ejecta rings at youngCraterEjectaFactor x radius (data/mars/sites.json young craters and rocky areas); the hidden hydrated ground's core, hydrogenZoneRadiusM (the Moon's key with the Mars value, decided in Phase 0); Crater wall: the rover between craterWallRimBand x a young crater's radius from its center; Documented sample within documentedSampleRangeM. youngCraterEjectaFactor and documentedSampleRangeM repeat the Moon's values so a Moon change does not move Mars.",
     "_sunset": "Blue sunset: the setting Sun's center between sunsetMinElevationDeg and sunsetMaxElevationDeg, in frame and not hidden by terrain, at least sunsetPhotoMinDistanceM from the lander (the Sun sets in view of the lander every sol). Widened from 10 to 15 deg at integration (M6): from the landing the crater rim is about 4.9 deg high at the sunset azimuth, so with 10 deg the Sun was in the band and above the rim only about 2.2 s per dusk; with 15 deg about 4 s.",
     "sunsetMinElevationDeg": 0,
     "sunsetMaxElevationDeg": 15,
-    "sunsetPhotoMinDistanceM": 300
+    "sunsetPhotoMinDistanceM": 300,
+    "_inherits": "Inherited from data/tuning.json and changed there by the Moon generous pass (November 15): sampleMinDistanceM 200 -> 120 (the near-lander zone: drill samples, readings and the Mars record extension), sampleSpacingM 200 -> 150, photoZoneRadiusM 90. Mars follows them until the Mars balance step (7) decides.",
+    "deltaFootRadiusM": 50,
+    "youngCraterEjectaFactor": 1.5,
+    "craterWallRimBand": [0.8, 1.3],
+    "documentedSampleRangeM": 15,
+    "hydrogenZoneRadiusM": 25
   },
   "sol": {
     "_note": "Decided (game-design.md, The Mars mission): 10 sols of 60 s, 45 s of day then 15 s of night, season Ls about 200 (early northern autumn). Rules track (M3): clock time 0 is sunrise of sol 1. The Sun follows real local solar time at Jezero (rules/sol.ts, rules/marsSun.ts); the season advances about 0.6 deg of Ls per sol near Ls 200 (Mars24 orbit). horizonRateShare: the Sun moves at 0.25 x its mean day speed at sunrise and sunset (faster at noon and midnight), so 0 to 10 deg of elevation lasts about 5.5 s at sunset and twilight (0 to -8 deg) about 3.5 s. startSecondsIntoDay (fix pass, decided by main): the mission starts in the Mars morning, 7.25 s after sunrise of sol 1 with the Sun about 15 deg up, instead of at sunrise (the first seconds read dark). Sol 1 is that much shorter, the mission still lasts 600 s and ends 7.25 s after the dawn that follows the tenth night.",
@@ -75,6 +89,43 @@
     "arm": { "slopeLimitDeg": 10 },
     "mast": { "photoRangeFactor": 1.5 },
     "chargedWhileHeld": ["organics"],
+    "neutron": {
+      "_note": "The hydrogen meter on Mars (Mars sites plan, How the neutron milestone can be lost; game-design.md, New Mars milestones; provisional, for Chieri's review; rules in Mars step 5b). The Moon's rule and keys with Mars values: noiseFloor everywhere; inside a zone listed in unitReadings the meter reads that value (Seitah and the delta foot, 15%: a game simplification). The hydrated ground (data/mars/sites.json kind hidden-hydrogen) reads anomalyPeak at its center and anomalyEdge at its core's edge (tuning.milestones.hydrogenZoneRadiusM, 25 m), then falls in a straight line to noiseFloor at anomalyRangeM. On a rover whose power part has neutronNoise (the RTG) the floor rises by rtgFloorRise and the reading wobbles by up to rtgJitter: about the anomaly's rise over the last 30 m before the core (0.21 to 0.34), so a noisy rover cannot follow the gradient (C6, MS4). Mars has no cold traps and no ice: coldBackground, edgeRampM, iceRangeM and iceSignalShare are the Moon's and never apply.",
+      "noiseFloor": 0.1,
+      "anomalyPeak": 0.45,
+      "anomalyEdge": 0.34,
+      "anomalyRangeM": 80,
+      "unitReadings": { "seitah": 0.15, "delta-foot": 0.15 },
+      "rtgFloorRise": 0.15,
+      "rtgJitter": 0.13
+    },
+    "xray": {
+      "_note": "Mars rock types (game-design.md, Mars rock types; MS9, MS10). Each sites.json site names its suite; each boulder reads one rock of it, picked by weight and seeded by its position. rocks: the fallback for a boulder with no site (Maaz basalt, the common crater-floor rock). Arrays replace the Moon's. crater-floor serves East crater, the small craters and the WNW knob (the knob's suite is decided in Mars step 4b, provisional, for Chieri's review). Laser readings use the same types; the organics spectrometer reads none.",
+      "rocks": [{ "id": "maaz-basalt", "weight": 1 }],
+      "suites": [
+        {
+          "id": "rocky-area-1",
+          "rocks": [{ "id": "maaz-basalt", "weight": 5 }, { "id": "salt-veined-basalt", "weight": 5 }]
+        },
+        {
+          "id": "rocky-area-2",
+          "rocks": [{ "id": "maaz-basalt", "weight": 5 }, { "id": "olivine-cumulate", "weight": 5 }]
+        },
+        {
+          "id": "crater-floor",
+          "rocks": [{ "id": "salt-veined-basalt", "weight": 6 }, { "id": "maaz-basalt", "weight": 4 }]
+        },
+        {
+          "id": "seitah",
+          "rocks": [{ "id": "olivine-cumulate", "weight": 6 }, { "id": "carbonate-olivine-rock", "weight": 4 }]
+        },
+        {
+          "id": "delta-foot",
+          "rocks": [{ "id": "lake-mudstone", "weight": 7 }, { "id": "maaz-basalt", "weight": 3 }]
+        },
+        { "id": "flood-boulder", "rocks": [{ "id": "flood-conglomerate", "weight": 1 }] }
+      ]
+    },
     "weather": {
       "_note": "Weather mast (Owner B item B9, provisional, for Chieri's review). Switched on with the rover powered up for warmupSeconds without a break, it gives the dust storm forecast up to stormEarlyWarningSeconds before the orbital report (90 s ahead instead of 60). The HUD readout: pressure on a daily cycle (pressurePa +/- pressureDailySwing, peak in the morning), dust opacity clearTau on a clear sol, rising by forecastHazeTau over the lead before the storm and to stormTau at full storm; trend arrows compare with trendSeconds ago, steady within pressureTrendPa and dustTrendTau. The readout numbers are game values in a realistic range (Jezero's surface pressure is several hundred pascals), not measurements.",
       "stormEarlyWarningSeconds": 30,

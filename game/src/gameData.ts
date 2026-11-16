@@ -13,6 +13,7 @@ import marsMilestones from '../data/mars/milestones.json';
 import marsText from '../data/mars/text.json';
 import marsParts from '../data/mars/parts.json';
 import marsTiers from '../data/mars/tiers.json';
+import marsSites from '../data/mars/sites.json';
 import relationships from '../data/relationships.json';
 import sites from '../data/sites.json';
 import type { GameData, PartsFile, PartsOverlay, TiersFile, MilestonesFile, Tuning, EventsFile, TextFile, RelationshipsFile, SitesFile } from './rules/types';
@@ -37,12 +38,13 @@ const shared: Omit<GameData, 'world' | 'allParts'> = {
  * Per-world overlays. The part catalog is one file: each part says which worlds offer it (Part.worlds),
  * text.partText rewords parts per world, and the world's parts overlay (PartsOverlay) adds its support
  * slots and per-world effects. Ticket tiers are deep-merged like the other overlays (Mars's list replaces
- * the shared one). Relationships are shared (each relationship names its world). sites.json is the
- * Moon's: Mars has none of its sites.
+ * the shared one). Relationships are shared (each relationship names its world). Each world has its own
+ * sites file, replaced whole (data/sites.json is the Moon's, data/mars/sites.json Mars's), so no Moon site
+ * reaches Mars.
  */
 const overlays: Record<WorldId, Partial<Record<keyof GameData, unknown>>> = {
   moon: {},
-  mars: { tuning: marsTuning, events: marsEvents, milestones: marsMilestones, text: marsText, parts: marsParts, tiers: marsTiers, sites: { sites: [] } },
+  mars: { tuning: marsTuning, events: marsEvents, milestones: marsMilestones, text: marsText, parts: marsParts, tiers: marsTiers, sites: marsSites as SitesFile },
 };
 
 /** The world's data: shared data with the world's overlay merged over it, and the parts the world offers. */
@@ -60,7 +62,7 @@ export function worldGameData(world: WorldId): GameData {
     events: deepMerge(shared.events, o.events),
     text,
     relationships: shared.relationships,
-    sites: (o.sites as SitesFile | undefined) ?? shared.sites, // replaced whole: the Moon's _about note does not reach Mars
+    sites: o.sites === undefined ? shared.sites : deepMerge<SitesFile>({ sites: [] }, o.sites), // replaced whole (deepMerge only drops its _ notes)
   };
 }
 

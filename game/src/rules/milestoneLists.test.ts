@@ -29,9 +29,11 @@ describe('desk cards: what each instrument can earn', () => {
     expect(names(instrumentMilestones('drill', all))).toEqual(['Regolith sample', 'Water ice', 'Fresh ejecta sample']);
   });
 
-  it('on Mars the new instruments earn nothing (their cards keep the "earns no milestones yet" line)', () => {
-    for (const inst of ['neutron', 'xray', 'seismometer', 'reflector'] as const) expect(instrumentMilestones(inst, mars.milestones.milestones)).toEqual([]);
-    expect(instrumentMilestones('camera', mars.milestones.milestones).length).toBeGreaterThan(0);
+  it('on Mars the Moon stations earn nothing, and every Mars instrument earns a milestone (Mars step 4b)', () => {
+    for (const inst of ['seismometer', 'reflector'] as const) expect(instrumentMilestones(inst, mars.milestones.milestones)).toEqual([]);
+    for (const inst of ['camera', 'drill', 'neutron', 'xray', 'weather', 'radar', 'laser', 'organics'] as const) {
+      expect(instrumentMilestones(inst, mars.milestones.milestones).length, inst).toBeGreaterThan(0);
+    }
   });
 });
 

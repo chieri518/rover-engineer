@@ -1,17 +1,26 @@
-import type { GameData, Milestone, MoonPipelineFeatures, PhotoTarget, PipelineFeatureList, ReadingTarget, SiteKind, SupportSlot } from './types';
+import type { GameData, Milestone, MoonPipelineFeatures, PhotoTarget, PipelineFeatureList, ReadingTarget, RecordEvent, SiteKind, SupportSlot } from './types';
+import { MARS_ROCK_IDS, MARS_ZONE_IDS } from './marsTypes';
 import { ZONE_IDS } from './milestones';
 import { KNOWN_WORLDS } from './payload';
 import { relationshipProblems } from './relationships';
 import { requiredInstruments } from './rover';
 import { coldZoneAnchor, type SiteFeatures } from './sites';
 
-const PHOTO_TARGETS: readonly PhotoTarget[] = ['earth', 'sunset', 'rolled-boulder', 'read-boulder'];
+const PHOTO_TARGETS: readonly PhotoTarget[] = ['earth', 'sunset', 'rolled-boulder', 'read-boulder', 'crater-wall', 'dustdevil'];
+const RECORD_EVENTS: readonly RecordEvent[] = ['quake', 'duststorm', 'night', 'dustdevil'];
 const READING_TARGETS: readonly ReadingTarget[] = ['boulder', 'cliff'];
 const SUPPORT_SLOTS: readonly SupportSlot[] = ['arm', 'mast'];
-const SITE_KINDS: readonly SiteKind[] = ['young-crater', 'rocky-area', 'cold-trap', 'rolled-boulder', 'hidden-hydrogen'];
+const SITE_KINDS: readonly SiteKind[] = [
+  'young-crater', 'rocky-area', 'cold-trap', 'rolled-boulder', 'hidden-hydrogen', 'knob', 'seitah-edge', 'delta-foot', 'flood-boulder',
+];
 const PIPELINE_LISTS: readonly PipelineFeatureList[] = ['coldTraps', 'youngCraters', 'boulderTrackCandidates', 'lowLightPatches'];
 /** Site kinds whose boulders the X-ray spectrometer reads: each needs a rock suite. */
-const SUITE_KINDS: readonly SiteKind[] = ['young-crater', 'rocky-area', 'rolled-boulder'];
+const SUITE_KINDS: readonly SiteKind[] = ['young-crater', 'rocky-area', 'rolled-boulder', 'knob', 'seitah-edge', 'delta-foot', 'flood-boulder'];
+
+/** The zone ids a world's milestone triggers may name: Mars's own list (marsTypes.ts), else every zone buildZones makes. */
+function worldZoneIds(data: GameData): readonly string[] {
+  return data.world === 'mars' ? MARS_ZONE_IDS : ZONE_IDS;
+}
 
 /** Checks the data files for broken references and missing entries. Returns a list of problems. */
 export function validateGameData(data: GameData): string[] {
@@ -227,7 +236,7 @@ function instrumentTuningProblems(data: GameData): string[] {
     ['shadowSunlight', it.shadowSunlight],
     ['stationOffsetM', it.stationOffsetM],
     ['stationConfirmSeconds', it.stationConfirmSeconds],
-    ...Object.entries(it.neutron).map(([k, v]) => [`neutron.${k}`, v] as [string, number]),
+    ...Object.entries(it.neutron).filter(([k]) => k !== 'unitReadings').map(([k, v]) => [`neutron.${k}`, v as number] as [string, number]),
     ['xray.reachM', it.xray.reachM],
     ...Object.entries(it.seismometer).map(([k, v]) => [`seismometer.${k}`, v] as [string, number]),
   ];
@@ -257,10 +266,24 @@ function instrumentTuningProblems(data: GameData): string[] {
   if (!(n.anomalyRangeM > zoneM)) problems.push('tuning.instruments.neutron.anomalyRangeM must be beyond tuning.milestones.hydrogenZoneRadiusM');
   if (!(n.iceSignalShare > n.coldBackground && n.iceSignalShare <= 1)) problems.push('tuning.instruments.neutron.iceSignalShare must be above coldBackground and at most 1');
   if (!(n.coldBackground > n.noiseFloor)) problems.push('tuning.instruments.neutron.coldBackground must be above noiseFloor');
+  // Mars: unit readings by zone (above the floor, below the hidden ground's edge, so the hydrated ground still stands out).
+  for (const [zone, v] of Object.entries(n.unitReadings ?? {})) {
+    if (!worldZoneIds(data).includes(zone)) problems.push(`tuning.instruments.neutron.unitReadings names unknown zone ${zone}`);
+    if (!(v > n.noiseFloor && v < n.anomalyEdge)) problems.push(`tuning.instruments.neutron.unitReadings.${zone} must be above noiseFloor and below anomalyEdge`);
+  }
+  if (!(n.noiseFloor + (n.rtgFloorRise ?? 0) <= 1)) problems.push('tuning.instruments.neutron: noiseFloor + rtgFloorRise must be at most 1');
   const mt = data.tuning.milestones;
   for (const key of ['coldTrapEdgeM', 'youngCraterEjectaFactor', 'boulderTrackPhotoRangeM', 'documentedSampleRangeM', 'hydrogenZoneRadiusM'] as const) {
     if (!(Number.isFinite(mt[key]) && mt[key] > 0)) problems.push(`tuning.milestones.${key} must be a finite number above 0`);
   }
+  // Mars sites (Mars step 4b): the delta-foot zone and the Crater wall band.
+  if (mt.deltaFootRadiusM !== undefined && !(Number.isFinite(mt.deltaFootRadiusM) && mt.deltaFootRadiusM > 0)) problems.push('tuning.milestones.deltaFootRadiusM must be a finite number above 0');
+  if (mt.craterWallRimBand !== undefined) {
+    const [lo, hi] = mt.craterWallRimBand;
+    if (!(Number.isFinite(lo) && Number.isFinite(hi) && lo! > 0 && lo! < hi!)) problems.push('tuning.milestones.craterWallRimBand must be [low, high] with 0 < low < high');
+  }
+  problems.push(...rockIdProblems(data));
+  problems.push(...boulderTuningProblems(data));
   for (const part of data.parts.parts) {
     const inst = part.effects.instrument;
     if (inst && !data.text.instrumentText?.[inst]) problems.push(`instrument ${inst} has no text in text.json instrumentText`);
@@ -317,6 +340,32 @@ function marsInstrumentProblems(data: GameData): string[] {
   return problems;
 }
 
+/** On Mars every rock a suite or the fallback list names is a Mars rock type (no Moon rock reaches Mars). */
+function rockIdProblems(data: GameData): string[] {
+  if (data.world !== 'mars') return [];
+  const { rocks, suites } = data.tuning.instruments.xray;
+  const ids = [...rocks.map((r) => r.id), ...suites.flatMap((suite) => suite.rocks.map((r) => r.id))];
+  return [...new Set(ids)].filter((id) => !(MARS_ROCK_IDS as readonly string[]).includes(id)).map((id) => `rock ${id} is not a Mars rock type (marsTypes.ts MARS_ROCK_IDS)`);
+}
+
+/** Boulder counts by site kind and site (Mars sites): whole numbers on known kinds and sites; the slope-target share a share. */
+function boulderTuningProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const b = data.tuning.boulders;
+  const count = (v: number | undefined) => v !== undefined && Number.isInteger(v) && v >= 0;
+  for (const [kind, v] of Object.entries(b.perSiteKind ?? {})) {
+    if (!SITE_KINDS.includes(kind as SiteKind)) problems.push(`tuning.boulders.perSiteKind names unknown site kind ${kind}`);
+    if (!count(v)) problems.push(`tuning.boulders.perSiteKind.${kind} must be a whole number, not negative`);
+  }
+  for (const [id, v] of Object.entries(b.perSite ?? {})) {
+    if (!data.sites.sites.some((s) => s.id === id)) problems.push(`tuning.boulders.perSite names unknown site ${id}`);
+    if (!count(v)) problems.push(`tuning.boulders.perSite.${id} must be a whole number, not negative`);
+  }
+  if (b.floodBoulderDiameterM !== undefined && !(b.floodBoulderDiameterM > 0)) problems.push('tuning.boulders.floodBoulderDiameterM must be above 0');
+  if (b.slopeTargetShare !== undefined && !(b.slopeTargetShare >= 0 && b.slopeTargetShare <= 1)) problems.push('tuning.boulders.slopeTargetShare must be a share, 0 to 1');
+  return problems;
+}
+
 /** The rock types the suites can find (each boulder reads one rock of its site's suite). */
 function suiteRockIds(data: GameData): Set<string> {
   return new Set(data.tuning.instruments.xray.suites.flatMap((suite) => suite.rocks.map((r) => r.id)));
@@ -326,10 +375,18 @@ function suiteRockIds(data: GameData): Set<string> {
 function triggerProblems(m: Milestone, data: GameData): string[] {
   const problems: string[] = [];
   const tr = m.trigger;
-  // A trigger naming an unknown zone would silently never fire.
+  // A trigger naming an unknown zone would silently never fire. Zones are checked per world (Mars: marsTypes.ts MARS_ZONE_IDS).
   const zone = tr.type === 'zone' || tr.type === 'photo' || tr.type === 'drill' || tr.type === 'transect' || tr.type === 'reading' ? tr.zone : undefined;
-  if (zone !== undefined && !(ZONE_IDS as readonly string[]).includes(zone)) problems.push(`milestone ${m.id} names unknown zone ${zone}`);
+  const zones = [...(zone !== undefined ? [zone] : []), ...(tr.type === 'transect' ? tr.zones ?? [] : [])];
+  for (const z of zones) if (!worldZoneIds(data).includes(z)) problems.push(`milestone ${m.id} names unknown zone ${z}`);
+  if (tr.type === 'transect' && tr.zones !== undefined && (tr.zone !== undefined || tr.zones.length === 0)) {
+    problems.push(`milestone ${m.id} needs either one zone or a non-empty zones list, not both`);
+  }
   if (tr.type === 'photo' && tr.target !== undefined && !PHOTO_TARGETS.includes(tr.target)) problems.push(`milestone ${m.id} names unknown photo target ${tr.target}`);
+  if (tr.type === 'record') {
+    if (!RECORD_EVENTS.includes(tr.event)) problems.push(`milestone ${m.id} waits for unknown event ${String(tr.event)}`);
+    if (tr.seconds !== undefined && !(Number.isFinite(tr.seconds) && tr.seconds >= 0)) problems.push(`milestone ${m.id} needs record seconds as a finite number, not negative`);
+  }
   const stages = (sites: number | undefined) => sites === undefined || (Number.isInteger(sites) && sites >= 1);
   if ((tr.type === 'drill' || tr.type === 'transect' || tr.type === 'reading') && !stages(tr.sites)) problems.push(`milestone ${m.id} needs a whole number of sites, at least 1`);
   // The instrument triggers: the instrument whose use fires them must be one the milestone requires,
@@ -369,9 +426,10 @@ function siteProblems(data: GameData): string[] {
     ids.add(site.id);
     if (!SITE_KINDS.includes(site.kind)) problems.push(`${at} has unknown kind ${site.kind}`);
     if (site.pipeline && !PIPELINE_LISTS.includes(site.pipeline.list)) problems.push(`${at} names unknown pipeline list ${site.pipeline.list}`);
-    if (!site.feature && !site.pipeline && !(site.provisional && site.local)) {
+    if (!site.feature && !site.pipeline && !((site.provisional || site.terrain) && site.local)) {
       problems.push(`${at} needs a terrain.json feature, a pipeline feature, or a provisional local position`);
     }
+    if (site.terrain !== undefined && !site.local) problems.push(`${at} names terrain.json ${site.terrain} but has no local stand-in`);
     if (site.local && !(Number.isFinite(site.local.x) && Number.isFinite(site.local.z))) problems.push(`${at} has a non-finite local position`);
     if (site.radiusM !== undefined && !(Number.isFinite(site.radiusM) && site.radiusM > 0)) problems.push(`${at} needs a radiusM above 0`);
     // A provisional crater or cold trap is a circle until the pipeline gives its outline or radius.
@@ -387,6 +445,21 @@ function siteProblems(data: GameData): string[] {
     if (!crater || crater.kind !== 'young-crater') problems.push(`site ${site.id} lies within ${site.within}, which is not a young crater in sites.json`);
   }
   return problems;
+}
+
+/** How far a site's local stand-in may lie from the terrain.json feature it copies (`terrain`). */
+const TERRAIN_MATCH_M = 1;
+
+/** A terrain.json feature by dotted path from `features`; in a list, the next segment is an item's id. */
+export function terrainPath(features: Record<string, unknown>, path: string): unknown {
+  let at: unknown = features;
+  for (const key of path.split('.')) {
+    if (Array.isArray(at)) at = at.find((item) => item && typeof item === 'object' && (item as { id?: unknown }).id === key);
+    else if (at && typeof at === 'object') at = (at as Record<string, unknown>)[key];
+    else return undefined;
+    if (at === undefined || at === null) return undefined;
+  }
+  return at;
 }
 
 /**
@@ -409,6 +482,15 @@ export function siteTerrainProblems(data: GameData, features: Record<string, unk
   }
   for (const site of data.sites.sites) {
     if (site.feature !== undefined && !names.has(site.feature)) problems.push(`site ${site.id} names terrain.json feature ${site.feature}, which does not exist`);
+    if (site.terrain !== undefined) {
+      // A local stand-in copied from a terrain.json feature: the feature exists and, where it has a position, still matches.
+      const f = terrainPath(features, site.terrain);
+      if (f === undefined) problems.push(`site ${site.id} names terrain.json ${site.terrain}, which does not exist`);
+      const at = f && typeof f === 'object' ? (f as { local?: { x?: unknown; z?: unknown } }).local : undefined;
+      if (at && typeof at.x === 'number' && typeof at.z === 'number' && site.local && Math.hypot(at.x - site.local.x, at.z - site.local.z) > TERRAIN_MATCH_M) {
+        problems.push(`site ${site.id}'s local (${site.local.x}, ${site.local.z}) no longer matches terrain.json ${site.terrain} (${at.x}, ${at.z})`);
+      }
+    }
     if (!site.pipeline) continue;
     const list = features[site.pipeline.list];
     if (!list) {
