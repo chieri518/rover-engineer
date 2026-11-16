@@ -242,7 +242,32 @@ export interface TitanLookTuning {
   /** Rover shadow blur (shadow map radius) and Sun-mask refresh bands; masks pause below minElevationDeg. */
   shadowRadius: number;
   sunMask: { bands: [number, number, number]; minElevationDeg: number };
+  /** titan-fx: clouds. Methane cloud layer and its ground shadows (world/titanClouds.ts); absent = no clouds. */
+  clouds?: TitanCloudTuning;
 }
+
+// titan-fx: clouds ------------------------------------------------------------------------------------
+/** Demo visuals: a faint streaky methane cloud layer in the sky and its soft shadows on the dunes (presentation only). */
+export interface TitanCloudTuning {
+  /** Height of the cloud plane above the camera (m), feature size (m), stretch along the wind (×). */
+  heightM: number; scaleM: number; stretch: number;
+  /** Streak direction (deg, from world +x toward +z); drift direction and speed on the plane (m/s, exaggerated
+   *  for motion). The drift crosses the streaks at an angle, or the motion would hide along their length. */
+  windDeg: number; driftDeg: number; driftMps: number;
+  /** Coverage threshold on the 0..1 noise (higher = fewer clouds) and edge softness. */
+  coverage: number; softness: number;
+  /** Peak opacity by day, and the share left at night (faded in from nightDeg below the horizon up to 0°). */
+  opacity: number; nightOpacity: number; nightDeg: number;
+  /** Lit color = horizon × tint × litGain (Sun side); shaded = zenith × tint × shadeGain; tints by day and dusk (sRGB hex). */
+  litGain: number; shadeGain: number; dayTint: string; duskTint: string;
+  /** Extra brightening toward the Sun (forward scattering), times the lit color. */
+  forwardGlow: number;
+  /** Rain: coverage threshold drop (thicker), opacity gain (×(1+gain)), darkening of the cloud color. */
+  rain: { coverageDrop: number; opacityGain: number; darken: number };
+  /** Ground shadows: peak darkening (0..1), extra edge softness, Sun elevations over which they fade in (deg). */
+  shadow: { strength: number; softness: number; lowDeg: number; highDeg: number };
+}
+// end titan-fx: clouds --------------------------------------------------------------------------------
 
 // ---------------------------------------------------------------------------------------------------
 // Text sections (data/titan/text.json). Owners: integration (T6) for day, night, cold and rain notices,
