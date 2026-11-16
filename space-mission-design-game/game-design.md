@@ -1561,7 +1561,8 @@ Unchanged: the far single rewards (Delta layers, Signs of an ancient lake, Rare 
 
 - **Several builds win** from a scraping Moon result (B = 800) on the near route alone: the camera, the drill, the camera and drill, the X-ray with the camera, the organics, the laser with the camera, the weather mast, the radar and the RTG geologist. The single X-ray, the single laser and the neutron spectrometer need a farther site (Séítah, or the hidden ground) or a better Moon result.
 - **Idle and empty bay lose** at B = 800 and 900. *Known risk (M13, MS1, deferred by the user):* under the fixed mark an idle rover passes from B ≈ 1,050 and an empty bay with lights that drives both nights from B ≈ 855; only a capability cut or a relative pass test fixes this, and both wait for the balance patch.
-- **Not modelled:** dust devils (bonus), the delta foot's big rewards, damage. One short browser run checks the arithmetic (below).
+- **Not modelled:** dust devils (bonus), the delta foot's big rewards, damage.
+- **Browser check** (one run, B = 800, the camera and drill build, 640): teleports between Rocky area 2, WSW crater and S crater with the clock advanced as a first-timer would drive (1.5 times the straight line at 6 m/s). Earned Touchdown, Storm survivor, Clean run, Crater wall (from WSW crater's rim) and Core sample ×3: final **790**, exactly the estimate's 1,010 less the three rewards teleporting cannot earn (Odometer ×2 and Mapper, 120) and the sunset it skipped (100). A player who drives the route earns those, so the row stands; a first-timer who misses both the sunset and the driving rewards scrapes just under the mark.
 
 #### Communications
 
