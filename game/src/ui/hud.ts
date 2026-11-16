@@ -19,6 +19,7 @@ export interface HudMeters {
 }
 
 const NOTICE_SECONDS = 4;
+const SITE_NOTICE_SECONDS = 8; // a located site with its instrument lines: up to four sentences
 const LONG_NOTICE_SECONDS = 9; // a relationship's notice: longer text, read once per mission
 const MILESTONE_SECONDS = 6;
 const MILESTONE_FACT_SECONDS = 10; // longer when the history fact is shown, so it can be read
@@ -141,13 +142,17 @@ export class Hud {
     if (reading !== null) this.hydrogen.set(reading, `${Math.round(reading * 100)}%`, false);
   }
 
-  /** The Earth-in-view light (laser retroreflector aboard), or null to hide it. */
-  setEarthLight(inView: boolean | null): void {
-    this.earthLight.hidden = inView === null;
-    if (inView === null) return;
+  /**
+   * The Earth-in-view light (laser retroreflector aboard; rules/instruments.ts reflectorEarthLight), or
+   * null to hide it. In view but inside the near-lander zone, it says the station would not count there.
+   */
+  setEarthLight(light: 'hidden' | 'in-view' | 'in-view-too-close' | null): void {
+    this.earthLight.hidden = light === null;
+    if (light === null) return;
     const t = this.text.instruments;
-    this.earthLight.classList.toggle('on', inView);
-    const label = inView ? t.earthInView : t.earthHidden;
+    this.earthLight.classList.toggle('on', light === 'in-view');
+    this.earthLight.classList.toggle('too-close', light === 'in-view-too-close');
+    const label = light === 'in-view' ? t.earthInView : light === 'in-view-too-close' ? t.earthInViewTooClose : t.earthHidden;
     if (this.earthLight.textContent !== label) this.earthLight.textContent = label;
   }
 
@@ -190,12 +195,17 @@ export class Hud {
     this.warnings.replaceChildren(...lines.map((l) => el('li', {}, l)));
   }
 
-  /** A short notice that fades after a few seconds. At most three show; a fourth pushes out the oldest. */
-  notify(message: string, tone: 'warn' | 'good' = 'warn'): void {
-    const n = el('div', { class: `hud-notice ${tone}` }, message);
+  /**
+   * A short notice that fades after a few seconds. At most three show; a fourth pushes out the oldest.
+   * An array is a notice of several lines (a located site with its instrument lines), shown longer.
+   */
+  notify(message: string | string[], tone: 'warn' | 'good' = 'warn'): void {
+    const long = Array.isArray(message) && message.length > 1;
+    const text = Array.isArray(message) ? message.join('\n') : message;
+    const n = el('div', { class: `hud-notice ${tone}${long ? ' site' : ''}` }, text);
     this.notices.append(n);
     while (this.notices.childElementCount > 3) this.notices.firstElementChild?.remove();
-    window.setTimeout(() => n.remove(), NOTICE_SECONDS * 1000);
+    window.setTimeout(() => n.remove(), (long ? SITE_NOTICE_SECONDS : NOTICE_SECONDS) * 1000);
   }
 
   /**

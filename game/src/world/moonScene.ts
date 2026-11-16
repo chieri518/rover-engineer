@@ -8,9 +8,9 @@ import type { GameData, Part } from '../rules/types';
 import type { RoverParams } from '../rules/drive';
 import { skyDirection, sunAt, type SkyDirection } from '../rules/sun';
 import { horizonMarginTan, loadTerrain, type Terrain } from './terrainData';
-import { Boulders } from './boulders';
+import { Boulders, type Boulder } from './boulders';
+import { createBoulderTrack, disposeBoulderTrack } from './boulderTrack';
 import { Lander } from './lander';
-import type { SoftArea } from '../rules/ground';
 import { ChunkLayer } from './terrainChunks';
 import { SunMasks } from './sunMask';
 import { ALBEDO_MEAN, createMoonLightUniforms, patchMoonLighting, type Photometry } from './lunarLighting';
@@ -106,7 +106,10 @@ export interface MoonSceneOptions {
   data: GameData;
   rover: RoverParams;
   parts?: Part[]; // the selected parts, for the rover model
-  boulderAreas?: SoftArea[];
+  /** The boulders to draw (rocky-area scatter plus the site boulders); colliders are made for each. */
+  boulders?: readonly Boulder[];
+  /** The rolled boulder's track: `from` the top of the wall, `to` the foot where the boulder rests. Mars: none. */
+  boulderTrack?: { from: { x: number; z: number }; to: { x: number; z: number } } | null;
   lightRangeM?: number; // floodlights on the rover (0 or undefined: none)
   onFrame?: (state: MoonFrameState) => void;
   onStep?: (sample: MoonStepSample) => MoonDriveLimits | void;
@@ -134,6 +137,12 @@ export interface MoonScene {
   capture(maxWidth: number): string;
   /** Is a body in this sky direction above the terrain horizon seen from the camera, and inside the frame? */
   inView(dir: SkyDirection, frameMargin: number): boolean;
+  /**
+   * Is this world point in front of the camera, inside the frame (|ndc| <= frameMargin) and not hidden by
+   * terrain? The line of sight is marched every 2 m; terrain more than 0.3 m above it hides the point,
+   * except in the last 3 m before the point (a boulder's own hollow).
+   */
+  inFrame(p: { x: number; y: number; z: number }, frameMargin: number): boolean;
   dispose(): void;
 }
 
@@ -326,9 +335,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       }
     });
   };
-  const boulders = new Boulders(rapier, world, opts.boulderAreas ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
+  const boulders = new Boulders(rapier, world, opts.boulders ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
   patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, photometry);
   scene.add(boulders.mesh);
+  const trackMesh = opts.boulderTrack ? createBoulderTrack(opts.boulderTrack, fine, tuning.boulderTrack) : null;
+  if (trackMesh) scene.add(trackMesh);
   const titanGround = titan ? await startTitanGround({ scene, uniforms: lightUniforms, tuning, world: opts.world, landing, groundAt: (x, z) => fine.sample(x, z) }) : null; // titan-fx: ground
   const earthAzimuthRad = (tuning.earth.azimuthDeg * Math.PI) / 180;
   const input = new KeyboardInput();
@@ -347,6 +358,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   // Mission time drives the Sun.
   let seconds = 0;
   let timeScale = 1;
+  // Dev-only fast-forward for testing: runs k physics steps per real step, so driving, energy and the clock all
+  // move k times faster in real time. Set with ?sim=4 in the URL or __moon.setSimSpeed(4). Always 1 in builds.
+  let simSpeed = import.meta.env.DEV ? Math.min(16, Math.max(1, Number(new URLSearchParams(location.search).get('sim')) || 1)) : 1;
   let clockRunning = true;
   let paused = false;
   let orbit: { azimuthDeg: number; distance: number; height: number } | null = null; // development close-up camera
@@ -425,9 +439,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     last = now;
 
     const raw = input.read();
-    acc = paused ? 0 : acc + dt;
+    acc = paused ? 0 : acc + dt * simSpeed;
     let steps = 0;
-    while (acc >= PHYSICS_STEP && steps < 5) {
+    while (acc >= PHYSICS_STEP && steps < 5 * simSpeed) {
       rover.setInput(limitInput(raw));
       rover.speedFactor = limits.speedFactor;
       rover.update(PHYSICS_STEP);
@@ -543,6 +557,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       setTimeScale(k: number) {
         timeScale = k;
       },
+      /** Fast-forward the whole simulation k times (1 to 16) for testing; see simSpeed. */
+      setSimSpeed(k: number) {
+        simSpeed = Math.min(16, Math.max(1, Math.round(k)));
+        return simSpeed;
+      },
       teleport(x: number, z: number, headingDeg: number) {
         colliders.update(x, z);
         rover.teleport(x, fine.sample(x, z), z, headingDeg);
@@ -647,6 +666,21 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       const inFrame = ndc.z < 1 && Math.abs(ndc.x) <= frameMargin && Math.abs(ndc.y) <= frameMargin;
       return inFrame && horizonMarginTan(terrain, c.x, c.z, c.y, dir) > 0;
     },
+    inFrame(p, frameMargin) {
+      ndc.set(p.x, p.y, p.z).project(camera);
+      if (ndc.z >= 1 || Math.abs(ndc.x) > frameMargin || Math.abs(ndc.y) > frameMargin) return false;
+      const c = camera.position;
+      const dx = p.x - c.x;
+      const dy = p.y - c.y;
+      const dz = p.z - c.z;
+      const dist = Math.hypot(dx, dy, dz);
+      const { photoLosStepM, photoLosClearanceM, photoLosTailM } = tuning.milestones;
+      for (let d = photoLosStepM; d < dist - photoLosTailM; d += photoLosStepM) {
+        const k = d / dist;
+        if (terrain.heightAt(c.x + dx * k, c.z + dz * k) > c.y + dy * k + photoLosClearanceM) return false;
+      }
+      return true;
+    },
     deploy(instrument, params, parts) {
       // To the rover's left (-z in the chassis frame), where the chase camera sees it.
       const left = new THREE.Vector3(0, 0, -1).applyQuaternion(rover.object.quaternion);
@@ -678,6 +712,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       observer.disconnect();
       input.dispose();
       boulders.dispose();
+      if (trackMesh) disposeBoulderTrack(trackMesh);
       titanGround?.dispose(); // titan-fx: ground
       rain?.dispose();
       wet?.dispose(); // titan-fx: rain

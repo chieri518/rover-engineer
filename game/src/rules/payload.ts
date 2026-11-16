@@ -1,6 +1,7 @@
 // The payload bay: the chassis sets its mounting points (one per instrument), and the bay holds any
 // mix of instruments, one of each, or none. Pure.
 import type { DraftBuild, Instrument, MilestonesFile, Part, PartsFile } from './types';
+import { requiredInstruments } from './rover';
 
 export type PayloadProblem =
   | { kind: 'unknown'; id: string } // no part with this id
@@ -159,5 +160,5 @@ export function upgradeSavedBuild(saved: unknown, catalog: PartsFile): DraftBuil
 
 /** Does any milestone require this instrument? Derived, so a card's "earns nothing yet" line goes away once one does. */
 export function earnsMilestones(instrument: Instrument, file: MilestonesFile): boolean {
-  return file.milestones.some((m) => m.requires.instrument === instrument);
+  return file.milestones.some((m) => requiredInstruments(m).includes(instrument));
 }

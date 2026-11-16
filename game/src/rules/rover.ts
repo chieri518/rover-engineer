@@ -1,4 +1,4 @@
-import type { BusSlot, Build, DraftBuild, Milestone, Part, PartsFile, Slot } from './types';
+import type { BusSlot, Build, DraftBuild, Instrument, Milestone, Part, PartsFile, Slot } from './types';
 
 export interface RoverTotals {
   cost: number;
@@ -68,15 +68,20 @@ function slotProvidesCapability(part: Part, slot: BusSlot): boolean {
   }
 }
 
-/** Whether a rover with these parts is equipped to earn the milestone. */
+/** Every instrument a milestone needs: `requires.instrument` and, for combos, all of `requires.instruments`. */
+export function requiredInstruments(milestone: Milestone): Instrument[] {
+  const { instrument, instruments = [] } = milestone.requires;
+  return [...new Set([...(instrument ? [instrument] : []), ...instruments])];
+}
+
+/** Whether a rover with these parts is equipped to earn the milestone (combos: every listed instrument). */
 export function meetsRequirements(parts: Part[], milestone: Milestone): boolean {
-  const { slots = [], instrument } = milestone.requires;
+  const { slots = [] } = milestone.requires;
   for (const slot of slots) {
     const part = parts.find((p) => p.slot === slot);
     if (!part || !slotProvidesCapability(part, slot)) return false;
   }
-  if (instrument && !parts.some((p) => p.effects.instrument === instrument)) return false;
-  return true;
+  return requiredInstruments(milestone).every((inst) => parts.some((p) => p.effects.instrument === inst));
 }
 
 /** The cheapest option in each bus slot, with an empty payload bay. */

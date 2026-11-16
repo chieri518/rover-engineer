@@ -9,7 +9,11 @@ import terrain from '../../public/terrain/terrain.json';
 import { missionSetup, startMission, stepMission, type MissionState } from './mission';
 import { allBuilds as everyBuild, dominatedPairs, evaluateBuild, simulate } from './balance';
 import { flareDamage } from './events';
-import { validateGameData } from './validate';
+import { siteTerrainProblems, validateGameData } from './validate';
+import { earnsMilestones } from './payload';
+import { milestoneStages } from './payout';
+import { worldGameData } from '../gameData';
+import type { Milestone, SiteSpec } from './types';
 
 const data: GameData = loadGameData();
 const allBuilds = () => everyBuild(data);
@@ -36,6 +40,7 @@ describe('game data', () => {
       'milestone crater-layers names unknown zone crater-wal',
       'milestone regolith-sample requires instrument drill, which no part provides',
       'milestone water-ice requires instrument drill, which no part provides',
+      'milestone fresh-ejecta-sample requires instrument drill, which no part provides',
     ]);
   });
 
@@ -96,11 +101,11 @@ describe('game data', () => {
     expect(part('instrument-reflector')).toMatchObject({ cost: 30, mass: 3, size: 1, effects: { useSeconds: 3, deploy: true, needsEarth: true } });
   });
 
-  it('has 6 bus slots with 2 options each, 3 tiers and 13 milestones', () => {
+  it('has 6 bus slots with 2 options each, 3 tiers and 25 milestones', () => {
     expect(data.parts.slots).toEqual(['chassis', 'wheels', 'power', 'battery', 'lights', 'heater']);
     for (const slot of data.parts.slots) expect(data.parts.parts.filter((p) => p.slot === slot)).toHaveLength(2);
     expect(data.tiers.tiers.map((t) => t.name)).toEqual(['Small', 'Medium', 'Large']);
-    expect(data.milestones.milestones).toHaveLength(13);
+    expect(data.milestones.milestones).toHaveLength(25);
   });
 
   it('in the air the rover falls at the time-lapse gravity (speed compression squared), on the ground at less', () => {
@@ -227,7 +232,7 @@ describe('game data', () => {
     expect(p.froze).toBeLessThan(p.destroyed);
   });
 
-  it('speed: a light build can just reach the dark crater in one mission, a heavy build cannot', () => {
+  it('speed: a light build reaches the dark crater with time to spare (generous pass)', () => {
     const seconds = data.tuning.mission.lengthSeconds;
     const dark = data.milestones.milestones.find((m) => m.id === 'into-the-dark')!;
     const quotes = allBuilds().map((b) => ({ b, q: quoteBuild(b, data, data.tuning.budget.startingBudget) }));
@@ -236,13 +241,12 @@ describe('game data', () => {
     const crater = launchable.filter(({ b }) => meetsRequirements(selectedParts(b, data.parts), dark));
     const fastest = Math.max(...crater.map(({ q }) => q.drive.topSpeed));
     const slowest = Math.min(...launchable.map(({ q }) => q.drive.topSpeed));
-    expect(fastest).toBeGreaterThanOrEqual(10);
-    expect(fastest).toBeLessThanOrEqual(14);
-    expect(slowest).toBeGreaterThanOrEqual(5);
-    expect(slowest).toBeLessThanOrEqual(7.5);
+    expect(fastest).toBeGreaterThanOrEqual(15);
+    expect(fastest).toBeLessThanOrEqual(21);
+    expect(slowest).toBeGreaterThanOrEqual(9);
+    expect(slowest).toBeLessThan(fastest * 0.7);
     // Top speed for the whole mission, with room for slopes, turns and stops.
     expect(fastest * seconds).toBeGreaterThan(craterM * 1.1);
-    expect(slowest * seconds).toBeLessThan(craterM * 0.75);
   });
 
   // Drive flat out at top speed for the whole mission with a given share of sunlight.
@@ -284,24 +288,178 @@ describe('game data', () => {
     expect(dark.end!.seconds).toBeLessThan(200);
   });
 
-  it('energy: the dark crater dash needs a big battery or a solar mast', () => {
-    // Fast crater-equipped builds (entry before ~265 s): drive there in mostly sun, then into the shadow.
-    const dark = data.milestones.milestones.find((m) => m.id === 'into-the-dark')!;
-    const fast = allBuilds()
-      .filter((b) => meetsRequirements(selectedParts(b, data.parts), dark))
-      .map((b) => evaluateBuild(b, data))
-      .filter((e) => e.tier !== null && craterM / e.topSpeed < 265);
-    const dash = (b: Build) => simulate(b, data, { sunlight: (m) => (m < craterM ? 0.8 : 0), driveShare: 1 });
-    const plain = fast.filter((e) => e.build.battery === 'battery-li-ion' && e.build.power === 'power-fixed-panel');
-    const invested = fast.filter((e) => e.build.battery === 'battery-nih2' || e.build.power === 'power-solar-mast');
-    expect(plain.length).toBeGreaterThan(0);
-    expect(invested.length).toBeGreaterThan(0);
-    for (const e of plain) expect(dash(e.build).end.cause).toBe('energy');
-    for (const e of invested) expect(dash(e.build).end.survived).toBe(true);
-  });
-
   it('energy: climbing all mission long in little sunlight drains the cheapest build', () => {
     const s = nonstop(cheapestBuild(data.parts), 0.25, 5);
     expect(s.end?.cause).toBe('energy');
+  });
+});
+
+describe('Moon sites and milestones data (Phase 2)', () => {
+  const byId = (id: string) => data.milestones.milestones.find((m) => m.id === id)!;
+  const NEW = [
+    'cold-trap-survey', 'hidden-hydrogen', 'ice-deposit-located', 'rock-collection', 'rare-rock', 'boulder-track',
+    'documented-sample', 'fresh-ejecta-sample', 'moonquake-record', 'clean-seismogram', 'laser-ranging-site', 'science-station',
+  ];
+  const withMilestone = (id: string, change: Partial<Milestone>): GameData => ({
+    ...data,
+    milestones: { milestones: data.milestones.milestones.map((m) => (m.id === id ? { ...m, ...change } : m)) },
+  });
+  const withSites = (sites: SiteSpec[]): GameData => ({ ...data, sites: { sites } });
+
+  // Phase 6, tuned by hand: Rock collection 40 → 60 per stage. Generous pass (November 15): single rewards doubled, staged ones 1.5×.
+  it('has the twelve new milestones with their rewards, each with a how-to line, fact and source', () => {
+    const rewards = NEW.map((id) => [id, byId(id).money, byId(id).rp]);
+    expect(rewards).toEqual([
+      ['cold-trap-survey', 75, 8], ['hidden-hydrogen', 200, 20], ['ice-deposit-located', 400, 30], ['rock-collection', 90, 8],
+      ['rare-rock', 200, 30], ['boulder-track', 80, 10], ['documented-sample', 80, 10], ['fresh-ejecta-sample', 100, 15],
+      ['moonquake-record', 160, 20], ['clean-seismogram', 80, 10], ['laser-ranging-site', 100, 15], ['science-station', 100, 10],
+    ]);
+    expect(data.milestones.milestones.filter((m) => m.record).map((m) => m.id)).toEqual(['touchdown', 'water-ice', 'rare-rock', 'science-station']);
+    for (const m of data.milestones.milestones) expect(m.howTo?.length, m.id).toBeGreaterThan(0);
+  });
+
+  it('every Moon instrument now earns a milestone, so the desk card line "earns no milestones yet" goes away', () => {
+    for (const inst of ['camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector'] as const) {
+      expect(earnsMilestones(inst, data.milestones), inst).toBe(true);
+    }
+  });
+
+  it('combos need every listed instrument: Documented sample needs the camera and the X-ray spectrometer', () => {
+    const doc = byId('documented-sample');
+    const parts = (payload: string[]) => selectedParts({ ...reference, payload }, data.parts);
+    expect(meetsRequirements(parts(['instrument-camera', 'instrument-xray']), doc)).toBe(true);
+    expect(meetsRequirements(parts(['instrument-camera']), doc)).toBe(false);
+    expect(meetsRequirements(parts(['instrument-xray']), doc)).toBe(false);
+    expect(meetsRequirements(parts(['instrument-seismometer', 'instrument-reflector']), byId('science-station'))).toBe(true);
+    expect(meetsRequirements(parts(['instrument-reflector']), byId('science-station'))).toBe(false);
+  });
+
+  it('staged counts: Cold trap survey has 3 stages (one per cold trap), Rock collection 3 (2, 3 and 4 types)', () => {
+    expect(milestoneStages(byId('cold-trap-survey'))).toBe(3);
+    expect(milestoneStages(byId('rock-collection'))).toBe(3);
+    expect(milestoneStages(byId('hidden-hydrogen'))).toBe(1);
+  });
+
+  it('rock suites: five rock types in all, two per site, and magnesian norite only at the rolled boulder', () => {
+    const suites = data.tuning.instruments.xray.suites;
+    expect(new Set(suites.flatMap((s) => s.rocks.map((r) => r.id))).size).toBe(5);
+    for (const s of suites) expect(s.rocks.length, s.id).toBe(s.id === 'rolled-boulder' ? 1 : 2);
+    expect(suites.filter((s) => s.rocks.some((r) => r.id === 'magnesian-norite')).map((s) => s.id)).toEqual(['rolled-boulder']);
+    const rare = data.sites.sites.filter((s) => s.rockSuite === 'rolled-boulder');
+    expect(rare.map((s) => s.kind)).toEqual(['rolled-boulder']);
+  });
+
+  it('the hidden hydrogen zone reads 40 to 50%, above the cold traps; the ice signal zone is about 90 m around the spot', () => {
+    const n = data.tuning.instruments.neutron;
+    expect(n.anomalyEdge).toBeGreaterThanOrEqual(0.4);
+    expect(n.anomalyPeak).toBeLessThanOrEqual(0.5);
+    expect(n.anomalyEdge).toBeGreaterThan(n.coldBackground);
+    expect((1 - n.iceSignalShare) * n.iceRangeM).toBeCloseTo(90, 0);
+    // The Phase 0 values (45% falling to the noise floor at 80 m) read about 15% at the 60 m edge: validation says so.
+    const phase0 = { ...data.tuning, instruments: { ...data.tuning.instruments, neutron: { ...n, anomalyPeak: 0.45, anomalyEdge: 0.15, anomalyRangeM: 80 } } };
+    expect(validateGameData({ ...data, tuning: phase0 })).toEqual([
+      'tuning.instruments.neutron.anomalyEdge must be above coldBackground (the hidden spot reads higher than the cold traps)',
+    ]);
+  });
+
+  it('no new milestone text names a lesson cause or fix (the spoiler guard)', () => {
+    // The crater's own map name says "shadowed"; that names the place, not a lesson.
+    const crater = data.text.survey.shadowedCraterName.toLowerCase();
+    for (const id of NEW) {
+      const m = byId(id);
+      const text = [m.name, m.summary, m.howTo ?? ''].join(' ').toLowerCase().replaceAll(crater, '');
+      for (const word of ['quiet', 'drive away', 'heater', 'shadow', 'light', 'temperature', 'far from']) expect(text, `${id}: ${word}`).not.toContain(word);
+    }
+  });
+
+  it('validation catches broken instrument triggers: zones, instruments, photo targets, rock types and counts', () => {
+    const broken = [
+      withMilestone('cold-trap-survey', { trigger: { type: 'transect', instrument: 'neutron', zone: 'cold-trp', meters: 50, sites: 3 } }),
+      withMilestone('hidden-hydrogen', { trigger: { type: 'transect', instrument: 'drill', zone: 'hydrogen-anomaly', meters: 0 } }),
+      withMilestone('rare-rock', { trigger: { type: 'reading', instrument: 'xray', rock: 'mare-basalt' } }),
+      withMilestone('rock-collection', { trigger: { type: 'reading', instrument: 'xray', rocks: [2, 4, 6] } }),
+      withMilestone('rare-rock', { trigger: { type: 'reading', instrument: 'xray', rock: 'magnesian-norite', target: 'pebble' as never } }),
+      withMilestone('boulder-track', { trigger: { type: 'photo', target: 'boulder' as never } }),
+      withMilestone('science-station', { requires: { instrument: 'reflector' } }),
+      withMilestone('documented-sample', { requires: { instruments: ['camera', 'laser' as never] } }),
+    ];
+    expect(broken.map((d) => validateGameData(d))).toEqual([
+      ['milestone cold-trap-survey names unknown zone cold-trp'],
+      ['milestone hidden-hydrogen triggers on instrument drill but does not require it', 'milestone hidden-hydrogen needs a transect of more than 0 meters'],
+      ['milestone rare-rock needs rock mare-basalt, which no rock suite holds'],
+      ['milestone rock-collection asks for 6 rock types; the suites hold 5'],
+      ['milestone rare-rock names unknown reading target pebble'],
+      ['milestone boulder-track names unknown photo target boulder'],
+      ['milestone science-station triggers on instrument seismometer but does not require it'],
+      ['milestone documented-sample requires instrument laser, which no part provides'],
+    ]);
+  });
+
+  it('validation catches broken sites: ids, kinds, positions, rock suites and the rolled boulder\'s crater', () => {
+    const sites = data.sites.sites;
+    const site = (id: string) => sites.find((s) => s.id === id)!;
+    const broken = withSites([
+      ...sites.filter((s) => !['east-crater', 'rolled-boulder', 'east-cold-trap'].includes(s.id)),
+      // A provisional crater without a radius (as before the pipeline confirmed it), and a site with no position at all.
+      { ...site('east-crater'), pipeline: undefined, provisional: true, local: { x: -240, z: -130 }, radiusM: undefined, rockSuite: 'granite' },
+      { ...site('rolled-boulder'), within: 'east-cold-trap' },
+      { ...site('east-cold-trap'), pipeline: undefined },
+      { ...site('east-cold-trap'), id: 'nw-crater' },
+    ]);
+    expect(validateGameData(broken)).toEqual([
+      'site east-crater is provisional and needs a radiusM',
+      'site east-crater names unknown rock suite granite',
+      'site east-cold-trap needs a terrain.json feature, a pipeline feature, or a provisional local position',
+      'duplicate site id nw-crater',
+      'site rolled-boulder lies within east-cold-trap, which is not a young crater in sites.json',
+    ]);
+  });
+
+  it('sites match the real terrain.json: features exist, cold zones resolve, every new place is a pipeline feature', () => {
+    expect(siteTerrainProblems(data, terrain.features)).toEqual([]);
+    // Phase 4: the pipeline produced every new place, so none is provisional any more.
+    expect(data.sites.sites.filter((s) => s.provisional).map((s) => s.id)).toEqual([]);
+    expect(data.sites.sites.filter((s) => s.pipeline).map((s) => `${s.id}=${s.pipeline!.id}`)).toEqual([
+      'nw-crater=young-crater-nw', 'east-crater=young-crater-east', 'se-crater=young-crater-se', 'rolled-boulder=boulder-track-1',
+      'hidden-hydrogen=low-light-nw', 'rocky-area-1-cold-patch=cold-trap-rocky-area-1', 'east-cold-trap=cold-trap-east', 'south-cold-trap=cold-trap-south',
+    ]);
+  });
+
+  it('site references against the pipeline lists: ids must exist once a list exists; provisional sites always pass', () => {
+    // The pipeline lists as the checks see them: a cold trap list with one id, and no young crater list yet.
+    const features = { ...terrain.features, coldTraps: [{ id: 'ct-east', name: 'East cold trap', centroidLocal: { x: -132, z: 122 } }], youngCraters: undefined };
+    const sites = data.sites.sites;
+    // Provisional stand-ins for the two cold traps (as they were before the pipeline produced them).
+    const east: SiteSpec = { id: 'east-cold-trap', kind: 'cold-trap', name: 'East cold trap', provisional: true, local: { x: -132, z: 122 }, radiusM: 26 };
+    const south: SiteSpec = { id: 'south-cold-trap', kind: 'cold-trap', name: 'South cold trap', provisional: true, local: { x: -972, z: 902 }, radiusM: 26 };
+    const ra1 = sites.find((s) => s.id === 'rocky-area-1')!;
+    const check = (changed: SiteSpec[], zones = data.tuning.cold.zones) =>
+      siteTerrainProblems({ ...withSites(changed), tuning: { ...data.tuning, cold: { ...data.tuning.cold, zones } } }, features as never);
+    // Confirmed by the pipeline: no longer provisional.
+    expect(check([{ ...east, provisional: false, local: undefined, pipeline: { list: 'coldTraps', id: 'ct-east' } }, south])).toEqual([]);
+    expect(check([{ ...east, provisional: false, pipeline: { list: 'coldTraps', id: 'ct-gone' } }, south])).toEqual([
+      'site east-cold-trap names coldTraps id ct-gone, which terrain.json does not have',
+    ]);
+    expect(check([east, { ...south, provisional: false, pipeline: { list: 'youngCraters', id: 'yc-1' } }])).toEqual([
+      'site south-cold-trap names terrain.json youngCraters, which the pipeline has not produced; mark it provisional',
+    ]);
+    expect(check([east, south, { ...ra1, feature: 'Rocky area 9' }])).toEqual(['site rocky-area-1 names terrain.json feature Rocky area 9, which does not exist']);
+    expect(check([east, south], [...data.tuning.cold.zones, 'North cold trap'])).toEqual([
+      'cold zone North cold trap resolves to no terrain.json feature and no cold trap in sites.json',
+    ]);
+    // A cold trap that is in sites.json but resolves to nothing (no position, no pipeline feature) is reported too.
+    const lost: SiteSpec = { ...east, provisional: false, local: undefined, pipeline: { list: 'coldTraps', id: 'ct-gone' } };
+    expect(check([lost, south])).toEqual([
+      'site east-cold-trap names coldTraps id ct-gone, which terrain.json does not have',
+      'cold zone East cold trap resolves to no terrain.json feature and no cold trap in sites.json',
+    ]);
+  });
+
+  it('Mars has none of the Moon sites and still validates', () => {
+    const mars = worldGameData('mars');
+    expect(mars.sites.sites).toEqual([]);
+    expect(validateGameData(mars)).toEqual([]);
+    // Mars replaces the whole milestone list: the four new Moon instruments earn nothing there.
+    for (const inst of ['neutron', 'xray', 'seismometer', 'reflector'] as const) expect(earnsMilestones(inst, mars.milestones), inst).toBe(false);
   });
 });

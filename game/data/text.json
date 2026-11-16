@@ -75,6 +75,8 @@
     "instrumentEnergyItem": "{name}: {costs}",
     "instrumentEnergyNone": "None",
     "instrumentNoMilestones": "Records to the instrument log. Earns no milestones yet.",
+    "instrumentMilestones": "Can earn: {names}.",
+    "instrumentMilestonesJoin": ", ",
     "energyPerUse": "{energy} energy per use",
     "energyStandby": "{energy} energy/s while switched on",
     "useHold": "holds the rover {seconds} s",
@@ -138,7 +140,7 @@
   },
   "survey": {
     "heading": "Orbital survey leads",
-    "intro": "Orbital data show three areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
+    "intro": "Orbital data show four areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
     "lead": "{name}: about {distance} km {direction}. {source}",
     "leads": {
       "layers": {
@@ -152,11 +154,46 @@
       "shadow": {
         "name": "Permanent shadow",
         "source": "LOLA illumination maps show a crater floor that never receives direct sunlight. Cold traps like this may hold water ice."
+      },
+      "youngCrater": {
+        "name": "Young crater",
+        "source": "LOLA topography shows a small, deep crater with a sharp rim and steep inner walls: a young crater, not yet worn down by later small impacts."
       }
     },
     "hudHeading": "Survey leads",
     "hudLead": "{name}: {distance} km {direction}",
     "found": "Located: {name}. It is now on the map.",
+    "foundNote": "Located: {name}, {note}",
+    "siteNotes": {
+      "nw-crater": "an old, worn crater with boulders scattered around it.",
+      "east-crater": "a young crater with steep walls and fresh boulders.",
+      "se-crater": "a young crater with a sharp rim and fresh boulders."
+    },
+    "siteKindNotes": {
+      "rocky-area": "a fresh crater ringed by boulders.",
+      "young-crater": "a small crater with boulders around it.",
+      "cold-trap": "a small patch of ground where hydrogen may collect.",
+      "rolled-boulder": "a large boulder at the foot of the crater wall, with a track up the slope behind it.",
+      "hidden-hydrogen": "where the neutron spectrometer reads more hydrogen than in the cold traps."
+    },
+    "siteLines": {
+      "rocky-area": {
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "drill": "Drill: sample the rock thrown out around it."
+      },
+      "young-crater": {
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "drill": "Drill: sample the rock thrown out around it."
+      },
+      "rolled-boulder": {
+        "xray": "X-ray spectrometer: read its rock.",
+        "camera": "Camera: photograph it from within {photoRange} m."
+      },
+      "cold-trap": {
+        "neutron": "Neutron spectrometer: switch it on and drive near or through it."
+      }
+    },
+    "siteLineDocumented": "Camera: photograph a boulder after reading it, from within {documentedRange} m.",
     "legendLead": "Survey lead",
     "shadowedCraterName": "Permanently shadowed crater",
     "loading": "Loading orbital survey data.",
@@ -222,6 +259,11 @@
     "legendViewpoint": "Viewpoint",
     "legendCrater": "Crater",
     "legendCold": "Permanent shadow",
+    "legendYoungCrater": "Young crater",
+    "legendColdTrap": "Cold trap",
+    "legendRolledBoulder": "Rolled boulder",
+    "legendHydrogen": "Hydrogen-rich ground",
+    "legendDone": "All earned here",
     "lasted": "The rover operated for {days} of {total} days.",
     "toDebrief": "Continue to debrief"
   },
@@ -264,7 +306,15 @@
     "restart": "Restart round",
     "continue": "Continue to Mars",
     "logHeading": "Instrument log",
-    "logNote": "What the instruments recorded. These readings earn no money or research points yet.",
+    "logNote": "What the instruments recorded on this mission.",
+    "logRockTypes": "Rock collection: {count} of {total} rock types.",
+    "logEarned": "Earned: {names}.",
+    "logEarnedJoin": ", ",
+    "stagedCount": "{name}: {stages} of {max}",
+    "groupRover": "The rover",
+    "groupCombo": "Instruments together",
+    "notReachedHeading": "Not reached",
+    "notReachedNote": "Milestones this rover carried the parts for but did not reach on this mission.",
     "logRock": "X-ray spectrometer: {rock}. {elements}.",
     "logNoRocks": "X-ray spectrometer: no rocks were read.",
     "logQuakeClean": "Seismometer station: recorded the moonquake, a clean trace.",
@@ -440,6 +490,11 @@
     "earthLight": "Earth",
     "earthInView": "Earth in view",
     "earthHidden": "Earth hidden",
+    "earthInViewTooClose": "Earth in view · too close to the lander",
+    "stationTooCloseHint": "{name}: too close to the lander to count. Set it down more than {distance} m from the lander to earn its milestones.",
+    "stationConfirm": "{name}: too close to the lander to count. Press {key} again within {seconds} s to set it down here anyway.",
+    "stationPlacedTooClose": "{name} set down within {distance} m of the lander: it works, but earns no milestones here.",
+    "xrayNewType": "New type: {count} of {total}.",
     "xrayResult": "X-ray reading: {rock}. {elements}.",
     "xrayAgain": "X-ray reading: {rock}, the same as the last reading of this boulder.",
     "xrayNoTarget": "X-ray reading lost: no boulder was in reach when it started.",
@@ -468,7 +523,7 @@
       "button": "Neutron",
       "controls": "{key} to switch the neutron spectrometer on or off ({standby} energy/s while on).",
       "notCarried": "This rover carries no neutron spectrometer.",
-      "fact": "NASA's VIPER rover carries a Neutron Spectrometer System that senses hidden water up to about 1 m (3 feet) below the surface while it drives.",
+      "fact": "NASA's VIPER rover is designed to sense hidden water up to about 1 m (3 feet) below the surface with its Neutron Spectrometer System while it drives. VIPER has not flown yet.",
       "source": "NASA Science, VIPER rover and instruments (science.nasa.gov/mission/viper/rover-and-instruments)"
     },
     "xray": {
@@ -512,6 +567,10 @@
     "regolith-breccia": {
       "name": "Regolith breccia",
       "elements": "Soil fragments pressed together into rock"
+    },
+    "magnesian-norite": {
+      "name": "Magnesian norite",
+      "elements": "Rich in magnesium and iron, poor in calcium; pyroxene-rich"
     }
   },
   "settings": {
@@ -549,7 +608,7 @@
         "body": [
           "The payload bay holds the instruments, one of each. Each instrument takes one mounting point, and the chassis sets how many there are: {bayMin} or {bayMax}, depending on the frame. A full bay cannot take another instrument, and a chassis with fewer points removes the last ones added.",
           "Each instrument card shows its cost, mass and size, and what it costs in energy: some use energy every time they work, and some draw a little while switched on. The specification sheet adds these to the range estimate. \"No instruments\" is also a choice, but a rover with no instruments cannot earn much.",
-          "Some instruments only record to the debrief's instrument log and earn no milestones yet; their cards say so.",
+          "Each instrument card lists the milestones it can earn.",
           "The order of the bay is the order of the number keys in the mission: the first instrument added is key 1."
         ]
       },
@@ -606,8 +665,8 @@
           "drill": "Drill: stop the rover, then press {key} (or its button) to drill a regolith sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other.",
           "neutron": "Neutron spectrometer: {key} (or its button) switches it on or off. While on, a hydrogen meter beside the meters reads the ground as the rover drives, and it draws a little energy.",
           "xray": "X-ray spectrometer: stop beside a boulder, then press {key} (or its button) to read the rock's main elements.",
-          "seismometer": "Seismometer station: stop and press {key} (or its button) to set it down before the moonquake.",
-          "reflector": "Laser retroreflector: stop where Earth is in view (the Earth light beside the meters) and press {key} (or its button) to set it down."
+          "seismometer": "Seismometer station: stop and press {key} (or its button) to set it down before the moonquake. Stations count only more than {stationMinDistance} m from the lander; closer in, the key must be pressed twice.",
+          "reflector": "Laser retroreflector: stop where Earth is in view (the Earth light beside the meters) and press {key} (or its button) to set it down. Stations count only more than {stationMinDistance} m from the lander; closer in, the key must be pressed twice."
         },
         "body": [
           "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
@@ -629,7 +688,7 @@
     "milestones": "Milestone facts",
     "debrief": "Debrief comparisons",
     "generatedHeading": "Generated by the game",
-    "generated": "The star field and the boulders are generated by the game's own rules, not taken from a data set.",
+    "generated": "The star field and the boulders are generated by the game's own rules, not taken from a data set. The rolled boulder and its track, the hydrogen-rich ground and each site's rock types are placed by design, inspired by the findings credited under the milestone facts; they were not observed at these spots. The cold traps and young craters are found in the NASA terrain and lighting layers credited above.",
     "loading": "Loading source details…",
     "loadFailed": "The detailed source list could not be loaded.",
     "terrainFallback": [

@@ -6,8 +6,7 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 import type RAPIER from '@dimforge/rapier3d-compat';
 import type { Tuning } from '../rules/types';
 import { seededRng } from '../rules/events';
-import type { SoftArea } from '../rules/ground';
-import { scatterBoulders, type Boulder } from '../rules/boulders';
+import type { Boulder } from '../rules/boulders';
 
 export type { Boulder };
 
@@ -23,11 +22,11 @@ export class Boulders {
   constructor(
     rapier: Rapier,
     private readonly world: RAPIER.World,
-    areas: SoftArea[],
+    list: readonly Boulder[],
     tuning: Tuning['boulders'],
     groundAt: (x: number, z: number) => number,
   ) {
-    this.list = scatterBoulders(areas, tuning);
+    this.list = [...list];
     const rng = seededRng(tuning.seed + 1);
     const parts: THREE.BufferGeometry[] = [];
     const m = new THREE.Matrix4();

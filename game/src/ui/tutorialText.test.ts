@@ -58,15 +58,30 @@ describe('tutorial text', () => {
     }
   });
 
+  it('the drive tutorial gives the stations\' lander distance from the data, with no placeholder left', () => {
+    const lines = tutorialPages('drive', data, { mission: 'moon', instruments: ['seismometer', 'reflector'] }).flatMap((p) => p.paragraphs);
+    const distance = data.tuning.milestones.sampleMinDistanceM;
+    for (const name of ['Seismometer station', 'Laser retroreflector']) {
+      const line = lines.find((l) => l.startsWith(`${name}: `));
+      expect(line, name).toBeDefined();
+      expect(line).toContain(`more than ${distance} m from the lander`);
+      expect(line).not.toMatch(/[{}]/);
+    }
+    const changed = { ...data, tuning: { ...data.tuning, milestones: { ...data.tuning.milestones, sampleMinDistanceM: 250 } } };
+    const moved = tutorialPages('drive', changed, { mission: 'moon', instruments: ['seismometer'] }).flatMap((p) => p.paragraphs).join('\n');
+    expect(moved).toContain('more than 250 m from the lander');
+  });
+
   it('the drive tutorial leaves out the number-key line for an empty bay', () => {
     const lines = (instruments: Instrument[]) => tutorialPages('drive', data, { mission: 'moon', instruments }).flatMap((p) => p.paragraphs).join('\n');
     expect(lines([])).not.toMatch(/number key/);
     expect(lines(['camera'])).toMatch(/number key/);
   });
 
-  it('the design tutorial says some instruments earn no milestones yet', () => {
+  it('the design tutorial says each instrument card lists its milestones (every Moon instrument earns some)', () => {
     const design = tutorialPages('design', data, { mission: 'moon', instruments: [] }).flatMap((p) => p.paragraphs).join('\n');
-    expect(design).toMatch(/earn no milestones yet/);
+    expect(design).toMatch(/lists the milestones it can earn/);
+    expect(design).not.toMatch(/earn no milestones yet/);
     expect(design).not.toMatch(/a few problems/);
   });
 });

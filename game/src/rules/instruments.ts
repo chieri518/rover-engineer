@@ -2,17 +2,25 @@
 // spectrometer's boulder target and rock type, and the seismometer station's moonquake record. The
 // mission screen measures (position, cold, track) and draws; the numbers are in tuning.instruments.
 // Pure: no rendering, no DOM.
-import type { Instrument, InstrumentTuning } from './types';
+import type { Instrument, InstrumentTuning, SiteSpec } from './types';
 import type { Boulder } from './boulders';
-import { zoneContains, type Point, type Zone } from './milestones';
+import { distanceToOutline, zoneContains, type Point, type Zone } from './milestones';
+
+/** A straight line from `a` at distance 0 to `b` at distance `len`. */
+const ramp = (d: number, len: number, a: number, b: number): number => a + (b - a) * Math.min(1, Math.max(0, d / len));
 
 /**
  * The neutron spectrometer's live hydrogen reading, 0 to 1. Hydrogen in the top meter of soil cuts
- * the neutrons escaping the surface, which is what the meter senses. In permanent shadow (inside the
- * dark crater's outline or any other cold zone) the reading is at least the cold background, and it
- * rises toward the hidden ice spot: from 0 at `iceRangeM` to 1 at the spot's center. Ordinary ground
- * reads the noise floor. `jitter` (0..1, 0.5 = none) wobbles the reading by up to ± t.jitter, so the
- * meter looks live; the mission screen passes a random number.
+ * the neutrons escaping the surface, which is what the meter senses. The reading is the highest of:
+ * - the noise floor, on ordinary ground;
+ * - a cold trap (any `cold-trap` zone, the dark crater's included): the cold background inside its
+ *   outline, falling in a straight line to the noise floor over `edgeRampM` outside it;
+ * - the hidden hydrogen spot (a `hydrogen-anomaly` zone): `anomalyPeak` at its center, `anomalyEdge`
+ *   at the zone edge, then down to the noise floor at `anomalyRangeM`;
+ * - the dark crater's ice signal: inside its outline the reading is at least the cold background and
+ *   rises toward the hidden ice spot, from 0 at `iceRangeM` to 1 at the spot's center.
+ * `jitter` (0..1, 0.5 = none) wobbles the reading by up to ± t.jitter, so the meter looks live; the
+ * mission screen passes a random number.
  */
 export function hydrogenReading(p: Point, inColdZone: boolean, zones: Zone[], t: InstrumentTuning['neutron'], jitter = 0.5): number {
   const crater = zones.find((z) => z.id === 'shadowed-crater');
@@ -25,6 +33,17 @@ export function hydrogenReading(p: Point, inColdZone: boolean, zones: Zone[], t:
     if (inCrater && ice?.shape.kind === 'circle') {
       const d = Math.hypot(p.x - ice.shape.x, p.z - ice.shape.z);
       base = Math.max(base, 1 - d / t.iceRangeM);
+    }
+  }
+  for (const z of zones) {
+    if (z.id === 'cold-trap') {
+      const d = distanceToOutline(z, p);
+      if (d < t.edgeRampM) base = Math.max(base, ramp(d, t.edgeRampM, t.coldBackground, t.noiseFloor));
+    } else if (z.id === 'hydrogen-anomaly' && z.shape.kind === 'circle') {
+      const d = Math.hypot(p.x - z.shape.x, p.z - z.shape.z);
+      const r = z.shape.r;
+      if (d <= r) base = Math.max(base, ramp(d, r, t.anomalyPeak, t.anomalyEdge));
+      else if (d < t.anomalyRangeM) base = Math.max(base, ramp(d - r, t.anomalyRangeM - r, t.anomalyEdge, t.noiseFloor));
     }
   }
   return Math.min(1, Math.max(0, base + (jitter * 2 - 1) * t.jitter));
@@ -60,18 +79,22 @@ function boulderHash(b: Boulder): number {
 }
 
 /**
- * The rock type an X-ray reading finds at a boulder: picked by weight from the placeholder list in
- * tuning, seeded by the boulder's position, so the same boulder always reads the same rock. Which
- * rocks lie where is Moon content for later map work (rover-engineering-design.md).
+ * The rock type an X-ray reading finds at a boulder: picked by weight, seeded by the boulder's
+ * position, so the same boulder always reads the same rock. A boulder at a site whose `rockSuite`
+ * names a suite in tuning reads from that suite; any other boulder reads the fallback `rocks` list.
+ * `sites` is required (data.sites.sites; Mars passes its empty list): without it every site boulder
+ * would silently read the fallback list, and the rolled boulder would never read its rare rock.
  */
-export function rockTypeFor(b: Boulder, t: InstrumentTuning['xray']): string {
-  const total = t.rocks.reduce((s, r) => s + r.weight, 0);
+export function rockTypeFor(b: Boulder, t: InstrumentTuning['xray'], sites: readonly SiteSpec[]): string {
+  const suiteId = b.site ? sites.find((s) => s.id === b.site)?.rockSuite : undefined;
+  const rocks = (suiteId && t.suites.find((s) => s.id === suiteId)?.rocks) || t.rocks;
+  const total = rocks.reduce((s, r) => s + r.weight, 0);
   let pick = boulderHash(b) * total;
-  for (const r of t.rocks) {
+  for (const r of rocks) {
     pick -= r.weight;
     if (pick < 0) return r.id;
   }
-  return t.rocks[t.rocks.length - 1]!.id;
+  return rocks[rocks.length - 1]!.id;
 }
 
 /** Where the rover was at a moment of the mission: the seismometer listens for its driving. */
@@ -208,4 +231,53 @@ export interface InstrumentLog {
 
 export function emptyInstrumentLog(carried: Instrument[]): InstrumentLog {
   return { carried: [...carried], rocks: [], quake: null, stationPlaced: false, reflectorPlaced: false, hydrogenPeak: null };
+}
+
+/** True inside the near-lander zone: ground the lander disturbed, too close to set a station down. */
+export function stationTooClose(p: Point, zones: Zone[]): boolean {
+  const z = zones.find((x) => x.id === 'near-lander');
+  return z ? zoneContains(z, { x: p.x, y: 0, z: p.z }) : false;
+}
+
+/** What a station's key says on the ground: a needsEarth station without Earth in view is refused outright, ahead of the too-close warning. */
+export function stationHint(needsEarth: boolean, earthInView: boolean, tooClose: boolean): 'no-earth' | 'too-close' | 'ok' {
+  if (needsEarth && !earthInView) return 'no-earth';
+  return tooClose ? 'too-close' : 'ok';
+}
+
+/** The reflector's Earth light: hidden, in view, or in view but too close to the lander. */
+export function reflectorEarthLight(earthInView: boolean, tooClose: boolean): 'hidden' | 'in-view' | 'in-view-too-close' {
+  if (!earthInView) return 'hidden';
+  return tooClose ? 'in-view-too-close' : 'in-view';
+}
+
+/** A first press of a station key inside the near-lander zone, waiting for its confirming second press. */
+export interface StationPending {
+  instrument: Instrument;
+  seconds: number;
+}
+
+/**
+ * One press of a station key. Outside the near-lander zone the station is set down at once. Inside,
+ * the press for the same instrument within `confirmSeconds` (inclusive) of the pending first press
+ * sets it down; any other press is a first press and waits for confirmation.
+ */
+export function stationPress(
+  pending: StationPending | null,
+  instrument: Instrument,
+  seconds: number,
+  tooClose: boolean,
+  confirmSeconds: number,
+): { action: 'place' | 'confirm'; pending: StationPending | null } {
+  if (!tooClose) return { action: 'place', pending: null };
+  if (pending && pending.instrument === instrument && seconds - pending.seconds <= confirmSeconds) return { action: 'place', pending: null };
+  return { action: 'confirm', pending: { instrument, seconds } };
+}
+
+/**
+ * How many rock types the X-ray spectrometer can find: the distinct rocks across the site suites, the
+ * total in the readout's "New type: 3 of 5". 0 with no suites (no line is shown).
+ */
+export function rockTypeTotal(t: InstrumentTuning['xray']): number {
+  return new Set(t.suites.flatMap((s) => s.rocks.map((r) => r.id))).size;
 }

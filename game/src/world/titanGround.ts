@@ -24,7 +24,7 @@ export async function startTitanGround(o: {
   groundAt: (x: number, z: number) => number;
 }): Promise<TitanGround> {
   const look = o.tuning.look;
-  const masks = await loadTerrainMasks(o.tuning, o.world); // cached: the mission screen loaded it already
+  const masks = await loadTerrainMasks(o.tuning, o.world, []); // cached: the mission screen loaded it already (Titan has no sites.json sites)
   if (look?.ripples && masks.softMask) enableTitanRipples(masks.softMask, look.ripples);
   const pebbles = look?.pebbles
     ? new TitanPebbles(o.uniforms, look.pebbles, o.landing, o.groundAt, (x, z) => masks.softnessAt(x, z, o.tuning.ground))

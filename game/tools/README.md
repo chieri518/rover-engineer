@@ -53,6 +53,71 @@ meters); `--out DIR` changes the output folder.
 | `albedo.jpg` | 1601², 8-bit JPEG | Ground albedo from LROC NAC (from `build_texture.py`) |
 | `texture.json` | | Albedo grid, decoding, source and credit |
 
+## Moon sites features (added for review by the pipeline owner)
+
+Added for the Moon sites and milestones plan (requests P1 to P5 in
+`space-mission-design-game/moon-sites-and-milestones-plan.md`). Additive: no image changes, and every
+value that was already in `terrain.json` stays the same.
+
+```sh
+.venv/bin/python build_terrain.py --site-features-only   # refresh only the four lists below
+.venv/bin/python measure_legs.py --check --out out/moon-site-legs.json
+```
+
+`--site-features-only` runs the usual build but writes only the four Moon sites lists (and their notes)
+into the existing `terrain.json`. A full build produces the same lists. `moon_sites.py` does the work.
+It reads `albedo.jpg` from the output folder if it exists, for the ejecta brightness.
+
+| List | Rule | Count |
+| --- | --- | --- |
+| `coldTraps` (P1) | PSR fraction ≥ 0.5 (60 m map, bilinear to 5 m), ≥ 2,000 m². For patches under 0.1 km², `horizonCheck5m` repeats the test on the game's 5 m heights: the whole Sun disc is hidden at every azimuth for the highest Sun of the 18.6-year cycle. It samples every 10 m over the patch and 40 m around it: `permanentShadowArea_m2` counts all of that, `insidePatch_m2` only the patch | 9 |
+| `youngCraters` (P2) | 40 to 150 m across, within 1.6 km, from the 5 m DEM: rim radius where the azimuth-averaged profile peaks (this ignores the regional slope), depth ≥ 2.5 m, depth/diameter ≥ 0.04, rim on ≥ 75% of azimuths. `fresh`: depth/diameter ≥ 0.08 and an inner wall ≥ 30°. `ejectaAlbedoRatio`: `albedo.jpg` ring R to 2R over ring 2.5R to 4R | 8 (2 fresh) |
+| `boulderTrackCandidates` (P3) | Steepest-descent runs from walls steeper than 25° to where the slope drops under 12°, run 50 to 150 m (20 m inside young craters), foot within 1.2 km, young craters first. Placements, not detections | 5 |
+| `lowLightPatches` (P4) | Average illumination < 15%, PSR < 0.5, slope < 15° (heights smoothed over ~20 m), within 1 km, ≥ 2,000 m². `innerPoint` is the point farthest inside | 1 |
+
+Ids: `cold-trap-rocky-area-1` and `cold-trap-shadowed-crater` are fixed (each goes to the one patch that
+overlaps Rocky area 1's circle or the shadowed crater's outline most); the others are named by 8-point
+compass direction from the landing (`young-crater-east`, `cold-trap-south`), numbered by distance when a
+direction has several (fresh craters first). The compass is the local frame's: "north" is local −z
+(polar-stereographic +Y, toward longitude 0 and Earth), not geographic north, which at the pole is every
+direction. `game/data/sites.json` refers to these ids, so a rule change that renames one needs that file
+updated too. NaN (no data) in the LOLA maps is skipped, not read as 0; there is none in this play area. Each entry with a route has `drivePoint`
+and `driveDistanceFromLanding_m` (the 20 m routes used by the other features).
+
+**`measure_legs.py` (P5)** measures balance legs between nodes from the game's own outputs
+(`heightmap.png`, the distant rings, `cold-mask.png`, `terrain.json`) and `game/data/tuning.json`'s Sun
+path, so it needs no raw data. It uses 10 m least-cost routes (2 × 2 block-averaged heights, cost
+1 + 0.5 (slope/18°)², over 18° forbidden, permanent shadow forbidden except to or from the dark crater,
+cells within 200 m of the edge forbidden) and the game's shadow test every 10 s. Each 10 m cell is treated
+as sitting at the grid position of its block's first 5 m sample, 2.5 m (in x and z) from the block's true
+center, and its cold flag samples `cold-mask.png` at that same 5 m pixel (2r, 2c). The offset is kept
+because it reproduces `balance.json` best, as in `build_terrain.py`'s 20 m grid. `--check` re-measures `balance.json`'s 90 legs (the original tool is
+not in the repo; the cost weight 0.5 was chosen to match them). `--out` writes the new nodes in
+`NEW_NODES`, every leg that touches one, and each cold trap's closest approach to an existing leg, to
+`out/moon-site-legs.json`. It never edits `balance.json`.
+
+`--check` result: distances within 0.7% on average (5.2% at most), climb and descent within 9 m, cold
+meters within 3.8 m on average, leg light shares within 0.019 on average, node light shares and heights
+exact. One node differs: `balance.json` says Earth is in view at `rocky1North`, but from 1 m up (the HUD's
+test) a ridge hides it by 2.3° (it shows from 2 m up), so the original tool probably used a higher eye or
+a nearby point.
+
+`eastBench` in `NEW_NODES` is hand-picked by a stated rule (see the comment there): the most Earth-clear
+cell 300 to 450 m east of the landing with a mean slope under 5° over 45 m.
+
+Points to review:
+
+- The East and South cold traps are each one 60 m source pixel (fraction 0.92). The 5 m horizon test
+  confirms East (about 7,400 m² in shadow) and finds South marginal (about 900 m²).
+- Python 3.13 here instead of 3.14: a plain rebuild differs from the committed outputs by 1/255 in 7
+  pixels of `illumination.png` and `earth-visibility.png`, and by 1 m in 16 vertices of the shadowed crater
+  outline, plus the date and two file sizes in `terrain.json` (resampling float noise). That is why `--site-features-only` exists; those files were not rebuilt.
+- The 1.54° subsolar latitude and 0.267° Sun radius in `moon_sites.py` are physical constants (the
+  Moon's axial tilt to the ecliptic, as in the LOLA PSR maps; the Sun's angular radius as in
+  `terrainData.ts`), not read from `tuning.json`; it warns if `tuning.json`'s mission Sun leaves ±1.54°.
+- `moon_sites.py` borrows the height sampler and shadow march from `measure_legs.py` (the port of
+  `terrainData.ts`).
+
 ## Ground texture (`build_texture.py`)
 
 ```sh

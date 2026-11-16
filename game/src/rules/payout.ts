@@ -35,11 +35,15 @@ export interface Payout {
   newRecords: string[];
 }
 
-/** How many stages a milestone has: one per Odometer (or Night drive) distance, one per sample site, otherwise 1. */
+/**
+ * How many stages a milestone has: one per Odometer (or Night drive) distance, one per sample site or
+ * surveyed zone instance (sites), one per rock-type count (a reading's rocks), otherwise 1.
+ */
 export function milestoneStages(m: Milestone): number {
   const tr = m.trigger;
   if (tr.type === 'distance' || tr.type === 'night-distance') return tr.meters.length;
-  if (tr.type === 'drill') return tr.sites ?? 1;
+  if (tr.type === 'drill' || tr.type === 'transect') return tr.sites ?? 1;
+  if (tr.type === 'reading') return tr.rocks?.length ?? tr.sites ?? 1;
   return 1;
 }
 
