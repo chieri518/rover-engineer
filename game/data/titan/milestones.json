@@ -1,7 +1,6 @@
 {
-  "_about": "Titan overlay: replaces the Moon's milestone list (arrays replace). Ids are distinct from the Moon's and Mars's, because records are kept per campaign. Rules in rules/milestones.ts (T5 adds the Titan triggers: rules/titanTypes.ts TitanMilestoneTrigger, TitanZoneId).",
-  "_placeholder": "Milestones and survey (T5): triggers, zones, summaries and facts; every fact is fact-checked by research (R) before it ships. dune-crossing and dawn triggers and the dune-crest-viewpoint and ejecta-field zones are not built yet (unknown triggers and zones are never reached).",
-  "_interface": "money and rp are placeholders set with Owner A (copied from the Mars scale).",
+  "_about": "Titan overlay: replaces the Moon's milestone list (arrays replace). Ids are distinct from the Moon's and Mars's, because records are kept per campaign. Rules in rules/milestones.ts and rules/titanMilestones.ts (T5); zones come from the Titan terrain.json features. See game-design.md, How the Titan milestones work.",
+  "_interface": "money and rp are placeholders set with Owner A, sized like Mars: a rover that only survives at the lander earns about 270 with the survival payout; an active camera run about 2.5 times that, a drill run about 3 times.",
   "milestones": [
     {
       "id": "titan-touchdown",
@@ -15,8 +14,8 @@
       "money": 80,
       "rp": 8,
       "summary": "The rover has landed in an interdune corridor of the Shangri-La dune field on Titan and deployed from the lander.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "On January 14, 2005, ESA's Huygens probe made the first landing on Titan. Its pictures show rounded pebbles of water ice on a dark plain.",
+      "source": "ESA, Cassini-Huygens (esa.int/Science_Exploration/Space_Science/Cassini-Huygens); Tomasko et al. 2005, Nature 438:765"
     },
     {
       "id": "titan-odometer",
@@ -26,17 +25,17 @@
       "trigger": {
         "type": "distance",
         "meters": [
-          500,
-          1500,
-          3000
+          400,
+          1000,
+          2000
         ]
       },
       "requires": {},
       "money": 30,
       "rp": 2,
       "summary": "Total distance driven: {meters} m.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "NASA's Dragonfly will not drive on Titan: it will fly from site to site, covering about 115 km in its planned mission.",
+      "source": "NASA Science, Dragonfly (science.nasa.gov/mission/dragonfly/)"
     },
     {
       "id": "titan-mapper",
@@ -45,14 +44,14 @@
       "record": false,
       "trigger": {
         "type": "explore",
-        "share": 0.025
+        "share": 0.012
       },
       "requires": {},
       "money": 60,
       "rp": 3,
       "summary": "The rover has surveyed {share}% of the map.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "Titan's haze hides its surface from visible-light cameras, so Cassini mapped it with radar, which sees through the haze, in details about 300 m across.",
+      "source": "Radebaugh et al. 2008, Icarus 194:690 (Cassini RADAR dunes at about 300 m per pixel); NASA Science, Cassini (science.nasa.gov/mission/cassini/)"
     },
     {
       "id": "dune-crossing",
@@ -63,11 +62,11 @@
         "type": "dune-crossing"
       },
       "requires": {},
-      "money": 80,
+      "money": 100,
       "rp": 5,
-      "summary": "The rover has crossed a dune from one interdune corridor to the next.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "summary": "The rover has crossed a dune crest from one interdune corridor to the next.",
+      "fact": "Titan's linear dunes are about 1 to 2 km wide and up to about 150 m high, and run west to east, often 10 to 100 km long, like the dunes of the Namib Desert on Earth.",
+      "source": "Radebaugh et al. 2008, Icarus 194:690; Lorenz et al. 2021, Planet. Sci. J. 2:24"
     },
     {
       "id": "titan-night-drive",
@@ -90,8 +89,8 @@
       "money": 50,
       "rp": 3,
       "summary": "Distance driven during the long Titan night: {meters} m.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "A night on Titan lasts about eight Earth days. Dragonfly will spend it on the ground, recharging its battery from its nuclear power source.",
+      "source": "NASA Science, Radioisotope Power Systems missions: Dragonfly (science.nasa.gov/radioisotope-power-systems-missions/); NASA NSSDC Saturnian satellite fact sheet"
     },
     {
       "id": "titan-dawn",
@@ -102,11 +101,11 @@
         "type": "dawn"
       },
       "requires": {},
-      "money": 80,
+      "money": 60,
       "rp": 5,
       "summary": "The rover is still running as the Sun rises again over the dunes.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "One Titan day lasts almost 16 Earth days. Titan always keeps the same face toward Saturn, so it turns once in each 16-day orbit.",
+      "source": "NASA NSSDC, Saturnian satellite fact sheet (nssdc.gsfc.nasa.gov/planetary/factsheet/saturniansatfact.html); NASA Science, Dragonfly"
     },
     {
       "id": "titan-storm-survivor",
@@ -117,11 +116,11 @@
         "type": "storm-survive"
       },
       "requires": {},
-      "money": 60,
+      "money": 40,
       "rp": 3,
       "summary": "The rover is still running after the methane rain has cleared.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "In late 2010 Cassini saw a huge cloud system near Titan's equator. Afterwards more than 500,000 km² of ground looked darker, most likely wet from methane rain.",
+      "source": "Turtle et al. 2011, Science 331:1414; ESA, Turtle et al. 2011 summary (sci.esa.int/web/cassini-huygens/-/48586-turtle-e-p-et-al-2011)"
     },
     {
       "id": "dune-sea",
@@ -130,16 +129,16 @@
       "record": false,
       "trigger": {
         "type": "photo",
-        "zone": "dune-crest-viewpoint"
+        "zone": "dune-crest"
       },
       "requires": {
         "instrument": "camera"
       },
-      "money": 70,
+      "money": 90,
       "rp": 3,
       "summary": "The rover has photographed the dune field from a dune crest.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "Titan's dunes form a belt around its equator. In a single radar image strip, Cassini measured more than 2,300 of them.",
+      "source": "Radebaugh et al. 2008, Icarus 194:690 (2,315 dunes in the T3 swath)"
     },
     {
       "id": "organic-sands",
@@ -156,8 +155,8 @@
       "money": 60,
       "rp": 12,
       "summary": "The rover has drilled a sample of the dune field's organic sands.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "Titan's dune sand is thought to be organic material, not rock like most sand on Earth. Cassini's infrared and radar data point to it, but nobody has sampled it yet.",
+      "source": "Lorenz et al. 2021, Planet. Sci. J. 2:24 (conclusion); Radebaugh et al. 2008, Icarus 194:690"
     },
     {
       "id": "crater-ejecta",
@@ -171,11 +170,11 @@
       "requires": {
         "instrument": "drill"
       },
-      "money": 120,
+      "money": 150,
       "rp": 25,
       "summary": "The rover has drilled into the ejecta blocks of Selk crater.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "Selk is an impact crater about 80 km across. The impact may have melted ice into liquid water that mixed with organic material, which is why Dragonfly is going there.",
+      "source": "NASA Science, Dragonfly (science.nasa.gov/mission/dragonfly/); Lorenz et al. 2021, Planet. Sci. J. 2:24; IAU Gazetteer of Planetary Nomenclature, Selk"
     },
     {
       "id": "titan-clean-run",
@@ -190,8 +189,9 @@
       "money": 40,
       "rp": 3,
       "summary": "The mission has ended without any damage to the rover.",
-      "fact": "[placeholder: T5 writes the fact, R fact-checks it]",
-      "source": "[placeholder: T5 writes the fact, R fact-checks it]"
+      "fact": "Dragonfly flies instead of driving partly to avoid Titan's potentially rough and sandy ground: its rotors carry it over the dunes.",
+      "source": "NASA Science, Dragonfly spacecraft and instruments (science.nasa.gov/mission/dragonfly/spacecraft-and-instruments/)"
     }
-  ]
+  ],
+  "_facts": "Facts drafted by T5 from research/rover-engineering/09-titan-surface-data.md and fact-checked by research (R)."
 }

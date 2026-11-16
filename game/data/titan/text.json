@@ -101,18 +101,35 @@
     "spaceWeather": "Methane rainstorm"
   },
   "survey": {
-    "_placeholder": "T5. Lead ids match data/titan/tuning.json survey.leads.",
-    "intro": "Cassini radar maps show an area of interest near the landing site. Directions and distances are measured from the lander and are approximate.",
+    "_owner": "T5. Lead ids match data/titan/tuning.json survey.leads. Directions and distances are computed, so the text names none. Lead texts fact-checked by research (R).",
+    "_sources": "Interdunes: Lorenz et al. 2021, Planet. Sci. J. 2:24; Radebaugh et al. 2008, Icarus 194:690. Dunes: Radebaugh et al. 2008. Selk and its ejecta: Lorenz et al. 2021 (Cassini RADAR and radiometry); IAU Gazetteer of Planetary Nomenclature, Selk.",
+    "intro": "Cassini radar maps show areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: radar maps of Titan locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
     "leads": {
+      "patch": {
+        "name": "Bright interdune patch",
+        "source": "Cassini radar suggests firm, sand-free flats between some of the dunes, probably bedrock or ice. Dragonfly's scientists picked flats like these for landing."
+      },
+      "crest": {
+        "name": "Dune crest viewpoint",
+        "source": "Cassini radar shows the dunes as long dark stripes. From a crest about 100 m high, the rover can look out across the dune field."
+      },
       "ejecta": {
         "name": "Selk ejecta field",
-        "source": "[placeholder: T5, R fact-checks] Cassini radar shows Selk crater near the dune field; blocks thrown out by the impact lie near its rim."
+        "source": "Cassini radar shows rough ground around Selk crater, and its microwave data point to water ice in the ejecta thrown out by the impact."
+      },
+      "selk": {
+        "name": "Selk crater rim",
+        "source": "The crater Dragonfly will fly toward, about 80 km across. Its low rim is beyond the horizon and hidden by haze."
       }
     },
-    "legendRocky": "Ejecta field"
+    "legendRocky": "Ejecta field",
+    "legendDelta": "Dune crest",
+    "legendRegion": "Interdune corridor"
   },
   "instruments": {
-    "_placeholder": "T5: Titan instrument notices.",
+    "_owner": "T5: Titan instrument notices. Rain blocking photos is rain.photoBlocked (T6).",
+    "photoNoZone": "Photograph added to the album. Milestones count only on a dune crest.",
+    "viewpointHint": "{name}: a view over the dune sea. Press C to take a photograph.",
     "captionDay": "{place}, Titan day {day}",
     "captionSurface": "Shangri-La dunes"
   },

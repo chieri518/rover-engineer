@@ -146,12 +146,16 @@
     }
   },
   "survey": {
-    "_placeholder": "Milestones and survey (T5). Orbital survey leads: the Selk ejecta field (rockyAreas.0). Text in data/titan/text.json survey.leads. Rounding is the Moon's.",
+    "_note": "T5. Orbital survey leads, nearest first: the bright interdune sample patch (samplePatch), the dune-crest viewpoint (viewpoints.0), the Selk ejecta field (rockyAreas.0), and Selk crater itself (selk: tens of km off the map, never discovered, so it stays a bearing to the rim). Sites are named by key or alias so the leads survive the pipeline renaming them. Text in data/titan/text.json survey.leads. Rounding is the Moon's.",
     "leads": [
-      { "id": "ejecta", "site": "rockyAreas.0" }
+      { "id": "patch", "site": "samplePatch" },
+      { "id": "crest", "site": "viewpoints.0" },
+      { "id": "ejecta", "site": "rockyAreas.0" },
+      { "id": "selk", "site": "selk" }
     ]
   },
   "milestones": {
-    "_placeholder": "Milestones and survey (T5): Titan zone sizes and actions (rules/titanTypes.ts TitanMilestoneTuning)."
+    "_note": "T5. No Titan-only tuning: zones come from terrain.json (dune crests within duneCrests.zoneRadius_m of a crest line, corridor outlines, the sample patch's radius_m, the ejecta field = rockyAreas[0] radius x boulderCrossRadiusFactor) and the shared photoZoneRadiusM (dune-crest viewpoint). Samples: the Moon's 200 m from the lander and from each other. No hydrogen signal (no ice spot on Titan).",
+    "hydrogenSignal": false
   }
 }

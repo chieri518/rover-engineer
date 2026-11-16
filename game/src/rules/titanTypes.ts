@@ -136,12 +136,20 @@ export type TitanMilestoneTrigger =
   | { type: 'dune-crossing' } // from one interdune corridor to another over a dune, without getting stuck
   | { type: 'dawn' }; // still running when the Sun rises again
 
-/** Titan zone ids that milestones.json triggers may name (rules/milestones.ts buildZones, T5). */
-export type TitanZoneId = 'dune-crest' | 'dune-crest-viewpoint' | 'interdune-sample' | 'ejecta-field';
+/**
+ * Titan zone ids (rules/titanMilestones.ts buildTitanZones, T5): within duneCrests.zoneRadius_m of a crest
+ * line, the dune-crest viewpoint (photoZoneRadiusM), the sample patch (its radius_m), the Selk ejecta field
+ * (rockyAreas[0] x boulderCrossRadiusFactor), and each interdune corridor's outline (Dune crossing).
+ */
+export type TitanZoneId = 'dune-crest' | 'dune-crest-viewpoint' | 'interdune-sample' | 'ejecta-field' | 'interdune-corridor';
 
-/** Titan-only milestone tuning (data/titan/tuning.json `milestones`), merged over the shared MilestoneTuning. */
+/**
+ * Titan-only milestone tuning (data/titan/tuning.json `milestones`), merged over the shared MilestoneTuning.
+ * T5 needs none: Titan zones are sized by the terrain (crest zone radius, patch and ejecta radii) and the
+ * shared photo zone radius and sample spacing.
+ */
 export interface TitanMilestoneTuning {
-  [key: string]: unknown; // T5 fills
+  [key: string]: unknown;
 }
 
 // ---------------------------------------------------------------------------------------------------
