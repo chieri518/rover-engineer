@@ -189,7 +189,8 @@
     "photoNoZone": "Photograph added to the album. Milestones count only on a dune crest.",
     "viewpointHint": "{name}: a view over the dune sea. Press C to take a photograph.",
     "captionDay": "{place}, Titan day {day}",
-    "captionSurface": "Shangri-La dunes"
+    "captionSurface": "Shangri-La dunes",
+    "drillDone": "Surface sample collected."
   },
   "day": {
     "_owner": "Integration (T6): the day and night notices and HUD lines on Titan. The lander does not recharge the rover, so nothing here sends it back to base.",
