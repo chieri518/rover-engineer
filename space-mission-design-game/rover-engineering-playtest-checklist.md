@@ -163,7 +163,7 @@ Fresh campaign. None of these lessons may be named, hinted or solved by any site
 - [ ] **Instrument log.** Each instrument's last line ends with "Earned: ...", and the X-ray adds "Rock collection: n of 5 rock types".
 - [ ] **Not reached.** A list of milestones the rover carried the parts for and did not earn: names only, in the same order. It leaves out capability milestones that need no parts, records already held this campaign, and any staged milestone with a stage earned. Check it with a rover that earns nothing at the sites.
 - [ ] **Mission history off:** facts and sources are missing from pop-ups and the debrief; the milestone names are still there.
-- [ ] **Notebook with several headings.** Open it (N): one heading per world, Moon first. Moon lessons met through the new sites appear under the Moon.
+- [ ] **Notebook with several headings.** Open it (N): one heading per world (no mixed list). Moon lessons met through the new sites appear under the Moon.
 - [ ] **Credits** say the rolled boulder and its track, the hydrogen-rich ground and each site's rock types are placed by design, inspired by real findings. No fact claims bright ejecta for NW or East crater.
 
 ## 16. Restart
