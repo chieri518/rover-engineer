@@ -16,7 +16,7 @@ import {
 } from '../rules/instruments';
 import { emptySiteProgress, noteReading, siteDone, siteRocks, stepSurveyRun, type SurveyRun } from '../rules/siteChecks';
 import {
-  addToNotebook, lessonFor, meet, metIds, onSeismometer, onShadowStop, onUseDone, onUseStart, relationshipEntry, shortUseLines, type RelationshipEvent,
+  addToNotebook, lessonFor, meet, metIds, onSeismometer, onWorld, onShadowStop, onUseDone, onUseStart, relationshipEntry, shortUseLines, type RelationshipEvent,
 } from '../rules/relationships';
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
@@ -165,7 +165,8 @@ export const missionScreen: Screen = (game, root) => {
    * slot) and mark the notebook unread. `vars` fills the notice's placeholders beyond {distance}.
    * Returns the events met for the first time.
    */
-  const relate = (events: RelationshipEvent[], vars: Record<string, string | number> = {}): RelationshipEvent[] => {
+  const relate = (all: RelationshipEvent[], vars: Record<string, string | number> = {}): RelationshipEvent[] => {
+    const events = onWorld(all, data.relationships, data.world); // no Moon lesson on Mars
     if (events.length === 0) return [];
     const r = meet(met, events);
     met = r.met;
@@ -628,6 +629,7 @@ export const missionScreen: Screen = (game, root) => {
       throttling: canDrive && ((throttle > 0 && limits.allowForward) || (throttle < 0 && limits.allowReverse)),
       impactMps: s.deltaV,
       upY: s.upY,
+      position: { x: p.x, z: p.z }, // Mars: dust devils form at the rover and clean near it
     };
     const step = stepMission(state, sample, setup, tuning, data.events);
     state = step.state;

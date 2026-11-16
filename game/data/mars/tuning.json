@@ -53,13 +53,21 @@
     "startSecondsIntoDay": 7.25
   },
   "night": {
-    "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving: lights on 4 (a parked night costs 60, about a fixed panel's whole sol of income), awake without lights 1 (electronics), asleep 0.2 (3 per night). Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
-    "lightsDrainPerSecond": 4,
+    "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving. The world keeps only the electronics: awake 1, asleep 0.2 (3 per night). The parts own the rest (Mars M1, rules/energy.ts nightDraw): the LED floodlights' lightsDraw 3 while awake (so lights on is 4, a parked night 60, about a fixed panel's whole sol of income), an electric heater's heaterDraw every second of night, asleep too; an RTG's steadyIncome day and night. Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
     "awakeDrainPerSecond": 1,
     "sleepDrainPerSecond": 0.2,
     "driveWithoutLights": false,
     "freezeRatePerSecond": 8,
     "warmRecoveryPerSecond": 6,
     "fullSunElevationDeg": 15
+  },
+  "dust": {
+    "_note": "Dust on the panels (Mars M8, MS8; Owner B, provisional, for Chieri's review; starting values for the Mars balance phase). Rules: rules/dust.ts. A solar rover's dust factor (income multiplier, 1 = clean) falls by perSol x the power part's dustRate per sol of play, day and night, in a straight line (a share of the clean income, not compounding); stormMultiplier x as fast at full storm strength (scaled by the storm's intensity). It never falls below minFactor (a safety guard: with one storm and no cleaning the deployable arrays end near 0.37, a fixed panel near 0.58). The RTG has no energyIncome, so dust never touches it. Compressed like time: real panels lose about 0.2% per sol. The dust lesson: dust has cut solar income by lessonLoss. A dust devil passing within dustDevilCleanM of the rover resets the factor to clean; a switched-on weather mast records one passing within dustDevilSenseM (Dust devil pass).",
+    "perSol": 0.03,
+    "stormMultiplier": 3,
+    "minFactor": 0.25,
+    "lessonLoss": 0.15,
+    "dustDevilCleanM": 50,
+    "dustDevilSenseM": 150
   }
 }

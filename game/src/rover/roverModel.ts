@@ -1,6 +1,8 @@
 // The rover's look, built from three.js primitives and shaped by the selected parts: a titanium or
-// steel frame, solid or wire-mesh wheels, a flat solar panel or a vertical solar mast, the battery
-// pack, floodlights, the heater's gold thermal blanket, and the payload bay's instruments: a camera
+// steel frame, solid, wire-mesh or grouser wheels, a flat solar panel, a vertical solar mast, deployable
+// solar array wings or a finned radioisotope generator at the back, the battery pack, floodlights, the
+// gold thermal blanket of a warm rover (any part with heat), Mars's support hardware (a robotic arm
+// folded at the front, a remote sensing mast with its head), and the payload bay's instruments: a camera
 // mast and a regolith drill at the front, a neutron spectrometer and an X-ray spectrometer arm under
 // the body, a seismometer station and a laser retroreflector carried on the deck, each in its own
 // place, so any mix can be drawn. The two deployables are also drawn on the ground by world/stations.ts.
@@ -8,19 +10,21 @@
 // A draft build (design screen preview) shows only the parts chosen so far.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
-import type { BusSlot, Instrument, Part, RoverHandling } from '../rules/types';
+import type { BusSlot, Instrument, Part, RoverHandling, SupportSlot } from '../rules/types';
 
-/** How the model groups its static parts: one group per bus slot, and one per instrument in the bay. */
-export type ModelGroup = BusSlot | Instrument;
+/** How the model groups its static parts: one group per bus slot and support slot, and one per instrument in the bay. */
+export type ModelGroup = BusSlot | SupportSlot | Instrument;
 
 /** What the model shows, read from the selected parts. `null` / `false`: nothing drawn for that slot. */
 export interface RoverLook {
   frame: 'titanium' | 'steel' | null; // null: no chassis chosen (deck, frame, electronics box and antenna)
-  wheels: 'solid' | 'mesh' | null; // null: no wheels, struts or drive motors
-  power: 'panel' | 'mast' | null;
+  wheels: 'solid' | 'mesh' | 'grouser' | null; // null: no wheels, struts or drive motors
+  power: 'panel' | 'mast' | 'arrays' | 'rtg' | null;
   battery: 'cylinders' | 'pack' | null;
   lights: boolean;
-  heater: boolean;
+  heater: boolean; // any part gives heat (heater units, an electric heater, an RTG's waste heat): the gold blanket
+  arm?: boolean; // a robotic arm (Mars support hardware)
+  mast?: boolean; // a remote sensing mast (Mars support hardware)
   instruments: Instrument[]; // the payload bay, in bay order (empty: no instruments drawn)
 }
 
@@ -33,11 +37,13 @@ export function roverLook(parts: Part[]): RoverLook {
   };
   return {
     frame: pick('chassis', (id) => (id.includes('steel') ? 'steel' : 'titanium')),
-    wheels: pick('wheels', (id) => (id.includes('mesh') ? 'mesh' : 'solid')),
-    power: pick('power', (id) => (id.includes('mast') ? 'mast' : 'panel')),
+    wheels: pick('wheels', (id) => (id.includes('mesh') ? 'mesh' : id.includes('grouser') ? 'grouser' : 'solid')),
+    power: pick('power', (id) => (id.includes('mast') ? 'mast' : id.includes('arrays') ? 'arrays' : id.includes('rtg') ? 'rtg' : 'panel')),
     battery: pick('battery', (id) => (id.includes('nih2') ? 'cylinders' : 'pack')),
     lights: (bySlot('lights')?.effects.lightRange ?? 0) > 0,
-    heater: (bySlot('heater')?.effects.heat ?? 0) > 0,
+    heater: parts.some((p) => (p.effects.heat ?? 0) > 0),
+    arm: Boolean(bySlot('arm')?.effects.arm),
+    mast: Boolean(bySlot('mast')?.effects.mast),
     instruments: parts.flatMap((p) => (p.slot === 'instrument' && p.effects.instrument ? [p.effects.instrument] : [])),
   };
 }
@@ -232,7 +238,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     }
   }
   const deckY = boxY + boxH / 2; // top of the box
-  const deckTop = look.power === 'panel' ? deckY + 0.07 : deckY + 0.02; // what deck-mounted instruments stand on
+  const deckTop = look.power === 'panel' || look.power === 'arrays' ? deckY + 0.07 : deckY + 0.02; // what deck-mounted instruments stand on
 
   // Power: a flat panel over the deck, or a vertical solar mast for a Sun on the horizon.
   const cells = (repeat: [number, number], key: string) => {
@@ -240,7 +246,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     return mat(key, { color: map ? 0xffffff : COLORS.cell, map });
   };
   slot = 'power';
-  if (look.power === 'panel') {
+  if (look.power === 'panel' || look.power === 'arrays') {
     add(box(l * 0.98, 0.025, w * 1.02), mat('cellFrame', { color: COLORS.cellFrame }), -0.02, deckY + 0.05, 0);
     add(box(l * 0.95, 0.03, w * 0.98), cells([10, 7], 'cells'), -0.02, deckY + 0.055, 0);
     for (const x of [-1, 1]) for (const z of [-1, 1]) add(rod(0.015, 0.05), frame, x * l * 0.35, deckY + 0.025, z * w * 0.35);
@@ -259,6 +265,37 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     add(box(side + 0.04, 0.03, side + 0.04), frame, mx, deckY + poleH + panelH + 0.015, 0);
     // A low radiator plate where the flat panel would be.
     add(box(l * 0.4, 0.02, w * 0.6), radiator, l * 0.12, deckY + 0.01, 0);
+  } else if (look.power === 'rtg') {
+    // A radioisotope generator at the back, tilted up like Curiosity's: a dark core with radial cooling fins.
+    const length = 0.55;
+    const parts: THREE.BufferGeometry[] = [new THREE.CylinderGeometry(0.1, 0.1, length, 16)];
+    for (let k = 0; k < 8; k++) {
+      const a = (k / 8) * Math.PI * 2;
+      const fin = new THREE.BoxGeometry(0.1, length * 0.92, 0.012);
+      fin.translate(0.13, 0, 0);
+      fin.rotateY(a);
+      parts.push(fin);
+    }
+    const core = mergeGeometries(parts.slice(0, 1))!;
+    const fins = mergeGeometries(parts.slice(1))!;
+    parts.forEach((g) => g.dispose());
+    for (const g of [core, fins]) g.rotateZ(1.0); // the top leans out behind the rover
+    const rx = -l / 2 - 0.2;
+    const ry = deckY - 0.05;
+    add(core, dark, rx, ry, 0);
+    add(fins, radiator, rx, ry, 0);
+    for (const z of [-1, 1]) add(box(0.3, 0.04, 0.04), frame, -l / 2 - 0.06, ry - 0.06, z * 0.12); // mounting struts
+  }
+  if (look.power === 'arrays') {
+    // Deployable solar arrays: two wings folded out from the deck, beyond the wheels.
+    const wingW = w * 0.48;
+    const wingCells = cells([7, 4], 'wingCells');
+    for (const z of [-1, 1]) {
+      const zc = z * (w * 0.51 + wingW / 2);
+      add(box(l * 0.86, 0.022, wingW + 0.02), mat('cellFrame', { color: COLORS.cellFrame }), -0.04, deckY + 0.05, zc);
+      add(box(l * 0.83, 0.026, wingW - 0.01), wingCells, -0.04, deckY + 0.053, zc);
+      add(rod(0.012, 0.18), frame, -0.04, deckY + 0.05, z * w * 0.51).rotation.x = Math.PI / 2; // the hinge
+    }
   }
 
   // Battery: nickel-hydrogen cells are cylindrical pressure vessels; lithium-ion is a compact pack.
@@ -353,6 +390,65 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     add(rod(0.032, 0.012, 14), mat('apxs', { color: 0xc9ccd0 }), ax + 0.1, -0.563, 0);
   }
 
+  // Mars support hardware: a remote sensing mast near the front left corner with a white head and a big
+  // lens, and a robotic arm folded across the front right, below the floodlights, its turret pointing down.
+  const mx = l * 0.36;
+  const mz = -w * 0.3;
+  const mastHeight = 1.25;
+  const ax = l / 2 + 0.08;
+  const ay = -0.08;
+  const zs = w * 0.36; // the arm's shoulder
+  if (look.mast) {
+    slot = 'mast';
+    const height = mastHeight;
+    add(rod(0.035, height), frame, mx, deckY + height / 2, mz);
+    add(box(0.2, 0.18, 0.3), radiator, mx, deckY + height + 0.08, mz);
+    const lens = add(rod(0.06, 0.07, 16), mat('lens', { color: 0x111216, emissive: 0x0a1a2a }), mx + 0.12, deckY + height + 0.08, mz);
+    lens.rotation.z = Math.PI / 2;
+  }
+  if (look.arm) {
+    slot = 'arm';
+    const ze = w * 0.12; // elbow, clear of the drill
+    add(box(0.12, 0.12, 0.12), dark, ax - 0.02, ay, zs);
+    const upper = add(rod(0.03, zs - ze), frame, ax + 0.02, ay, (zs + ze) / 2);
+    upper.rotation.x = Math.PI / 2;
+    add(rod(0.045, 0.08, 12), dark, ax + 0.06, ay - 0.04, ze).rotation.x = Math.PI / 2;
+    const fore = add(rod(0.026, zs - ze + 0.02), frame, ax + 0.1, ay - 0.08, (zs + ze) / 2 + 0.02);
+    fore.rotation.x = Math.PI / 2;
+    add(box(0.16, 0.14, 0.16), casing, ax + 0.12, ay - 0.12, zs + 0.06);
+    add(rod(0.04, 0.08, 12), dark, ax + 0.12, ay - 0.23, zs + 0.06);
+  }
+
+  // Mars instruments (placeholder looks until their mission features arrive): a weather boom on the back
+  // right of the deck, the radar's flat antenna under the rear, the laser on top of the mast head (or on
+  // the deck before a mast is chosen), and the organics spectrometer beside the arm's turret.
+  if (hasInstrument('weather')) {
+    slot = 'weather';
+    const wx = -l * 0.12;
+    const wz = w * 0.38;
+    add(rod(0.015, 0.6), frame, wx, deckTop + 0.3, wz);
+    for (const s of [-1, 1]) add(box(0.22, 0.015, 0.015), frame, wx + s * 0.11, deckTop + 0.5, wz);
+    add(rod(0.03, 0.06, 10), radiator, wx, deckTop + 0.62, wz);
+  }
+  if (hasInstrument('radar')) {
+    slot = 'radar';
+    add(box(0.34, 0.05, 0.46), dark, -l * 0.28, -top - 0.03, 0);
+  }
+  if (hasInstrument('laser')) {
+    slot = 'laser';
+    const ly = look.mast ? deckY + mastHeight + 0.22 : deckTop + 0.06;
+    add(box(0.2, 0.1, 0.18), radiator, mx, ly, mz);
+    const aperture = add(rod(0.05, 0.03, 16), dark, mx + 0.11, ly, mz);
+    aperture.rotation.z = Math.PI / 2;
+  }
+  if (hasInstrument('organics')) {
+    slot = 'organics';
+    const ox = look.arm ? ax + 0.12 : l / 2 - 0.1;
+    const oy = look.arm ? ay - 0.12 : -top - 0.02;
+    const oz = look.arm ? zs - 0.08 : w * 0.3;
+    add(box(0.1, 0.1, 0.08), foil, ox, oy, oz);
+  }
+
   // On the deck, until set down on the ground: the seismometer station and the laser retroreflector.
   if (hasInstrument('seismometer')) {
     slot = 'seismometer';
@@ -375,12 +471,13 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   const wheelW = 0.22;
   const tireMat = look.wheels === 'mesh'
     ? mat('tireMesh', { color: COLORS.wheelMesh, map: meshTexture(), alphaTest: 0.4, side: THREE.DoubleSide })
-    : mat('tireSolid', { color: COLORS.wheelSolid });
+    : mat(look.wheels === 'grouser' ? 'tireGrouser' : 'tireSolid', { color: look.wheels === 'grouser' ? 0xa3a6aa : COLORS.wheelSolid });
   const tire = new THREE.CylinderGeometry(r, r, wheelW, 28, 1, look.wheels === 'mesh');
   tire.rotateX(Math.PI / 2);
-  // Grousers (solid wheels) or chevrons (mesh wheels, as on the Apollo rover): one merged geometry.
+  // Grousers (solid wheels; taller and more of them on the grouser wheels) or chevrons (mesh wheels, as on
+  // the Apollo rover): one merged geometry.
   const cleats: THREE.BufferGeometry[] = [];
-  const count = look.wheels === 'mesh' ? 16 : 14;
+  const count = look.wheels === 'mesh' ? 16 : look.wheels === 'grouser' ? 20 : 14;
   for (let k = 0; k < count; k++) {
     const a = (k / count) * Math.PI * 2;
     if (look.wheels === 'mesh') {
@@ -391,6 +488,11 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
         g.rotateZ(a);
         cleats.push(g);
       }
+    } else if (look.wheels === 'grouser') {
+      const g = new THREE.BoxGeometry(0.024, 0.05, wheelW);
+      g.translate(0, r + 0.02, 0);
+      g.rotateZ(a);
+      cleats.push(g);
     } else {
       const g = new THREE.BoxGeometry(0.03, 0.025, wheelW);
       g.translate(0, r + 0.008, 0);

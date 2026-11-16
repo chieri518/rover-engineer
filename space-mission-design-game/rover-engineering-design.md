@@ -2,7 +2,7 @@
 
 The design space for the rover the player builds at the engineer's desk: every component the game could offer, the constraints that limit how they combine, and the properties they give the rover in a mission. It is written for our team, not for players.
 
-Last updated November 15, 2026. The game rules themselves stay in [game-design.md](game-design.md), which is the source of truth. This doc is the catalog behind its [Rover design](game-design.md#7-rover-design) section: when a part or rule here is decided for a world, game-design.md records it and links back here. Real numbers come from [rover-engineering/02](research/rover-engineering/02-rover-subsystems.md) unless another source is given.
+Last updated November 15, 2026 (the Mars first wave recorded from Phase 0 of the [Mars rover engineering plan](mars-rover-engineering-implementation-plan.md) and the [Mars sites and milestones plan](mars-sites-and-milestones-plan.md); not built yet). The game rules themselves stay in [game-design.md](game-design.md), which is the source of truth. This doc is the catalog behind its [Rover design](game-design.md#7-rover-design) section: when a part or rule here is decided for a world, game-design.md records it and links back here. Real numbers come from [rover-engineering/02](research/rover-engineering/02-rover-subsystems.md) unless another source is given.
 
 **How to read this doc.** Same convention as game-design.md: everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). The first draft's open questions were all decided on November 15 (see [Decisions and later work](#11-decisions-and-later-work)). Game numbers in this doc are **indicative**: they show the intended scale against today's parts and are settled in a balance pass, then stored in `game/data/*.json`.
 
@@ -32,7 +32,7 @@ Last updated November 15, 2026. The game rules themselves stay in [game-design.m
 | Mission features | Some instruments give the player live information as well as milestones: the neutron spectrometer's hydrogen meter, the spectrometer's rock readout, an Earth line-of-sight light for the retroreflector. |
 | Moon payload | Six instruments: science camera, regolith drill, neutron spectrometer, X-ray spectrometer, seismometer station, laser retroreflector. Five types worked on lunar rovers or landers. No neutron spectrometer has driven on a rover yet: they have mapped hydrogen from lunar orbit (Lunar Prospector, LRO's LEND), and one is designed to drive on NASA's VIPER, which has not flown. |
 | Relationships | **Decided (November 15):** parts affect each other (needs, conditions, conflicts, wear). Players discover them in the mission, an engineering notebook collects them (kept across failed runs), and a pre-launch review flags the ones already discovered. About four on the Moon, more on Mars and Titan. See [10](#10-relationships-and-consequences). |
-| Later worlds | The rest of the catalog unlocks with RP on Mars and Titan, together with support hardware (robotic arm, mast) and new constraints (data, dust, night, cold). A first version, to revisit after playtesting. |
+| Later worlds | The rest of the catalog unlocks with RP on Mars and Titan, together with support hardware (robotic arm, mast) and new constraints (data, dust, night, cold). A first version, to revisit after playtesting. **Mars first wave decided (November 15, not built):** four new instruments (weather mast, radar, laser and organics spectrometers), four carried over, the arm and mast, five bus parts, and four Mars lessons; see [8](#8-instruments-by-world), [9](#9-other-components-the-bus) and [10](#10-relationships-and-consequences). |
 
 ## 2. Design principles
 
@@ -167,8 +167,8 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 - **In the game:** look. Photos at viewpoints, of crater walls, and of Earth, kept in the album.
 - **Could earn:** pictures (panoramas, Earth), imaging science (crater layers).
 - **Indicative numbers:** 50 cost, 3 kg, size 1. No energy cost per photo (cheap and simple stays cheap and simple).
-- **Levels:** Science camera (Moon) → Multispectral camera (Mars).
-- **World:** Moon.
+- **Levels:** Science camera (Moon) → Multispectral camera (Mars, later wave).
+- **World:** Moon; Mars as it is *(Mars first wave, decided November 15, 2026, in the Mars plans' Phase 0; not built yet; mechanics and numbers in [game-design.md](game-design.md#mars-rover-design))*: Crater wall, Dust devil, Documented sample with the X-ray, plus the built Delta layers and Blue sunset. The mast widens its photo zones.
 
 #### Multispectral camera
 
@@ -194,8 +194,8 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 - **In the game:** dig. Stop and drill; samples count away from the lander; the ice must be drilled to be found.
 - **Could earn:** regolith samples, water ice.
 - **Indicative numbers:** 90 cost, 8 kg, size 3, an energy cost per sample. No hydrogen clue: that moves to the neutron spectrometer (see [7](#7-the-moon-payload)).
-- **Levels:** Regolith drill (Moon) → Deep drill (Mars) → Coring drill with sample cache (Mars, later).
-- **World:** Moon.
+- **Levels:** Regolith drill (Moon) → Deep drill (Mars, later wave) → Coring drill with sample cache (Mars, later).
+- **World:** Moon; Mars as it is, called the rock drill *(Mars first wave, decided November 15, 2026, in the Mars plans' Phase 0; not built yet; mechanics and numbers in [game-design.md](game-design.md#mars-rover-design))*: Séítah core and Signs of an ancient lake, plus the built Core sample.
 
 #### Deep drill
 
@@ -221,15 +221,15 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 - **In the game:** sense while driving. A live hydrogen meter rises as the rover nears buried hydrogen. It does not need the rover to stop.
 - **Could earn** *(decided November 15, not built yet)*: Cold trap survey (up to 3 stages), Hidden hydrogen, Ice deposit located (see [7](#7-the-moon-payload)); and it helps find the ice for the drill.
 - **Indicative numbers:** about 80 cost, 4 kg, size 2, standby energy while switched on.
-- **Levels:** Neutron spectrometer, passive (Moon) → Active neutron spectrometer (Mars; Curiosity's DAN fires its own neutron pulses and reads deeper while stopped) → Gamma-ray and neutron spectrometer (Titan; Dragonfly's DraGNS also reads elements).
-- **World:** Moon.
+- **Levels:** Neutron spectrometer, passive (Moon) → Active neutron spectrometer (Mars, later wave; Curiosity's DAN fires its own neutron pulses and reads deeper while stopped) → Gamma-ray and neutron spectrometer (Titan; Dragonfly's DraGNS also reads elements).
+- **World:** Moon; Mars as it is *(Mars first wave, decided November 15, 2026, in the Mars plans' Phase 0; not built yet; mechanics and numbers in [game-design.md](game-design.md#mars-rover-design))*, because Mars now has hydrogen to find: a hidden hydrated ground patch (*placed by design*) and slightly higher readings at Séítah and the delta foot (Mars M3, provisional, for Chieri's review). It earns Hydrated ground and Hydrogen traverse. On an RTG rover its meter is noisy (a Mars lesson).
 
 #### Ground-penetrating radar
 
 - **Real basis:** Yutu-2's Lunar Penetrating Radar, Zhurong's subsurface radar and Perseverance's RIMFAX (under 3 kg, 5 to 10 W, [02](research/rover-engineering/02-rover-subsystems.md#instrument-reference-values)).
 - **In the game:** sense while driving. A strip shows the buried layers under the path the rover just drove; a straight, steady drive gives a clean profile.
 - **Could earn:** a radar transect across a crater rim or an old lava flow; finding buried ice layers on Mars.
-- **World:** Mars (it also flew on the Moon; held back so Mars has a new verb).
+- **World:** Mars (it also flew on the Moon; held back so Mars has a new verb). *(Mars first wave, decided November 15, 2026, in the Mars plans' Phase 0; not built yet; mechanics and numbers in [game-design.md](game-design.md#mars-rover-design))*: 90 cost, 3 kg, size 2, a standby draw while on; a subsurface strip under the meters. Earns Buried layers and Long profile.
 
 #### Magnetometer
 
@@ -247,7 +247,7 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 - **Could earn:** comparing different rocks (rocks in a boulder field are thrown out from different depths by the impact); finding an unusual rock. *Decided November 15, not built yet:* Rock collection (up to 3 stages), Rare rock, and Documented sample with the camera.
 - **Indicative numbers:** about 60 cost, 2 kg, size 1, a few seconds held still and a small energy cost per reading.
 - **Needs:** on the Moon a built-in deploy mechanism, as on Pragyan; from Mars, contact instruments need the robotic arm.
-- **World:** Moon.
+- **World:** Moon; Mars as it is, with the arm *(Mars first wave, decided November 15, 2026, in the Mars plans' Phase 0; not built yet; mechanics and numbers in [game-design.md](game-design.md#mars-rover-design))*. On Mars it refuses to read on ground steeper than 10° (the arm lesson). Earns Rock collection (six Mars rock types), Rare rock (the flood boulder) and Documented sample with the camera.
 
 ##### Rock types by site
 
@@ -283,13 +283,15 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 
 The two milestones the placeholder section listed as possible, "read three different rock types" and "find a rare rock", are now decided as **Rock collection** and **Rare rock** (see [7](#7-the-moon-payload)).
 
+**Mars rock types** *(decided November 15, 2026, MS9 and MS10; not built yet)*. Mars gets six rock types with its own suites by site, read by the X-ray and laser spectrometers: Máaz basalt (the common crater-floor rock), salt-veined basalt, olivine cumulate, carbonate-bearing olivine rock, lake mudstone and a rare flood conglomerate in one flood boulder at the delta foot (*placed by design*). Olivine in Rocky area 2's ejecta is a design choice too ("inspired by"). Readouts, suites, weights and sources are in [game-design.md](game-design.md#mars-rock-types), the source of truth; the readout counts "New type: 3 of 6".
+
 #### Laser spectrometer (LIBS)
 
 - **Real basis:** laser-induced breakdown spectroscopy vaporizes a pinpoint of rock and reads the light: Pragyan's LIBS (which confirmed sulfur near the south pole), and SuperCam on Perseverance, which works at up to about 7 m (about 10.6 kg, 17.9 W, [02](research/rover-engineering/02-rover-subsystems.md#instrument-reference-values)).
 - **In the game:** zap from a distance. Aim at a rock within a few meters without driving up to it, faster than touching but heavier and hungrier.
 - **Could earn:** the same composition science as the X-ray spectrometer, reached differently; targets the rover cannot drive to (a rock on a steep slope).
 - **Needs:** mast.
-- **World:** Mars.
+- **World:** Mars *(Mars first wave, decided November 15, 2026, in the Mars plans' Phase 0; not built yet; mechanics and numbers in [game-design.md](game-design.md#mars-rover-design))*: 100 cost, 6 kg, size 2, a large energy cost per reading, a reach several times the X-ray's. It reads boulders and the delta cliff and gives the same rock types as the X-ray. Earns Remote reading and Rock from afar.
 
 #### Organics spectrometer
 
@@ -297,7 +299,7 @@ The two milestones the placeholder section listed as possible, "read three diffe
 - **In the game:** touch, slow and power-hungry; works best on a freshly drilled or abraded surface.
 - **Could earn:** organic molecules, a candidate sign of past life (Mars record).
 - **Needs:** robotic arm.
-- **World:** Mars.
+- **World:** Mars *(Mars first wave, decided November 15, 2026, in the Mars plans' Phase 0; not built yet; mechanics and numbers in [game-design.md](game-design.md#mars-rover-design))*: 110 cost, 4 kg, size 2, a long hold that draws energy as it runs. It refuses on ground steeper than 10°. Earns Organic signals and Lake organics. Text says "signals consistent with", never "found organic molecules".
 
 ### Laboratories
 
@@ -324,8 +326,8 @@ The two milestones the placeholder section listed as possible, "read three diffe
 - **In the game:** deploy and leave. Stop, set the station down, drive on. If it is deployed before the mission's moonquake, it records the quake.
 - **Could earn:** recording a moonquake (the event every Moon mission already has). *Decided November 15, not built yet:* Moonquake record, Clean seismogram, and Science station with the reflector.
 - **Indicative numbers:** about 70 cost, 4 kg, size 2. Deploying takes a few seconds held still. The station's mass leaves the rover, so the rover is lighter and a little faster afterwards.
-- **Levels:** Seismometer station (Moon) → Broadband seismometer (Mars, InSight-class; reads distant quakes and the planet's interior).
-- **World:** Moon.
+- **Levels:** Seismometer station (Moon) → Broadband seismometer (Mars, InSight-class; reads distant quakes and the planet's interior; a later wave, with the marsquake).
+- **World:** Moon. Not offered on the Mars desk in the first wave: Mars has no marsquake yet (Mars M2).
 
 #### Laser retroreflector
 
@@ -333,7 +335,7 @@ The two milestones the placeholder section listed as possible, "read three diffe
 - **In the game:** deploy and leave. It needs no power, but it must be set down where Earth is in view, because Earth's lasers have to reach it. The HUD shows whether Earth is in view.
 - **Could earn:** placing a reflector Earth can range. *Decided November 15, not built yet:* Laser ranging site, and Science station with the seismometer.
 - **Indicative numbers:** about 30 cost, 3 kg (Lunokhod 1's array was about 3.7 kg, *unverified*), size 1, no energy. Its mass leaves the rover when deployed.
-- **World:** Moon.
+- **World:** Moon only: it needs Earth in the sky, so it is not offered on the Mars desk (Mars M2).
 
 #### Heat flow probe
 
@@ -347,7 +349,7 @@ The two milestones the placeholder section listed as possible, "read three diffe
 - **Real basis:** Perseverance's MEDA (about 5.5 kg, up to 17 W), Curiosity's REMS, Zhurong's weather station; Dragonfly's DraGMet on Titan.
 - **In the game:** monitor (on the rover) or deploy (as a station). Shows temperature, pressure, wind, and dust trends; warns of dust storms.
 - **Could earn:** logging a full day and night cycle; recording a dust devil or storm.
-- **World:** Mars. Not on the Moon: it has almost no atmosphere.
+- **World:** Mars. Not on the Moon: it has almost no atmosphere. *(Mars first wave, decided November 15, 2026, in the Mars plans' Phase 0; not built yet; mechanics and numbers in [game-design.md](game-design.md#mars-rover-design))*: in this wave it is a switch aboard the rover (60 cost, 5 kg, size 2, a small standby draw), not a station; a deployable weather station can come later under the Moon's near-lander rule. While on, it gives an earlier storm forecast and a pressure and dust trend. Earns Storm log, Night weather and Dust devil pass.
 
 ### Environment monitors
 
@@ -452,6 +454,29 @@ The two milestones the placeholder section listed as possible, "read three diffe
 | Mass spectrometer | | | New |
 | Liquid sampler | | | New (*speculative*) |
 
+**The Mars first wave** *(decided November 15, 2026, in the Mars plans' Phase 0; not built yet)*. The table above is the long-term plan; Mars ships it in waves. Mechanics, prices and starting values are in [game-design.md](game-design.md#mars-rover-design).
+
+| On the Mars desk in the first wave | Instruments | Needs |
+| --- | --- | --- |
+| Carried over | Science camera, regolith drill ("rock drill"), X-ray spectrometer, neutron spectrometer (it has Mars hydrogen to find: Mars M3, provisional, for Chieri's review) | The X-ray needs the arm on Mars |
+| New | Weather mast (a switch aboard, not a station), ground-penetrating radar, laser spectrometer, organics spectrometer | Laser: mast. Organics: arm |
+| Not offered on Mars | Seismometer station (no marsquake yet), laser retroreflector (no Earth in the sky) | |
+| Later waves | Levels (multispectral camera, deep drill, active neutron spectrometer, broadband seismometer) and the magnetometer, microscopic imager, atmosphere sampler, dosimeter, dust monitor, penetrometer, heat flow probe, oxygen maker, coring drill and cache | |
+
+**What each Mars instrument earns** *(decided November 15, MS1 to MS15; rewards are starting values)*. Every instrument on the Mars desk earns at least one milestone, on a route a passing build can drive within about 1.5 km of the landing (the Mars plan's constraint C4). Rules and rewards are in [game-design.md](game-design.md#new-mars-milestones).
+
+| Instrument | Mars milestones |
+| --- | --- |
+| Camera | Delta layers, Blue sunset (built); Crater wall, Dust devil, Documented sample (with the X-ray) |
+| Drill | Core sample ×3 (built); Séítah core, Signs of an ancient lake |
+| X-ray (arm) | Rock collection ×3, Rare rock, Documented sample (with the camera) |
+| Organics (arm) | Organic signals ×2, Lake organics |
+| Laser (mast) | Remote reading ×3, Rock from afar |
+| Radar | Buried layers ×3, Long profile |
+| Neutron | Hydrated ground, Hydrogen traverse ×2 |
+| Weather mast | Storm log, Night weather, Dust devil pass |
+| Arm, mast | Nothing alone, by design: they earn through their instruments |
+
 **Unlocks.** From Mars on, new instruments cost RP to unlock (game-design.md: "Locked parts first appear on Mars, greyed out with 'needs X RP'"). The thresholds belong to the unlock tree, game-design.md open question 3. One rule worth keeping: an instrument earns most of its RP on the world before it unlocks its level 2, so using the neutron spectrometer on the Moon helps unlock the active one on Mars.
 
 ## 9. Other components: the bus
@@ -460,17 +485,19 @@ The parts that keep the rover alive and moving. Moon options are today's (game-d
 
 | Slot | Moon | Mars | Titan | Constraints it uses | Properties it gives |
 | --- | --- | --- | --- | --- | --- |
-| Chassis | Steel, titanium | Add a rocker-bogie frame (climbs better, heavier) | | Cost, mass, size | Maximum load, mounting points |
-| Wheels | Solid, wire mesh | Add thick aluminum wheels with grousers | Add wide flotation wheels for soft organic sand | Cost, mass, size | Speed, grip, energy per meter |
-| Power | Fixed panel, solar mast | Add deployable arrays (more income, collect dust); RTG | RTG only (at Saturn's distance sunlight is about 1% of Earth's, and Titan's haze blocks most of that) | Cost, mass, size | Energy income; RTG adds steady heat |
-| Battery | Nickel-hydrogen, lithium-ion | Larger packs for the night | | Cost, mass, size | Energy storage |
-| Lights | None, LED floodlights | Needed to work at night | Needed in the long night | Cost, mass, size, (later) energy | Light range |
-| Heater | None, radioisotope heater units | Add RTG heat loop, phase-change heat store | Needed everywhere | Cost, mass, size | Heat |
+| Chassis | Steel, titanium | Add a rocker-bogie frame (climbs better, heavier; later wave, with a mobility pass) | | Cost, mass, size | Maximum load, mounting points |
+| Wheels | Solid, wire mesh | Add thick aluminum wheels with grousers (**first wave**: grouser wheels, more grip on Séítah's sand, slower than mesh) | Add wide flotation wheels for soft organic sand | Cost, mass, size | Speed, grip, energy per meter |
+| Power | Fixed panel, solar mast | Add deployable arrays (more income, collect dust); RTG (**first wave**, both: the RTG's steady income ignores night, dust and storms, adds neutron noise, and its waste heat counts as a heater) | RTG only (at Saturn's distance sunlight is about 1% of Earth's, and Titan's haze blocks most of that) | Cost, mass, size | Energy income; RTG adds steady heat |
+| Battery | Nickel-hydrogen, lithium-ion | Larger packs for the night (**first wave**: a 900 pack, expensive and light) | | Cost, mass, size | Energy storage |
+| Lights | None, LED floodlights | Needed to drive at night; on Mars the LED owns its 3/s night draw (**first wave**) | Needed in the long night | Cost, mass, size, (later) energy | Light range |
+| Heater | None, radioisotope heater units | Add RTG heat loop, phase-change heat store (**first wave**: an electric heater that draws on the battery every night, and the RTG's waste heat counted as a heater; the heat store waits) | Needed everywhere | Cost, mass, size | Heat |
 | Payload bay | Up to 3 instruments (steel 3, titanium 2) | Same, with support hardware below | Same | Mounting points | Science capabilities |
-| Robotic arm | Not offered | New: needed for contact instruments | | Cost, mass, size, energy | Enables touch instruments |
-| Mast | Not offered | New: needed for the laser spectrometer; raises the camera | | Cost, mass, size | Enables mast instruments; wider map reveal |
+| Robotic arm | Not offered | New: needed for contact instruments (**first wave**; refuses contact readings on ground steeper than 10°) | | Cost, mass, size | Enables touch instruments |
+| Mast | Not offered | New: needed for the laser spectrometer; raises the camera (**first wave**: the camera's photo zones grow) | | Cost, mass, size | Enables mast instruments; wider photo zones |
 | Communications | Not offered (via the lander) | New: relay radio or direct-to-Earth antenna | | Cost, mass, size, energy | Data downlink (open question 6) |
 | Computer | Not offered | New: faster computer for self-driving assists | | Cost, mass, energy | Driving aids, hazard stop |
+
+*(Mars first wave decided November 15, 2026, in the Mars plans' Phase 0; not built yet.)* Prices, effects and the power model in which the lights, the electric heater and the RTG own their night draws are in [game-design.md](game-design.md#mars-rover-design). Communications and the computer wait for a later wave.
 
 Real anchors for each slot are in the [component catalog](research/rover-engineering/02-rover-subsystems.md#component-catalog-for-the-game) and the [coupling matrix](research/rover-engineering/02-rover-subsystems.md#coupling-matrix).
 
@@ -496,7 +523,7 @@ Real anchors for each slot are in the [component catalog](research/rover-enginee
 2. **Mild by default, but they count.** A consequence makes something slower, noisier, or riskier, and the player can respond during the mission; it rarely forbids. Consequences still matter: they can cost enough milestones to fail the Moon's pass mark, and some add damage to the rover or its parts that builds up. Hard blocks stay few and obvious (no lights, no entering permanent shadow).
 3. **At least two answers.** Every relationship can be solved in more than one way (add a part, change the plan, or pick another instrument), so several builds stay viable.
 4. **One cause, one signal, one explanation.** Each relationship has a single cause at the desk, a visible signal in the mission (a meter, an icon, the notice from rule 1), and a plain-language "why" in the debrief with the real mission behind it (brief items EDU-05 and EDU-06).
-5. **Rationed per world.** Five lessons on the Moon (four relationships and the no-lights hard block), more on Mars and Titan. No chain longer than two steps on the Moon.
+5. **Rationed per world.** Five lessons on the Moon (four relationships and the no-lights hard block), four on Mars in its first wave (three relationships and its own no-lights hard block), more on Titan. No chain longer than two steps on the Moon.
 6. **Real and checked.** Each relationship is a documented effect on a real mission. Claims that do not survive checking stay out (see [Checked claims](#checked-claims)).
 
 ### Kinds of relationship
@@ -552,14 +579,26 @@ The retroreflector's need for Earth in view is a condition of a single instrumen
 
 ### Mars relationships
 
+*Updated November 15, 2026, in the Mars plans' Phase 0 (Mars M9, M14, M15; MS11); not built yet.* Mars's first wave has **four lessons**: three relationships and its own no-lights hard block. The answers are the Mars plan's originals (Mars M14); where they do not fit the budget, that is a known issue for the balance patch. Rules, signals and the spoiler guard are in [game-design.md](game-design.md#mars-rover-design).
+
 | Relationship | Kind | What the player sees | Answers | Real basis |
 | --- | --- | --- | --- | --- |
-| A nuclear generator (RTG) adds neutron noise | Conflicts | The hydrogen meter has a raised noise floor on an RTG rover | Solar power instead; or the active neutron spectrometer, which reads with its own pulses and subtracts the background | Jun et al. (2013) estimated about 60% of DAN's thermal neutron counts at Rocknest came from Curiosity's MMRTG, 40% from cosmic rays (JGR Planets 118:2400, doi:10.1002/2013JE004510) |
+| A nuclear generator (RTG) adds neutron noise | Conflicts | The hydrogen meter's floor is raised and jitters on an RTG rover, so the hidden hydrated ground is hard to follow | Solar power instead; or leave the neutron spectrometer home | Jun et al. (2013) estimated about 60% of DAN's thermal neutron counts at Rocknest came from Curiosity's MMRTG, 40% from cosmic rays (JGR Planets 118:2400, doi:10.1002/2013JE004510) |
+| Dust on the panels | Conditions | Energy income falls over the mission; the income line shows a dust factor | An RTG; the mast's higher panel; a route past dust devils | [02](research/rover-engineering/02-rover-subsystems.md#dust-on-the-panels-dust-factor); Spirit's 2005 cleaning event goes in the notebook entry, never in a milestone fact |
+| The arm cannot reach targets on steep ground | Conditions | Contact instruments refuse targets when the rover stands on ground steeper than 10°, with a notice naming the slope | Park level beside the target; or the laser spectrometer from a distance | Perseverance's PIXL and SHERLOC must sit a few centimeters from the rock ([JPL](https://www.jpl.nasa.gov/news/nasas-perseverance-rover-scours-mars-for-science/)) |
+| No lights, no night driving (hard block, Mars entry) | Needs | A rover without lights cannot drive at night | Fit lights; or sleep through the night | Real Mars rovers sleep through the night; NASA's VIPER, a Moon rover, was designed with headlights (it has not flown). The text never says a Mars rover drives at night or carries floodlights |
+
+- **The electric heater lesson is dropped** (Mars M15). The heater is a plain part cost that the desk's night budget line shows; it has no notice and no review entry. A cold-battery relationship can replace it in a later wave.
+- **The RTG noise answer is not the active neutron spectrometer** in this wave: that level comes later. Until then the answers are solar power or leaving the instrument home.
+- **Combos no longer need a rule against them** (MS11). The sites plan's draft banned laser-plus-contact and neutron-plus-solar combos so a milestone's part pairing could not hint at a lesson. That ban is lifted: no milestone is visible before it is reached (desk cards list names only, and the debrief's "Not reached" list comes after the mission). Combos are added only where they make good science, and their wording still never spells out a lesson. The first wave has one, Documented sample (camera and X-ray).
+- **Later waves:**
+
+| Relationship | Kind | What the player sees | Answers | Real basis |
+| --- | --- | --- | --- | --- |
 | Big labs and driving cannot run together | Shares | A lab analysis pauses driving, or waits for night | Plan analyses during stops or at night; more battery | Curiosity schedules SAM around its power budget ([NASA blog](https://science.nasa.gov/blog/sols-3900-3901-making-the-most-of-limited-power)); Sojourner could not run its APXS and radio at once ([PDS](https://pds.nasa.gov/data/mpfr-m-apxs-2-edr-v1.0/mprv_0001/document/roverdoc/uplkdocs/overview/opsvgs.htm)) |
 | Scout, drill, then analyze | Needs | The lab is idle until the drill delivers a sample; the laser shows which rock is worth drilling | Bring the pair; or pick other science | Curiosity's ChemCam checks targets before drilling and the drill feeds CheMin and SAM ([NASA blog](https://science.nasa.gov/blog/sols-2887-2889-ok-chemin-now-its-your-turn/)) |
-| The arm cannot reach targets on steep ground | Conditions | Contact instruments refuse targets on slopes or behind rocks | Park level beside the target; or the laser spectrometer from a distance | Perseverance's PIXL and SHERLOC must sit a few centimeters from the rock ([JPL](https://www.jpl.nasa.gov/news/nasas-perseverance-rover-scours-mars-for-science/)) |
 | Sharp rocks wear the wheels | Wear | Wheel wear rises on rocky ground; worn wheels slow the rover | Thicker wheels; or longer, smoother routes | Curiosity's wheels were holed on sharp rocks and its team chose smoother routes ([JPL](https://www.jpl.nasa.gov/news/curiosity-adds-reverse-driving-for-wheel-protection/)) |
-| Dust on the panels | Conditions | Energy income falls over the mission | Dust monitor and planning; or an RTG (with its neutron noise) | [02](research/rover-engineering/02-rover-subsystems.md#dust-on-the-panels-dust-factor) |
+| The RTG noise, second answer | Conflicts | | The active neutron spectrometer, which reads with its own pulses and subtracts the background | As above |
 
 ### Titan relationships
 
@@ -602,5 +641,6 @@ Every open question from the first draft was settled on November 15, 2026:
 | 5 | The Moon payload | The six in [7](#7-the-moon-payload); can be tuned later |
 | 6 | Milestones for the new Moon instruments | Not in the first scope. *Updated November 15, 2026:* decided in the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md) (open questions M1 to M15) and recorded in game-design.md ([Moon milestones](game-design.md#moon-milestones)): 12 new milestones covering every Moon instrument, two of them combos, new sites near the lander, and rock suites by site ([Rock types by site](#rock-types-by-site)). Not built yet |
 | 7 | Mars and Titan instruments and support hardware | As in [8](#8-instruments-by-world) and [9](#9-other-components-the-bus), a first version to revisit after playtesting; feeds game-design.md open questions 2 and 3 |
+| 8 | The Mars first wave | *Decided November 15, 2026* in the Mars plans' Phase 0 (Mars M1 to M19, MS1 to MS15): four new instruments and four carried over, the arm and mast, five bus parts, four Mars lessons (the heater lesson dropped, combos allowed), 20 new Mars milestones and six Mars rock types; recorded in [game-design.md](game-design.md#mars-rover-design). Owner B items are provisional, for Chieri's review; the Mars ticket tiers are *Proposed*. Not built yet |
 
 **Next:** the [implementation plan](rover-engineering-implementation-plan.md) for the payload bay, the four new Moon instruments, the relationships, the notebook, and the pre-launch review.

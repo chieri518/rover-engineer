@@ -4,12 +4,13 @@
 import type { DeathCause, EventsFile, Instrument, Part, RealFlare, Tuning } from './types';
 import { driveStats, type DriveStats } from './drive';
 import { roverTotals } from './rover';
-import { canDriveMars, driveEnergy, lowSunFactor, nightDrainPerSecond, solarIncome } from './energy';
+import { canDriveMars, driveEnergy, lowSunFactor, nightDraw, partPower, solarIncome, type PartPower } from './energy';
 import { impactDamage, overloadDamage, steepSlopeDamage, tiltDeg, type DamageCause } from './damage';
-import { marsFreezeRate, stepFreeze } from './cold';
+import { heatNow, marsFreezeRate, stepFreeze } from './cold';
 import { stepDig, wheelSlip } from './ground';
-import { flareDamage, flareProtected, type MissionEvent, type Rng } from './events';
-import type { DustStormSpec } from './marsTypes';
+import { flareDamage, flareProtected, seededRng, type MissionEvent, type Rng } from './events';
+import type { DustDevil, DustDevilSlot, DustDevilSpec, DustStormSpec } from './marsTypes';
+import { dustDevilCleaned, dustDevilsForming, placeDustDevil, scheduleDustDevils, stepDust } from './dust';
 import { solClock, solEdge, type SolState } from './sol';
 import { marsSunAt } from './marsSun';
 import { scheduleDustStorm, stormEdge, stormFreezeFactor, stormIntensity, stormPhase, stormSolarFactor, type DustStorm, type StormEdge, type StormPhase } from './storm';
@@ -20,11 +21,29 @@ export interface MarsSetup {
   site: { latitudeDeg: number; longitudeDeg: number }; // terrain.json sunAndEarth
   storm: DustStorm | null; // rules/storm.ts scheduleDustStorm
   stormSpec?: DustStormSpec; // events.duststorm
+  devils?: DustDevilSlot[]; // rules/dust.ts scheduleDustDevils: placed at the rover when each forms
+  devilSpec?: DustDevilSpec; // events.dustdevil
 }
 
-/** The Mars setup for a mission: the site and the mission's dust storm, drawn from the events' random generator. */
-export function marsSetup(site: MarsSetup['site'], events: EventsFile, rng: Rng): MarsSetup {
-  return { site, storm: scheduleDustStorm(events, rng), ...(events.duststorm ? { stormSpec: events.duststorm } : {}) };
+/**
+ * The Mars setup for a mission: the site and the mission's dust storm, drawn from the events' random
+ * generator, and (given the sol clock and mission length) the dust devils. The devils have their own
+ * seeded stream, seeded by one draw after the storm, so a seed's storm is the same with or without them.
+ */
+export function marsSetup(site: MarsSetup['site'], events: EventsFile, rng: Rng, tuning?: Pick<Tuning, 'sol' | 'mission'>): MarsSetup {
+  const storm = scheduleDustStorm(events, rng);
+  const spec = events.dustdevil;
+  // The devils' seed must stay the last use of rng here: a draw added before it would move every seed's
+  // devils (and, before the storm, its storm), which the seeded storm and dust tests pin.
+  const devils = spec && tuning?.sol
+    ? scheduleDustDevils(spec, tuning.sol, tuning.mission.lengthSeconds, seededRng(Math.floor(rng() * 0x100000000)))
+    : undefined;
+  return {
+    site,
+    storm,
+    ...(events.duststorm ? { stormSpec: events.duststorm } : {}),
+    ...(spec && devils ? { devils, devilSpec: spec } : {}),
+  };
 }
 import { instrumentCosts, type InstrumentCosts } from './payload';
 
@@ -33,6 +52,7 @@ export interface MissionSetup {
   stats: DriveStats;
   heat: number;
   hasLights: boolean;
+  power: PartPower; // the draws and steady income the parts own (rules/energy.ts); applied only where tuning.night exists
   overloadKg: number; // total mass above the chassis maximum load
   instruments: InstrumentCosts[]; // the payload still aboard, in bay order (deployed stations leave it)
   events: MissionEvent[];
@@ -46,6 +66,7 @@ export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent
     stats: driveStats(parts, tuning),
     heat: parts.reduce((s, p) => s + (p.effects.heat ?? 0), 0),
     hasLights: parts.some((p) => (p.effects.lightRange ?? 0) > 0),
+    power: partPower(parts),
     overloadKg: maxLoad === undefined ? 0 : Math.max(0, mass - maxLoad),
     instruments: instrumentCosts(parts),
     events,
@@ -91,6 +112,18 @@ export interface MissionState {
   flaresHarmed: number;
   flaresProtected: number;
   end: MissionEnd | null;
+  mars?: MarsState; // Mars only: started on the first Mars step if absent (the Mars setup arrives with the terrain)
+}
+
+/** What the Mars rules carry from step to step. */
+export interface MarsState {
+  dustFactor: number; // dust on the panels: solar income multiplier, 1 = clean (rules/dust.ts)
+  devils: DustDevil[]; // the dust devils placed so far, each where the rover was when it formed (for cleaning and the renderer)
+  roverAt: { x: number; z: number } | null; // the rover's position at the last step (a devil's closest pass is checked along the step)
+}
+
+function startMarsState(): MarsState {
+  return { dustFactor: 1, devils: [], roverAt: null };
 }
 
 /** What the mission screen measured about the rover over one step. */
@@ -106,6 +139,7 @@ export interface MissionSample {
   throttling: boolean; // the driver is pushing the throttle (and the rover is allowed to drive)
   impactMps: number; // sudden velocity change this step
   upY: number; // y component of the rover's up vector
+  position?: { x: number; z: number }; // where the rover is (Mars: dust devils form at it and clean near it); absent: no dust devils
 }
 
 export type MissionNotice =
@@ -145,6 +179,7 @@ export function startMission(setup: MissionSetup): MissionState {
     flaresHarmed: 0,
     flaresProtected: 0,
     end: null,
+    ...(setup.mars ? { mars: startMarsState() } : {}),
   };
 }
 
@@ -168,20 +203,25 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   const marsNotices: MarsNotice[] = [];
 
   // Energy: driving and instruments on standby (nothing while powered down), against solar income.
-  // Mars: low Sun and the dust storm cut solar income (none at night), and a night drain applies awake
-  // or asleep. Standby never ends the mission by itself: its draw never takes the battery below the
+  // Mars: low Sun, the dust storm and dust on the panels cut solar income (none at night); the parts'
+  // steady income (an RTG) is never cut; the night draw (electronics, lights, an electric heater) applies
+  // awake or asleep. Standby never ends the mission by itself: its draw never takes the battery below the
   // low-energy warning level; when it would, the switched-on instruments switch off (with a notice).
-  // The Mars night drain is not capped that way: it can empty the battery.
+  // The Mars night draw is not capped that way: it can empty the battery.
+  const marsPrev = mars ? prev.mars ?? startMarsState() : null;
   const drive = prev.poweredDown ? 0 : driveEnergy(s.distanceM, s.uphillDeg, stats.energyPerMeter, t.energy);
   const sunlight = mars ? s.sunlight * mars.solarFactor : s.sunlight;
+  const solar = solarIncome(stats.energyIncome * (marsPrev?.dustFactor ?? 1), sunlight, s.dt);
+  const steady = mars ? setup.power.steadyIncome * s.dt : 0;
   const drain = mars ? mars.drainPerSecond * s.dt : 0;
-  const afterDrive = Math.min(stats.batteryCapacity, prev.energy - drive - drain + solarIncome(stats.energyIncome, sunlight, s.dt));
+  const afterDrive = Math.min(stats.batteryCapacity, prev.energy - drive - drain + solar + steady);
   const standby = prev.poweredDown ? 0 : standbyDraw(prev, setup) * s.dt;
   const aboveLow = Math.max(0, afterDrive - lowEnergyLevel(setup, t));
   let standbyOff = false;
   if (prev.standbyOn.length > 0 && !prev.poweredDown && (standby >= aboveLow || aboveLow <= 0)) standbyOff = true;
   state.energy = afterDrive - Math.min(standby, aboveLow);
   state.distanceM = prev.distanceM + Math.max(0, s.distanceM);
+  if (mars && marsPrev) state.mars = stepMars(marsPrev, prev.seconds, state.seconds, s, mars.stormIntensity, setup, t);
 
   // Damage
   state.impactCooldown = Math.max(0, prev.impactCooldown - s.dt);
@@ -269,10 +309,11 @@ export interface MarsStatus {
   stormPhase: StormPhase;
   stormIntensity: number; // 0..1, for the renderer
   solarFactor: number; // multiplies the measured sunlight: low Sun × storm, 0 at night
-  drainPerSecond: number; // night drain apart from driving
+  drainPerSecond: number; // night draw apart from driving and standby (rules/energy.ts nightDraw)
+  dustFactor: number; // dust on the panels: solar income multiplier, 1 = clean (not part of solarFactor)
   freezeRate: number; // freeze meter change per second (negative = recovering)
   canDrive: boolean; // false asleep, and at night without lights
-  lightsOn: boolean; // awake at night with lights: the floodlights are on and the lights drain applies
+  lightsOn: boolean; // awake at night with lights: the floodlights are on and their draw (the parts' lightsDraw) applies
 }
 
 /** The Mars conditions at the state's time, or null on the Moon (no `setup.mars` or no sol/night tuning). */
@@ -295,11 +336,31 @@ function marsConditions(state: MissionState, setup: MissionSetup, t: Tuning): Ma
     stormPhase: stormPhase(at, m.storm),
     stormIntensity: intensity,
     solarFactor: night ? 0 : lowSunFactor(sun.elevationDeg, t.night) * stormSolarFactor(intensity, spec),
-    drainPerSecond: nightDrainPerSecond(night, state.poweredDown, setup.hasLights, t.night),
-    freezeRate: marsFreezeRate(night, setup.heat, stormFreezeFactor(intensity, spec), t.cold, t.night),
+    drainPerSecond: nightDraw(setup.power, { isNight: night, poweredDown: state.poweredDown, hasLights: setup.hasLights }, t.night),
+    dustFactor: state.mars?.dustFactor ?? 1,
+    freezeRate: marsFreezeRate(night, heatNow(setup.heat, setup.power.electricHeat, state.energy), stormFreezeFactor(intensity, spec), t.cold, t.night),
     canDrive: canDriveMars(night, state.poweredDown, setup.hasLights, t.night),
     lightsOn: night && setup.hasLights && !state.poweredDown,
   };
+}
+
+/**
+ * One step of the Mars state: the dust devils that form this step are placed where the rover is (a step
+ * without a position places none), a devil passing within tuning.dust.dustDevilCleanM along the step
+ * cleans the panels, and otherwise dust settles (faster in the storm). Dust settles on every rover; it
+ * only matters for solar income, and a rover without solar income has a dust rate of 0.
+ */
+function stepMars(prev: MarsState, prevSeconds: number, seconds: number, s: MissionSample, stormIntensity: number, setup: MissionSetup, t: Tuning): MarsState {
+  const m = setup.mars!;
+  const at = s.position ? { x: s.position.x, z: s.position.z } : null;
+  let devils = prev.devils;
+  if (at && m.devils && m.devilSpec) {
+    const forming = dustDevilsForming(m.devils, prevSeconds, seconds);
+    if (forming.length > 0) devils = [...devils, ...forming.map((slot) => placeDustDevil(slot, m.devilSpec!, at))];
+  }
+  const cleaned = at !== null && dustDevilCleaned(devils, prevSeconds, seconds, prev.roverAt ?? at, at, t.dust);
+  const dustFactor = stepDust(prev.dustFactor, { dt: seconds - prevSeconds, dustRate: setup.power.dustRate, stormIntensity, cleaned }, t.dust, t.sol?.secondsPerSol ?? 0);
+  return { dustFactor, devils, roverAt: at ?? prev.roverAt };
 }
 
 /** The parts still on the rover: deployed stations have left it. */
@@ -410,7 +471,8 @@ export function startInstrumentUse(
   if (c.needsEarth && !sample.earthInView) return refuse('no-earth');
   if (c.needsBoulder && !sample.boulderInReach) return refuse('no-boulder');
   if (cost > 0 && s.energy <= cost) return refuse('energy');
-  const slowedByCold = held && sample.inColdZone && setup.heat <= 0 && !c.coldTolerant;
+  // The heat that counts now (an electric heater's only while its draw is paid), as in the freeze step.
+  const slowedByCold = held && sample.inColdZone && heatNow(setup.heat, setup.power.electricHeat, s.energy) <= 0 && !c.coldTolerant;
   const fasterInShadow = held && c.shadowHoldFactor !== 1 && sample.sunlight < t.instruments.shadowSunlight;
   const holdSeconds = held ? c.useSeconds * (slowedByCold ? t.instruments.coldSlowdown : 1) * (fasterInShadow ? c.shadowHoldFactor : 1) : 0;
   const site: UseSite = { boulder: sample.boulder ?? null, inDarkCrater: sample.inDarkCrater ?? false, slowedByCold, fasterInShadow };

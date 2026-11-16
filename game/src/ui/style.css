@@ -437,7 +437,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .notebook-count { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); }
 .notebook-entries { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; }
 .notebook-entries > li { padding: 8px 0; border-bottom: 1px solid var(--line); }
-.notebook-entries h3 { font-size: 1rem; margin: 0 0 4px; color: var(--accent); }
+.notebook-world { margin-top: 12px; }
+.notebook-world-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--edge); }
+.notebook-world-head h3 { margin: 4px 0; font-size: 1.05rem; color: var(--info); }
+.notebook-entries h4 { font-size: 1rem; margin: 0 0 4px; color: var(--accent); }
 .notebook-entries p { margin: 4px 0; font-size: 0.92rem; }
 .notebook-entries .sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 0; }
 .notebook-entries .answers { margin: 2px 0 4px; padding-left: 1.2em; font-size: 0.92rem; }

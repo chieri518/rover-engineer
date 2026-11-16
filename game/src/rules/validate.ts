@@ -1,11 +1,13 @@
-import type { GameData, Milestone, MoonPipelineFeatures, PhotoTarget, PipelineFeatureList, ReadingTarget, SiteKind } from './types';
+import type { GameData, Milestone, MoonPipelineFeatures, PhotoTarget, PipelineFeatureList, ReadingTarget, SiteKind, SupportSlot } from './types';
 import { ZONE_IDS } from './milestones';
+import { KNOWN_WORLDS } from './payload';
 import { relationshipProblems } from './relationships';
 import { requiredInstruments } from './rover';
 import { coldZoneAnchor, type SiteFeatures } from './sites';
 
 const PHOTO_TARGETS: readonly PhotoTarget[] = ['earth', 'sunset', 'rolled-boulder', 'read-boulder'];
 const READING_TARGETS: readonly ReadingTarget[] = ['boulder', 'cliff'];
+const SUPPORT_SLOTS: readonly SupportSlot[] = ['arm', 'mast'];
 const SITE_KINDS: readonly SiteKind[] = ['young-crater', 'rocky-area', 'cold-trap', 'rolled-boulder', 'hidden-hydrogen'];
 const PIPELINE_LISTS: readonly PipelineFeatureList[] = ['coldTraps', 'youngCraters', 'boulderTrackCandidates', 'lowLightPatches'];
 /** Site kinds whose boulders the X-ray spectrometer reads: each needs a rock suite. */
@@ -15,8 +17,9 @@ const SUITE_KINDS: readonly SiteKind[] = ['young-crater', 'rocky-area', 'rolled-
 export function validateGameData(data: GameData): string[] {
   const problems: string[] = [];
   const { slots, parts } = data.parts;
+  const supportSlots = data.parts.supportSlots ?? [];
   const ids = new Set<string>();
-  const instrumentOnly = ['instrument', 'energyPerUse', 'standbyEnergy', 'useSeconds', 'deploy', 'shadowHoldFactor', 'coldTolerant', 'needsEarth', 'needsBoulder'] as const;
+  const instrumentOnly = ['instrument', 'energyPerUse', 'standbyEnergy', 'useSeconds', 'deploy', 'shadowHoldFactor', 'coldTolerant', 'needsEarth', 'needsBoulder', 'needs'] as const;
   for (const part of parts) {
     if (ids.has(part.id)) problems.push(`duplicate part id ${part.id}`);
     ids.add(part.id);
@@ -39,7 +42,7 @@ export function validateGameData(data: GameData): string[] {
         problems.push(`instrument part ${part.id} needs a shadowHoldFactor above 0 and at most 1`);
       }
     } else {
-      if (!slots.includes(part.slot)) problems.push(`part ${part.id} has unknown slot ${part.slot}`);
+      if (!(slots as string[]).includes(part.slot) && !(supportSlots as string[]).includes(part.slot)) problems.push(`part ${part.id} has unknown slot ${part.slot}`);
       for (const key of instrumentOnly) if (e[key] !== undefined) problems.push(`part ${part.id} is not an instrument but has ${key}`);
     }
     for (const [key, v] of Object.entries(e)) {
@@ -56,11 +59,17 @@ export function validateGameData(data: GameData): string[] {
       }
     }
   }
+  // Each world needs at least one part in every bus slot (this data is one world's offer).
   for (const slot of slots) {
-    if (!parts.some((p) => p.slot === slot)) problems.push(`slot ${slot} has no parts`);
+    if (!parts.some((p) => p.slot === slot)) problems.push(`slot ${slot} has no parts on ${data.world}`);
   }
+  problems.push(...catalogProblems(data));
+  problems.push(...supportProblems(data));
+  problems.push(...powerProblems(data));
+  problems.push(...dustProblems(data));
+  const allIds = new Set(data.allParts.parts.map((p) => p.id));
   for (const id of Object.keys(data.text.partText ?? {})) {
-    if (!ids.has(id)) problems.push(`text.partText names unknown part ${id}`);
+    if (!allIds.has(id)) problems.push(`text.partText names unknown part ${id}`);
   }
   const tiers = data.tiers.tiers;
   if (tiers.length === 0) problems.push('no ticket tiers');
@@ -85,13 +94,126 @@ export function validateGameData(data: GameData): string[] {
   }
   problems.push(...instrumentTuningProblems(data));
   problems.push(...siteProblems(data));
-  problems.push(...relationshipProblems(data.relationships, ids));
+  problems.push(...relationshipProblems(data.relationships, data.allParts.parts));
   const { flare, quake, duststorm } = data.events;
   if (flare && flare.realFlares.length < flare.windowsSeconds.length) {
     problems.push('events.json needs at least one real flare per flare window');
   }
   for (const [a, b] of [...(flare?.windowsSeconds ?? []), ...(quake?.windowsSeconds ?? []), ...(duststorm?.windowsSeconds ?? [])]) {
     if (!(a <= b && b <= data.tuning.mission.lengthSeconds)) problems.push(`event window [${a}, ${b}] is outside the mission`);
+  }
+  return problems;
+}
+
+/**
+ * The catalog per world: each part's `worlds` is a non-empty list of known world ids (a part no world
+ * offers would never be checked or shown), and part ids are unique across every world's parts.
+ */
+function catalogProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const part of data.allParts.parts) {
+    if (seen.has(part.id)) problems.push(`duplicate part id ${part.id} in the catalog`);
+    seen.add(part.id);
+    if (part.worlds === undefined) continue;
+    if (!Array.isArray(part.worlds) || part.worlds.length === 0) problems.push(`part ${part.id} has an empty worlds list (leave it out to offer the part everywhere)`);
+    else for (const w of part.worlds) if (!KNOWN_WORLDS.includes(w)) problems.push(`part ${part.id} names unknown world ${String(w)}`);
+  }
+  return problems;
+}
+
+/**
+ * Support hardware (Mars M5, M6): the world's support slots are known and listed once, each has at least
+ * one part on this world, only an arm-slot part is an arm (and only a mast-slot part a mast), and every
+ * instrument's `needs` names a support slot this world offers, with a part there that provides it (or the
+ * instrument could never be carried).
+ */
+function supportProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const offered = data.parts.supportSlots ?? [];
+  const parts = data.parts.parts;
+  offered.forEach((slot, i) => {
+    if (!SUPPORT_SLOTS.includes(slot)) problems.push(`parts.supportSlots names unknown support slot ${String(slot)}`);
+    else if (offered.indexOf(slot) !== i) problems.push(`parts.supportSlots lists ${slot} twice`);
+    else if (!parts.some((p) => p.slot === slot)) problems.push(`support slot ${slot} has no parts on ${data.world}`);
+  });
+  for (const part of parts) {
+    for (const slot of SUPPORT_SLOTS) {
+      const v = part.effects[slot];
+      if (v !== undefined && typeof v !== 'boolean') problems.push(`part ${part.id} needs ${slot} to be true or false`);
+      if (v && part.slot !== slot) problems.push(`part ${part.id} has ${slot} but is not in the ${slot} slot`);
+    }
+    const needs = part.effects.needs;
+    if (needs === undefined) continue;
+    if (!Array.isArray(needs)) {
+      problems.push(`part ${part.id} needs a list of support slots in needs`);
+      continue;
+    }
+    for (const need of needs) {
+      if (!SUPPORT_SLOTS.includes(need)) problems.push(`part ${part.id} needs unknown support slot ${String(need)}`);
+      else if (!offered.includes(need)) problems.push(`part ${part.id} needs the ${need}, which ${data.world} does not offer`);
+      else if (!parts.some((p) => p.slot === need && p.effects[need])) problems.push(`part ${part.id} needs the ${need}, but no ${need} part on ${data.world} provides it`);
+    }
+  }
+  return problems;
+}
+
+/**
+ * The power the parts own (Mars M1; rules/energy.ts partPower): lightsDraw, heaterDraw and steadyIncome
+ * are finite numbers, not negative, and an electric heater (heaterDraw above 0) gives heat, or its draw
+ * would buy nothing.
+ */
+function powerProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  for (const part of data.parts.parts) {
+    const e = part.effects;
+    for (const key of ['lightsDraw', 'heaterDraw', 'steadyIncome'] as const) {
+      const v: unknown = e[key];
+      if (v !== undefined && !(typeof v === 'number' && Number.isFinite(v) && v >= 0)) problems.push(`part ${part.id} needs ${key} to be a finite number, not negative`);
+    }
+    if ((e.heaterDraw ?? 0) > 0 && !((e.heat ?? 0) > 0)) problems.push(`part ${part.id} has a heaterDraw but no heat`);
+  }
+  return problems;
+}
+
+/**
+ * Dust on the panels and dust devils (rules/dust.ts). On a world with dust every part with solar income
+ * says how fast dust settles on it (a dustRate), and only such parts have one. tuning.dust and
+ * events.dustdevil hold numbers the rules can use: dust never speeds up in the storm, the floor keeps
+ * some income, the lesson fires above the floor, a devil cleans no farther than it is sensed and can pass
+ * that close, and every devil forms and ends inside the day.
+ */
+function dustProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const { dust, sol, night } = data.tuning;
+  const devil = data.events.dustdevil;
+  // The energy step reads tuning.dust on every world with a night (Mars) or dust devils.
+  if (!dust && (night || devil)) problems.push(`tuning.dust is needed on ${data.world}, which has ${night ? 'a night' : 'dust devils'}`);
+  for (const part of data.parts.parts) {
+    const e = part.effects;
+    if (dust && (e.energyIncome ?? 0) > 0 && e.dustRate === undefined) problems.push(`part ${part.id} has solar income but no dustRate (needed on ${data.world}, which has dust)`);
+    if (e.dustRate !== undefined && !((e.energyIncome ?? 0) > 0)) problems.push(`part ${part.id} has a dustRate but no solar income`);
+  }
+  if (dust) {
+    const finite = Object.values(dust).every((v) => typeof v === 'number' && Number.isFinite(v));
+    if (!finite) problems.push('tuning.dust needs finite numbers');
+    if (!(dust.perSol >= 0)) problems.push('tuning.dust.perSol must not be negative');
+    if (!(dust.stormMultiplier >= 1)) problems.push('tuning.dust.stormMultiplier must be at least 1 (the storm never slows dust down)');
+    if (!(dust.minFactor > 0 && dust.minFactor <= 1)) problems.push('tuning.dust.minFactor must be above 0 and at most 1');
+    if (!(dust.lessonLoss > 0 && dust.lessonLoss < 1 - dust.minFactor)) problems.push('tuning.dust.lessonLoss must be above 0 and below 1 - minFactor (the lesson must be reachable above the floor)');
+    if (!(dust.dustDevilCleanM >= 0 && dust.dustDevilCleanM <= dust.dustDevilSenseM)) problems.push('tuning.dust needs 0 <= dustDevilCleanM <= dustDevilSenseM');
+    if (devil && !(dust.dustDevilSenseM <= devil.maxPassM)) problems.push('tuning.dust.dustDevilSenseM must be at most events.dustdevil.maxPassM (or no devil could pass that close)');
+  }
+  if (devil) {
+    const [w0, w1] = devil.daySecondsWindow;
+    if (!(devil.everySols > 0)) problems.push('events.dustdevil.everySols must be above 0');
+    if (!(devil.lifeSeconds > 0)) problems.push('events.dustdevil.lifeSeconds must be above 0');
+    if (!(devil.speedMps >= 0)) problems.push('events.dustdevil.speedMps must not be negative');
+    if (!(devil.maxPassM >= 0 && devil.rampSeconds >= 0 && devil.radiusM > 0 && devil.heightM > 0)) problems.push('events.dustdevil needs maxPassM and rampSeconds not negative, radiusM and heightM above 0');
+    if (!sol) problems.push('events.dustdevil needs tuning.sol (devils form by day)');
+    else if (!(w0 !== undefined && w1 !== undefined && w0 >= 0 && w0 <= w1 && w1 + devil.lifeSeconds <= sol.daySeconds)) {
+      problems.push('events.dustdevil.daySecondsWindow must be a [start, end] in the day, with end + lifeSeconds at most tuning.sol.daySeconds');
+    }
   }
   return problems;
 }

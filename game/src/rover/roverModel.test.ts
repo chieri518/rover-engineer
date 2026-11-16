@@ -20,20 +20,20 @@ const meshCount = (obj: THREE.Object3D) => {
 describe('rover look', () => {
   it('shows nothing for an empty build', () => {
     expect(roverLook([])).toEqual({
-      frame: null, wheels: null, power: null, battery: null, lights: false, heater: false, instruments: [],
+      frame: null, wheels: null, power: null, battery: null, lights: false, heater: false, arm: false, mast: false, instruments: [],
     });
   });
 
   it('fills only the chosen slots of a draft build', () => {
     expect(roverLook([part('wheels-mesh'), part('power-solar-mast')])).toEqual({
-      frame: null, wheels: 'mesh', power: 'mast', battery: null, lights: false, heater: false, instruments: [],
+      frame: null, wheels: 'mesh', power: 'mast', battery: null, lights: false, heater: false, arm: false, mast: false, instruments: [],
     });
   });
 
   it('fills every field for a complete build', () => {
     const look = roverLook(['chassis-steel', 'wheels-solid', 'power-fixed-panel', 'battery-nih2', 'lights-led', 'heater-rhu', 'instrument-drill'].map(part));
     expect(look).toEqual({
-      frame: 'steel', wheels: 'solid', power: 'panel', battery: 'cylinders', lights: true, heater: true, instruments: ['drill'],
+      frame: 'steel', wheels: 'solid', power: 'panel', battery: 'cylinders', lights: true, heater: true, arm: false, mast: false, instruments: ['drill'],
     });
   });
 
@@ -98,5 +98,45 @@ describe('rover model for a draft build', () => {
       const model = buildRoverModel(handling, connectY, look, { bySlot: true });
       for (const i of picked) expect(model.slots[i]).toBeDefined();
     }
+  });
+});
+
+describe('Mars parts in the model', () => {
+  it('reads the Mars power sources, wheels and support hardware', () => {
+    const look = roverLook(['wheels-grouser', 'power-rtg', 'arm-robotic', 'mast-remote'].map(part));
+    expect([look.wheels, look.power, look.arm, look.mast]).toEqual(['grouser', 'rtg', true, true]);
+    expect(roverLook([part('power-arrays')]).power).toBe('arrays');
+    expect(roverLook([part('arm-none'), part('mast-none')])).toMatchObject({ arm: false, mast: false });
+  });
+
+  it('a warm rover wears the gold blanket whichever part gives the heat: an RTG with no heater, or the electric heater', () => {
+    expect(roverLook([part('power-rtg'), part('heater-none')]).heater).toBe(true);
+    expect(roverLook([part('heater-electric')]).heater).toBe(true);
+    expect(roverLook([part('power-fixed-panel'), part('heater-none')]).heater).toBe(false);
+  });
+
+  it('draws the RTG, the arrays, the arm and the mast, each in its own group', () => {
+    const rtg = buildRoverModel(handling, connectY, roverLook([part('power-rtg')]), { bySlot: true });
+    expect(Object.keys(rtg.slots).sort()).toEqual<ModelGroup[]>(['heater', 'power']);
+    const panel = buildRoverModel(handling, connectY, roverLook([part('power-fixed-panel')]), { bySlot: true });
+    const arrays = buildRoverModel(handling, connectY, roverLook([part('power-arrays')]), { bySlot: true });
+    const extent = (m: typeof panel) => new THREE.Box3().setFromObject(m.slots.power!).getSize(new THREE.Vector3()).z;
+    expect(extent(arrays)).toBeGreaterThan(extent(panel) * 1.5); // the wings reach out beyond the deck
+    for (const [id, group] of [['arm-robotic', 'arm'], ['mast-remote', 'mast']] as const) {
+      const model = buildRoverModel(handling, connectY, roverLook([part(id)]), { bySlot: true });
+      expect(Object.keys(model.slots)).toEqual([group]);
+      expect(meshCount(model.slots[group]!)).toBeGreaterThan(0);
+    }
+    const none = buildRoverModel(handling, connectY, roverLook([part('arm-none'), part('mast-none')]), { bySlot: true });
+    expect(none.slots).toEqual({});
+  });
+
+  it('draws the four Mars instruments, each in its own group', () => {
+    const look = roverLook(['chassis-steel', 'wheels-grouser', 'power-arrays', 'arm-robotic', 'mast-remote',
+      'instrument-weather', 'instrument-radar', 'instrument-laser', 'instrument-organics'].map(part));
+    expect(look.instruments).toEqual(['weather', 'radar', 'laser', 'organics']);
+    const model = buildRoverModel(handling, connectY, look, { bySlot: true });
+    expect(model.wheels).toHaveLength(4);
+    expect(Object.keys(model.slots).sort()).toEqual<ModelGroup[]>(['arm', 'chassis', 'laser', 'mast', 'organics', 'power', 'radar', 'weather']);
   });
 });

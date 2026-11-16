@@ -3,6 +3,8 @@
 // Kept apart from types.ts so the Mars tracks can grow their own sections without all editing one file.
 // Each section names the track that owns it; values in data/mars/*.json marked "_placeholder" are stubs.
 
+import type { SupportSlot } from './types';
+
 interface Point { x: number; z: number }
 interface Point3 { x: number; y: number; z: number }
 
@@ -80,14 +82,26 @@ export interface SolTuning {
 
 /** Night: lights on or sleep, and the map-wide night cold. Owner: rules (M3). */
 export interface NightTuning {
-  lightsDrainPerSecond: number; // awake at night with lights on (lights, electronics): battery drain on top of driving
-  awakeDrainPerSecond: number; // awake at night without lights (electronics only): the rover cannot drive
-  sleepDrainPerSecond: number; // powered down (P) at night
+  awakeDrainPerSecond: number; // the electronics awake at night: battery drain on top of driving (the lights and heater draws are the parts', rules/energy.ts nightDraw)
+  sleepDrainPerSecond: number; // the electronics powered down (P) at night
   driveWithoutLights: boolean; // design: false, a rover without lights cannot drive at night
   freezeRatePerSecond: number; // night-wide freezing without a heater (heaterReductionPerHeat from tuning.cold applies)
   warmRecoveryPerSecond: number; // freeze meter recovery by day
   /** Solar panels give their full rate with the Sun at or above this elevation, less below (sin el / sin this). 0 = off. */
   fullSunElevationDeg: number;
+}
+
+/**
+ * Dust on the panels (data/mars/tuning.json `dust`). Owner B, provisional, for Chieri's review (Mars M8,
+ * MS8). Rules: rules/dust.ts; Tuning.dust, wired into the energy step (rules/mission.ts).
+ */
+export interface DustTuning {
+  perSol: number; // share of a part's clean solar income lost per sol, times the part's dustRate
+  stormMultiplier: number; // dust settles this many times as fast at full storm strength (scaled by the storm's intensity)
+  minFactor: number; // the dust factor never falls below this: the panels keep this share of their clean income
+  lessonLoss: number; // the dust lesson: dust has cut solar income by at least this share
+  dustDevilCleanM: number; // a dust devil passing within this distance of the rover resets its dust factor to clean
+  dustDevilSenseM: number; // a switched-on weather mast records a dust devil passing within this distance (Dust devil pass)
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -102,6 +116,38 @@ export interface DustStormSpec {
   solarFactor: number; // solar income multiplier during the storm
   freezeFactor: number; // night freezing multiplier during the storm (milder nights)
   source: string;
+}
+
+/**
+ * Dust devils (data/mars/events.json `dustdevil`). Owner B, provisional, for Chieri's review (Mars M8,
+ * MS8). Rules: rules/dust.ts; EventsFile.dustdevil, scheduled in rules/mission.ts marsSetup.
+ */
+export interface DustDevilSpec {
+  everySols: number; // one dust devil in each run of this many sols, so on average one every everySols sols
+  daySecondsWindow: [number, number]; // it forms at a random time this many seconds after a sunrise (by day only)
+  lifeSeconds: number; // how long the column stands, moving in a straight line
+  speedMps: number; // how fast the column moves
+  maxPassM: number; // it passes the rover's position at its forming time at a random distance up to this
+  rampSeconds: number; // it builds up after it forms and dies down before it ends (for the renderer)
+  radiusM: number; // the column's radius (for the renderer)
+  heightM: number; // the column's height (for the renderer)
+  source: string;
+}
+
+/** One scheduled dust devil, drawn before the mission; placed relative to the rover when it forms. */
+export interface DustDevilSlot {
+  at: number; // mission seconds when it forms
+  passM: number; // closest approach to the rover's position at `at`, metres
+  headingDeg: number; // direction of travel, degrees from −z (north) toward +x (east), as for the Sun's azimuth
+  side: 1 | -1; // which side of the rover's position it passes (1 = to the right of its travel)
+}
+
+/** A dust devil placed on the map: a column moving in a straight line from `start` at `velocity`. */
+export interface DustDevil {
+  at: number; // mission seconds when it forms
+  endAt: number; // and when it is gone
+  start: Point; // position at `at`
+  velocity: Point; // metres per second in the x-z plane
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -150,16 +196,26 @@ export interface MarsTextSections {
   storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string>;
   /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
   campaign: MarsCampaignText;
+  /**
+   * The desk's night budget line (Mars M15, ui/marsMission.ts nightBudgetLine): what one night costs this
+   * build asleep and awake with lights, the electric heater's share and an RTG's income. {energy}, {seconds}.
+   */
+  nightBudget: Record<'label' | 'asleep' | 'lights' | 'heater' | 'steady' | 'separator', string>;
   /** Per-world part wording, by part id: replaces the shared name or description (rules/merge.ts withPartText). */
   partText?: Record<string, { name?: string; description?: string }>;
+  /**
+   * Support hardware on the desk (Mars M5, ui/supportText.ts): `needs` on an instrument's card and its
+   * refusal ({support}), `missing` in the warnings ({part}, {support}), and each support part's name.
+   */
+  support: Record<'needs' | 'missing' | SupportSlot, string>;
 }
 
 export interface MarsCampaignText {
   kicker: string; // design screen, above the heading: which mission this is
   carryOver: string; // {balance}: the balance carried over from the Moon
   passMark: string; // {minimum}: the next mission's pass mark (Titan)
-  sameParts: string; // parts and ticket tiers are the Moon's for now
-  ticketNote: string; // ticket screen: same tiers as the Moon
+  sameParts: string; // design screen: Mars has its own parts and ticket tiers
+  ticketNote: string; // ticket screen: Mars's own tiers
   perseverance: string; // landing: {distance} km {direction} to Perseverance's landing site
   newHeading: string; // landing: "New on Mars"
   newOnMars: string[]; // landing: one line per new constraint, {placeholders} from the Mars data

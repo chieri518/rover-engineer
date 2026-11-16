@@ -85,6 +85,22 @@ describe('game data', () => {
     ]);
   });
 
+  it('validation per world: worlds lists name known worlds, and every world has a part in each bus slot', () => {
+    const allParts = { ...data.allParts, parts: data.allParts.parts.map((p) =>
+      p.id === 'instrument-camera' ? { ...p, worlds: [] }
+      : p.id === 'instrument-drill' ? { ...p, worlds: ['venus' as 'mars'] }
+      : p) };
+    // A world whose catalog leaves a bus slot empty (here, no heater offered on Mars).
+    const mars = worldGameData('mars');
+    const parts = { ...mars.parts, parts: mars.parts.parts.filter((p) => p.slot !== 'heater') };
+    expect(validateGameData({ ...mars, parts, allParts })).toEqual([
+      'slot heater has no parts on mars',
+      'part instrument-camera has an empty worlds list (leave it out to offer the part everywhere)',
+      'part instrument-drill names unknown world venus',
+      'relationship neutron-drill names part instrument-drill, which moon does not offer', // the drill is now offered nowhere
+    ]);
+  });
+
   it('instrument operating costs: the drill uses 10 energy per sample and holds 3 s; the camera is free and instant', () => {
     const effects = (id: string) => data.parts.parts.find((p) => p.id === id)!.effects;
     expect(effects('instrument-drill')).toMatchObject({ energyPerUse: 10, useSeconds: 3 });

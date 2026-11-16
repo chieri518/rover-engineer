@@ -1,0 +1,8 @@
+{
+  "_about": "Mars parts overlay (rules/merge.ts withPartsOverlay): the support slots Mars offers, and effects merged into shared parts by part id. The parts themselves are all in data/parts.json (Mars-only ones carry worlds: [\"mars\"]).",
+  "supportSlots": ["arm", "mast"],
+  "effects": {
+    "_note": "The X-ray spectrometer needs the robotic arm on Mars only (Mars M6); on the Moon it keeps Pragyan's built-in deploy mechanism.",
+    "instrument-xray": { "needs": ["arm"] }
+  }
+}
