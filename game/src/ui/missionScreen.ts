@@ -531,6 +531,7 @@ export const missionScreen: Screen = (game, root) => {
       throttling: canDrive && ((throttle > 0 && limits.allowForward) || (throttle < 0 && limits.allowReverse)),
       impactMps: s.deltaV,
       upY: s.upY,
+      position: { x: p.x, z: p.z }, // Mars: dust devils form at the rover and clean near it
     };
     const step = stepMission(state, sample, setup, tuning, data.events);
     state = step.state;

@@ -34,9 +34,9 @@ export class MarsMission {
     this.sunAt = (seconds) => marsSunAt(seconds, solTuning, site);
   }
 
-  /** The Mars half of the mission setup (the site and this mission's dust storm). */
+  /** The Mars half of the mission setup (the site, this mission's dust storm and its dust devils). */
   setup(rng: Rng): MarsSetup {
-    return marsSetup(this.site, this.data.events, rng);
+    return marsSetup(this.site, this.data.events, rng, this.data.tuning);
   }
 
   status(state: MissionState, setup: MissionSetup): MarsStatus {
