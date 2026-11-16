@@ -61,5 +61,14 @@
     "freezeRatePerSecond": 8,
     "warmRecoveryPerSecond": 6,
     "fullSunElevationDeg": 15
+  },
+  "dust": {
+    "_note": "Dust on the panels (Mars M8, MS8; Owner B, provisional, for Chieri's review; starting values for the Mars balance phase). Rules: rules/dust.ts. A solar rover's dust factor (income multiplier, 1 = clean) falls by perSol x the power part's dustRate per sol of play, day and night, in a straight line (a share of the clean income, not compounding); stormMultiplier x as fast at full storm strength (scaled by the storm's intensity). It never falls below minFactor (a safety guard: with one storm and no cleaning the deployable arrays end near 0.37, a fixed panel near 0.58). The RTG has no energyIncome, so dust never touches it. Compressed like time: real panels lose about 0.2% per sol. The dust lesson: dust has cut solar income by lessonLoss. A dust devil passing within dustDevilCleanM of the rover resets the factor to clean; a switched-on weather mast records one passing within dustDevilSenseM (Dust devil pass).",
+    "perSol": 0.03,
+    "stormMultiplier": 3,
+    "minFactor": 0.25,
+    "lessonLoss": 0.15,
+    "dustDevilCleanM": 50,
+    "dustDevilSenseM": 150
   }
 }

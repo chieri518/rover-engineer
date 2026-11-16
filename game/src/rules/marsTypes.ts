@@ -90,6 +90,19 @@ export interface NightTuning {
   fullSunElevationDeg: number;
 }
 
+/**
+ * Dust on the panels (data/mars/tuning.json `dust`). Owner B, provisional, for Chieri's review (Mars M8,
+ * MS8). Rules: rules/dust.ts. Not on Tuning yet: step 2 adds `dust?: DustTuning` when it wires the energy step.
+ */
+export interface DustTuning {
+  perSol: number; // share of a part's clean solar income lost per sol, times the part's dustRate
+  stormMultiplier: number; // dust settles this many times as fast at full storm strength (scaled by the storm's intensity)
+  minFactor: number; // the dust factor never falls below this: the panels keep this share of their clean income
+  lessonLoss: number; // the dust lesson: dust has cut solar income by at least this share
+  dustDevilCleanM: number; // a dust devil passing within this distance of the rover resets its dust factor to clean
+  dustDevilSenseM: number; // a switched-on weather mast records a dust devil passing within this distance (Dust devil pass)
+}
+
 // ---------------------------------------------------------------------------------------------------
 // Events (data/mars/events.json). Owner: rules (M3).
 
@@ -102,6 +115,38 @@ export interface DustStormSpec {
   solarFactor: number; // solar income multiplier during the storm
   freezeFactor: number; // night freezing multiplier during the storm (milder nights)
   source: string;
+}
+
+/**
+ * Dust devils (data/mars/events.json `dustdevil`). Owner B, provisional, for Chieri's review (Mars M8,
+ * MS8). Rules: rules/dust.ts. Not on EventsFile yet: step 2 adds `dustdevil?: DustDevilSpec`.
+ */
+export interface DustDevilSpec {
+  everySols: number; // one dust devil in each run of this many sols, so on average one every everySols sols
+  daySecondsWindow: [number, number]; // it forms at a random time this many seconds after a sunrise (by day only)
+  lifeSeconds: number; // how long the column stands, moving in a straight line
+  speedMps: number; // how fast the column moves
+  maxPassM: number; // it passes the rover's position at its forming time at a random distance up to this
+  rampSeconds: number; // it builds up after it forms and dies down before it ends (for the renderer)
+  radiusM: number; // the column's radius (for the renderer)
+  heightM: number; // the column's height (for the renderer)
+  source: string;
+}
+
+/** One scheduled dust devil, drawn before the mission; placed relative to the rover when it forms. */
+export interface DustDevilSlot {
+  at: number; // mission seconds when it forms
+  passM: number; // closest approach to the rover's position at `at`, metres
+  headingDeg: number; // direction of travel, degrees from −z (north) toward +x (east), as for the Sun's azimuth
+  side: 1 | -1; // which side of the rover's position it passes (1 = to the right of its travel)
+}
+
+/** A dust devil placed on the map: a column moving in a straight line from `start` at `velocity`. */
+export interface DustDevil {
+  at: number; // mission seconds when it forms
+  endAt: number; // and when it is gone
+  start: Point; // position at `at`
+  velocity: Point; // metres per second in the x-z plane
 }
 
 // ---------------------------------------------------------------------------------------------------
