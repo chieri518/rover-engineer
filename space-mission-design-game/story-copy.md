@@ -22,7 +22,7 @@ Key path: `intro` (base only). Three pages, shaped like the tutorial pages (`{ t
 
 ### `intro.pages[0]`: Welcome to REL
 
-- REL, the Rover Exploration Laboratory, designs and operates small robotic rovers. REL does not build rockets. For each mission it buys space for its rover on a commercial launch.
+- REL, the Rover Exploration Laboratory, designs and operates small robotic rovers.
 - You are REL's newest rover engineer, at mission control. For each mission you design the rover, buy its launch ticket, and drive it on the surface.
 - REL is fictional. The worlds, the ground under the rover and the missions the game cites are real, from NASA data and published sources.
 
