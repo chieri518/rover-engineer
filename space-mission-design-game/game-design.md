@@ -332,11 +332,11 @@ The browser runs found one model error, now fixed: the boulder-field crossing po
 
 | Build (parts + ticket) | Route | Milestones counted | Estimate | Browser |
 | --- | --- | --- | --- | --- |
-| Idle, any build | Stays at the lander | Touchdown, Flare survivor, Clean run | at most about 580: **loses** | 480 (camera scout build) |
+| Idle, any build | Stays at the lander | Touchdown, Flare survivor, Clean run | at most about 580: **loses** | 480 (camera scout build; confirmed again in a Phase 6 sanity run) |
 | Empty bay: steel, mesh, panel, NiH2 (400) | Wall, boulder field, rim | Crater descent, Boulder field, Odometer ×3, Flare survivor | about 690 to 730: **loses** | 690 |
 | Reflector only (430) | As the empty bay, reflector on the rim | + Laser ranging site | about 720: **loses** | |
-| Camera scout (450) | Wall, boulder field, Rim viewpoint 1, Earth | Crater layers, Crater descent, Boulder field, Rim panorama, Earth, Odometer ×3, Clean run | 890 to 940: wins | 940 |
-| Drill geologist (550) | Rocky area 1, both rims | Regolith ×3, Fresh ejecta, Odometer ×3, Clean run or Boulder field | about 820: wins | 820 |
+| Camera scout (450) | Wall, boulder field, Rim viewpoint 1, Earth | Crater layers, Crater descent, Boulder field, Rim panorama, Earth, Odometer ×3, Clean run | 890 to 940 if it reaches the rim in time; about 770 if not | 940; 770 in a Phase 6 sanity run that was still short of the rim at 300 s |
+| Drill geologist (550) | Rocky area 1, both rims | Regolith ×3, Fresh ejecta, Odometer ×3, Clean run or Boulder field | about 820: wins | 820; 790 in a Phase 6 sanity run (Rocky area 1, both rims), which moved the campaign on to Mars |
 | Ice hunter (735) | The dark crater | Water ice, Regolith ×2, Odometer ×3, Mapper (Clean run if no damage) | 825 to 875: wins | 825 |
 | Rock hound: Ti, mesh, panel, Li-ion, camera + X-ray (600) | East crater and the rolled boulder, NW crater, Rim viewpoint 1 | Rock collection ×3, Rare rock, Boulder track, Documented sample, Rim panorama, Odometer ×2, Clean run (+ Earth 100 if at the rim after 238 s) | 820 to 920: wins | 640 on a longer route that ran out of time (see below) |
 | Station keeper: steel, mesh, panel, Li-ion, seismometer + reflector + X-ray (620) | Both stations on the East bench, East crater, NW crater, boulder field | Science station, Laser ranging, Moonquake record, Clean seismogram, Rock collection ×3, Rare rock, Odometer ×2 (+ Clean run) | 820 to 870: wins | 820 |
