@@ -65,6 +65,8 @@ export type MilestoneCategory = 'capability' | 'scientific' | 'record' | 'pictur
  * documentedSampleRangeM (Moon). Without a target, a photo counts inside its zone.
  */
 export type PhotoTarget = 'earth' | 'sunset' | 'rolled-boulder' | 'read-boulder';
+/** What a `reading` trigger may need the reading to be on: any boulder, or the Mars delta cliff (Mars plan, laser spectrometer). */
+export type ReadingTarget = 'boulder' | 'cliff';
 /** Events a `record` trigger waits for: the moonquake (Moon), the dust storm (Mars). */
 export type RecordEvent = 'quake' | 'duststorm';
 /** The seismometer station's record of the moonquake (rules/instruments.ts SeismometerRecord). */
@@ -93,10 +95,11 @@ export type MilestoneTrigger =
   | { type: 'transect'; instrument: Instrument; zone: string; meters: number; sites?: number }
   /**
    * A use of the instrument finishes, inside the zone or on the target kind if given. sites: staged as the
-   * drill. rocks: staged by distinct rock types read this mission, one stage per count (Rock collection
-   * [2, 3, 4]). rock: the reading must find this rock type (an id in tuning.instruments.xray.suites).
+   * drill (one stage per reading site, each at least sampleSpacingM from the others). rocks: staged by
+   * distinct rock types read this mission, one stage per count (Rock collection [2, 3, 4]). rock: the
+   * reading must find this rock type (an id in tuning.instruments.xray.suites).
    */
-  | { type: 'reading'; instrument: Instrument; zone?: string; target?: string; sites?: number; rocks?: number[]; rock?: string }
+  | { type: 'reading'; instrument: Instrument; zone?: string; target?: ReadingTarget; sites?: number; rocks?: number[]; rock?: string }
   /**
    * The instrument was deployed (or, for one aboard, switched on) when the event came. On the Moon the
    * station must have been set down outside the near-lander zone. quality: the record must be this good.
@@ -548,7 +551,7 @@ export interface MoonPipelineFeatures {
     id?: string;
     name?: string;
     centroidLocal?: FeaturePoint;
-    outlineLocal_xz?: [number, number][];
+    outlineLocal_xz?: number[][]; // [x, z] pairs (number[][] as JSON gives it)
     area_m2?: number;
     distanceFromLanding_m?: number;
     driveDistanceFromLanding_m?: number;
@@ -570,14 +573,14 @@ export interface MoonPipelineFeatures {
     name?: string;
     local?: FeaturePoint;
     wallTopLocal?: FeaturePoint;
-    youngCrater?: string; // the young crater it lies in, if any
+    youngCrater?: string | null; // the young crater it lies in, if any
   }[];
   /** P4: ground outside permanent shadow with average illumination under 15% and slope under 15°, within 1 km. */
   lowLightPatches?: {
     id?: string;
     name?: string;
     centroidLocal?: FeaturePoint;
-    outlineLocal_xz?: [number, number][];
+    outlineLocal_xz?: number[][]; // [x, z] pairs (number[][] as JSON gives it)
     area_m2?: number;
     avgIllumination?: number;
     slope_deg?: number;
@@ -644,6 +647,7 @@ export interface BalanceFile {
     reserveShare: number; // the player leaves a stop only with this share of the battery to spare after the next leg
     flareSeconds: number[]; // when the two flares strike in the analysis (the middle of their windows)
     flareStopSeconds: number; // parked and powered down for each flare
+    quakeSeconds: number; // when the moonquake strikes in the analysis (the middle of its window): the seismometer's record
     crossingUphillDeg: number; // grade assumed while crossing a boulder field (soft ground)
     crossingMarginDeg: number; // a crossing leg's end nodes must be this much more than the Boulder field angle apart (the route leaves the zone early on a chord)
     mistakeMargin: number; // money an archetype keeps above the pass mark, room for one or two mistakes
@@ -669,6 +673,12 @@ export interface RouteNode {
   boulderField?: string; // a leg between two nodes of the same field crosses it
   darkCrater?: boolean; // inside the permanently shadowed crater
   iceSpot?: boolean;
+  /** Site zones (rules/milestones.ts buildZones keys, "<zone id>:<site id>", or "ice-signal") the node lies in. */
+  zones?: string[];
+  /** X-ray: the rock types of the boulders in reach here, one per reading in order (each reading takes the next boulder). */
+  rocks?: string[];
+  /** The rolled boulder is in view from here, this far away (Boulder track). */
+  rolledBoulderM?: number;
   lit: number[]; // sunlit share here, every litStepSeconds
 }
 
@@ -679,6 +689,8 @@ export interface RouteLeg {
   climbM: number;
   descentM: number;
   coldM: number; // meters inside permanent shadow
+  /** Site zones the route touches between its two nodes (theirs count too): a switched-on transect along it touches them. */
+  zones?: string[];
   lit: number[]; // sunlit share of the route, every litStepSeconds
 }
 

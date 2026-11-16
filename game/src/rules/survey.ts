@@ -2,13 +2,17 @@
 // bearing and distance to an area, never an exact spot), and how far the map is zoomed out. Sites come
 // from terrain.json features (passed in as plain data); sizes and leads from tuning.survey and
 // tuning.minimap. Mars adds the delta front (a scarp line), Séítah (an outline), its viewpoints and
-// Perseverance's landing site. Pure: no rendering, no DOM.
+// Perseverance's landing site. The Moon's sites.json sites (young craters, cold traps, the rolled boulder,
+// the hidden hydrogen) are appended after those; a hidden site is never found by the reveal circle, only by
+// revealSite when its milestone is earned. Pure: no rendering, no DOM.
+import type { ResolvedSite } from './sites';
 import type { MilestoneTuning, SurveyTuning, Tuning } from './types';
 
 export interface Point { x: number; z: number }
 
 /** delta-front: Mars's scarp line; region: Séítah; landmark: Perseverance's landing site. */
-export type SiteKind = 'viewpoint' | 'rocky-area' | 'crater-wall' | 'shadowed-crater' | 'delta-front' | 'region' | 'landmark';
+export type SiteKind = 'viewpoint' | 'rocky-area' | 'crater-wall' | 'shadowed-crater' | 'delta-front' | 'region' | 'landmark'
+  | 'young-crater' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen';
 
 export type SiteArea =
   | { kind: 'circle'; x: number; z: number; r: number }
@@ -24,6 +28,8 @@ export interface Site {
   kind: SiteKind;
   area: SiteArea; // discovered once the reveal circle touches this
   discovered: boolean;
+  hidden?: boolean; // the reveal circle never discovers it; revealSite does
+  siteId?: string; // the sites.json id
 }
 
 /** terrain.json features the survey reads: the Moon's own features are absent on Mars, and Mars's on the Moon. */
@@ -40,7 +46,7 @@ export interface SurveyFeatures {
 }
 
 /** Sites sized like the milestone zones: viewpoint and wall zones, the boulder spread, the shadow outline. */
-export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCraterName: string): Site[] {
+export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCraterName: string, sites: readonly ResolvedSite[] = []): Site[] {
   const circle = (x: number, z: number, r: number): SiteArea => ({ kind: 'circle', x, z, r });
   const { craterDescent: wall, shadowedCrater: dark } = f;
   return [
@@ -53,8 +59,30 @@ export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCrater
     ...(f.deltaFront ? [{ key: 'deltaFront', name: f.deltaFront.name, kind: 'delta-front', area: { kind: 'path', points: f.deltaFront.scarpLocal_xz, r: f.deltaFront.zoneRadius_m }, discovered: false } satisfies Site] : []),
     ...(f.seitah ? [{ key: 'seitah', name: f.seitah.name, kind: 'region', area: { kind: 'polygon', points: f.seitah.outlineLocal_xz }, discovered: false } satisfies Site] : []),
     ...(f.perseveranceLanding ? [{ key: 'perseveranceLanding', name: f.perseveranceLanding.name, kind: 'landmark', area: circle(f.perseveranceLanding.local.x, f.perseveranceLanding.local.z, 0), discovered: false } satisfies Site] : []),
+    ...sites.flatMap(siteFromSpec(m)),
   ];
 }
+
+/** A sites.json site as a survey site; rocky areas, the dark crater and sites with no extent add none. */
+const siteFromSpec = (m: MilestoneTuning) => (s: ResolvedSite): Site[] => {
+  const base = { key: s.name, alias: s.id, siteId: s.id, name: s.name, discovered: false };
+  const circle = (r: number): SiteArea => ({ kind: 'circle', x: s.center.x, z: s.center.z, r });
+  switch (s.kind) {
+    case 'young-crater':
+      return s.radiusM === undefined ? [] : [{ ...base, kind: 'young-crater', area: circle(s.radiusM * m.boulderCrossRadiusFactor) }];
+    case 'cold-trap': {
+      if (s.spec.feature === 'shadowedCrater') return [];
+      if (s.outline && s.outline.length >= 3) return [{ ...base, kind: 'cold-trap', area: { kind: 'polygon', points: s.outline } }];
+      return s.radiusM === undefined ? [] : [{ ...base, kind: 'cold-trap', area: circle(s.radiusM) }];
+    }
+    case 'rolled-boulder':
+      return [{ ...base, kind: 'rolled-boulder', area: circle(0) }];
+    case 'hidden-hydrogen':
+      return [{ ...base, kind: 'hidden-hydrogen', area: circle(m.hydrogenZoneRadiusM), hidden: true }];
+    default:
+      return [];
+  }
+};
 
 /** The point of a polyline nearest to p. */
 export function nearestOnPath(points: [number, number][], p: Point): Point {
@@ -118,12 +146,20 @@ export function areaCenter(area: SiteArea): Point {
 export function discover(sites: Site[], p: Point, revealRadiusM: number): Site[] {
   const found: Site[] = [];
   for (const s of sites) {
-    if (!s.discovered && distanceToArea(s.area, p) <= revealRadiusM) {
+    if (!s.discovered && !s.hidden && distanceToArea(s.area, p) <= revealRadiusM) {
       s.discovered = true;
       found.push(s);
     }
   }
   return found;
+}
+
+/** Mark a site (by its sites.json id) discovered. Returns it if it was not yet, else null. */
+export function revealSite(sites: Site[], siteId: string): Site | null {
+  const s = sites.find((x) => x.siteId === siteId);
+  if (!s || s.discovered) return null;
+  s.discovered = true;
+  return s;
 }
 
 /** Azimuth in degrees (0 = local −z, grid north; 90 = +x), as in terrain.json. */

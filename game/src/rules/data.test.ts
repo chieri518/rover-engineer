@@ -394,6 +394,7 @@ describe('Moon sites and milestones data (Phase 2)', () => {
       withMilestone('hidden-hydrogen', { trigger: { type: 'transect', instrument: 'drill', zone: 'hydrogen-anomaly', meters: 0 } }),
       withMilestone('rare-rock', { trigger: { type: 'reading', instrument: 'xray', rock: 'mare-basalt' } }),
       withMilestone('rock-collection', { trigger: { type: 'reading', instrument: 'xray', rocks: [2, 4, 6] } }),
+      withMilestone('rare-rock', { trigger: { type: 'reading', instrument: 'xray', rock: 'magnesian-norite', target: 'pebble' as never } }),
       withMilestone('boulder-track', { trigger: { type: 'photo', target: 'boulder' as never } }),
       withMilestone('science-station', { requires: { instrument: 'reflector' } }),
       withMilestone('documented-sample', { requires: { instruments: ['camera', 'laser' as never] } }),
@@ -403,6 +404,7 @@ describe('Moon sites and milestones data (Phase 2)', () => {
       ['milestone hidden-hydrogen triggers on instrument drill but does not require it', 'milestone hidden-hydrogen needs a transect of more than 0 meters'],
       ['milestone rare-rock needs rock mare-basalt, which no rock suite holds'],
       ['milestone rock-collection asks for 6 rock types; the suites hold 5'],
+      ['milestone rare-rock names unknown reading target pebble'],
       ['milestone boulder-track names unknown photo target boulder'],
       ['milestone science-station triggers on instrument seismometer but does not require it'],
       ['milestone documented-sample requires instrument laser, which no part provides'],
@@ -429,7 +431,7 @@ describe('Moon sites and milestones data (Phase 2)', () => {
   });
 
   it('sites match the real terrain.json: features exist, cold zones resolve, provisional candidates are accepted', () => {
-    expect(siteTerrainProblems(data, terrain.features as never)).toEqual([]);
+    expect(siteTerrainProblems(data, terrain.features)).toEqual([]);
     // Every provisional site is one of the five new places, and each has a candidate position.
     expect(data.sites.sites.filter((s) => s.provisional).map((s) => s.id)).toEqual([
       'nw-crater', 'east-crater', 'west-crater', 'rolled-boulder', 'hidden-hydrogen', 'east-cold-trap', 'south-cold-trap',
@@ -437,7 +439,8 @@ describe('Moon sites and milestones data (Phase 2)', () => {
   });
 
   it('site references against the pipeline lists: ids must exist once a list exists; provisional sites always pass', () => {
-    const features = { ...terrain.features, coldTraps: [{ id: 'ct-east', name: 'East cold trap' }] };
+    // The pipeline lists as the checks see them: a cold trap list with one id, and no young crater list yet.
+    const features = { ...terrain.features, coldTraps: [{ id: 'ct-east', name: 'East cold trap', centroidLocal: { x: -132, z: 122 } }], youngCraters: undefined };
     const sites = data.sites.sites;
     const east = sites.find((s) => s.id === 'east-cold-trap')!;
     const south = sites.find((s) => s.id === 'south-cold-trap')!;
@@ -454,7 +457,13 @@ describe('Moon sites and milestones data (Phase 2)', () => {
     ]);
     expect(check([east, south, { ...ra1, feature: 'Rocky area 9' }])).toEqual(['site rocky-area-1 names terrain.json feature Rocky area 9, which does not exist']);
     expect(check([east, south], [...data.tuning.cold.zones, 'North cold trap'])).toEqual([
-      'cold zone North cold trap is neither a terrain.json feature nor a cold trap in sites.json',
+      'cold zone North cold trap resolves to no terrain.json feature and no cold trap in sites.json',
+    ]);
+    // A cold trap that is in sites.json but resolves to nothing (no position, no pipeline feature) is reported too.
+    const lost: SiteSpec = { ...east, provisional: false, local: undefined, pipeline: { list: 'coldTraps', id: 'ct-gone' } };
+    expect(check([lost, south])).toEqual([
+      'site east-cold-trap names coldTraps id ct-gone, which terrain.json does not have',
+      'cold zone East cold trap resolves to no terrain.json feature and no cold trap in sites.json',
     ]);
   });
 
@@ -462,5 +471,7 @@ describe('Moon sites and milestones data (Phase 2)', () => {
     const mars = worldGameData('mars');
     expect(mars.sites.sites).toEqual([]);
     expect(validateGameData(mars)).toEqual([]);
+    // Mars replaces the whole milestone list: the four new Moon instruments earn nothing there.
+    for (const inst of ['neutron', 'xray', 'seismometer', 'reflector'] as const) expect(earnsMilestones(inst, mars.milestones), inst).toBe(false);
   });
 });

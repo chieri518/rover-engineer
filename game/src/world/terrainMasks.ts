@@ -4,7 +4,8 @@
 // the shadowed crater and the small cold patch in Rocky area 1. Other tiny shadowed spots are ignored.
 // Mars has no cold mask (its night cold is map-wide), so it has no cold zones.
 import { decode } from 'fast-png';
-import type { Tuning } from '../rules/types';
+import type { SiteSpec, Tuning } from '../rules/types';
+import { coldZoneAnchor, type SiteFeatures } from '../rules/sites';
 import type { SoftArea } from '../rules/ground';
 import type { MarsTerrainFeatures } from '../rules/marsTypes';
 import { terrainUrl, type WorldId } from '../worlds';
@@ -82,14 +83,6 @@ async function fetchMask(url: string): Promise<{ data: Uint8Array; n: number }> 
   return { data: png.data as Uint8Array, n: png.width };
 }
 
-/** Where each named cold zone's feature sits: a terrain.json feature key or a feature name. */
-function zoneAnchor(info: FeatureInfo, zone: string): Point | null {
-  const f = info.features;
-  if (zone === 'shadowedCrater') return f.shadowedCrater?.centroidLocal ?? null;
-  const named = [...(f.rimViewpoints ?? []), ...f.rockyAreas, ...(f.craterDescent ? [f.craterDescent] : [])].find((p) => p.name === zone);
-  return named?.local ?? null;
-}
-
 /** Flood-fill the permanently shadowed patch nearest each anchor (within the search radius). */
 function coldZones(psr: Uint8Array, n: number, pixel: number, anchors: Point[], radiusM: number): Uint8Array {
   const half = (n - 1) / 2;
@@ -131,8 +124,13 @@ function coldZones(psr: Uint8Array, n: number, pixel: number, anchors: Point[], 
 
 const cache = new Map<WorldId, Promise<TerrainMasks>>();
 
-/** A world's masks, loaded once per world (the cold zones depend on that world's tuning.cold). */
-export function loadTerrainMasks(tuning: Tuning, world: WorldId): Promise<TerrainMasks> {
+/**
+ * A world's masks, loaded once per world (the cold zones depend on that world's tuning.cold). Each cold
+ * zone is anchored by rules/sites.ts coldZoneAnchor: a terrain.json feature, or a cold trap in `sites`.
+ * TODO(Phase 4 of the Moon sites plan): pass data.sites.sites from the callers, so the East and South
+ * cold traps join the cold zones; until then only terrain features anchor, as before.
+ */
+export function loadTerrainMasks(tuning: Tuning, world: WorldId, sites: readonly SiteSpec[] = []): Promise<TerrainMasks> {
   let cached = cache.get(world);
   if (cached) return cached;
   cached = (async () => {
@@ -145,7 +143,7 @@ export function loadTerrainMasks(tuning: Tuning, world: WorldId): Promise<Terrai
       fetchMask(base + info.playArea.files.slope.file),
       coldFile ? fetchMask(base + coldFile) : null,
     ]);
-    const anchors = tuning.cold.zones.map((z) => zoneAnchor(info, z)).filter((p): p is Point => p !== null);
+    const anchors = tuning.cold.zones.map((z) => coldZoneAnchor(z, info.features as SiteFeatures, sites)).filter((p): p is Point => p !== null);
     const cold = psr
       ? coldZones(psr.data, psr.n, info.playArea.pixel_m, anchors, tuning.cold.zoneSearchRadiusM)
       : new Uint8Array(slope.n * slope.n);

@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  areaCenter, azimuthDeg, buildLeads, buildSites, compassPoint, discover, distanceToArea, growBounds, leadBearing, mapView, roundedKm,
+  areaCenter, azimuthDeg, buildLeads, buildSites, compassPoint, discover, distanceToArea, growBounds, leadBearing, mapView, revealSite, roundedKm,
   type SurveyFeatures,
 } from './survey';
+import { resolveSites, type ResolvedSite } from './sites';
+import type { SiteSpec } from './types';
 import { testTuning } from './testData';
 import { loadGameData } from '../gameData';
 import terrain from '../../public/terrain/terrain.json';
@@ -105,5 +107,83 @@ describe('minimap view', () => {
     expect(view.spanM).toBeCloseTo(3500 + 2 * v.marginM);
     expect(view.cz).toBeCloseTo(-1500);
     expect(mapView({ minX: -9000, maxX: 9000, minZ: 0, maxZ: 1 }, v).spanM).toBe(v.maxSpanM);
+  });
+});
+
+const spec = (id: string, kind: SiteSpec['kind'], extra: Partial<SiteSpec> = {}): SiteSpec => ({ id, kind, name: id, ...extra } as SiteSpec);
+const rs = (id: string, kind: SiteSpec['kind'], center: { x: number; z: number }, extra: Partial<ResolvedSite> = {}, sp: Partial<SiteSpec> = {}): ResolvedSite =>
+  ({ id, kind, name: id, center, ...extra, spec: spec(id, kind, sp) });
+
+describe('survey: sites.json sites', () => {
+  const resolved: ResolvedSite[] = [
+    rs('rocky-area-1', 'rocky-area', { x: -500, z: 0 }, { radiusM: 200 }),
+    rs('c1', 'young-crater', { x: 1000, z: 1000 }, { radiusM: 20 }),
+    rs('c-noradius', 'young-crater', { x: 5, z: 5 }),
+    rs('ct-circle', 'cold-trap', { x: 2000, z: 0 }, { radiusM: 26 }),
+    rs('ct-poly', 'cold-trap', { x: 3000, z: 0 }, { outline: [[2900, -100], [3100, -100], [3100, 100], [2900, 100]] }),
+    rs('dark', 'cold-trap', { x: 0, z: -3500 }, { outline: [[-500, -3000], [500, -3000], [500, -4000], [-500, -4000]] }, { feature: 'shadowedCrater' }),
+    rs('rb', 'rolled-boulder', { x: 1000, z: 1100 }),
+    rs('hh', 'hidden-hydrogen', { x: -1000, z: 1000 }),
+  ];
+  const sites = buildSites(features, m, 'Dark crater', resolved);
+  const base = buildSites(features, m, 'Dark crater');
+  const find = (id: string) => sites.find((s) => s.siteId === id);
+
+  it('keeps the existing sites first and adds one per sized sites.json site', () => {
+    expect(sites.slice(0, base.length)).toEqual(base);
+    expect(sites.slice(base.length).map((s) => s.siteId)).toEqual(['c1', 'ct-circle', 'ct-poly', 'rb', 'hh']);
+    expect(sites.every((s) => !s.discovered)).toBe(true);
+  });
+
+  it('sizes each kind', () => {
+    const c = find('c1')!;
+    expect(c.kind).toBe('young-crater');
+    expect(c.area).toEqual({ kind: 'circle', x: 1000, z: 1000, r: 20 * m.boulderCrossRadiusFactor });
+    expect(find('ct-circle')!.area).toEqual({ kind: 'circle', x: 2000, z: 0, r: 26 });
+    expect(find('ct-circle')!.kind).toBe('cold-trap');
+    expect(find('ct-poly')!.area.kind).toBe('polygon');
+    expect(find('rb')!.area).toEqual({ kind: 'circle', x: 1000, z: 1100, r: 0 });
+    expect(find('rb')!.kind).toBe('rolled-boulder');
+    expect(find('hh')!.area).toEqual({ kind: 'circle', x: -1000, z: 1000, r: m.hydrogenZoneRadiusM });
+    expect(find('hh')!.kind).toBe('hidden-hydrogen');
+    expect(find('c1')).toMatchObject({ key: 'c1', alias: 'c1' });
+  });
+
+  it('does not duplicate the dark crater, rocky areas or sites with no extent', () => {
+    expect(find('dark')).toBeUndefined();
+    expect(sites.filter((s) => s.kind === 'shadowed-crater')).toHaveLength(1);
+    expect(find('rocky-area-1')).toBeUndefined();
+    expect(sites.filter((s) => s.kind === 'rocky-area')).toHaveLength(1);
+    expect(find('c-noradius')).toBeUndefined();
+  });
+
+  it('discovers the rolled boulder when the reveal circle reaches it', () => {
+    expect(discover(sites, { x: 1000, z: 1500 }, 250)).toEqual([]);
+    expect(discover(sites, { x: 1000, z: 1300 }, 250).map((s) => s.siteId)).toEqual(['rb']);
+  });
+
+  it('never discovers the hidden hydrogen, but revealSite does once', () => {
+    expect(discover(sites, { x: -1000, z: 1000 }, 250)).toEqual([]);
+    for (let z = 1400; z >= 600; z -= 10) expect(discover(sites, { x: -1000, z }, 250).map((s) => s.siteId)).not.toContain('hh');
+    expect(find('hh')!.discovered).toBe(false);
+    expect(revealSite(sites, 'hh')).toBe(find('hh'));
+    expect(find('hh')!.discovered).toBe(true);
+    expect(revealSite(sites, 'hh')).toBeNull();
+    expect(revealSite(sites, 'nope')).toBeNull();
+  });
+
+  it('builds the real Moon sites, all undiscovered, and keeps the leads resolving', () => {
+    const data = loadGameData();
+    const feats = terrain.features;
+    const real = buildSites(feats as unknown as SurveyFeatures, data.tuning.milestones, data.text.survey.shadowedCraterName, resolveSites(data.sites.sites, feats));
+    const names = ['East crater', 'NW crater', 'West crater', 'East cold trap', 'South cold trap', 'Rocky area 1 cold patch', 'Rolled boulder', 'Hydrogen-rich ground'];
+    for (const n of names) {
+      const s = real.find((x) => x.name === n);
+      expect(s, n).toBeDefined();
+      expect(s!.discovered).toBe(false);
+    }
+    expect(real.find((x) => x.siteId === 'hidden-hydrogen')!.hidden).toBe(true);
+    expect(real.filter((x) => x.kind === 'shadowed-crater')).toHaveLength(1);
+    expect(buildLeads(real, data.tuning.survey)).toHaveLength(data.tuning.survey.leads.length);
   });
 });

@@ -1,9 +1,11 @@
-import type { GameData, Milestone, MoonPipelineFeatures, PhotoTarget, PipelineFeatureList, SiteKind } from './types';
+import type { GameData, Milestone, MoonPipelineFeatures, PhotoTarget, PipelineFeatureList, ReadingTarget, SiteKind } from './types';
 import { ZONE_IDS } from './milestones';
 import { relationshipProblems } from './relationships';
 import { requiredInstruments } from './rover';
+import { coldZoneAnchor, type SiteFeatures } from './sites';
 
 const PHOTO_TARGETS: readonly PhotoTarget[] = ['earth', 'sunset', 'rolled-boulder', 'read-boulder'];
+const READING_TARGETS: readonly ReadingTarget[] = ['boulder', 'cliff'];
 const SITE_KINDS: readonly SiteKind[] = ['young-crater', 'rocky-area', 'cold-trap', 'rolled-boulder', 'hidden-hydrogen'];
 const PIPELINE_LISTS: readonly PipelineFeatureList[] = ['coldTraps', 'youngCraters', 'boulderTrackCandidates', 'lowLightPatches'];
 /** Site kinds whose boulders the X-ray spectrometer reads: each needs a rock suite. */
@@ -172,6 +174,7 @@ function triggerProblems(m: Milestone, data: GameData): string[] {
   if (tr.type === 'transect' && !(tr.meters > 0)) problems.push(`milestone ${m.id} needs a transect of more than 0 meters`);
   if (tr.type === 'deploy' && tr.near && !(tr.near.withinM > 0)) problems.push(`milestone ${m.id} needs near.withinM above 0`);
   if (tr.type === 'reading') {
+    if (tr.target !== undefined && !READING_TARGETS.includes(tr.target)) problems.push(`milestone ${m.id} names unknown reading target ${tr.target}`);
     const rocks = suiteRockIds(data);
     if (tr.rock !== undefined && !rocks.has(tr.rock)) problems.push(`milestone ${m.id} needs rock ${tr.rock}, which no rock suite holds`);
     if (tr.rocks) {
@@ -220,7 +223,8 @@ function siteProblems(data: GameData): string[] {
  * test checks them). A `feature` must name a terrain.json feature key or name; a `pipeline` reference
  * must name an id in its list once the pipeline has produced that list, and a site whose list is missing
  * must still be provisional. Provisional sites are accepted either way. Each cold zone in tuning.cold.zones
- * must name a terrain.json feature or a cold trap in sites.json.
+ * must resolve to a place: a terrain.json feature, or a cold trap in sites.json that resolves (provisional
+ * ones included).
  */
 export function siteTerrainProblems(data: GameData, features: Record<string, unknown> & MoonPipelineFeatures): string[] {
   const problems: string[] = [];
@@ -242,9 +246,9 @@ export function siteTerrainProblems(data: GameData, features: Record<string, unk
       problems.push(`site ${site.id} names ${site.pipeline.list} id ${site.pipeline.id}, which terrain.json does not have`);
     }
   }
-  const coldTraps = new Set(data.sites.sites.filter((s) => s.kind === 'cold-trap').map((s) => s.name));
+  // Each cold zone must resolve to a place (rules/sites.ts coldZoneAnchor), or it would silently freeze nothing.
   for (const zone of data.tuning.cold.zones) {
-    if (!names.has(zone) && !coldTraps.has(zone)) problems.push(`cold zone ${zone} is neither a terrain.json feature nor a cold trap in sites.json`);
+    if (!coldZoneAnchor(zone, features as SiteFeatures, data.sites.sites)) problems.push(`cold zone ${zone} resolves to no terrain.json feature and no cold trap in sites.json`);
   }
   return problems;
 }
