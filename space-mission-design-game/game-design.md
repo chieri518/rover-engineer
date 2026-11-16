@@ -851,6 +851,7 @@ Five additions to make Titan read as Titan on video. None of them changes the ru
 - **Methane clouds:** a faint, slow-drifting streaky cloud layer, with soft cloud shadows moving over the dunes. Cassini and Huygens observed methane clouds; their exact look here is a game rendering.
 - **Ice pebbles and sand ripples:** rounded water-ice pebbles (about 5 to 15 cm) scattered on the firm interdune ground, densest near the landing, as Huygens photographed in 2005; fine ripples on the dune flanks.
 - **Headlight beams:** at night the floodlights show as beams in the thick, hazy air, and raindrops glint in them.
+- **Dusk sky:** the sky darkens overhead toward dusk and the glow around the setting Sun brightens, so the sunset reads as the turning point of the mission.
 
 #### Power and night
 
