@@ -21,6 +21,7 @@ import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
 import { createStationMesh, disposeStationMesh } from './stations';
 import { RoverVehicle } from '../rover/vehicle';
+import { floodlightOrigin } from '../rover/roverModel';
 import { KeyboardInput } from '../rover/input';
 import type { DriveInput } from '../rover/vehicle';
 import { ChaseCamera } from '../rover/chaseCamera';
@@ -252,8 +253,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       ? new THREE.SpotLight(MARS_FLOODLIGHT.color, lampIntensity, opts.lightRangeM, MARS_FLOODLIGHT.angle, MARS_FLOODLIGHT.penumbra, MARS_FLOODLIGHT.decay)
       : new THREE.SpotLight(0xf4f1ea, lampIntensity, opts.lightRangeM, 0.6, 0.5, 1.2);
     lamp.intensity = 0; // intensity, not visibility: a changing light count would recompile every shader
-    lamp.position.set(tuning.rover.body.lengthM / 2, 0.4, 0);
-    lamp.target.position.set(tuning.rover.body.lengthM / 2 + 10, mars ? -MARS_FLOODLIGHT.targetDrop : -1.2, 0);
+    // The beam starts at the lamp housings on the model; the aim keeps the same downward angle as before
+    // (it used to start 0.4 m up, at the body's front centre).
+    const origin = floodlightOrigin(tuning.rover);
+    lamp.position.copy(origin);
+    lamp.target.position.set(origin.x + 10, origin.y - 0.4 - (mars ? MARS_FLOODLIGHT.targetDrop : 1.2), 0);
     rover.object.add(lamp, lamp.target);
   }
   const stations: THREE.Group[] = [];

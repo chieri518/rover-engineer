@@ -398,6 +398,18 @@ function markingTexture(): THREE.Texture | null {
 
 type Vec = [number, number, number];
 
+/**
+ * Where the floodlight beam starts, in the chassis frame: the front face of the lamp housings, at their
+ * height, centred between the two. Uses the same layout as the lamp housings drawn in `buildRoverModel`.
+ */
+export function floodlightOrigin(handling: RoverHandling): THREE.Vector3 {
+  const { lengthM: l, heightM: ht } = handling.body;
+  const top = ht / 2;
+  const boxH = ht * 0.78;
+  const boxY = -top + 0.08 + boxH / 2;
+  return new THREE.Vector3(l / 2 - 0.02 + 0.05, boxY + 0.02, 0);
+}
+
 export function buildRoverModel(handling: RoverHandling, connectY: number, look: RoverLook, options: RoverModelOptions = {}): RoverModel {
   const { lengthM: l, widthM: w, heightM: ht } = handling.body;
   const r = handling.wheelRadiusM;
@@ -681,7 +693,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   slot = 'lights';
   if (look.lights) {
     const lamp = mat('lamp', () => ({ color: COLORS.lamp, emissive: 0xb0a88e }), true);
-    const lx = l / 2 - 0.02;
+    const lx = l / 2 - 0.02; // keep in step with floodlightOrigin()
     const ly = boxY + 0.02;
     for (const z of [-1, 1]) {
       const lz = z * w * 0.3;
