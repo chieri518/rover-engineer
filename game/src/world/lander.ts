@@ -10,8 +10,11 @@ const BODY_HEIGHT_M = 1.3;
 const DECK_HEIGHT_M = 1.5; // bottom of the body above the ground
 const LEG_SPREAD_M = 2.6;
 const BEHIND_ROVER_M = 5.5; // lander center, behind the rover's start...
-const LEFT_OF_ROVER_M = 4.5; // ...and to its left, so the chase camera (7 m behind) is not inside it
-const RAMP_GAP_M = 2.2; // the ramp's foot stops this far short of the rover
+const LEFT_OF_ROVER_M = 5.5; // ...and to its left, so the chase camera (7 m behind) is not inside it and its legs stay out of the start view
+const RAMP_RUN_M = 3.4; // horizontal reach of the ramp from the deck edge to its foot
+const RAMP_WIDTH_M = 1.1;
+const RAMP_PLATE_M = 0.06; // plate thickness
+const RAMP_RAIL_M = 0.14; // side rail height above the plate
 
 export class Lander {
   readonly object = new THREE.Group();
@@ -20,7 +23,8 @@ export class Lander {
   /**
    * Place the lander behind and to the left of a rover that starts at (x, z) facing an azimuth
    * (terrain.json convention: azimuth az points along (sin az, 0, −cos az)), with its ramp reaching
-   * down toward the rover.
+   * down on the side away from the rover. (A ramp toward the rover crossed the start view just below
+   * the chase camera and read as floating bars.)
    */
   constructor(
     private readonly world: RAPIER.World,
@@ -34,9 +38,9 @@ export class Lander {
     // Right of the heading is azimuth + 90°: (cos az, sin az).
     const cx = start.x - fx * BEHIND_ROVER_M - Math.cos(az) * LEFT_OF_ROVER_M;
     const cz = start.z - fz * BEHIND_ROVER_M - Math.sin(az) * LEFT_OF_ROVER_M;
-    const toRover = Math.hypot(start.x - cx, start.z - cz);
-    const dx = (start.x - cx) / toRover;
-    const dz = (start.z - cz) / toRover;
+    // The ramp points left of the rover's heading, away from the rover and the chase camera.
+    const dx = -Math.cos(az);
+    const dz = -Math.sin(az);
     // Stand on the lowest footpad so no leg floats above the slope.
     let ground = Infinity;
     for (let k = 0; k < 4; k++) {
@@ -46,14 +50,15 @@ export class Lander {
     this.object.position.set(cx, ground, cz);
     // Local +x points at the rover.
     this.object.rotation.y = Math.atan2(-dz, dx);
-    this.build(toRover, groundAt(start.x - dx * RAMP_GAP_M, start.z - dz * RAMP_GAP_M) - ground);
+    const footR = BODY_RADIUS_M + RAMP_RUN_M;
+    this.build(groundAt(cx + dx * footR, cz + dz * footR) - ground);
 
     this.body = world.createRigidBody(rapier.RigidBodyDesc.fixed().setTranslation(cx, ground + DECK_HEIGHT_M / 2 + 0.6, cz));
     world.createCollider(rapier.ColliderDesc.cylinder(DECK_HEIGHT_M / 2 + 0.6, BODY_RADIUS_M), this.body);
   }
 
-  /** toRover: lander center to the rover's start; rampFootY: ground height at the ramp's foot, relative to the lander's base. */
-  private build(toRover: number, rampFootY: number): void {
+  /** rampFootY: ground height at the ramp's foot, relative to the lander's base. */
+  private build(rampFootY: number): void {
     const foil = new THREE.MeshLambertMaterial({ color: 0xc69a3e });
     const white = new THREE.MeshLambertMaterial({ color: 0xe4e1d8 });
     const metal = new THREE.MeshLambertMaterial({ color: 0x9a9ea4 });
@@ -100,15 +105,28 @@ export class Lander {
       add(new THREE.CylinderGeometry(0.3, 0.34, 0.08, 12), metal, c * LEG_SPREAD_M, 0.04, s * LEG_SPREAD_M);
     }
 
-    // The deployment ramp, from the deck edge down to the ground toward the rover.
+    // The deployment ramp: a plate with low side rails, from the deck edge down to the ground ahead.
+    // The plate's underside meets the deck at the top and rests on the ground at the foot.
     const topX = BODY_RADIUS_M;
-    const topY = DECK_HEIGHT_M;
-    const footX = toRover - RAMP_GAP_M;
-    const footY = rampFootY + 0.03;
+    const topY = DECK_HEIGHT_M + RAMP_PLATE_M / 2;
+    const footX = BODY_RADIUS_M + RAMP_RUN_M;
+    const footY = rampFootY + RAMP_PLATE_M / 2;
     const length = Math.hypot(footX - topX, topY - footY);
-    for (const z of [-0.45, 0.45]) {
-      const rail = add(new THREE.BoxGeometry(length, 0.04, 0.22), metal, (topX + footX) / 2, (topY + footY) / 2, z);
-      rail.rotation.z = -Math.atan2(topY - footY, footX - topX);
+    const tilt = -Math.atan2(topY - footY, footX - topX);
+    const ramp = new THREE.Group();
+    ramp.position.set((topX + footX) / 2, (topY + footY) / 2, 0);
+    ramp.rotation.z = tilt;
+    this.object.add(ramp);
+    const part = (geometry: THREE.BufferGeometry, y: number, z: number) => {
+      const mesh = new THREE.Mesh(geometry, metal);
+      mesh.position.set(0, y, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      ramp.add(mesh);
+    };
+    part(new THREE.BoxGeometry(length, RAMP_PLATE_M, RAMP_WIDTH_M), 0, 0);
+    for (const side of [-1, 1]) {
+      part(new THREE.BoxGeometry(length, RAMP_RAIL_M, 0.06), (RAMP_PLATE_M + RAMP_RAIL_M) / 2, side * (RAMP_WIDTH_M / 2 - 0.03));
     }
   }
 
