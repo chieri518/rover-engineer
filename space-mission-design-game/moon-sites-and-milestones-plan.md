@@ -4,7 +4,7 @@ New areas of interest on the Moon map and the milestones that give all six Moon 
 
 Written November 15, 2026, against `aon/moon-milestones` (from `main` at `8042a87`). Game rules stay in [game-design.md](game-design.md) (source of truth); the catalog is in [rover engineering design](rover-engineering-design.md). The repo rules still apply: game numbers in `game/data/*.json`, pure rules in `game/src/rules/` with unit tests, `npm test` and `npm run build` passing before each commit, design changes in game-design.md before code, and no hand edits to `game/tools/` or `game/public/terrain/`.
 
-**Status: open questions decided (November 15, 2026).** The team accepted every proposed answer in [Open questions](#7-open-questions). Phase 0 records them in game-design.md before any code. Coordinates are candidates from a quick offline look at the terrain layers (see [How placement uses the terrain layers](#how-placement-uses-the-terrain-layers)); the pipeline confirms them. Rewards are starting values; the balance model sets the final ones.
+**Status: open questions decided (November 15, 2026). Phase 0 done** except the agreement with the Mars plan's owner (M6): game-design.md `f4001d2`, rover-engineering-design.md `f0ec0be`. The team accepted every proposed answer in [Open questions](#7-open-questions). Coordinates are candidates from a quick offline look at the terrain layers (see [How placement uses the terrain layers](#how-placement-uses-the-terrain-layers)); the pipeline confirms them. Rewards are starting values; the balance model sets the final ones.
 
 Quick navigation: [Goals](#1-goals-and-principles) · [Sites](#2-sites-and-areas-of-interest) · [Milestones](#3-milestones) · [Balance](#4-balance) · [Rock types](#5-rock-types) · [Phases](#6-implementation-phases) · [Open questions](#7-open-questions) · [Sources](#sources-and-what-is-not-verified)
 
@@ -277,6 +277,14 @@ Each phase ends with tests and the build passing, a browser check, and a commit 
 - Agree the shared trigger shapes with the Mars plan's owner (M6) before Phase 3.
 
 **Done when:** both docs say *Decided* for everything Phases 2 to 6 build.
+
+**Status (November 15, 2026): done, except the M6 agreement.** game-design.md `f4001d2`; rover-engineering-design.md `f0ec0be`.
+
+- Recorded in game-design.md: the 12 milestones and the two repriced ones (Moon milestones), the triggers, the combo rule, the stations' lander rule, the cold traps in the cold rules, the meter's edge ramp and anomaly, the desk cards and the debrief's "Not reached" list ([Rules for the new milestones](game-design.md#rules-for-the-new-milestones)); the new site kinds, minimap states and the fourth lead (Map, Minimap); the archetypes as targets, the empty bay, the ice-with-both note with M1's balance-patch caveat ([Balance with the Moon sites and milestones](game-design.md#balance-with-the-moon-sites-and-milestones)); the reworded neutron/drill answers (Moon parts).
+- Recorded in rover-engineering-design.md: [Rock types by site](rover-engineering-design.md#rock-types-by-site), §7 with what each instrument earns, §10's neutron/drill answers, §11 decision 6, and M15's VIPER wording throughout (also a checked-claims entry).
+- **Decided in Phase 0** (marked so in game-design.md): what "unbroken" means for a transect; the dark crater counts as a cold trap for the survey (the Dark prospector's estimate needs it); Ice deposit located needs lights but no heater; the meter's ramps are linear, the edge ramp applies at every cold zone, the highest reading wins; photo targets use the Earth photo's frame test; Fresh ejecta keeps the 200 m sample rule and counts the crater floor; a deployed station records whatever the rover's power state; the station's second press within 5 s; the scope of "Not reached"; the Station keeper's Clean seismogram is credited only for a route that keeps away; the dark crater gets no new survey mark.
+- **Still open for Phase 0:** M6, agreeing the shared trigger shapes with the Mars plan's owner before Phase 3.
+- **Data text to change later** (not edited in Phase 0): `relationships.json` neutron-drill `answers`, `reviewText` and `fact` (Phase 2); VIPER wording in `text.json` → `instruments.neutron.fact` and `parts.json` → `instrument-neutron.description` (Phase 2 or 5); `text.json` `instrumentNoMilestones` and the design tutorial's "earn no milestones yet" sentence (Phase 5).
 
 ### Phase 1: Pipeline requests (data pipeline owner)
 
