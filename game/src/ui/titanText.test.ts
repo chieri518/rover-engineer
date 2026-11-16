@@ -43,7 +43,7 @@ describe('Titan tutorial, briefing and campaign text', () => {
     const vars = missionVars(titan);
     for (const line of c.newOnMars) expect(fill(line, vars)).not.toMatch(unfilled);
     const fixed = [
-      c.kicker, c.sameParts, c.ticketNote, c.sources, titan.text.landing.briefing, titan.text.comingSoon.heading, titan.text.comingSoon.body,
+      titan.text.story.kicker, c.sameParts, c.ticketNote, c.sources, titan.text.landing.briefing, titan.text.comingSoon.heading, titan.text.comingSoon.body,
       t.solarNote, t.factsHeading, ...t.facts, t.dragonflyHeading, ...t.dragonfly, t.lesson, t.dragonflySource,
       t.complete.kicker, t.complete.lessonsHeading, ...t.complete.lessons,
     ];

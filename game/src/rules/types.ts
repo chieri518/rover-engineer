@@ -391,12 +391,18 @@ export interface DashboardText {
   recordsCount: string; // {n}
   recordName: string; // {world} {name}
   noRecords: string;
+  storySurvived: string; // closing line under the heading when Titan survived
+  storyLost: string; // closing line when Titan was not survived
 }
 
 export interface SharedTextFile {
   moneyPrefix: string;
   moneySuffix: string;
   title: Record<'heading' | 'subtitle' | 'kicker' | 'newCampaign' | 'continueCampaign', string>;
+  /** The Welcome to REL intro, after Start new campaign (base only). Pages are filled by introPages(); **text** is bold. */
+  intro: { heading: string; skip: string; done: string; pages: TutorialPage[] };
+  /** Why REL goes to this world: the design desk kicker and site context, and the context's sources (credits). Each world sets its own. */
+  story: { kicker: string; site: string; sourcesLabel: string; sources: string[] };
   slots: Record<Slot, string>;
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
@@ -441,7 +447,8 @@ export interface SharedTextFile {
     | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
     | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue'
     | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
-    | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource', // "What the rover taught us": the relationships met
+    | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource' // "What the rover taught us": the relationships met
+    | 'storyPassed' | 'storyFailed', // the story line after the passed or failed round line (empty: not shown)
     string
   > & Partial<Record<
     // The last mission (Titan overlay): lostAt {time} {total} {cause} when the rover was lost, survivedTitan {minutes}, endCampaign button

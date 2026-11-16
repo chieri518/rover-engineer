@@ -158,6 +158,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .desk-notes { margin-bottom: 12px; }
 .desk-notes p { margin: 0; }
+.desk-notes p.story-site { margin-bottom: 6px; max-width: 72ch; }
 .desk-head h2 { margin: 0; }
 .desk-head .title-kicker { margin: 0 0 2px; }
 .desk-head p { margin: 0; }
@@ -481,6 +482,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .dash-head h2 { margin: 0 0 4px; }
 .dash-head p { margin: 0; }
 .dash-head .title-kicker { margin-bottom: 6px; }
+.dash-head p.story-beat { margin-top: 8px; max-width: 80ch; }
 .dash-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr)); gap: 10px; margin-top: 16px; }
 .dash-tile { background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 12px 14px; display: grid; gap: 4px; align-content: start; }
 .dash-tile-label { font-family: var(--font-head); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }

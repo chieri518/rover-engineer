@@ -40,16 +40,22 @@ export function tutorialPages(
   });
 }
 
-/**
- * The mission's numbers for {placeholders} in tutorial and briefing text: the Moon's, and on Mars the
- * sol clock, the night and the dust storm (the Mars keys are 0 on the Moon, whose text does not use them).
- */
+/** The Welcome to REL intro pages (text.intro), filled from the Moon's data: {budget}, {nextMinimum}. */
+export function introPages(data: GameData): TutorialPageText[] {
+  const vars = { ...missionVars(data), nextMinimum: nextMinimum('moon', data) };
+  return data.text.intro.pages.map((page) => ({ title: fill(page.title, vars), paragraphs: page.body.map((p) => fill(p, vars)) }));
+}
+
 /** The next mission's minimum budget (the pass mark); empty after the last mission, which passes on survival. */
 function nextMinimum(mission: CampaignStep, data: GameData): string {
   const next = nextMission(mission);
   return next && isPlayable(next) ? money(data.tuning.budget.minimumBudget[next], data.text) : '';
 }
 
+/**
+ * The mission's numbers for {placeholders} in tutorial and briefing text: the Moon's, and on Mars the
+ * sol clock, the night and the dust storm (the Mars keys are 0 on the Moon, whose text does not use them).
+ */
 export function missionVars(data: GameData): Record<string, string | number> {
   const { text, tuning, events } = data;
   const sol = tuning.sol;
@@ -58,6 +64,7 @@ export function missionVars(data: GameData): Record<string, string | number> {
   const rain = events.rainstorm;
   const minutes = (seconds: number) => +(Math.max(0, seconds) / 60).toFixed(1);
   return {
+    budget: money(tuning.budget.startingBudget, text), // the campaign's starting budget
     minutes: +(tuning.mission.lengthSeconds / 60).toFixed(1),
     days: tuning.mission.gameDays,
     maxSlope: tuning.ground.maxSlopeDegrees,

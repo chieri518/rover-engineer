@@ -157,7 +157,6 @@ export interface MarsTextSections {
 }
 
 export interface MarsCampaignText {
-  kicker: string; // design screen, above the heading: which mission this is
   carryOver: string; // {balance}: the balance carried over from the Moon
   passMark: string; // {minimum}: the next mission's pass mark (Titan)
   sameParts: string; // parts and ticket tiers are the Moon's for now
