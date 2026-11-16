@@ -11,6 +11,7 @@
 //   as relative brightness on the Titan ground color, the dark dune sand tinted (moonDarkTint/moonDarkTone).
 import * as THREE from 'three';
 import type { HeightGrid } from './terrainData';
+import { TITAN_CLOUD_PARS, TITAN_CLOUD_SHADOW, titanCloudUniforms } from './titanClouds'; // titan-fx: clouds
 
 /** Shared uniforms: every patched material reads the same objects, so one update reaches all. */
 export interface MoonLightUniforms {
@@ -175,6 +176,7 @@ ${OCTAVES.map(([w, h, a], i) => `  {
     diffuseColor.rgb *= mix( moonDarkTint, vec3( 1.0 ), smoothstep( moonDarkTone.x, moonDarkTone.y, tone ) );
     // Far away, dark dune sand and bright interdunes part further, so the bands read through the haze.
     diffuseColor.rgb *= pow( max( tone, 0.05 ), moonTitanFarTone * smoothstep( moonTitanRelief.z, moonTitanRelief.w, length( vViewPosition ) ) );
+    ${TITAN_CLOUD_SHADOW} // titan-fx: clouds
   #endif
 }
 `;
@@ -196,6 +198,7 @@ uniform vec4 moonTitanRelief;
 uniform float moonHazeShape;
 uniform float moonTitanFarTone;
 float moonSkyOcc = 1.0;
+${TITAN_CLOUD_PARS} // titan-fx: clouds
 `;
 
 const TITAN_NORMAL = /* glsl */ `
@@ -278,6 +281,7 @@ export function patchMoonLighting(
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${GROUND_NORMAL}`);
     }
     if (lunar === 'titan') {
+      Object.assign(shader.uniforms, titanCloudUniforms); // titan-fx: clouds
       // Before the ground's fine bumps, which then tilt the exaggerated normal as usual.
       fragment = fragment
         .replace('#include <common>', `#include <common>\n${TITAN_PARS}`)

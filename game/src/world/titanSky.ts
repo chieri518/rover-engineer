@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import type { SkyDirection } from '../rules/sun';
 import type { TitanLook } from './titanLook';
 import { glowTexture, SKY_RADIUS } from './sky';
+import { TITAN_CLOUD_PARS, TITAN_CLOUD_SKY, titanCloudUniforms } from './titanClouds';
 
 const VERTEX = /* glsl */ `
 varying vec3 vDir;
@@ -25,6 +26,7 @@ uniform vec3 horizon;
 uniform vec3 glow;
 uniform float glowWidth; // radians
 varying vec3 vDir;
+${TITAN_CLOUD_PARS}
 void main() {
   vec3 d = normalize( vDir );
   // Thick haze: the sky stays near the horizon color most of the way up.
@@ -33,6 +35,8 @@ void main() {
   // A broad, soft brightening around the Sun, spread along the horizon when the Sun is low.
   float spread = 1.0 + 1.2 * ( 1.0 - smoothstep( 0.0, 0.4, abs( d.y - sunDir.y ) ) );
   c += glow * ( exp( -a / ( glowWidth * spread ) ) + 0.25 * exp( -a / ( glowWidth * 3.0 ) ) );
+  // Methane clouds (titanClouds.ts): a faint streaky layer, drawn over the haze and the Sun's glow.
+  ${TITAN_CLOUD_SKY}
   gl_FragColor = vec4( max( c, 0.0 ), 1.0 );
   #include <colorspace_fragment>
   // Dither after the sRGB encode, so the near-black night sky does not turn to grain.
@@ -62,6 +66,7 @@ export class TitanSky {
           horizon: { value: new THREE.Color() },
           glow: { value: new THREE.Color() },
           glowWidth: { value: 0.3 },
+          ...titanCloudUniforms, // shared objects: updateTitanClouds sets them
         },
         side: THREE.BackSide,
         depthWrite: false,

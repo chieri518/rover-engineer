@@ -19,6 +19,7 @@ import { MarsSky } from './marsSky';
 import { MARS_GROUND_HEX, marsLook, type MarsLook } from './marsLook';
 import { TitanRain, TitanSky } from './titanSky';
 import { titanLook, type TitanLook } from './titanLook';
+import { updateTitanClouds } from './titanClouds'; // titan-fx: clouds
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
@@ -474,6 +475,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       camera.position.z += (Math.random() - 0.5) * a;
     }
     sky.update(camera, sun);
+    if (titanTuning && look && 'rainStreaks' in look) updateTitanClouds(paused ? 0 : dt, sun, storm, look, camera, titanTuning); // titan-fx: clouds
     if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, look.rainStreaks, look.rainColor);
     draw();
 
