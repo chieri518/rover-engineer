@@ -129,7 +129,6 @@ export const creditsScreen: Screen = (game, root) => {
       el('h2', {}, c.heading),
       el('p', {}, c.intro),
       el('p', { class: 'credits-disclaimer' }, c.disclaimer),
-      el('p', { class: 'note' }, shared.text.moneyNote),
 
       ...WORLD_IDS.map((w) => worldCredits(w, game.dataOf(w), shared, disposed)),
 

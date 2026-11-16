@@ -5,7 +5,6 @@ import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
 import type { Build, BusSlot, GameData, HistoryKey, Instrument, TextFile } from '../rules/types';
 import type { TitanCampaignText } from '../rules/titanTypes';
 import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
-import { openNotebook, type NotebookHandle } from './notebook';
 import type { InstrumentLog } from '../rules/instruments';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
@@ -27,7 +26,6 @@ const title: Screen = (game, root) => {
   const cover = el('div', { class: 'title-cover', 'aria-hidden': 'true' });
   let stopCover: (() => void) | null = null;
   let left = false;
-  let notebook: NotebookHandle | null = null;
   const campaign = game.campaign;
   void import('./titleCover')
     .then(({ mountTitleCover }) => {
@@ -44,23 +42,14 @@ const title: Screen = (game, root) => {
       el('div', { class: 'actions column' },
         el('button', { class: 'primary', onclick: () => game.newCampaign() }, t.newCampaign),
         campaign && el('button', { onclick: () => game.continueCampaign() }, t.continueCampaign),
-        campaign && el('button', {
-          id: 'notebook-open-title',
-          title: game.data.text.notebook.openTitle,
-          onclick: () => {
-            if (!notebook) notebook = openNotebook(root, game.data, { ids: campaign.notebook, onClose: () => (notebook = null) });
-          },
-        }, game.data.text.notebook.open),
         el('button', { onclick: () => game.go('settings') }, game.data.text.settings.open),
         el('button', { id: 'open-credits', onclick: () => game.go('credits') }, game.data.text.credits.open),
       ),
     ),
-    el('p', { class: 'title-caption' }, t.coverCaption),
   );
   return () => {
     left = true;
     stopCover?.();
-    notebook?.dispose();
   };
 };
 
@@ -272,7 +261,6 @@ const debrief: Screen = (game, root) => {
         row(t.rpEarned, String(payout.rp)),
         row(t.balance, money(state.balance, text), 'total'),
       ),
-      el('p', { class: 'note' }, text.moneyNote),
 
       logLines.length > 0 && el('h3', {}, t.logHeading),
       logLines.length > 0 && el('ul', { class: 'debrief-log' }, ...logLines.map((l) => el('li', {}, l))),

@@ -87,7 +87,6 @@ export const ticketScreen: Screen = (game, root) => {
       q.canLaunch && !q.canAfford && el('ul', { class: 'warnings' }, el('li', {}, text.design.overBudget)),
       q.overloaded && el('ul', { class: 'warnings' }, el('li', {}, text.design.chassisOverloaded)),
       reviewSection,
-      el('p', { class: 'note' }, text.moneyNote),
       el('div', { class: 'actions' },
         el('button', { onclick: () => game.go('design') }, 'Back to design'),
         el('button', { class: 'primary', disabled: !q.canLaunch || !q.canAfford, onclick: () => game.buyTicket() },

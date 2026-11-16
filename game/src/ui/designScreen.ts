@@ -430,7 +430,6 @@ export const designScreen: Screen = (game, root) => {
         sheet,
         warnings,
         el('div', { class: 'actions' }, next),
-        el('p', { class: 'note' }, text.moneyNote),
       ),
     ),
   );

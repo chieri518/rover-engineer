@@ -255,7 +255,6 @@ export function renderDashboard(game: Game, root: HTMLElement): void {
         : el('p', { class: 'muted' }, t.noRecords),
       end && el('h3', { class: 'dash-section' }, end.lessonsHeading),
       end && el('ul', { class: 'new-on-world' }, ...end.lessons.map((line) => el('li', {}, line))),
-      el('p', { class: 'note' }, text.moneyNote),
       el('div', { class: 'actions' },
         el('button', { onclick: () => game.go('title') }, text.comingSoon.backToTitle),
         el('button', { onclick: () => game.go('credits') }, text.credits.open),
