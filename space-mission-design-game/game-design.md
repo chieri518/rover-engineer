@@ -101,6 +101,7 @@ Check budget ──► Configure rover ──► Buy launch ticket ──► Lan
 - If losses push the balance below the next mission's minimum, the mission counts as failed.
 - The player then restarts that round from the design screen.
 - A restart returns everything to a snapshot taken at the start of the round: balance, RP, and records. This keeps the code simple and stops players replaying a round to farm records. *(Decided November 15; built in Phase 5:)* the engineering notebook is the exception and survives restarts, so what the player learned in a failed run carries over; see [rover engineering design](rover-engineering-design.md#engineering-notebook). A new campaign starts with an empty notebook.
+- **New campaign vs Continue** *(decided November 15)*. Start new campaign (the title, and the button on Campaign complete) resets everything: progress, balance, records, round stats, the notebook, the design on the desk, and the "tutorials seen" flags of every world, so a player who starts over after a full run sees all tutorials again. Continue campaign keeps all of it, skips tutorials already seen, and resumes at the current mission. A round restart (any world) is not a new campaign and does not reset tutorials. Settings are kept.
 
 ## 4. Mission: the inner loop
 
