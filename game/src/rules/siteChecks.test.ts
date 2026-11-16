@@ -110,4 +110,12 @@ describe('site checks: the cold trap survey run', () => {
     r = step(r.run, true, 10);
     expect(r.surveyed).toEqual([]); // the trap was touched in the earlier run, not this one
   });
+
+  it('the low-energy switch-off pauses, like a power-down', () => {
+    let r = step(null, true, 30, ['east-cold-trap']);
+    r = stepSurveyRun(r.run, { on: false, poweredDown: false, drivenM: 15, here: [], autoOff: true }, 50);
+    expect(r.run!.meters).toBe(30);
+    r = step(r.run, true, 20);
+    expect(r.surveyed).toEqual(['east-cold-trap']);
+  });
 });

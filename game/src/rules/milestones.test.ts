@@ -314,7 +314,7 @@ describe('site zones: membership at the edges', () => {
 });
 
 /** Drive in a straight line in 5 m steps from a to b with the given standby list, from a running odometer. */
-function drive(tr: MilestoneTracker, a: Point3, b: Point3, odo: { m: number }, opts: { on?: ('neutron')[]; poweredDown?: boolean } = {}) {
+function drive(tr: MilestoneTracker, a: Point3, b: Point3, odo: { m: number }, opts: { on?: ('neutron')[]; poweredDown?: boolean; autoOff?: ('neutron')[] } = {}) {
   const len = Math.hypot(b.x - a.x, b.z - a.z);
   const steps = Math.max(1, Math.ceil(len / 5));
   const reached: string[] = [];
@@ -322,7 +322,7 @@ function drive(tr: MilestoneTracker, a: Point3, b: Point3, odo: { m: number }, o
   for (let i = 0; i <= steps; i++) {
     const p = at(a.x + ((b.x - a.x) * i) / steps, a.z + ((b.z - a.z) * i) / steps);
     if (i > 0 && !opts.poweredDown) odo.m += len / steps;
-    const u = tr.step({ position: p, distanceM: odo.m, exploredShare: 0, switchedOn: opts.on ?? [], poweredDown: opts.poweredDown });
+    const u = tr.step({ position: p, distanceM: odo.m, exploredShare: 0, switchedOn: opts.on ?? [], poweredDown: opts.poweredDown, autoOff: opts.autoOff });
     reached.push(...u.reached.map((r) => r.milestone.id));
     missed.push(...u.missed.map((r) => r.milestone.id));
   }
@@ -374,6 +374,15 @@ describe('transect: an unbroken switched-on drive that touches the zone', () => 
     expect(drive(on, ...pass(20, 60), o3, { on: ['neutron'], poweredDown: true }).reached).toEqual([]); // paused: the odometer does not move
     expect(drive(on, ...pass(60, 75), o3, { on: ['neutron'] }).reached).toEqual([]); // 45 m: not yet
     expect(drive(on, ...pass(75, 85), o3, { on: ['neutron'] }).reached).toEqual(['cold-trap-survey']); // 55 m
+  });
+
+  // Decided in Phase 6: the low-energy switch-off pauses the count, like a power-down; switching on again continues it.
+  it('the low-energy switch-off pauses the count instead of starting it again', () => {
+    const tr = tracker(neutron);
+    const odo = { m: 0 };
+    drive(tr, ...pass(-10, 20), odo, { on: ['neutron'] }); // 30 m, through the zone
+    expect(drive(tr, ...pass(20, 40), odo, { autoOff: ['neutron'] }).reached).toEqual([]); // switched off by the warning: not counted
+    expect(drive(tr, ...pass(40, 61), odo, { on: ['neutron'] }).reached).toEqual(['cold-trap-survey']); // 30 + 21 m
   });
 
   it('stages by distinct cold trap: the same one twice is one stage, a second one is stage 2', () => {

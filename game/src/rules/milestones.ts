@@ -259,6 +259,8 @@ export interface StepInput {
   switchedOn?: readonly Instrument[];
   /** The rover is powered down now (a flare): transects pause, neither counting nor starting again. */
   poweredDown?: boolean;
+  /** Standby instruments the low-energy warning switched off (not the player), until the player switches them again: their transects pause, like a power-down, instead of starting again. */
+  autoOff?: readonly Instrument[];
 }
 
 /** What a finished reading found (the X-ray spectrometer: a boulder and its rock type). */
@@ -432,13 +434,14 @@ export class MilestoneTracker {
 
   /**
    * Switched-on drives: each standby instrument counts the meters driven while it is on and the rover
-   * powered up, and the zones touched on the way. Switching it off (by hand, or at the low-energy level)
-   * starts the count again; a power-down only pauses it.
+   * powered up, and the zones touched on the way. Switching it off by hand starts the count again; a
+   * power-down, or the low-energy switch-off (Phase 6), only pauses it until it is switched on again.
    */
   private stepTransects(input: StepInput, driven: number): void {
     if (input.poweredDown) return;
     const on = input.switchedOn ?? [];
-    for (const inst of [...this.runs.keys()]) if (!on.includes(inst)) this.runs.delete(inst);
+    const kept = input.autoOff ?? [];
+    for (const inst of [...this.runs.keys()]) if (!on.includes(inst) && !kept.includes(inst)) this.runs.delete(inst);
     if (on.length === 0) return;
     const here = this.zones.filter((z) => this.inside.has(z.key));
     for (const inst of on) {

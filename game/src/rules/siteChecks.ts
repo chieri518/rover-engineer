@@ -99,16 +99,16 @@ export interface SurveyRun {
 /**
  * One mission step of the cold trap survey, for the checks. It mirrors MilestoneTracker's staged
  * transect (rules/milestones.ts checkTransect): the meters count while the spectrometer is switched on
- * and the rover powered up; switching off ends the run; a power-down pauses it. Every cold trap touched
+ * and the rover powered up; switching off by hand ends the run; a power-down or the low-energy switch-off (`autoOff`) pauses it. Every cold trap touched
  * by a run that reaches `meters` is surveyed, including those past the milestone's last stage.
  * `here`: the cold trap site ids whose zones the rover is in after this step.
  */
 export function stepSurveyRun(
   run: SurveyRun | null,
-  input: { on: boolean; poweredDown: boolean; drivenM: number; here: readonly string[] },
+  input: { on: boolean; poweredDown: boolean; drivenM: number; here: readonly string[]; autoOff?: boolean },
   meters: number,
 ): { run: SurveyRun | null; surveyed: string[] } {
-  if (input.poweredDown) return { run, surveyed: [] };
+  if (input.poweredDown || (input.autoOff && !input.on)) return { run, surveyed: [] }; // paused, not ended
   if (!input.on) return { run: null, surveyed: [] };
   const next = run ?? { meters: 0, touched: new Set<string>() };
   next.meters += input.drivenM;

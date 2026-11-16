@@ -508,6 +508,9 @@ export const missionScreen: Screen = (game, root) => {
     else if (fresh.length === 0) hud.notify(fill(ti.quakeNoisy, { distance: Math.round(closestM) }));
   };
 
+  /** Standby instruments the low-energy warning switched off: their transects pause until the player switches them again. */
+  const autoOff = new Set<Instrument>();
+
   /** Switch a standby instrument on or off. */
   const toggleStandby = (inst: Instrument) => {
     const on = !state.standbyOn.includes(inst);
@@ -518,6 +521,7 @@ export const missionScreen: Screen = (game, root) => {
       return;
     }
     state = r.state;
+    autoOff.delete(inst); // the player's own switch: on continues a paused count, off ends it
     const name = partOf(inst).name;
     hud.notify(on ? fill(ti.standbyOn, { name, standby: costOf(inst)?.standbyEnergy ?? 0 }) : fill(ti.standbyOff, { name }), 'good');
     if (on) showFact(inst);
@@ -633,6 +637,7 @@ export const missionScreen: Screen = (game, root) => {
     for (const n of step.notices) {
       if (n.kind === 'quake') scene?.shake(data.events.quake?.shakeSeconds ?? 0);
       if (n.kind === 'standby-off') {
+        for (const i of n.instruments) autoOff.add(i);
         hud.notify(fill(ti.standbyAutoOff, { names: n.instruments.map((i) => partOf(i).name).join(text.ticket.and) }));
       }
       if (n.kind === 'flare-hit' && !n.protected) hud.flashScreen();
@@ -655,6 +660,7 @@ export const missionScreen: Screen = (game, root) => {
         flareSurvived: step.notices.some((n) => n.kind === 'flare-hit' && n.protected),
         switchedOn: state.standbyOn, // the neutron spectrometer's transects
         poweredDown: state.poweredDown,
+        autoOff: [...autoOff],
         ...(marsNow ? { night: marsNow.clock.isNight, stormActive: marsNow.stormPhase === 'active' } : {}),
       }));
       // The cold trap checks: the same switched-on drive as the tracker's Cold trap survey.
@@ -664,6 +670,7 @@ export const missionScreen: Screen = (game, root) => {
         poweredDown: state.poweredDown,
         drivenM: Math.max(0, state.distanceM - lastOdometerM),
         here,
+        autoOff: autoOff.has('neutron'),
       }, coldTrapSurveyM);
       lastOdometerM = state.distanceM;
       surveyRun = run.run;
