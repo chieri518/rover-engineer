@@ -49,8 +49,15 @@
   "ticket": {
     "briefing": "REL secures a spot for the rover on the next launch to Titan. The lander will set it down on a firm interdune corridor in the Shangri-La dunes."
   },
-  "campaign": {
+  "story": {
     "kicker": "Mission 3 · Titan, Shangri-La dunes",
+    "site": "The program's last rover goes to the Shangri-La dunes on Titan, Saturn's largest moon. The dune sand is thought to be organic material, and nobody has sampled it yet. Nearby Selk crater may once have held liquid water mixed with organic material, and NASA's Dragonfly mission is headed for this region.",
+    "sources": [
+      "Lorenz et al. (2021), Selection and characteristics of the Dragonfly landing site near Selk crater, Titan, Planet. Sci. J. 2:24, doi:10.3847/PSJ/abd08f",
+      "NASA Science, Dragonfly (science.nasa.gov/mission/dragonfly/)"
+    ]
+  },
+  "campaign": {
     "carryOver": "Balance carried over from Mars: {balance}.",
     "passMark": "This is the last mission. Its goal is to survive: the rover must still be running at the end of the {minutes} minutes (asleep counts). The balance does not decide it.",
     "sameParts": "Parts and launch ticket tiers are the same as on the Moon in this version.",
@@ -88,7 +95,9 @@
     "survivedTitan": "The rover was still running at the end of the {minutes} minutes: Titan survived.",
     "restart": "Try Titan again",
     "endCampaign": "End the campaign",
-    "continue": "Finish the campaign"
+    "continue": "Finish the campaign",
+    "storyPassed": "",
+    "storyFailed": "The rover did not survive the Titan day. The board leaves the choice to mission control: another attempt, or closing the program here."
   },
   "comingSoon": {
     "_about": "The Campaign complete screen (screen id 'complete'). Its extra strings are in titanCampaign.complete.",

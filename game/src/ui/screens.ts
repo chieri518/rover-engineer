@@ -14,6 +14,7 @@ import { isPlayable, nextMission } from '../rules/campaign';
 import { briefingLines, kmText } from './surveyText';
 import { missionVars } from './tutorialText';
 import { creditsScreen } from './creditsScreen';
+import { introScreen } from './introScreen';
 import { renderDashboard } from './dashboard';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
@@ -57,7 +58,7 @@ const landing: Screen = (game, root) => {
   const { data } = game;
   const t = data.text.landing;
   const s = data.text.survey;
-  const mars = data.text.campaign; // after the Moon (Mars, Titan): which mission, what is new on this world
+  const mars = data.text.campaign; // after the Moon (Mars, Titan): what is new on this world
   const titan = data.text.titanCampaign; // Titan only: a few facts, the distance to Selk
   const vars = missionVars(data);
   // Orbital survey leads: a rough bearing and distance from the lander to each area of interest. The
@@ -99,9 +100,10 @@ const landing: Screen = (game, root) => {
     .catch(() => leads.remove());
   root.append(
     panel(
-      mars && el('p', { class: 'title-kicker' }, mars.kicker),
+      el('p', { class: 'title-kicker' }, data.text.story.kicker),
       el('h2', {}, t.heading),
       el('p', {}, t.briefing),
+      el('p', {}, fill(data.text.mission.briefing, vars)),
       titan && el('h3', {}, titan.factsHeading),
       titan && el('ul', { class: 'new-on-world' }, ...titan.facts.map((line) => el('li', {}, line))),
       landmark,
@@ -282,6 +284,7 @@ const debrief: Screen = (game, root) => {
       ),
 
       el('p', { class: failed ? 'outcome failed' : 'outcome' }, fill(failed ? t.failedRound : t.passedRound, minimum)),
+      (failed ? t.storyFailed : t.storyPassed) && el('p', { class: 'story-beat' }, failed ? t.storyFailed : t.storyPassed),
       el('div', { class: 'actions' },
         failed
           ? el('button', { class: 'primary', onclick: () => game.restartRound() }, t.restart)
@@ -335,6 +338,7 @@ export const screens: Record<ScreenId, Screen> = {
   title,
   settings,
   credits: creditsScreen,
+  intro: introScreen,
   design: designScreen,
   ticket: ticketScreen,
   landing,

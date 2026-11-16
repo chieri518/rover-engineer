@@ -382,7 +382,7 @@ export const designScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
 
-  // After the Moon (Mars, Titan): which mission this is, the balance carried over, the next pass mark
+  // After the Moon (Mars, Titan): the balance carried over, the next pass mark
   // (on Titan the survival goal: it passes if the rover is still running at the end), and that parts and
   // tickets are the Moon's for now. Titan adds a plain
   // warning that solar panels give almost no power there.
@@ -411,7 +411,7 @@ export const designScreen: Screen = (game, root) => {
     // The top bar stays in view while the desk scrolls: title, help, notebook and balance. The longer notes sit below it.
     el('header', { class: 'desk-head' },
       el('div', {},
-        mars && el('p', { class: 'title-kicker' }, mars.kicker),
+        el('p', { class: 'title-kicker' }, text.story.kicker),
         el('h2', {}, t.heading),
       ),
       el('div', { class: 'desk-head-side' },
@@ -421,6 +421,7 @@ export const designScreen: Screen = (game, root) => {
       ),
     ),
     el('div', { class: 'desk-notes' },
+      el('p', { class: 'story-site' }, text.story.site), // why REL is going to this site
       el('p', { class: 'muted' }, t.tutorial),
       transition,
       text.titanCampaign && el('p', { class: 'world-transition world-warning' }, text.titanCampaign.solarNote),

@@ -154,10 +154,34 @@ describe('Titan data', () => {
 
   it('screens show Titan wording, not the Moon or Mars', () => {
     const t = worldGameData('titan').text;
-    for (const s of [t.landing.heading, t.landing.briefing, t.ticket.briefing, t.mission.briefing, t.mission.loading, t.campaign!.kicker, t.tutorial.designHeading]) {
+    for (const s of [t.landing.heading, t.landing.briefing, t.ticket.briefing, t.mission.briefing, t.mission.loading, t.story.kicker, t.story.site, t.tutorial.designHeading]) {
       expect(s).toMatch(/Titan|Shangri-La/);
     }
     expect(worldGameData('mars').text.debrief.continue).toBe('Continue to Titan');
+  });
+});
+
+describe('story context', () => {
+  const files = { moon: moonText, mars: marsText, titan: titanText } as const;
+
+  it('every world sets its own story kicker, site context, sources and debrief beats', () => {
+    for (const [world, file] of Object.entries(files)) {
+      // Set in each file itself, so Mars and Titan never inherit the Moon's lines through the merge.
+      const story = (file as { story?: { kicker?: string; site?: string; sources?: string[] } }).story;
+      const debrief = (file as { debrief: Record<string, string | undefined> }).debrief;
+      expect(story?.kicker, world).toBeTruthy();
+      expect(story?.site, world).toBeTruthy();
+      expect(story?.sources?.length, world).toBeGreaterThan(0);
+      expect(debrief.storyFailed, world).toBeTruthy();
+      expect(typeof debrief.storyPassed, world).toBe('string'); // Titan's is empty: Campaign complete carries the end
+    }
+    const kickers = (['moon', 'mars', 'titan'] as const).map((w) => loadGameData(w).text.story.kicker);
+    expect(kickers.map((k) => k.slice(0, 9))).toEqual(['Mission 1', 'Mission 2', 'Mission 3']);
+    expect(loadGameData('titan').text.debrief.storyPassed).toBe('');
+  });
+
+  it('the base text has no campaign section, so the Moon desk shows no transition notes', () => {
+    expect((moonText as { campaign?: unknown }).campaign).toBeUndefined();
   });
 });
 

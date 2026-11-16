@@ -8,6 +8,47 @@
     "newCampaign": "Start new campaign",
     "continueCampaign": "Continue campaign"
   },
+  "intro": {
+    "heading": "Welcome to REL",
+    "skip": "Skip intro",
+    "done": "Go to the design desk",
+    "pages": [
+      {
+        "title": "Welcome to REL",
+        "body": [
+          "REL, the Rover Exploration Laboratory, designs and operates small robotic rovers.",
+          "You are REL's newest rover engineer, at mission control. For each mission you design the rover, buy its launch ticket, and drive it on the surface.",
+          "REL is fictional. The worlds, the ground under the rover and the missions the game cites are real, from NASA data and published sources."
+        ]
+      },
+      {
+        "title": "Every mission must pay its way",
+        "body": [
+          "Each mission has a budget. The rover's parts and its launch ticket are paid from it, and work on the surface earns money back.",
+          "After the mission, the balance must reach the **pass mark**: the amount REL needs to fund the next mission. On the Moon, the budget is {budget} and the pass mark is {nextMinimum}. If the balance falls short, REL tries the same mission again."
+        ]
+      },
+      {
+        "title": "Three worlds ahead",
+        "body": [
+          "**Mission 1 · The Moon.** The de Gerlache crater rim, near the south pole. Low sunlight, long shadows, and every kilogram counts.",
+          "**Mission 2 · Mars.** Jezero crater, an ancient lake bed. A night every sol, cold, and dust.",
+          "**Mission 3 · Titan.** The Shangri-La dunes on Saturn's largest moon. Almost no sunlight, constant cold, and one goal: survive.",
+          "Each mission's results fund the next."
+        ]
+      }
+    ]
+  },
+  "story": {
+    "kicker": "Mission 1 · The Moon, de Gerlache rim",
+    "site": "REL's first rover goes to the rim of de Gerlache crater, near the lunar south pole. Some crater floors near the pole never see the Sun and can be as cold as about −248 °C; in 2009, NASA's LCROSS probe struck one of them, Cabeus crater, and found water in the debris. NASA has named a region on the de Gerlache rim as a candidate landing region for its Artemis III crewed mission.",
+    "sourcesLabel": "Site context",
+    "sources": [
+      "NASA SVS 11230, Diviner temperatures of the lunar poles (svs.gsfc.nasa.gov/11230)",
+      "Colaprete et al. (2010), Detection of water in the LCROSS ejecta plume, Science 330:463, doi:10.1126/science.1186986",
+      "NASA release 24-136, NASA provides update on Artemis III Moon landing regions (nasa.gov/news-release/nasa-provides-update-on-artemis-iii-moon-landing-regions/)"
+    ]
+  },
   "slots": {
     "chassis": "Chassis",
     "wheels": "Wheels",
@@ -158,7 +199,7 @@
   },
   "mission": {
     "heading": "Mission",
-    "briefing": "Fourteen days of daylight. The Sun stays low and circles the horizon.",
+    "briefing": "{days} days of daylight. The Sun stays low and circles the horizon.",
     "controls": "W A S D or arrow keys to drive. Space to brake. P to power down or power up. N opens the engineering notebook.",
     "boundary": "Leaving the planned operating area",
     "loading": "Loading terrain…",
@@ -205,6 +246,8 @@
     "rollover": "Destroyed by rollover",
     "failedRound": "The balance is below the minimum budget for the next mission ({minimum}). The round must be restarted. Balance, research points and records return to their values at the start of the round.",
     "passedRound": "The balance meets the minimum budget for the next mission, Mars ({minimum}).",
+    "storyPassed": "The board has reviewed the lunar results and approved REL's second mission: a rover for Jezero crater on Mars. Mars adds what the Moon did not have: a night every sol, cold everywhere, and dust.",
+    "storyFailed": "On these results, REL cannot fund the next mission. The board has approved another attempt at the de Gerlache rim, and the engineering notebook keeps what this rover learned.",
     "milestonesHeading": "Milestones reached",
     "noMilestones": "No milestones were reached.",
     "recordHeld": "Record already held this campaign. No reward.",
@@ -277,6 +320,8 @@
     "kicker": "Campaign dashboard",
     "heading": "Campaign complete",
     "body": "Three missions, one balance. These are the numbers each rover recorded.",
+    "storySurvived": "REL's three-world program is complete, and its last rover survived the Titan day. Each world asked for a different rover: on the Moon every kilogram counted, on Mars the nights were cold, and on Titan the battery carried the rover with almost no sunlight.",
+    "storyLost": "REL's three-world program is closed, with Titan marked not survived. Each world asked for a different rover: on the Moon every kilogram counted, on Mars the nights were cold, and on Titan there was almost no sunlight and no let-up from the cold.",
     "tileFinal": "Final mission survived",
     "yes": "Yes",
     "no": "No",
