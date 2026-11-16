@@ -384,10 +384,10 @@ function augerTexture(): THREE.Texture | null {
 
 /** A small fictional rover marking, dark on clear. */
 function markingTexture(): THREE.Texture | null {
-  return canvasTexture(128, (g, s) => {
+  return canvasTexture(256, (g, s) => {
     g.clearRect(0, 0, s, s);
     g.fillStyle = '#2b2d31';
-    g.font = `bold ${Math.round(s * 0.36)}px sans-serif`;
+    g.font = `bold ${Math.round(s * 0.4)}px Arial, Helvetica, sans-serif`;
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillText('REL', s / 2, s * 0.42);
@@ -545,7 +545,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     const marking = mat('marking', () => ({ map: markingTexture(), alphaTest: 0.5, polygonOffset: true, polygonOffsetFactor: -2 }), true);
     if (marking.map) {
       for (const z of [-1, 1]) {
-        const plate = new THREE.PlaneGeometry(0.15, 0.15);
+        const plate = new THREE.PlaneGeometry(0.17, 0.17);
         if (z < 0) plate.rotateY(Math.PI);
         add(plate, marking, boxX + boxL * 0.2, boxY + 0.03, z * (boxW / 2 + 0.002));
       }
@@ -760,32 +760,34 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   if (hasInstrument('neutron')) {
     slot = 'neutron';
     const nx = l * 0.42;
-    add(new RoundedBoxGeometry(0.2, 0.1, 0.34, 1, 0.012).toNonIndexed(), casing, nx, 0.0, 0);
-    for (let k = 0; k < 5; k++) add(box(0.16, 0.02, 0.008), dark, nx - 0.01, 0.06, (k - 2) * 0.06);
+    add(new RoundedBoxGeometry(0.2, 0.12, 0.42, 1, 0.012).toNonIndexed(), casing, nx, 0.0, 0);
+    for (let k = 0; k < 7; k++) add(box(0.16, 0.022, 0.008), dark, nx - 0.01, 0.07, (k - 3) * 0.055);
     // Two helium-3 detector tubes across the front face, with end caps.
     for (const y of [-1, 1]) {
-      add(axle(0.022, 0.3, 12), casing, nx + 0.122, y * 0.026, 0);
-      for (const s of [-1, 1]) add(axle(0.025, 0.02, 12), dark, nx + 0.122, y * 0.026, s * 0.16);
+      add(axle(0.03, 0.4, 14), casing, nx + 0.13, y * 0.032, 0);
+      for (const s of [-1, 1]) add(axle(0.034, 0.03, 14), dark, nx + 0.13, y * 0.032, s * 0.21);
     }
-    add(box(0.05, 0.11, 0.3), frame, nx - 0.1, -0.1, 0);
+    add(box(0.05, 0.1, 0.36), frame, nx - 0.1, -0.105, 0);
     add(cable([[nx - 0.1, 0.0, 0.12], [nx - 0.16, -0.06, 0.14], [nx - 0.2, deckY + 0.03, 0.16]]), dark);
   }
   if (hasInstrument('xray')) {
     slot = 'xray';
     const ax = -l * 0.43;
-    add(box(0.14, 0.1, 0.16), casing, ax, -0.28, 0);
+    add(new RoundedBoxGeometry(0.18, 0.12, 0.22, 1, 0.012).toNonIndexed(), casing, ax, -0.29, 0);
     add(box(0.1, 0.064, 0.12), frame, ax, deckBottom - 0.032, 0);
-    // Shoulder, upper arm, elbow, forearm and the sensor head with its contact ring.
-    const shoulder: Vec = [ax + 0.06, -0.33, 0];
-    const elbow: Vec = [ax + 0.17, -0.41, 0];
-    const head: Vec = [ax + 0.11, -0.5, 0];
-    add(axle(0.026, 0.07, 12), dark, ...shoulder);
-    add(axle(0.022, 0.06, 12), dark, ...elbow);
-    add(strut(shoulder, elbow, 0.016), frame);
-    add(strut(elbow, [head[0], head[1] + 0.03, 0], 0.014), frame);
-    add(rod(0.048, 0.07, 14), dark, head[0], head[1] - 0.02, 0);
-    add(rod(0.034, 0.012, 14), casing, head[0], head[1] - 0.06, 0);
-    add(cable([[ax + 0.02, -0.3, 0.06], [ax + 0.12, -0.36, 0.05], [elbow[0], elbow[1], 0.04]], 0.006), dark);
+    // The arm reaches out behind the rover: shoulder, upper arm, elbow, forearm, and the sensor head
+    // (under gold blanket) with its contact ring, held just above the ground.
+    const shoulder: Vec = [ax - 0.1, -0.31, 0];
+    const elbow: Vec = [ax - 0.26, -0.36, 0];
+    const head: Vec = [ax - 0.3, -0.48, 0];
+    add(axle(0.034, 0.1, 14), dark, ...shoulder);
+    add(axle(0.03, 0.08, 14), dark, ...elbow);
+    for (const s of [-1, 1]) add(strut([shoulder[0], shoulder[1], s * 0.025], [elbow[0], elbow[1], s * 0.025], 0.013), frame);
+    add(strut(elbow, [head[0], head[1] + 0.05, 0], 0.016), frame);
+    add(rod(0.055, 0.08, 16), foil, head[0], head[1], 0);
+    add(rod(0.04, 0.02, 16), dark, head[0], head[1] - 0.05, 0);
+    add(rod(0.032, 0.008, 16), casing, head[0], head[1] - 0.064, 0);
+    add(cable([[ax - 0.06, -0.28, 0.06], [ax - 0.18, -0.32, 0.06], [elbow[0], elbow[1] + 0.02, 0.05]], 0.006), dark);
   }
 
   // On the deck, until set down on the ground: the seismometer station and the laser retroreflector,
@@ -888,7 +890,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     const boltCircle: THREE.BufferGeometry[] = [];
     for (let k = 0; k < 5; k++) {
       const a = (k / 5) * Math.PI * 2;
-      boltCircle.push(axle(0.01, wheelW + 0.05, 6).translate(Math.cos(a) * 0.04, Math.sin(a) * 0.04, 0));
+      boltCircle.push(axle(0.01, wheelW + 0.036, 6).translate(Math.cos(a) * 0.04, Math.sin(a) * 0.04, 0));
     }
     add(mergeAll([...hubParts, ...boltCircle]), dark, 0, 0, 0, spin);
     wheel.add(spin);
