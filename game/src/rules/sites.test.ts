@@ -63,3 +63,17 @@ describe('cold zones: what each tuning.cold.zones name anchors to', () => {
     for (const zone of data.tuning.cold.zones) expect(coldZoneAnchor(zone, f, data.sites.sites), zone).not.toBeNull();
   });
 });
+
+describe('rocky areas: sites.json and terrain.json agree', () => {
+  it('every rocky-area site resolves to the center of one of the terrain\'s rockyAreas (within 1 m), as the mission\'s boulder sites and the survey assume', () => {
+    // missionScreen tags each rocky area's boulders with the site at the same center (within 1 m), and the
+    // world scatters them over masks.boulderAreas (circles(features.rockyAreas)); the survey matches by name.
+    const rocky = resolveSites(data.sites.sites, f).filter((s) => s.kind === 'rocky-area');
+    expect(rocky.length).toBeGreaterThan(0);
+    for (const s of rocky) {
+      const area = f.rockyAreas.find((a) => Math.hypot(a.local.x - s.center.x, a.local.z - s.center.z) <= 1);
+      expect(area, s.id).toBeDefined();
+      expect(area!.name, s.id).toBe(s.name);
+    }
+  });
+});

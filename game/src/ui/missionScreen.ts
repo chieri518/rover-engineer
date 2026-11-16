@@ -11,9 +11,10 @@ import type { Instrument } from '../rules/types';
 import { scatterBoulders, scatterSiteBoulders, type Boulder } from '../rules/boulders';
 import { resolveSites, type ResolvedSite, type SiteFeatures } from '../rules/sites';
 import {
-  emptyInstrumentLog, emptySeismometerTrack, hydrogenReading, rockTypeFor, stepSeismometer, xrayTarget,
-  type InstrumentLog, type SeismometerOutcome, type TrackPoint,
+  emptyInstrumentLog, emptySeismometerTrack, hydrogenReading, reflectorEarthLight, rockTypeFor, rockTypeTotal, stationHint, stationPress, stationTooClose,
+  stepSeismometer, xrayTarget, type InstrumentLog, type SeismometerOutcome, type StationPending, type TrackPoint,
 } from '../rules/instruments';
+import { emptySiteProgress, noteReading, siteDone, siteRocks, stepSurveyRun, type SurveyRun } from '../rules/siteChecks';
 import {
   addToNotebook, lessonFor, meet, metIds, onSeismometer, onShadowStop, onUseDone, onUseStart, relationshipEntry, shortUseLines, type RelationshipEvent,
 } from '../rules/relationships';
@@ -23,7 +24,7 @@ import { scheduleEvents, seededRng } from '../rules/events';
 import { softnessAt } from '../rules/ground';
 import { noLightsLookaheadM } from '../rules/cold';
 import { createExplored, exploredShare, reveal } from '../rules/explore';
-import { azimuthDeg, areaCenter, buildLeads, buildSites, discover, type Lead, type Site } from '../rules/survey';
+import { azimuthDeg, areaCenter, buildLeads, buildSites, discover, revealSite, type Lead, type Site } from '../rules/survey';
 import {
   activeFlareWarning, deployPart, isSwitchInstrument, missionSetup, missionWarnings, partsAboard, setStandby, startInstrumentUse, startMission, stepMission,
   type InstrumentRefusal, type MarsStatus, type MissionEnd, type MissionSample, type MissionSetup, type MissionState, type UseSite, type WarningId,
@@ -36,7 +37,7 @@ import { flareWarningText, noticeText } from '../events';
 import { el, fill } from './dom';
 import { Hud } from './hud';
 import { MARS_RELIEF, Minimap } from './minimap';
-import { hudLeadLine } from './surveyText';
+import { foundNotice, hudLeadLine } from './surveyText';
 import { causeText, milestoneCard, missedText } from './milestoneText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
@@ -108,6 +109,18 @@ export const missionScreen: Screen = (game, root) => {
   const notebookAtLaunch = [...game.state.notebook];
   let unread = false; // a relationship met since the notebook was last opened
   const factsShown = new Set<Instrument>(); // each instrument's history fact shows once per mission
+  // The minimap's site checks (rules/siteChecks.ts): what the rover did at each site, the rock types each
+  // site's boulders hold, and the neutron spectrometer's switched-on drive for the cold trap survey.
+  const siteProgress = emptySiteProgress();
+  let presentRocks = new Map<string, Set<string>>();
+  let surveyRun: SurveyRun | null = null;
+  let lastOdometerM = 0;
+  const coldTrapSurveyM = data.milestones.milestones.reduce(
+    (m, x) => (x.trigger.type === 'transect' && x.trigger.zone === 'cold-trap' ? Math.min(m, x.trigger.meters) : m), Infinity);
+  const rockTypes = rockTypeTotal(tuning.instruments.xray); // Rock collection's "New type: n of 5"
+  // A station key pressed inside the near-lander zone waits here for its confirming second press.
+  let stationPending: StationPending | null = null;
+  let seismometerTooClose: string | null = null; // the station went down near the lander: said after its set-down notice
 
   // What the last step measured
   let ctx: {
@@ -240,7 +253,12 @@ export const missionScreen: Screen = (game, root) => {
   ));
 
   const announce = (u: MilestoneUpdate) => {
-    for (const r of u.reached) hud.milestone(milestoneCard(r, data, game.settings.missionHistory, recordsHeld));
+    for (const r of u.reached) {
+      hud.milestone(milestoneCard(r, data, game.settings.missionHistory, recordsHeld));
+      // Hidden hydrogen: the only way its site appears on the map.
+      const tr = r.milestone.trigger;
+      if (tr.type === 'transect' && tr.zone === 'hydrogen-anomaly') revealHiddenSites();
+    }
     for (const m of u.missed) hud.notify(missedText(m, text));
     if (u.partialCrossings.length) hud.notify(fill(ti.partialCrossingHint, { angle: mt.boulderCrossMinAngleDeg }));
   };
@@ -303,13 +321,9 @@ export const missionScreen: Screen = (game, root) => {
         return fill(ti.useNoEnergy, { name, cost, energy: Math.floor(state.energy) });
     }
   };
-  /** Run the rules for a use; on success the state is updated (energy charged, hold started). */
-  const tryUse = (inst: Instrument): boolean => {
-    if (!carries(inst)) {
-      hud.notify(itx[inst].notCarried);
-      return false;
-    }
-    const r = startInstrumentUse(state, inst, {
+  /** The rules' answer to a use now, without applying it. */
+  const startUse = (inst: Instrument) =>
+    startInstrumentUse(state, inst, {
       speedMps: lastSample?.speedMps ?? 0,
       inColdZone: lastSample?.inColdZone ?? false,
       sunlight,
@@ -318,6 +332,13 @@ export const missionScreen: Screen = (game, root) => {
       boulder: currentBoulder()?.index ?? null, // an X-ray reading keeps this boulder even if the rover is nudged
       inDarkCrater: inDarkCrater(),
     }, setup, tuning);
+  /** Run the rules for a use; on success the state is updated (energy charged, hold started). */
+  const tryUse = (inst: Instrument): boolean => {
+    if (!carries(inst)) {
+      hud.notify(itx[inst].notCarried);
+      return false;
+    }
+    const r = startUse(inst);
     if (!r.ok) {
       const msg = refusalText(inst, r.reason, r.cost);
       if (msg) hud.notify(msg);
@@ -348,6 +369,10 @@ export const missionScreen: Screen = (game, root) => {
   };
   /** The boulder within the X-ray spectrometer's reach, if any. */
   const currentBoulder = () => (roverPos ? xrayTarget(roverPos, boulders, tuning.instruments.xray) : null);
+  /** A station: an instrument set down on the ground (the seismometer and the reflector). */
+  const isStation = (i: Instrument) => partOf(i)?.effects.deploy === true;
+  /** The rover is inside the near-lander zone, where a station set down earns no milestones. */
+  const roverTooClose = () => roverPos !== null && stationTooClose(roverPos, zones);
   /** The rover is inside the dark crater (the shadowed-crater zone). */
   const inDarkCrater = () => tracker?.currentZones().some((z) => z.id === 'shadowed-crater') ?? false;
 
@@ -359,7 +384,13 @@ export const missionScreen: Screen = (game, root) => {
     const earth = earthInSky && scene.inView(earthDir, mt.photoFrameMargin);
     const lit = earthInSky ? earthLit() : 0;
     const sun = sunPhoto();
-    const u = tracker.photo(roverPos, earth, lit, sun, framedBoulders());
+    const framed = framedBoulders();
+    const u = tracker.photo(roverPos, earth, lit, sun, framed);
+    // The rolled boulder's check: in frame within the Boulder track range (as the tracker's photo rule).
+    for (const b of framed) {
+      const site = boulders[b.index]?.site;
+      if (b.rolled && site && Math.hypot(b.x - roverPos.x, b.z - roverPos.z) <= mt.boulderTrackPhotoRangeM) siteProgress.photographed.add(site);
+    }
     const places = tracker.zones
       .filter((z) => PHOTO_ZONE_IDS.includes(z.id) && tracker!.currentZones().includes(z))
       .map((z) => z.name);
@@ -388,6 +419,8 @@ export const missionScreen: Screen = (game, root) => {
     const u = tracker.drill(roverPos);
     if (zones.includes('near-lander')) hud.notify(fill(ti.drillNearLander, { distance: mt.sampleMinDistanceM }));
     else {
+      // A counted sample inside a young crater's or rocky area's ejecta ring: that site's drill check.
+      for (const z of tracker.currentZones()) if (z.id === 'young-crater' && z.site) siteProgress.drilled.add(z.site);
       const done = repeat ? fill(ti.drillSameSite, { distance: mt.sampleSpacingM }) : ti.drillDone;
       // The drill only confirms ice: it gives no hydrogen reading (the neutron spectrometer does).
       const result = zones.includes('ice-spot') ? ti.drillIce : zones.includes('shadowed-crater') ? ti.drillNoIce : done;
@@ -405,8 +438,12 @@ export const missionScreen: Screen = (game, root) => {
     const id = rockTypeFor(boulder, tuning.instruments.xray, data.sites.sites);
     const rock = text.rocks[id] ?? { name: id, elements: '' };
     const again = log.rocks.find((r) => r.boulder === index);
-    hud.notify(again ? fill(ti.xrayAgain, { rock: rock.name }) : fill(ti.xrayResult, { rock: rock.name, elements: rock.elements }), 'good');
+    const newType = !again && !log.rocks.some((r) => r.rock === id); // a rock type not read before this mission
     if (!again) log.rocks.push({ boulder: index, rock: id });
+    noteReading(siteProgress, boulder, id);
+    const said = again ? fill(ti.xrayAgain, { rock: rock.name }) : fill(ti.xrayResult, { rock: rock.name, elements: rock.elements });
+    const count = new Set(log.rocks.map((r) => r.rock)).size;
+    hud.notify(newType && rockTypes > 0 ? [said, fill(ti.xrayNewType, { count, total: rockTypes })] : said, 'good');
     // Rock collection, Rare rock, and the boulder Documented sample photographs.
     if (tracker && roverPos) announce(tracker.reading('xray', roverPos, { target: 'boulder', rock: id, boulder: index }));
   };
@@ -419,14 +456,22 @@ export const missionScreen: Screen = (game, root) => {
     const button = instrumentButtons.get(inst);
     if (button) button.disabled = true;
     buttonLabels.get(inst)!.textContent = ti.deployedButton;
+    stationPending = null;
     // Laser ranging site and Science station: where it went down and whether Earth was in view (the
-    // reflector cannot be set down without it). The too-close second press is Phase 5's HUD.
+    // reflector cannot be set down without it). earthAbove is measured at the rover's position, up to
+    // EARTH_CHECK_EVERY_FRAMES frames stale; the rover holds still while the station goes down, so that
+    // is negligible.
     if (tracker) announce(tracker.deploy(inst, at, earthAbove));
+    // Set down inside the near-lander zone after the confirming second press: it works, but earns nothing.
+    // Said after the set-down notice (the seismometer's comes from seismometerNotice later in this step).
+    const tooClose = stationTooClose(at, zones) ? fill(ti.stationPlacedTooClose, { name: partOf(inst).name, distance: mt.sampleMinDistanceM }) : null;
     if (inst === 'reflector') {
       log.reflectorPlaced = true;
       hud.notify(ti.reflectorDeployed, 'good');
+      if (tooClose) hud.notify(tooClose);
       return;
     }
+    seismometerTooClose = tooClose;
     log.stationPlaced = true;
     stationSetDown = at; // stepSeismometer places it later in this step (before a moonquake in the same step)
   };
@@ -447,6 +492,8 @@ export const missionScreen: Screen = (game, root) => {
         log.quake = 'missed';
         hud.notify(ti.quakeMissed);
       }
+      if (seismometerTooClose) hud.notify(seismometerTooClose);
+      seismometerTooClose = null;
       return showFact('seismometer');
     }
     const { quality, closestM } = o.record;
@@ -484,7 +531,29 @@ export const missionScreen: Screen = (game, root) => {
       if (msg) hud.notify(msg);
     } else if (isSwitchInstrument(inst, setup)) toggleStandby(inst);
     else if (inst === 'camera') takePhoto();
+    else if (isStation(inst)) pressStation(inst);
     else tryUse(inst);
+  }
+
+  /**
+   * A station's key. Inside the near-lander zone the first press only asks for a second press within
+   * stationConfirmSeconds (rules/instruments.ts stationPress). Any other refusal (moving, no Earth,
+   * powered down, busy) is shown first, so a confirmation is never asked for a press that would fail.
+   */
+  function pressStation(inst: Instrument): void {
+    if (!carries(inst)) return void hud.notify(itx[inst].notCarried);
+    const r = startUse(inst);
+    if (!r.ok) {
+      const msg = refusalText(inst, r.reason, r.cost);
+      if (msg) hud.notify(msg);
+      return;
+    }
+    const press = stationPress(stationPending, inst, state.seconds, roverTooClose(), tuning.instruments.stationConfirmSeconds);
+    stationPending = press.pending;
+    if (press.action === 'confirm') {
+      return void hud.notify(fill(ti.stationConfirm, { name: partOf(inst).name, key: keyOf(inst), seconds: tuning.instruments.stationConfirmSeconds }));
+    }
+    tryUse(inst);
   }
 
   const onKey = (e: KeyboardEvent) => {
@@ -588,6 +657,17 @@ export const missionScreen: Screen = (game, root) => {
         poweredDown: state.poweredDown,
         ...(marsNow ? { night: marsNow.clock.isNight, stormActive: marsNow.stormPhase === 'active' } : {}),
       }));
+      // The cold trap checks: the same switched-on drive as the tracker's Cold trap survey.
+      const here = tracker.currentZones().flatMap((z) => (z.id === 'cold-trap' && z.site ? [z.site] : []));
+      const run = stepSurveyRun(surveyRun, {
+        on: state.standbyOn.includes('neutron'),
+        poweredDown: state.poweredDown,
+        drivenM: Math.max(0, state.distanceM - lastOdometerM),
+        here,
+      }, coldTrapSurveyM);
+      lastOdometerM = state.distanceM;
+      surveyRun = run.run;
+      for (const id of run.surveyed) siteProgress.surveyed.add(id);
       for (const n of step.notices) if (n.kind === 'instrument-done') finishUse(n.instrument, n.site);
     }
     // The seismometer station: set down this step, the rover's track while it records, then the moonquake.
@@ -634,6 +714,12 @@ export const missionScreen: Screen = (game, root) => {
     if (state.using) return itx[state.using.instrument].holding ?? fill(ti.holding, { name: partOf(state.using.instrument).name });
     const zones = tracker?.currentZones() ?? [];
     if (aboard('xray') && currentBoulder()) return fill(ti.boulderHint, { key: keyOf('xray') });
+    // A station aboard near the lander: said before it is set down, not after. A reflector without Earth
+    // in view is refused outright instead (its Earth light says so), so it gets no too-close hint.
+    if (roverTooClose()) {
+      const station = instruments.find((i) => isStation(i) && aboard(i) && stationHint(costOf(i)?.needsEarth ?? false, earthAbove, true) === 'too-close');
+      if (station) return fill(ti.stationTooCloseHint, { name: partOf(station).name, distance: mt.sampleMinDistanceM });
+    }
     if (carries('camera')) {
       const key = keyOf('camera');
       const view = zones.find((z) => PHOTO_ZONE_IDS.includes(z.id));
@@ -661,6 +747,20 @@ export const missionScreen: Screen = (game, root) => {
   let sites: Site[] = [];
   let leads: Lead[] = [];
   let frame = 0;
+  /** A newly found site: on the map, with its notice (what the instruments aboard can do there). */
+  const located = (site: Site) => {
+    minimap?.includeSite(site);
+    hud.notify(foundNotice(site, instruments.filter(aboard), data), 'good');
+  };
+  /** The hidden sites (the hydrogen-rich ground), revealed when their milestone is earned. */
+  function revealHiddenSites(): void {
+    for (const s of sites) {
+      const found = s.hidden && s.siteId ? revealSite(sites, s.siteId) : null;
+      if (found) located(found);
+    }
+  }
+  /** Whether a site shows its check on the minimap. */
+  const isDone = (s: Site) => siteDone(s.kind, s.siteId, instruments, siteProgress, presentRocks);
   const onFrame = (f: { position: { x: number; z: number }; nearBoundary: boolean; forward: { x: number; z: number } }) => {
     nearBoundary = f.nearBoundary;
     hud.update({
@@ -692,7 +792,7 @@ export const missionScreen: Screen = (game, root) => {
     if (earthInSky && ctx && roverPos && frame % EARTH_CHECK_EVERY_FRAMES === 0) {
       earthAbove = ctx.horizonMarginTan(ctx.terrain, roverPos.x, roverPos.z, roverPos.y + ctx.groundEyeM, earthDir) > 0;
     }
-    hud.setEarthLight(!ended && aboard('reflector') ? earthAbove : null);
+    hud.setEarthLight(!ended && aboard('reflector') ? reflectorEarthLight(earthAbove, roverTooClose()) : null);
     for (const [inst, button] of instrumentButtons) {
       const on = !ended && state.standbyOn.includes(inst);
       button.classList.toggle('active', !ended && (state.using?.instrument === inst || on));
@@ -712,10 +812,7 @@ export const missionScreen: Screen = (game, root) => {
     const p = f.position;
     if (reveal(explored, p.x, p.z, tuning.explore.revealRadiusM) > 0) {
       minimap?.reveal(p.x, p.z, tuning.explore.revealRadiusM);
-      for (const site of discover(sites, p, tuning.explore.revealRadiusM)) {
-        minimap?.includeSite(site);
-        hud.notify(fill(text.survey.found, { name: text.survey.siteNames?.[site.name] ?? site.name }), 'good');
-      }
+      for (const site of discover(sites, p, tuning.explore.revealRadiusM)) located(site);
     }
     if (minimap && frame++ % MINIMAP_EVERY_FRAMES === 0) {
       const open = leads.map((l, i) => ({ l, i })).filter(({ l }) => !l.site.discovered);
@@ -723,6 +820,7 @@ export const missionScreen: Screen = (game, root) => {
         { x: p.x, z: p.z, headingX: f.forward.x, headingZ: f.forward.z },
         sites,
         open.map(({ l, i }) => ({ label: String(i + 1), azimuth: azimuthDeg(p, areaCenter(l.site.area)) })),
+        isDone,
       );
       minimap.setLeads(open.map(({ l, i }) => hudLeadLine(l, i, p, data)));
     }
@@ -747,6 +845,7 @@ export const missionScreen: Screen = (game, root) => {
         ...scatterBoulders(masks.boulderAreas.map((a) => ({ ...a, ...rockySite(a) })), tuning.boulders),
         ...scatterSiteBoulders(siteList, tuning.boulders),
       ];
+      presentRocks = siteRocks(boulders, tuning.instruments.xray, data.sites.sites);
       explored = createExplored(terrain.fine.extent * 2, tuning.explore);
       if (WORLDS[game.world].sky === 'mars') {
         const se = terrain.info.sunAndEarth;
@@ -816,7 +915,27 @@ export const missionScreen: Screen = (game, root) => {
       notebook: () => ({ open: notebook !== null, unread, atLaunch: notebookAtLaunch }),
       openNotebook: openNotes,
       sample: () => ({ sample: lastSample, slip: lastSlip, sunlight, blockedByShadow, explored: exploredShare(explored), maxImpact }),
-      survey: () => ({ discovered: sites.filter((s) => s.discovered).map((s) => s.name), openLeads: leads.filter((l) => !l.site.discovered).map((l) => l.id) }),
+      /** Every survey site (name, kind, sites.json id, discovered, hidden, check shown), and the open leads. */
+      survey: () => ({
+        discovered: sites.filter((s) => s.discovered).map((s) => s.name),
+        openLeads: leads.filter((l) => !l.site.discovered).map((l) => l.id),
+        sites: sites.map((s) => ({ name: s.name, kind: s.kind, siteId: s.siteId, discovered: s.discovered, hidden: s.hidden ?? false, done: isDone(s) })),
+      }),
+      /**
+       * Discover sites without driving there, hidden ones included: all, or those whose name, sites.json id
+       * or kind matches. Each gets its notice and widens the map. Returns the names found.
+       */
+      discover(match?: string) {
+        const hit = sites.filter((s) => !s.discovered && (!match || s.name === match || s.siteId === match || s.kind === match));
+        for (const s of hit) {
+          s.discovered = true;
+          located(s);
+        }
+        return hit.map((s) => s.name);
+      },
+      /** What the site checks read (mutable: add a site id to a set to see its check), and each site's rock types. */
+      siteProgress: () => ({ progress: siteProgress, rocks: presentRocks, surveyRun }),
+      stationPending: () => stationPending,
       milestones: () => ({
         earned: tracker?.result() ?? [],
         zones: tracker?.currentZones().map((z) => z.key) ?? [],

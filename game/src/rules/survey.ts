@@ -29,7 +29,8 @@ export interface Site {
   area: SiteArea; // discovered once the reveal circle touches this
   discovered: boolean;
   hidden?: boolean; // the reveal circle never discovers it; revealSite does
-  siteId?: string; // the sites.json id
+  siteId?: string; // the sites.json id (a rocky area's: its sites.json entry of the same name)
+  track?: { from: Point; to: Point }; // the rolled boulder's track: from the wall top down to the boulder
 }
 
 /** terrain.json features the survey reads: the Moon's own features are absent on Mars, and Mars's on the Moon. */
@@ -54,7 +55,11 @@ export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCrater
   const { craterDescent: wall, shadowedCrater: dark } = f;
   return [
     ...(f.rimViewpoints ?? []).map((v): Site => ({ key: v.name, name: v.name, kind: 'viewpoint', area: circle(v.local.x, v.local.z, m.photoZoneRadiusM), discovered: false })),
-    ...f.rockyAreas.map((a, i): Site => ({ key: a.name, alias: `rockyAreas.${i}`, name: a.name, kind: 'rocky-area', area: circle(a.local.x, a.local.z, a.radius_m * m.boulderCrossRadiusFactor), discovered: false })),
+    ...f.rockyAreas.map((a, i): Site => {
+      // A rocky area is a terrain.json feature; its sites.json entry (same name) gives the site note and check.
+      const id = sites.find((s) => s.kind === 'rocky-area' && s.name === a.name)?.id;
+      return { key: a.name, alias: `rockyAreas.${i}`, name: a.name, kind: 'rocky-area', area: circle(a.local.x, a.local.z, a.radius_m * m.boulderCrossRadiusFactor), discovered: false, ...(id ? { siteId: id } : {}) };
+    }),
     ...(wall ? [{ key: 'craterDescent', name: wall.name, kind: 'crater-wall', area: circle(wall.local.x, wall.local.z, m.photoZoneRadiusM), discovered: false } satisfies Site] : []),
     ...(dark ? [{ key: 'shadowedCrater', name: shadowedCraterName, kind: 'shadowed-crater', area: { kind: 'polygon', points: dark.outlineLocal_xz }, discovered: false } satisfies Site] : []),
     // Mars: sized like its milestone zones (the delta front's zone radius, Séítah's outline, viewpoint circles).
@@ -79,7 +84,7 @@ const siteFromSpec = (m: MilestoneTuning) => (s: ResolvedSite): Site[] => {
       return s.radiusM === undefined ? [] : [{ ...base, kind: 'cold-trap', area: circle(s.radiusM) }];
     }
     case 'rolled-boulder':
-      return [{ ...base, kind: 'rolled-boulder', area: circle(0) }];
+      return [{ ...base, kind: 'rolled-boulder', area: circle(0), ...(s.track ? { track: { from: { ...s.track.from }, to: { ...s.track.to } } } : {}) }];
     case 'hidden-hydrogen':
       return [{ ...base, kind: 'hidden-hydrogen', area: circle(m.hydrogenZoneRadiusM), hidden: true }];
     default:

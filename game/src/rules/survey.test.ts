@@ -174,6 +174,16 @@ describe('survey: sites.json sites', () => {
     expect(revealSite(sites, 'nope')).toBeNull();
   });
 
+  it('carries the rolled boulder\'s track, and gives a rocky area its sites.json id by name', () => {
+    const track = { from: { x: 1020, z: 1010 }, to: { x: 1000, z: 1100 } };
+    const withTrack = buildSites(features, m, 'Dark crater', [rs('rb', 'rolled-boulder', { x: 1000, z: 1100 }, { track })]);
+    expect(withTrack.find((s) => s.siteId === 'rb')!.track).toEqual(track);
+    expect(find('rb')!.track).toBeUndefined();
+    const named = buildSites(features, m, 'Dark crater', [{ ...rs('ra-1', 'rocky-area', { x: -500, z: 0 }, { radiusM: 200 }), name: 'Rocky area 1' }]);
+    expect(named.filter((s) => s.kind === 'rocky-area')).toEqual([expect.objectContaining({ name: 'Rocky area 1', siteId: 'ra-1', alias: 'rockyAreas.0' })]);
+    expect(sites.find((s) => s.kind === 'rocky-area')!.siteId).toBeUndefined(); // no sites.json entry of that name
+  });
+
   it('builds the real Moon sites, all undiscovered, and keeps the leads resolving', () => {
     const data = loadGameData();
     const feats = terrain.features;
@@ -185,6 +195,9 @@ describe('survey: sites.json sites', () => {
       expect(s!.discovered).toBe(false);
     }
     expect(real.find((x) => x.siteId === 'hidden-hydrogen')!.hidden).toBe(true);
+    expect(real.find((x) => x.name === 'Rocky area 1')!.siteId).toBe('rocky-area-1');
+    expect(real.find((x) => x.name === 'Rocky area 2')!.siteId).toBe('rocky-area-2');
+    expect(real.find((x) => x.siteId === 'rolled-boulder')!.track).toEqual({ from: { x: -220, z: -35 }, to: { x: -240, z: -125 } });
     expect(real.filter((x) => x.kind === 'shadowed-crater')).toHaveLength(1);
     expect(buildLeads(real, data.tuning.survey)).toHaveLength(data.tuning.survey.leads.length);
   });

@@ -5,7 +5,7 @@ import { buildZones, distanceToOutline, zoneContains, type MilestoneFeatures } f
 import { resolveSites } from './sites';
 import {
   emptySeismometerTrack, hydrogenReading, reflectorEarthLight, rockTypeFor, seismometerRecord, seismometerRecording, stationHint, stationPress,
-  stationTooClose, stepSeismometer, xrayTarget,
+  rockTypeTotal, stationTooClose, stepSeismometer, xrayTarget,
   type SeismometerTrack, type TrackPoint,
 } from './instruments';
 import { scatterBoulders, scatterSiteBoulders, type Boulder } from './boulders';
@@ -375,5 +375,13 @@ describe('site boulders (young craters and the rolled boulder)', () => {
     expect(tagged.map(({ site, ...p }) => p)).toEqual(plain);
     expect(tagged.every((x) => x.site === 'rocky-area-1')).toBe(true);
     expect(plain.every((x) => x.site === undefined)).toBe(true);
+  });
+});
+
+describe('the X-ray readout\'s rock type total', () => {
+  it('counts the distinct rocks across the site suites: 5 on the Moon, 0 with no suites', () => {
+    expect(rockTypeTotal(it_.xray)).toBe(5);
+    expect(rockTypeTotal({ ...it_.xray, suites: [] })).toBe(0);
+    expect(rockTypeTotal({ ...it_.xray, suites: [{ id: 'a', rocks: [{ id: 'x', weight: 1 }] }, { id: 'b', rocks: [{ id: 'x', weight: 2 }, { id: 'y', weight: 1 }] }] })).toBe(2);
   });
 });

@@ -273,3 +273,11 @@ export function stationPress(
   if (pending && pending.instrument === instrument && seconds - pending.seconds <= confirmSeconds) return { action: 'place', pending: null };
   return { action: 'confirm', pending: { instrument, seconds } };
 }
+
+/**
+ * How many rock types the X-ray spectrometer can find: the distinct rocks across the site suites, the
+ * total in the readout's "New type: 3 of 5". 0 with no suites (no line is shown).
+ */
+export function rockTypeTotal(t: InstrumentTuning['xray']): number {
+  return new Set(t.suites.flatMap((s) => s.rocks.map((r) => r.id))).size;
+}

@@ -6,7 +6,11 @@
 // lander, the operating boundary and the rover are always drawn. Up is local −z (grid north, toward
 // Earth). The ice spot is never marked. On Mars the map also draws the delta front's scarp line, Séítah's
 // outline and Perseverance's landing site once discovered; it has no cold zones, so no cold legend.
-import { growBounds, mapView, type Bounds, type MapView, type Site } from '../rules/survey';
+// The Moon's sites.json sites have their own marks: a young crater's double ring, a cold trap's dashed
+// patch (apart from the dark crater's solid outline), the rolled boulder with its track up the slope,
+// and the hidden hydrogen's dotted area once found. A small check marks a site where this rover has done
+// all it can (rules/siteChecks.ts). Their legend entries appear once such a site is on the map.
+import { areaCenter, growBounds, mapView, type Bounds, type MapView, type Site, type SiteKind } from '../rules/survey';
 import type { TextFile, Tuning } from '../rules/types';
 import type { HeightGrid } from '../world/terrainData';
 import type { TerrainMasks } from '../world/terrainMasks';
@@ -19,6 +23,15 @@ const COLD = 'rgba(90, 150, 255, 0.85)';
 const LEAD = '#5ec8ff';
 const DELTA = '#e8a06a'; // the delta front's scarp
 const REGION = 'rgba(240, 200, 120, 0.85)'; // Séítah's outline
+// The Moon sites (the legend in style.css uses the same colors).
+const YOUNG = '#f2dfb4';
+const COLD_TRAP = '#8cc8ff';
+const COLD_TRAP_FILL = 'rgba(90, 150, 255, 0.2)';
+const ROLLED = '#c9b79c';
+const HYDROGEN = '#c3a6ff';
+const HYDROGEN_FILL = 'rgba(195, 166, 255, 0.15)';
+const CHECK = '#8fe388';
+const OUTLINE = '#05070b';
 const ZOOM_RATE = 2.5; // per second: the view eases toward the explored area, so the map widens smoothly
 const REVEAL_SOFT_EDGE = 0.8; // the fog fades out over the outer 20% of each reveal circle
 /** Relief tint per world (multiplies the grey shade): the Moon grey, Mars a dusty red-brown. */
@@ -47,6 +60,8 @@ export class Minimap {
   private view: MapView | null = null;
   private lastDraw = 0;
   private lastLeads = '';
+  /** Legend entries that show once a site of their kind is on the map (or, for the check, once one is drawn). */
+  private readonly lateLegend: { kind: SiteKind | 'done'; node: HTMLElement }[];
 
   constructor(
     grid: HeightGrid,
@@ -69,6 +84,14 @@ export class Minimap {
     const h = text.hud;
     const sv = text.survey;
     const hasCold = this.masks.cold.includes(1);
+    const late = (kind: SiteKind | 'done', cls: string, label: string) => ({ kind, node: el('span', { class: `lg ${cls}`, hidden: true }, label) });
+    this.lateLegend = [
+      late('young-crater', 'young', h.legendYoungCrater),
+      late('cold-trap', 'coldtrap', h.legendColdTrap),
+      late('rolled-boulder', 'rolled', h.legendRolledBoulder),
+      late('hidden-hydrogen', 'hydrogen', h.legendHydrogen),
+      late('done', 'done', h.legendDone),
+    ];
     this.root = el('div', { class: 'minimap', role: 'img', 'aria-label': h.minimap },
       this.canvas,
       el('div', { class: 'minimap-legend' },
@@ -78,6 +101,7 @@ export class Minimap {
         ...(sv.legendDelta ? [el('span', { class: 'lg delta' }, sv.legendDelta)] : []),
         ...(sv.legendRegion ? [el('span', { class: 'lg region' }, sv.legendRegion)] : []),
         ...(hasCold ? [el('span', { class: 'lg cold' }, h.legendCold)] : []),
+        ...this.lateLegend.map((l) => l.node),
         el('span', { class: 'lg lead' }, sv.legendLead),
       ),
       this.leadList,
@@ -141,6 +165,7 @@ export class Minimap {
     const a = site.area;
     if (a.kind === 'path') return;
     const pts: [number, number][] = a.kind === 'polygon' ? a.points : [[a.x - a.r, a.z - a.r], [a.x + a.r, a.z + a.r]];
+    if (site.track) pts.push([site.track.from.x, site.track.from.z]);
     for (const [x, z] of pts) this.bounds = growBounds(this.bounds, { x, z }, 0);
   }
 
@@ -153,7 +178,8 @@ export class Minimap {
     this.leadList.hidden = lines.length === 0;
   }
 
-  draw(rover: { x: number; z: number; headingX: number; headingZ: number }, sites: Site[], leads: LeadArrow[]): void {
+  /** `done`: whether a site shows its check (rules/siteChecks.ts siteDone). */
+  draw(rover: { x: number; z: number; headingX: number; headingZ: number }, sites: Site[], leads: LeadArrow[], done: (s: Site) => boolean = () => false): void {
     const ctx = this.ctx;
     const info = this.masks.info;
     const target = this.bounds ? mapView(this.bounds, this.tuning) : { cx: rover.x, cz: rover.z, spanM: this.tuning.startSpanM };
@@ -188,10 +214,18 @@ export class Minimap {
     ctx.strokeRect(px(-this.boundaryM), py(-this.boundaryM), 2 * this.boundaryM * k, 2 * this.boundaryM * k);
 
     // Discovered sites
+    const shown = new Set<SiteKind | 'done'>();
     for (const s of sites) {
       if (!s.discovered) continue;
+      shown.add(s.kind);
       const a = s.area;
-      if (a.kind === 'polygon' || a.kind === 'path') {
+      const moon = this.drawMoonSite(s, px, py, k);
+      if (moon) {
+        if (done(s)) {
+          shown.add('done');
+          this.drawCheck(moon.x + moon.r * 0.75 + 2, moon.y - moon.r * 0.75 - 2);
+        }
+      } else if (a.kind === 'polygon' || a.kind === 'path') {
         ctx.strokeStyle = s.kind === 'shadowed-crater' ? COLD : a.kind === 'path' ? DELTA : REGION;
         ctx.lineWidth = a.kind === 'path' ? 3 : 1.5;
         ctx.setLineDash(s.kind === 'region' ? [5, 4] : []);
@@ -227,8 +261,15 @@ export class Minimap {
         ctx.beginPath();
         ctx.arc(px(a.x), py(a.z), s.kind === 'rocky-area' ? Math.max(4, a.r * k) : 6, 0, Math.PI * 2);
         ctx.stroke();
+        // A rocky area is also a sites.json site, so it can show a check.
+        if (s.kind === 'rocky-area' && done(s)) {
+          const r = Math.max(4, a.r * k);
+          shown.add('done');
+          this.drawCheck(px(a.x) + r * 0.75 + 2, py(a.z) - r * 0.75 - 2);
+        }
       }
     }
+    for (const l of this.lateLegend) if (l.node.hidden === shown.has(l.kind)) l.node.hidden = !shown.has(l.kind);
 
     // Lander
     ctx.fillStyle = '#e6e6e6';
@@ -253,6 +294,110 @@ export class Minimap {
 
     // Survey leads: arrows on the map's edge, along the bearing from the rover.
     for (const l of leads) this.drawLeadArrow(x, y, l);
+  }
+
+  /**
+   * A Moon site's mark (young crater, cold trap, rolled boulder, hidden hydrogen). Returns where its
+   * check goes (the mark's center and radius in canvas px), or null for any other kind.
+   */
+  private drawMoonSite(s: Site, px: (x: number) => number, py: (z: number) => number, k: number): { x: number; y: number; r: number } | null {
+    const ctx = this.ctx;
+    const a = s.area;
+    const c = areaCenter(a);
+    const x = px(c.x);
+    const y = py(c.z);
+    switch (s.kind) {
+      case 'young-crater': {
+        // A double ring, scaled to the crater's boulder spread.
+        const r = a.kind === 'circle' ? Math.max(5, a.r * k) : 6;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.moveTo(x + r * 0.55, y);
+        ctx.arc(x, y, r * 0.55, 0, Math.PI * 2);
+        this.haloStroke(YOUNG, 1.5);
+        return { x, y, r };
+      }
+      case 'cold-trap': {
+        // A small dashed patch: its permanent-shadow outline (the dark crater's outline stays solid).
+        ctx.beginPath();
+        if (a.kind === 'polygon') {
+          a.points.forEach(([px0, pz0], i) => (i ? ctx.lineTo(px(px0), py(pz0)) : ctx.moveTo(px(px0), py(pz0))));
+          ctx.closePath();
+        } else if (a.kind === 'circle') ctx.arc(x, y, Math.max(4, a.r * k), 0, Math.PI * 2);
+        ctx.fillStyle = COLD_TRAP_FILL;
+        ctx.fill();
+        ctx.setLineDash([3, 3]);
+        this.haloStroke(COLD_TRAP, 1.5);
+        ctx.setLineDash([]);
+        const r = a.kind === 'polygon'
+          ? Math.max(4, ...a.points.map(([px0, pz0]) => Math.hypot(px(px0) - x, py(pz0) - y)))
+          : a.kind === 'circle' ? Math.max(4, a.r * k) : 4;
+        return { x, y, r };
+      }
+      case 'rolled-boulder': {
+        // Its track up the slope, then the boulder at its foot.
+        if (s.track) {
+          ctx.beginPath();
+          ctx.moveTo(px(s.track.from.x), py(s.track.from.z));
+          ctx.lineTo(px(s.track.to.x), py(s.track.to.z));
+          this.haloStroke(ROLLED, 1.5);
+        }
+        ctx.fillStyle = ROLLED;
+        ctx.strokeStyle = OUTLINE;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        return { x, y, r: 4 };
+      }
+      case 'hidden-hydrogen': {
+        // A dotted area, drawn only once found (a hidden site is discovered only by revealSite).
+        const r = a.kind === 'circle' ? Math.max(5, a.r * k) : 6;
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fillStyle = HYDROGEN_FILL;
+        ctx.fill();
+        ctx.lineCap = 'round';
+        ctx.setLineDash([0.5, 4]);
+        this.haloStroke(HYDROGEN, 2.5);
+        ctx.setLineDash([]);
+        ctx.lineCap = 'butt';
+        return { x, y, r };
+      }
+      default:
+        return null;
+    }
+  }
+
+  /** Stroke the current path in a color over a dark halo, so it reads on bright relief. */
+  private haloStroke(color: string, width: number): void {
+    const ctx = this.ctx;
+    ctx.strokeStyle = 'rgba(5, 7, 11, 0.7)';
+    ctx.lineWidth = width + 2;
+    ctx.stroke();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.stroke();
+  }
+
+  /** The small check on a site where this rover has done all it can. */
+  private drawCheck(x: number, y: number): void {
+    const ctx = this.ctx;
+    ctx.beginPath();
+    ctx.moveTo(x - 4, y);
+    ctx.lineTo(x - 1, y + 3);
+    ctx.lineTo(x + 5, y - 4);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = 4.5;
+    ctx.stroke();
+    ctx.strokeStyle = CHECK;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.lineCap = 'butt';
+    ctx.lineJoin = 'miter';
   }
 
   private drawLeadArrow(rx: number, ry: number, lead: LeadArrow): void {
