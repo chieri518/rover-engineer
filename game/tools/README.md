@@ -209,3 +209,44 @@ Later runs take about a minute.
 | `distant-far.png` | 1001², 16-bit | 200 km square at 200 m |
 | `albedo.jpg` | 1601², 8-bit JPEG | HiRISE orthomosaic, shading removed |
 | `terrain.json`, `texture.json` | | Frame, decoding, landing, features, sources |
+
+### Mars sites features (for Chieri's review)
+
+Added for the Mars sites and milestones plan (requests MP1 to MP4 and MP6 in
+`space-mission-design-game/mars-sites-and-milestones-plan.md`). Additive: no image changes, and every value
+already in `terrain.json` stays the same except Rocky area 2's `description`, which the script now writes
+from MP1's measurement.
+
+```sh
+.venv/bin/python build_terrain_mars.py --site-features-only   # refresh only the lists below
+```
+
+`mars_sites.py` does the work. It reads the game's own outputs (`heightmap.png`, `slope.png`,
+`soft-ground.png` and `terrain.json`), so `--site-features-only` needs none of the DTM downloads and a full
+build produces the same lists (it adds them after writing the images). It also downloads the Mars 2020
+waypoints file (0.6 MB) and, for each young crater, a window of the 25 cm HiRISE orthomosaic at full
+resolution into `raw/mars/ortho25/` (22 windows, about 100 MB on disk and transferred; the mosaic is tiled,
+so only the window's tiles are read). With the cache, a run takes about 35 seconds.
+
+| List | Rule | Count |
+| --- | --- | --- |
+| `youngCraters` (MP1) | Craters 80 to 400 m across (rim crest to rim crest), center within 1.6 km of the landing. Candidates from a ring-minus-center filter on the 5 m heights; the rim crest is found on 72 rays and a circle is fitted to it (outliers over 25% dropped). Depth ≥ 2.5 m and ≥ 0.015 × diameter, crest at least half the depth above the floor on ≥ 75% of rays. `freshness: "fresh"`: round (90th/10th percentile crest radius ≤ 1.5), raised rim (`rimUplift_m` ≥ 2) and boulder shadows on the rim (0.8 to 1.2 R) at ≥ 20 per hectare and ≥ 3 × the 2.5 to 3.5 R ring. A boulder shadow is a compact blob (0.25 to 8 m², elongation ≤ 3) darker than 0.6 × the local mean in the 25 cm mosaic. Drive distance is to the cheapest rim cell | 22 (2 fresh) |
+| `slopeTargets` (MP2) | One entry per site (each young crater out to its rim + 40 m, the knobs near (305, −835) and (620, 445) out to 100 m, and the delta foot zone). Target cells: 10 to 18° in `slope.png`, a 4-neighbour (5 m away) under 8°, reachable from the landing, softness ≤ 0.2. Cells go to their nearest site and are grouped 8-connected; the 4 largest patches per site are listed with a level neighbour cell | 25 sites, 435 patches |
+| `deltaFront.footNear` (MP3) | The nearest 400 m of the scarp-foot contour (`footContour_m`, re-traced on the 5 m heights where it follows `scarpLocal_xz`), with a 50 m zone | 1 (405 m) |
+| `deltaFront.floodBoulder` (MP3) | Placed by design: a 2.5 m boulder on the scarp side of the foot line (within 100 m), outside 1,350 m from the landing, with 12 to 18° on its uphill and side faces and under 10° within 3 m of its downhill face, read as the game reads slope (nearest 5 m sample). The cheapest such spot to reach | 1 |
+| `perseveranceSites` (MP4) | Rocks Perseverance abraded and sampled within 1.6 km (names, sols and dates in `SAMPLE_SITES`, from NASA's sample list), placed at the rover's end-of-drive waypoint for the first sample sol | 4 |
+| `missionLandmarks` (MP6) | Wright Brothers Field: the rover's waypoint on sol 43, when it set Ingenuity down. The backshell, parachute and descent stage are not placed (no source in this pipeline) | 1 |
+
+Ids: young craters and knobs are named by 16-point compass direction from the landing
+(`young-crater-ene`, `knob-wnw`), numbered by distance when a direction has several; the crater holding Rocky
+area 2 is `young-crater-rocky-area-2`. Slope-target entries are `slope-targets-<site id>`.
+
+Points to review:
+
+- No crater in range is fresh in the strict sense: all have sand-filled floors and none keeps a blocky
+  ejecta blanket beyond the rim. "Fresh" here means a sharp, round, blocky rim. Only East crater
+  (`young-crater-ene`) and the NE crater pass.
+- Rocky area 2 is about 340 m across (310 to 450 m by direction, lowest on its south side), 15.5 m deep,
+  and fails the freshness test (blocks mostly on its north-west wall). Its `radius_m` (204) and position stay.
+- The freshness numbers are from a simple shadow count; the classification was checked by eye on the 25 cm
+  mosaic for the craters near the thresholds.
