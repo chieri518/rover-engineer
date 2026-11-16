@@ -2,7 +2,7 @@
 
 The working design for **Rover Engineer**, our entry to the Space Mission Design Game challenge. It is written for our team, not for players.
 
-Last updated November 15, 2026 (story and onboarding through in-world documents decided: [§3](#3-campaign-the-outer-loop), [§11](#story-through-documents); earlier the same day, all six phases of the payload bay and relationships plan were built). The official brief is in [challenge brief](challenge-brief.md). The catalog of rover components, instruments, and how they constrain each other is in [rover engineering design](rover-engineering-design.md). Background research is in [landscape research](research/landscape-precedents-and-judging.md), [mission-engineering/](research/mission-engineering/README.md), and [rover-engineering/](research/rover-engineering/README.md).
+Last updated November 15, 2026 (story context decided: a Welcome to REL intro, per-world site context and short campaign beats, [§3](#3-campaign-the-outer-loop) and [§11](#11-identity-and-presentation); earlier the same day, all six phases of the payload bay and relationships plan were built). The official brief is in [challenge brief](challenge-brief.md). The catalog of rover components, instruments, and how they constrain each other is in [rover engineering design](rover-engineering-design.md). Background research is in [landscape research](research/landscape-precedents-and-judging.md), [mission-engineering/](research/mission-engineering/README.md), and [rover-engineering/](research/rover-engineering/README.md).
 
 **How to read this doc.** Everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). All open items are collected in [Open questions](#2-open-questions).
 
@@ -103,20 +103,7 @@ Check budget ──► Configure rover ──► Buy launch ticket ──► Lan
 - A restart returns everything to a snapshot taken at the start of the round: balance, RP, and records. This keeps the code simple and stops players replaying a round to farm records. *(Decided November 15; built in Phase 5:)* the engineering notebook is the exception and survives restarts, so what the player learned in a failed run carries over; see [rover engineering design](rover-engineering-design.md#engineering-notebook). A new campaign starts with an empty notebook.
 - **New campaign vs Continue** *(decided November 15)*. Start new campaign (the title, and the button on Campaign complete) resets everything: progress, balance, records, round stats, the notebook, the design on the desk, and the "tutorials seen" flags of every world, so a player who starts over after a full run sees all tutorials again. Continue campaign keeps all of it, skips tutorials already seen, and resumes at the current mission. A round restart (any world) is not a new campaign and does not reset tutorials. Settings are kept.
 
-**Story documents in the loop** *(decided November 15, 2026)*. The loop and its rules are unchanged. In-world documents frame its steps, so a new player learns the premise and the goal before the first design desk. Plan: [story-onboarding-plan.md](story-onboarding-plan.md). Copy: [story-copy.md](story-copy.md). Document types: [Story through documents](#story-through-documents).
-
-```
-Onboarding packet (once) ──► Mission order ──► Design desk ──► Launch manifest ──► Launch beat ──► Landing report ──► Drive ──► Mission report ──► REL bulletin ──┐
-                             ▲                                                                                                                                    │
-                             └──────────────────────────────────────────────────────────── next world ────────────────────────────────────────────────────────────┘
-```
-
-- **Onboarding packet.** Once per campaign, between Start new campaign and the first Moon design desk. Four pages: REL and the player's role, how a mission works, the pass mark rule, the three worlds. The title's "About REL" button reopens it.
-- **Mission order** (REL-MO-001 Moon, 002 Mars, 003 Titan). Before the design desk on each world's first visit: objective, site, budget, pass mark (on Titan, survival), hazards and three approaches on file. A "Mission order" button on the desk reopens it. It replaces the transition notes on the Mars and Titan desks.
-- **Launch beat.** After the ticket is bought: the manifest is stamped, then about 8 s of launch status lines over a camera descent to the lander (a still image with reduced motion), then the landing report.
-- **REL bulletin.** After a passed Moon or Mars round, before the next mission order. After a failed round, a short internal note instead. A final bulletin opens the campaign dashboard.
-- **Seen flags.** The onboarding packet, each mission order and each bulletin show once per campaign. Their flags are kept with the "tutorials seen" flags and follow the same rules: Start new campaign resets them; Continue campaign skips documents already seen and shows any not yet reached (a player who quit at a passed debrief sees the bulletin, then the next order); a round restart resets nothing. The launch beat, landing report, mission report and failed-round note belong to the round and show every time. Every story screen has a Skip button. There is no "Skip story" setting.
-- **Moon first drive.** The rover log's coaching lines replace most of the Moon drive tutorial, with a short controls page kept; the full pages stay under Help. They follow the Moon drive tutorial's seen flag.
+**Welcome to REL intro** *(decided November 15, 2026)*. Start new campaign opens a short intro before the first Moon design desk: who the player is, what REL is, why each mission must earn back its cost, and the three worlds ahead. It is skippable, and it is the only new screen; the loop and its rules are unchanged. It follows the "tutorials seen" rules: every Start new campaign shows it, and Continue campaign and a round restart never do. Plan: [story-onboarding-plan.md](story-onboarding-plan.md). Copy: [story-copy.md](story-copy.md).
 
 ## 4. Mission: the inner loop
 
@@ -1043,32 +1030,12 @@ Not planned for now: two-player mode and randomly generated maps.
 | Agency | REL (Rover Exploration Laboratory). Fictional, with no NASA branding; real NASA missions can still be cited as facts. |
 | Story premise | REL pays to secure a spot for its rover on the next launch to each destination. The bigger and heavier the rover, the higher the ticket tier it needs. |
 | Player role | A new rover engineer at REL mission control |
-| Tone | Scientific and formal, in plain English a high-school reader can follow. Short sentences, no exclamation marks, no jokes. *(Decided November 15: the story copy keeps this tone.)* |
-| Characters | None, and no dialogue. *(Decided November 15:)* the story is told through in-world documents (orders, manifests, reports, alerts, bulletins) and an automatic rover system log. Documents are signed by REL offices, never by people. See [Story through documents](#story-through-documents). |
-| Onboarding | *(Decided November 15.)* An onboarding packet gives the premise and the pass mark rule, and a mission order gives each world's objective before its design desk. Tutorial pages still explain the design screen and later worlds. On the first Moon drive, rover log lines coach the player instead of most of the drive tutorial. |
+| Tone | Scientific and formal, in plain English a high-school reader can follow |
+| Characters | None. All text (tutorial, briefings, milestone pop-ups, debrief, the intro and the story lines) reads as neutral mission documentation, not dialogue. |
+| Onboarding | A Welcome to REL intro, once per new campaign, gives the premise, the pass mark rule and the three worlds (see [§3](#3-campaign-the-outer-loop)). *(Decided November 15:)* each world's design desk adds two or three sentences on why REL is going to that site, the debrief adds a short story line between worlds and after a failed round, and Campaign complete adds a closing one. Tutorial text still guides the player through the design screen and the first drive. |
 | Look *(decided November 15)* | "Mission control" screens: Chakra Petch for headings and labels, IBM Plex Sans for body text, IBM Plex Mono for numbers and readouts (self-hosted). Deep-space navy background and panels with thin cyan-tinted borders and corner brackets; amber is the main accent (primary buttons, money, highlights), cyan the secondary (HUD info and hints); orange-red still means warning and green means good. The title screen shows a live 3D cover: the game's rover on regolith under a low raking Sun with long shadows and Earth low on the horizon, as at the south pole site, with a slow orbiting camera (held still for reduced motion; a plain star background if WebGL is unavailable). The 3D mission view is unchanged. |
 | Build preview *(decided November 15)* | The design screen shows the rover being assembled in 3D, live, as in a vehicle editor: part list on the left, a large viewport in the middle, the specification sheet on the right (on narrow screens the viewport becomes a strip above the parts and the sheet). The rover stands on a lit turntable in a dark assembly bay with a faint cyan grid. Only chosen parts appear; empty slots show nothing, and parts chosen before the chassis float where they would mount. A new or changed part drops into place with a brief cyan flash. The turntable turns slowly and the player can drag to rotate it; there are no labels. Reduced motion: no turning by itself and instant swaps. Without WebGL the viewport is hidden and the desk works as before. Presentation only: the preview uses the same model as the mission, and the complete rover looks the same in both. |
 | Real facts | **Optional.** A "Mission history" setting, on by default, that players who just want to play can turn off. When on: a one-sentence real fact on each milestone pop-up, and a debrief comparing the rover's fate with a real rover's. Tutorial text is always shown. The same optional pattern is used for other extra learning, such as the real-speed pop-up on the design screen. |
-
-### Story through documents
-
-*Decided November 15, 2026.* There are no characters. The story moves forward through the documents a real mission produces, and REL shows up only as an institution: letterheads, document numbers ("REL-MO-001"), stamps and offices. Each mission order refers to the last bulletin, so the three worlds read as one program. Reports and bulletins change with the outcome. Real NASA data and missions are named as sources inside the documents. The plan, with the UI items S0 to S7, is in [story-onboarding-plan.md](story-onboarding-plan.md); all copy is drafted in [story-copy.md](story-copy.md).
-
-| Document | Issued by | Where |
-| --- | --- | --- |
-| Onboarding packet | REL Mission Operations | Once per campaign, before the first Moon desk |
-| Mission order | REL Mission Operations | Before each world's design desk |
-| Launch manifest | REL Launch Services | The ticket screen |
-| Landing report | Automatic, from the lander | After the launch beat |
-| Rover system log | Automatic, from the rover | HUD, during the drive |
-| Weather alert | REL Weather Desk | Flare warnings (Moon), the dust storm forecast (Mars), the methane rain forecast (Titan) |
-| Mission report | REL Mission Operations | The debrief |
-| REL bulletin | REL Public Affairs | Between worlds, and at campaign end |
-| Archive card | REL Archive | Milestone facts and the real-rover comparison (Mission history setting) |
-
-- **Dates are mission-relative only.** Documents carry a document number and a mission phase ("Mission 2 · Pre-launch") or mission time ("Day 3" on the Moon, "Sol 4" on Mars, "Earth day 9" on Titan). There are no in-world calendar dates. A weather alert still names a real flare's date, as a fact about that flare, and sourced history facts keep their dates.
-- **The log is not a clock.** Its timestamps are whole days or sols, so the no-clock rule holds.
-- **RP stays out of the story.** The new documents do not mention research points until something spends them. Existing RP displays stay.
 
 ## 12. Tech stack and fit with the brief
 
