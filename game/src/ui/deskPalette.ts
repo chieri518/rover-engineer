@@ -1,5 +1,5 @@
-// The desk's parts palette (game-design.md, "The engineer's desk as a parts editor"): a category list
-// (Frame, Wheels, Power, Battery: one part each; Payload: instruments and systems, with the mounting
+// The desk's parts palette (game-design.md, "The engineer's desk as a parts editor"): a row of category
+// tabs (Frame, Wheels, Power, Battery: one part each; Payload: instruments and systems, with the mounting
 // points), and a tile per part of the open category, with its rendered thumbnail (partThumbs.ts) once it
 // is ready. Clicking a tile fits it; hovering or focusing it shows its card (partCard.ts). Blocked tiles
 // are dimmed: a full bay and a missing arm or mast refuse the click; a part the budget cannot cover is
@@ -239,15 +239,15 @@ export function mountPalette(opts: PaletteOptions): Palette {
     tabs.set(cat, { button, value });
   }
 
-  const tablist = el('div', { class: 'palette-tabs', role: 'tablist', 'aria-label': t.paletteLabel, 'aria-orientation': 'vertical' },
+  const tablist = el('div', { class: 'palette-tabs', role: 'tablist', 'aria-label': t.paletteLabel, 'aria-orientation': 'horizontal' },
     ...categories.map((c) => tabs.get(c)!.button));
   const element = el('div', { class: 'palette' }, tablist, ...categories.map((c) => panels.get(c)!), notice, card.element);
 
-  // Keyboard: arrows move between tabs (and open them); in a panel, arrows move between tiles (up and
+  // Keyboard: left and right move between tabs (and open them); in a panel, arrows move between tiles (up and
   // down by row), Home and End jump; Enter and Space fit (the button's own). Escape (anywhere) hides the card.
   tablist.addEventListener('keydown', (e) => {
     const i = categories.indexOf(current);
-    const to = { ArrowDown: i + 1, ArrowRight: i + 1, ArrowUp: i - 1, ArrowLeft: i - 1, Home: 0, End: categories.length - 1 }[e.key];
+    const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: categories.length - 1 }[e.key];
     if (to === undefined) return;
     e.preventDefault();
     const cat = categories[(to + categories.length) % categories.length]!;
@@ -387,20 +387,25 @@ export function mountPalette(opts: PaletteOptions): Palette {
       tile.badge.textContent = refusal ? (refusal.kind === 'full' ? t.badgeFull : t.badgeNeeds) : over ? t.badgeOverBudget : '';
       tile.status.textContent = [fitted && t.tileFitted, tile.key.textContent, tile.badge.textContent].filter(Boolean).join('. ');
     }
-    // The tabs: each required category's chosen part (or the empty marker), and the payload's points.
+    // The tabs: a check on each required category with a part (an amber dot while empty; the part's name is
+    // in the tooltip and the accessible name), and the payload's points.
     for (const slot of requiredSlots(catalog)) {
       const id = slotPartId(build, slot);
       const name = id ? catalog.parts.find((p) => p.id === id)?.name : undefined;
       const { button, value } = tabs.get(slot)!;
+      const label = `${t.categories[slot]}: ${name ?? t.slotEmpty}`;
       button.classList.toggle('empty', !name);
-      value.replaceChildren(...(name ? [el('span', { class: 'tab-check', 'aria-hidden': 'true' }, '✓ '), name] : [t.slotEmpty]));
-      button.setAttribute('aria-label', `${t.categories[slot]}: ${name ?? t.slotEmpty}`);
+      value.replaceChildren(el('span', { class: name ? 'tab-check' : 'tab-dot', 'aria-hidden': 'true' }, name ? '✓' : '●'));
+      button.setAttribute('aria-label', label);
+      button.title = label;
     }
     const used = pointsUsed(build, catalog);
     const capacity = bayCapacity(build, catalog);
     const payloadTab = tabs.get('payload')!;
     payloadTab.value.textContent = capacity.chassis ? fill(t.tabPoints, { used, points: capacity.points }) : '';
-    payloadTab.button.setAttribute('aria-label', capacity.chassis ? `${t.categories.payload}: ${fill(t.bayPoints, { used, points: capacity.points })}` : t.categories.payload);
+    const payloadLabel = capacity.chassis ? `${t.categories.payload}: ${fill(t.bayPoints, { used, points: capacity.points })}` : t.categories.payload;
+    payloadTab.button.setAttribute('aria-label', payloadLabel);
+    payloadTab.button.title = payloadLabel;
     counter.textContent = capacity.chassis ? fill(t.bayPoints, { used, points: capacity.points }) : t.bayNoChassis;
     sockets.replaceChildren(...Array.from({ length: capacity.chassis ? capacity.points : 0 }, (_, i) => el('span', { class: `socket${i < used ? ' filled' : ''}` })));
     notice.textContent = bayNotice;

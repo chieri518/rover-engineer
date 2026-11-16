@@ -609,8 +609,8 @@ export interface SharedTextFile {
   story: { kicker: string; site: string; sourcesLabel: string; sources: string[] };
   slots: Record<BusSlot | 'instrument', string> & Partial<Record<SupportSlot, string>>; // support slot names come with the world that offers them
   design: Record<
-    | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
-    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
+    | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum'
+    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
     | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay (instruments and systems)
     | 'notOffered' // parts a carried build lost because this world does not offer them ({parts}; reworded per world)

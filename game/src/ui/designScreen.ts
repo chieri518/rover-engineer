@@ -14,7 +14,6 @@ import type { BuildPreview } from './buildPreview';
 import { categoryOfGroup, choosePart, mountPalette, partForGroup } from './deskPalette';
 import { el, fill, money } from './dom';
 import { costsText, titanSolar } from './partCard';
-import { tierWhyText } from './tierText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
 import { missionVars, tutorialPages } from './tutorialText';
@@ -170,7 +169,6 @@ export const designScreen: Screen = (game, root) => {
     palette.update(bayNotice);
     const q = quoteBuild(game.build, data, game.state.balance);
     const d = q.drive;
-    const why = q.tierWhy;
     // A draft rover: driving numbers need the parts they come from.
     const has = (slot: keyof typeof game.build) => Boolean(game.build[slot]);
     const bayOver = q.payloadProblems.some((p) => p.kind === 'over-capacity');
@@ -195,8 +193,6 @@ export const designScreen: Screen = (game, root) => {
 
       el('h3', {}, 'Launch ticket'),
       row('Tier', q.tier ? `${q.tier.name}` : 'None fits', q.tier ? '' : 'bad'),
-      el('p', { class: 'why' }, q.complete ? tierWhyText(why, text) : t.tierSoFar,
-        q.complete && why.saving > 0 ? ` ${fill(t.tierSaving, { tier: why.exceeded!.tier.name, saving: money(why.saving, text) })}` : ''),
 
       el('h3', {}, 'Driving'),
       el('div', { class: 'row speed' },

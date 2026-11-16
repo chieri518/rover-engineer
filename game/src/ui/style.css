@@ -244,20 +244,23 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .preview-pick-hint { position: absolute; left: 12px; right: 12px; bottom: 10px; margin: 0; text-align: center; pointer-events: none; font-size: 0.75rem; color: var(--muted); }
 .preview-hint:not([hidden]) ~ .preview-pick-hint { display: none; }
 
-/* The parts palette (deskPalette.ts): the category tabs, then the open category's tiles. */
-.palette-tabs { display: grid; gap: 3px; margin-bottom: 10px; }
+/* The parts palette (deskPalette.ts): a row of category tabs (each with its state on a second line: a check,
+   an amber dot while empty, or the payload's points), then the open category's tiles. If the tabs do not
+   fit, the row scrolls sideways on its own (the page never does). */
+.palette-tabs { display: flex; gap: 3px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: thin; }
 .palette-tab {
-  display: flex; justify-content: space-between; align-items: baseline; gap: 10px; min-width: 0;
-  padding: 6px 10px; text-align: left; font-size: 0.85rem; border-radius: 4px; border-color: var(--line); background: var(--sunk);
+  flex: 1 0 auto; display: grid; justify-items: center; gap: 1px; min-width: 0;
+  padding: 4px 3px 3px; text-align: center; border-radius: 4px; border-color: var(--line); background: var(--sunk); line-height: 1.2;
 }
 .palette-tab:hover { border-color: var(--line-strong); }
-.palette-tab .tab-name { flex: none; font-family: var(--font-head); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; font-size: 0.8rem; }
-.palette-tab .tab-value { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; }
+.palette-tab .tab-name { font-family: var(--font-head); font-weight: 600; text-transform: uppercase; letter-spacing: 0.02em; font-size: 0.72rem; white-space: nowrap; }
+.palette-tab .tab-value { color: var(--muted); font-size: 0.72rem; white-space: nowrap; font-variant-numeric: tabular-nums; }
 .palette-tab .tab-check { color: var(--good); }
-.palette-tab.empty .tab-value { color: var(--accent); }
-.palette-tab[aria-selected='true'] { border-color: var(--info); background: rgba(94, 200, 255, 0.1); box-shadow: inset 3px 0 0 var(--info); }
+.palette-tab .tab-dot { color: var(--accent); font-size: 0.55rem; vertical-align: 1px; }
+.palette-tab[aria-selected='true'] { border-color: var(--info); background: rgba(94, 200, 255, 0.1); box-shadow: inset 0 -2px 0 var(--info); }
 .palette-tab[aria-selected='true'] .tab-name { color: var(--info); }
 .palette-tab:focus-visible, .part-tile:focus-visible { outline: 2px solid var(--info); outline-offset: 2px; }
+.palette-tab:focus-visible { outline-offset: -3px; } /* inside the tab row, which clips what sticks out */
 .palette-panel[hidden] { display: none; }
 .palette-group { margin: 12px 0 6px; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); }
 .tile-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 8px; }
