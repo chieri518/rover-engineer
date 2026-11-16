@@ -103,17 +103,35 @@ function isReal(s: string | undefined): s is string {
   return Boolean(s) && !s!.startsWith('[placeholder');
 }
 
-/** One entry per source behind a relationship, skipping sources already listed under the instrument facts. */
-function relationshipEntries(data: GameData): HTMLLIElement[] {
+/**
+ * The instrument facts' sources a world lists, as [instrument name, source]: on the Moon every instrument's;
+ * on another world only those whose fact differs from the Moon's (Mars's own instruments and its X-ray
+ * fact), so the Moon's are not repeated.
+ */
+export function instrumentSources(data: GameData, shared: GameData): [name: string, source: string][] {
+  return data.parts.parts.flatMap((p): [string, string][] => {
+    const inst = p.effects.instrument;
+    const src = inst ? data.text.instrumentText[inst]?.source : undefined;
+    if (!inst || !src) return [];
+    if (data.world !== 'moon' && shared.text.instrumentText[inst]?.source === src) return [];
+    return [[p.name, src]];
+  });
+}
+
+/**
+ * The sources behind this world's relationships (relationships.json holds every world's), skipping sources
+ * already listed under the instrument facts. No lesson names: undiscovered lessons stay hidden (the notebook
+ * shows them only as a count).
+ */
+export function relationshipSources(data: GameData): string[] {
   const seen = new Set<string>();
   for (const p of data.parts.parts) {
     const src = p.effects.instrument ? data.text.instrumentText[p.effects.instrument]?.source : undefined;
     if (src) seen.add(src);
   }
-  // No lesson names: undiscovered lessons stay hidden (the notebook shows them only as a count).
   const sources = new Set<string>();
-  for (const r of data.relationships.relationships) if (r.source && !seen.has(r.source)) sources.add(r.source);
-  return [...sources].map((source) => entry(null, source));
+  for (const r of data.relationships.relationships) if (r.world === data.world && r.source && !seen.has(r.source)) sources.add(r.source);
+  return [...sources];
 }
 
 export const creditsScreen: Screen = (game, root) => {
@@ -167,6 +185,8 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
   // Other worlds list only the debrief comparisons they replace.
   const historyKeys = HISTORY_KEYS.filter((k) => world === 'moon' || text.historySources[k] !== shared.text.historySources[k]);
   const milestones = data.milestones.milestones.filter((m) => isReal(m.source));
+  const instruments = instrumentSources(data, shared);
+  const relationships = relationshipSources(data);
   const landing = text.campaign;
 
   void fetchJson<TerrainSources>(world, 'terrain.json')
@@ -193,15 +213,17 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
     (milestones.length > 0 || world === 'moon') && section(c.milestones,
       el('ul', { class: 'credit-list' },
         ...milestones.map((m) => entry(m.name, m.source)))),
-    // The instruments and the relationships are the Moon's (the parts are shared; every relationship is a Moon one).
-    world === 'moon' && section(c.instrumentsLabel,
-      el('ul', { class: 'credit-list' },
-        ...data.parts.parts.flatMap((p) => {
-          const it = p.effects.instrument ? text.instrumentText[p.effects.instrument] : undefined;
-          return it?.source ? [entry(p.name, it.source)] : [];
-        }))),
-    world === 'moon' && section(c.relationshipsLabel, el('ul', { class: 'credit-list' }, ...relationshipEntries(data))),
+    // Each world's instrument facts (other worlds only those that differ from the Moon's), its own parts'
+    // real basis (Mars step 8), and the sources behind its relationships.
+    instruments.length > 0 && section(c.instrumentsLabel,
+      el('ul', { class: 'credit-list' }, ...instruments.map(([name, source]) => entry(name, source)))),
+    c.partsLabel && c.partEntries && c.partEntries.length > 0
+      && section(c.partsLabel, el('ul', { class: 'credit-list' }, ...c.partEntries.map(handEntry))),
+    relationships.length > 0 && section(c.relationshipsLabel,
+      el('ul', { class: 'credit-list' }, ...relationships.map((source) => entry(null, source)))),
     historyKeys.length > 0 && section(c.debrief,
       el('ul', { class: 'credit-list' }, ...historyKeys.map((k) => entry(historyLabel(k), text.historySources[k])))),
+    // Another world's own "placed by design" note (the shared one, at the end, is the Moon's).
+    world !== 'moon' && c.generated !== shared.text.credits.generated && section(c.generatedHeading, el('p', {}, c.generated)),
   );
 }

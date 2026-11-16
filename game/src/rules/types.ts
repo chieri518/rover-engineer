@@ -612,7 +612,13 @@ export interface SharedTextFile {
     | 'loading' | 'loadFailed' | 'imageryFallback' | 'provider' | 'imageCredit' | 'license' | 'productPage'
     | 'flaresUsed' | 'speedLabel' | 'instrumentsLabel' | 'relationshipsLabel' | 'survivedLabel' | 'back',
     string
-  > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
+  > & {
+    terrainFallback: string[];
+    soilEntries: CreditEntry[];
+    /** A world's own parts with a real basis (Mars step 8): a label, then hand-written entries named after the parts. */
+    partsLabel?: string;
+    partEntries?: CreditEntry[];
+  };
 }
 
 /** text.json, with the Mars-only sections that data/mars/text.json adds. */
