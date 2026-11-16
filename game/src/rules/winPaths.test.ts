@@ -3,7 +3,10 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import balance from '../../data/balance.json';
-import type { BalanceFile, Build, GameData, RoutePlan } from './types';
+import type { BalanceFile, Build, GameData, RouteLeg, RouteNode, RoutePlan } from './types';
+import terrain from '../../public/terrain/terrain.json';
+import { buildZones, zoneContains, type MilestoneFeatures } from './milestones';
+import { resolveSites } from './sites';
 import { allBuilds, buildLabel } from './balance';
 import { bestPlan, canBuy, crossingAngleDeg, runPlan } from './winPaths';
 import { cheapestBuild } from './rover';
@@ -68,15 +71,12 @@ describe('win paths: the Moon pass rule rewards intentional design', () => {
     }
   });
 
-  // The design says a rover with no instruments cannot pass the Moon. Today the cheapest fast empty
-  // bay (steel, mesh, panel, NiH2) scrapes a pass on capability milestones alone with a perfect
-  // scouting run, so this checks the weaker target: no empty bay passes with room for a mistake.
-  // Closing the gap is left to the balance patch (milestone money or the pass mark).
-  it('a rover with an empty bay never passes with room for a mistake, even with its best route', () => {
+  // The design says a rover with no instruments cannot pass the Moon. With the Moon sites repricing
+  // (Boulder field 60, Mapper 40) every empty bay fails by at least the mistake margin, even with its best route.
+  it('a rover with an empty bay fails by at least the mistake margin, even with its best route', () => {
     const empty = buyable.filter((b) => b.payload.length === 0);
     expect(empty.length).toBeGreaterThan(0);
-    for (const b of empty) expect(best.get(label(b))!.finalBalance, label(b)).toBeLessThan(pass + routes.play.mistakeMargin);
-    expect(empty.filter((b) => best.get(label(b))!.passes).length).toBeLessThanOrEqual(1);
+    for (const b of empty) expect(best.get(label(b))!.finalBalance, label(b)).toBeLessThanOrEqual(pass - routes.play.mistakeMargin);
   });
 
   it('the cheapest build fails on every route', () => {
@@ -209,5 +209,105 @@ describe('win paths report', () => {
     const byPlan = new Map<string, number>();
     for (const r of rows.filter((r) => r.pass)) byPlan.set(r.best, (byPlan.get(r.best) ?? 0) + 1);
     console.log('passing builds by best plan', Object.fromEntries(byPlan));
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------
+// Moon sites and milestones (Phase 3): the balance model credits the new triggers. The new sites' legs
+// come from the pipeline later (Phase 6); these tests drive synthetic nodes and legs.
+
+describe('win paths: the Moon sites triggers', () => {
+  const landing = routes.nodes.find((n) => n.id === 'landing')!;
+  const litNode = routes.nodes.find((n) => n.id === 'rim1')!.lit;
+  const litLeg = routes.legs.find((l) => l.from === 'landing' && l.to === 'rim1')!.lit;
+  const n = (id: string, x: number, z: number, extra: Partial<RouteNode> = {}): RouteNode => ({
+    id, x, z, fromLandingM: Math.round(Math.hypot(x - landing.x, z - landing.z)), belowLandingM: 0, earthVisible: true, lit: litNode, ...extra,
+  });
+  const extra: RouteNode[] = [
+    n('bench', landing.x, landing.z - 400),
+    n('bench2', landing.x, landing.z - 480),
+    n('near', landing.x, landing.z - 100),
+    n('crater', landing.x - 400, landing.z - 150, { earthVisible: false, rocks: ['noritic-anorthosite', 'ferroan-anorthosite'], zones: ['young-crater:east-crater'] }),
+    n('rolled', landing.x - 410, landing.z - 150, { earthVisible: false, rocks: ['magnesian-norite'], rolledBoulderM: 5 }),
+    n('far', landing.x - 400, landing.z + 600, { rocks: ['regolith-breccia'] }),
+  ];
+  const all = [landing, ...extra];
+  const zonesOf: Record<string, string[]> = { 'landing>bench': ['cold-trap:east-cold-trap'], 'bench>bench2': ['cold-trap:south-cold-trap'] };
+  const legs: RouteLeg[] = all.flatMap((a) => all.filter((b) => b !== a).map((b) => ({
+    from: a.id, to: b.id, distanceM: Math.round(Math.hypot(a.x - b.x, a.z - b.z) * 1.1), climbM: 0, descentM: 0, coldM: 0, lit: litLeg,
+    ...(zonesOf[`${a.id}>${b.id}`] ?? zonesOf[`${b.id}>${a.id}`] ? { zones: zonesOf[`${a.id}>${b.id}`] ?? zonesOf[`${b.id}>${a.id}`] } : {}),
+  })));
+  const synth: BalanceFile = { ...routes, nodes: [...routes.nodes.filter((x) => x.id !== 'landing'), ...all], legs: [...routes.legs.filter((l) => !all.some((a) => a.id === l.from) || !all.some((a) => a.id === l.to)), ...legs] };
+  const bus = { chassis: 'chassis-steel', wheels: 'wheels-mesh', power: 'power-fixed-panel', battery: 'battery-li-ion', lights: 'lights-none', heater: 'heater-none' } as const;
+  const build = (...payload: string[]): Build => ({ ...bus, payload: payload.map((p) => `instrument-${p}`) });
+  const run = (b: Build, stops: RoutePlan['stops']) => runPlan(b, { id: 'synthetic', name: 'synthetic', stops }, data, synth);
+  const earned = (r: ReturnType<typeof run>) => Object.fromEntries(r.earned.map((e) => [e.id, e.stages ?? 1]));
+
+  it('the route nodes carry the site zones they really lie in (buildZones on the real terrain and sites.json)', () => {
+    const f = terrain.features;
+    const zones = buildZones({ landing: terrain.landing.local, rimViewpoints: f.rimViewpoints, rockyAreas: f.rockyAreas, shadowedCrater: f.shadowedCrater as unknown as MilestoneFeatures['shadowedCrater'], craterDescent: f.craterDescent },
+      data.tuning.milestones, { sites: resolveSites(data.sites.sites, f), neutron: data.tuning.instruments.neutron });
+    for (const node of routes.nodes) {
+      const inside = zones.filter((z) => (z.site || z.id === 'ice-signal') && zoneContains(z, { x: node.x, y: 0, z: node.z })).map((z) => z.key);
+      expect([...(node.zones ?? [])].sort(), node.id).toEqual(inside.sort());
+    }
+  });
+
+  it('Fresh ejecta sample: a drill sample in an ejecta ring (the Drill geologist at Rocky area 1), not elsewhere', () => {
+    const geo = archetype('Drill geologist');
+    expect(earned(runPlan(geo.build, plan(geo.plan), data, routes))['fresh-ejecta-sample']).toBe(1);
+    expect(earned(runPlan(geo.build, plan('near-wall'), data, routes))['fresh-ejecta-sample']).toBeUndefined();
+  });
+
+  it('X-ray readings: Rock collection by distinct types, Rare rock at the rolled boulder, Documented sample and Boulder track', () => {
+    const r = run(build('xray', 'camera'), [
+      { node: 'crater', use: ['xray', 'xray', 'camera'] },
+      { node: 'rolled', use: ['xray', 'camera'] },
+      { node: 'far', use: ['xray'] },
+    ]);
+    expect(r.refusals).toEqual([]);
+    expect(earned(r)).toMatchObject({ 'rock-collection': 3, 'rare-rock': 1, 'documented-sample': 1, 'boulder-track': 1 });
+    const two = run(build('xray', 'camera'), [{ node: 'crater', use: ['camera', 'xray', 'xray'] }]); // photo before the reading
+    expect(earned(two)).toMatchObject({ 'rock-collection': 1 });
+    expect(earned(two)['documented-sample']).toBeUndefined();
+    expect(earned(run(build('camera'), [{ node: 'rolled', use: ['camera'] }]))['boulder-track']).toBe(1);
+  });
+
+  it('stations: Laser ranging, Science station, and a clean Moonquake record when the rover drives away', () => {
+    const r = run(build('seismometer', 'reflector'), [{ node: 'bench', use: ['seismometer', 'reflector'] }, { node: 'far' }]);
+    expect(r.deployed).toEqual(['seismometer', 'reflector']);
+    expect(earned(r)).toMatchObject({ 'laser-ranging-site': 1, 'science-station': 1, 'moonquake-record': 1, 'clean-seismogram': 1 });
+    // Driving past the station in the record window makes the trace noisy.
+    const noisy = run(build('seismometer', 'reflector'), [
+      { node: 'bench', use: ['seismometer'] }, { node: 'bench2', waitUntil: routes.play.quakeSeconds - 15 }, { node: 'near' },
+    ]);
+    expect(earned(noisy)).toMatchObject({ 'moonquake-record': 1 });
+    expect(earned(noisy)['clean-seismogram']).toBeUndefined();
+    // Near the lander, or apart: none of the station milestones.
+    expect(Object.keys(earned(run(build('seismometer', 'reflector'), [{ node: 'near', use: ['seismometer', 'reflector'] }, { node: 'far' }])))).not.toContain('moonquake-record');
+    const apart = earned(run(build('seismometer', 'reflector'), [{ node: 'bench', use: ['seismometer'] }, { node: 'far', use: ['reflector'] }]));
+    expect(apart['science-station']).toBeUndefined();
+    expect(apart['laser-ranging-site']).toBe(1);
+  });
+
+  it('neutron standby on legs: a switched-on drive along a leg that touches a cold trap earns a survey stage per trap', () => {
+    const on = run(build('neutron'), [{ node: 'landing', standby: ['neutron'] }, { node: 'bench' }, { node: 'bench2' }]);
+    expect(on.refusals).toEqual([]);
+    expect(earned(on)['cold-trap-survey']).toBe(2);
+    expect(earned(run(build('neutron'), [{ node: 'bench' }, { node: 'bench2' }]))['cold-trap-survey']).toBeUndefined(); // never switched on
+    expect(earned(run(build('neutron'), [{ node: 'landing', standby: ['neutron'] }, { node: 'bench' }, { node: 'landing' }]))['cold-trap-survey']).toBe(1); // the same trap twice
+    // The Ice hunter's build with the spectrometer instead of the drill, switched on at the crater edge. On the
+    // measured legs it reaches the edge at about 275 s with the battery just above the low-energy level, so the
+    // standby switches itself off on the way in and the count starts again: no Ice deposit located (flagged for
+    // the Phase 6 balance). With a lower warning level the same run earns it and the dark crater's survey stage.
+    const ice = archetype('Ice hunter');
+    const b = { ...ice.build, payload: ['instrument-neutron'] };
+    const edgePlan: RoutePlan = { id: 'neutron-edge', name: 'neutron on at the edge', stops: [{ node: 'darkEdge', standby: ['neutron'] }, { node: 'ice' }, { node: 'darkEdge' }] };
+    const real = runPlan(b, edgePlan, data, routes);
+    expect(real.standbyOff.length).toBeGreaterThan(0);
+    expect(earned(real)['ice-deposit-located']).toBeUndefined();
+    const lowLevel: GameData = { ...data, tuning: { ...data.tuning, energy: { ...data.tuning.energy, lowWarningShare: 0.05 } } };
+    expect(earned(runPlan(b, edgePlan, lowLevel, routes))).toMatchObject({ 'ice-deposit-located': 1, 'cold-trap-survey': 1 });
+    expect(earned(runPlan({ ...b, lights: 'lights-none' }, edgePlan, lowLevel, routes))['ice-deposit-located']).toBeUndefined(); // it needs lights
   });
 });

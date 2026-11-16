@@ -17,6 +17,8 @@ import { earthLitShare, skyDirection, sunAt } from './sun';
 import { missionPayout, type EarnedMilestone, type Payout } from './payout';
 import { driveEnergy } from './energy';
 import type { MissionEvent } from './events';
+import { MilestoneTracker, type FramedBoulder, type Zone } from './milestones';
+import { emptySeismometerTrack, stepSeismometer } from './instruments';
 
 /** An instrument use or standby switch the mission rules refused during a plan run. */
 export interface PlanRefusal {
@@ -75,6 +77,11 @@ export function crossingAngleDeg(routes: BalanceFile, a: RouteNode, b: RouteNode
   return (Math.acos(Math.max(-1, Math.min(1, cos))) * 180) / Math.PI;
 }
 
+/** A point a share of the way from one node to another (straight line: the leg's route is not stored). */
+function lerpNode(a: RouteNode, b: RouteNode, share: number): { x: number; z: number } {
+  return { x: a.x + (b.x - a.x) * share, z: a.z + (b.z - a.z) * share };
+}
+
 /**
  * Drive a build along a plan and price the result. The build must be able to launch.
  *
@@ -115,6 +122,40 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
   const sites: RouteNode[] = []; // counted drill sample sites
   const byTrigger = (pred: (m: Milestone) => boolean) => catalog.filter(pred);
   const zoneMilestones = (zone: string) => byTrigger((m) => m.trigger.type === 'zone' && m.trigger.zone === zone);
+  /** Whether a node lies in a zone with this id: the ice spot, or a site zone from its annotations. */
+  const nodeIn = (n: RouteNode, zone: string) => (zone === 'ice-spot' && n.iceSpot === true) || (n.zones ?? []).some((k) => k.split(':')[0] === zone);
+
+  // The station, reading and boulder-photo milestones go through the mission's own tracker. Its only zone
+  // is the near-lander circle around the landing node; route nodes stand in for positions.
+  const landing = node('landing');
+  const nearLander: Zone = { id: 'near-lander', key: 'near-lander', name: 'Lander', shape: { kind: 'circle', x: landing.x, z: landing.z, r: mt.sampleMinDistanceM } };
+  const tracker = new MilestoneTracker(catalog, parts, [nearLander], mt);
+  const p3 = (n: { x: number; z: number }) => ({ x: n.x, y: 0, z: n.z });
+  const readHere = new Map<string, number[]>(); // node id → boulders read there (tracker boulder indices)
+  let boulders = 0;
+  let seismometer = emptySeismometerTrack();
+  let stationDown: { x: number; z: number } | null = null; // the seismometer was set down this step, here
+  let quakeLeft = true;
+  /** Switched-on transects in progress: meters driven unbroken, and the site zones touched on the way. */
+  const runs = new Map<Instrument, { meters: number; touched: Set<string> }>();
+  const surveyed = new Map<string, Set<string>>(); // staged transect id → zone keys credited
+  const touch = (keys: readonly string[] | undefined) => {
+    for (const run of runs.values()) for (const k of keys ?? []) run.touched.add(k);
+  };
+  const checkTransects = () => {
+    for (const m of catalog) {
+      const tr = m.trigger;
+      if (tr.type !== 'transect') continue;
+      const run = runs.get(tr.instrument);
+      if (!run || run.meters < tr.meters) continue;
+      const keys = [...run.touched].filter((k) => k.split(':')[0] === tr.zone);
+      if (keys.length === 0 || !meetsRequirements(parts, m)) continue;
+      const done = surveyed.get(m.id) ?? new Set<string>();
+      surveyed.set(m.id, done);
+      for (const k of keys) done.add(k);
+      credit(m, tr.sites ? Math.min(done.size, tr.sites) : 1);
+    }
+  };
 
   let s: MissionState = startMission(setup);
   let at = node('landing');
@@ -155,6 +196,9 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
     if (deep && n.belowLandingM < mt.craterDescentExitDepthM) for (const m of zoneMilestones('large-crater')) credit(m);
     if (n.darkCrater) inDark = true;
     if (inDark && !n.darkCrater) for (const m of zoneMilestones('shadowed-crater')) credit(m);
+    touch(via.zones);
+    touch(n.zones);
+    checkTransects();
     at = n;
     log.push(`${now()}s at ${n.id} (energy ${Math.round(s.energy)})`);
   };
@@ -183,6 +227,10 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
       if (r.ok) s = r.state;
       else refuse(inst, r.reason);
     }
+    // A switched-off instrument's transect ends; a switched-on one starts here (touching this node's zones).
+    for (const inst of [...runs.keys()]) if (!s.standbyOn.includes(inst)) runs.delete(inst);
+    for (const inst of s.standbyOn) if (!runs.has(inst)) runs.set(inst, { meters: 0, touched: new Set(at.zones ?? []) });
+    checkTransects();
     log.push(`${now()}s standby [${s.standbyOn.join(' ')}] leaving ${at.id}`);
   };
 
@@ -194,12 +242,23 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
       for (const m of catalog) {
         const tr = m.trigger;
         if (tr.type !== 'drill') continue;
-        if (tr.zone && !(tr.zone === 'ice-spot' && here.iceSpot === true)) continue;
+        if (tr.zone && !nodeIn(here, tr.zone)) continue;
         if (tr.sites) credit(m, Math.min(sites.length, tr.sites));
         else credit(m);
       }
     }
     log.push(`${now()}s drill done at ${here.id}`);
+  };
+
+  /** An X-ray reading at the end of its hold: the next boulder in reach here, of the node's rock types. */
+  const xrayDone = (here: RouteNode) => {
+    const read = readHere.get(here.id) ?? [];
+    readHere.set(here.id, read);
+    const rock = here.rocks?.length ? here.rocks[read.length % here.rocks.length] : undefined;
+    const boulder = boulders++;
+    read.push(boulder);
+    tracker.reading('xray', p3(here), { target: 'boulder', boulder, ...(rock ? { rock } : {}) });
+    log.push(`${now()}s xray done at ${here.id}${rock ? ` (${rock})` : ''}`);
   };
 
   /** Start one use with the real rules (power, conditions, energy, hold time); true if it started. */
@@ -210,7 +269,7 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
       inColdZone: Boolean(at.darkCrater),
       sunlight: litAt(at.lit, step, s.seconds),
       earthInView: at.earthVisible,
-      boulderInReach: Boolean(at.boulderField),
+      boulderInReach: Boolean(at.boulderField) || Boolean(at.rocks?.length),
     }, setup, t);
     if (!use.ok) {
       refuse(instrument, use.reason);
@@ -224,6 +283,10 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
       if (at.earthVisible && at.fromLandingM >= mt.earthPhotoMinDistanceM && lit >= mt.earthPhotoMinLit) {
         for (const m of byTrigger((m) => m.trigger.type === 'photo' && m.trigger.target === 'earth')) credit(m);
       }
+      // Boulders in frame: the rolled boulder from where it is in view, and boulders read at this stop.
+      const framed: FramedBoulder[] = (readHere.get(at.id) ?? []).map((index) => ({ index, x: at.x, z: at.z }));
+      if (at.rolledBoulderM !== undefined) framed.push({ index: -1, x: at.x, z: at.z + at.rolledBoulderM, rolled: true });
+      tracker.photo(p3(at), false, 0, undefined, framed);
       log.push(`${now()}s photo at ${at.id}`);
     } else {
       log.push(`${now()}s ${instrument} at ${at.id}${use.holdSeconds > 0 ? ` (hold ${use.holdSeconds}s)` : ''}`);
@@ -307,6 +370,12 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
       }
     }
 
+    // Switched-on transects count the meters driven; a power-down pauses them.
+    if (!poweredDown && distance > 0) {
+      for (const [inst, run] of runs) if (s.standbyOn.includes(inst)) run.meters += distance;
+      checkTransects();
+    }
+
     const prev: MissionState = { ...s, poweredDown };
     if (!poweredDown) standbyEnergy += standbyDraw(prev, setup) * DT;
     const res = stepMission(prev, {
@@ -318,16 +387,33 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
     for (const n of res.notices) {
       if (n.kind === 'standby-off') {
         standbyOff.push(s.seconds);
+        for (const inst of n.instruments) runs.delete(inst); // switched off: the transect starts again
         log.push(`${now()}s low energy: standby off [${n.instruments.join(' ')}]`);
       } else if (n.kind === 'instrument-done') {
         if (n.instrument === 'drill') drillDone(at);
+        if (n.instrument === 'xray') xrayDone(at);
         if (n.deployed) {
+          tracker.deploy(n.instrument, at, at.earthVisible);
+          if (n.instrument === 'seismometer') stationDown = { x: at.x, z: at.z };
           // The station is on the ground: the rest of the run uses the lighter rover.
           setup = deployPart(setup, parts, s.deployed, t);
           speed = setup.stats.topSpeed * play.speedShare;
           log.push(`${now()}s ${n.instrument} deployed at ${at.id}`);
         }
       }
+    }
+
+    // The seismometer station listens for the rover's driving (straight between the leg's nodes) until the moonquake.
+    const where = leg ? lerpNode(node(leg.from), node(leg.to), legPos / leg.distanceM) : at;
+    const quake = quakeLeft && s.seconds >= play.quakeSeconds;
+    if (quake) quakeLeft = false;
+    const seis = stepSeismometer(seismometer, { point: { seconds: s.seconds, x: where.x, z: where.z, moving: driving && distance > 0 }, deployed: stationDown, quake }, t.instruments.seismometer);
+    seismometer = seis.track;
+    stationDown = null;
+    for (const o of seis.outcomes) {
+      if (o.kind !== 'recorded' || !seismometer.deployedAt) continue;
+      tracker.record('seismometer', 'quake', o.record.quality, seismometer.deployedAt);
+      log.push(`${now()}s moonquake recorded (${o.record.quality})`);
     }
 
     if (leg && legPos >= leg.distanceM - 1e-6 && !s.end) {
@@ -344,6 +430,7 @@ export function runPlan(build: Build, plan: RoutePlan, data: GameData, routes: B
     if (harmed === 0 && !crossed) for (const m of byTrigger((m) => m.trigger.type === 'survive')) credit(m);
   }
   for (const m of byTrigger((m) => m.trigger.type === 'landing')) credit(m);
+  for (const e of tracker.result()) credit(catalog.find((m) => m.id === e.id), e.stages ?? 1);
   const result: EarnedMilestone[] = [...earned].map(([id, stages]) => (stages > 1 ? { id, stages } : { id }));
   for (const m of catalog) {
     if (m.trigger.type === 'distance') {

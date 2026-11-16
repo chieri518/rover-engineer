@@ -9,7 +9,7 @@
     "speedShare": 0.9,
     "reserveShare": 0.1,
     "flareSeconds": [90, 220],
-    "flareStopSeconds": 8,
+    "flareStopSeconds": 8, "quakeSeconds": 165,
     "crossingUphillDeg": 4,
     "mistakeMargin": 50,
     "mapperBaseShare": 0.003,
@@ -40,6 +40,7 @@
     },
     {
       "id": "rim1",
+      "zones": ["young-crater:rocky-area-1"],
       "x": -970,
       "z": -430,
       "fromLandingM": 490,
@@ -71,6 +72,7 @@
     },
     {
       "id": "rocky1East",
+      "zones": ["young-crater:rocky-area-1"],
       "x": -955,
       "z": -215,
       "fromLandingM": 308,
@@ -81,6 +83,7 @@
     },
     {
       "id": "rocky1North",
+      "zones": ["young-crater:rocky-area-1"],
       "x": -1260,
       "z": -450,
       "fromLandingM": 691,
@@ -91,6 +94,7 @@
     },
     {
       "id": "rocky2South",
+      "zones": ["young-crater:rocky-area-2"],
       "x": -483,
       "z": 1488,
       "fromLandingM": 1509,
@@ -102,6 +106,7 @@
     },
     {
       "id": "rocky2West",
+      "zones": ["young-crater:rocky-area-2"],
       "x": -623,
       "z": 1238,
       "fromLandingM": 1243,
@@ -122,6 +127,7 @@
     },
     {
       "id": "ice",
+      "zones": ["ice-signal", "cold-trap:dark-crater"],
       "x": -130,
       "z": -2890,
       "fromLandingM": 2953,
