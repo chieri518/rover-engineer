@@ -114,7 +114,7 @@ Drive ──► Reach milestones ──► Earn RP and money
 
 - **Driving uses energy.** Heavier rovers use more energy per meter.
 - **Speed depends on the configuration.** The wheels set a base speed, and a heavier rover is slower. A heavy rover reaches fewer places in the mission time.
-- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 13 m/s for a light one on wire-mesh wheels). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation), and 16 times faster while its wheels are off the ground (see [Ride over bumps](#ride-over-bumps)). Measured before the balance pass: a light build (12 m/s) reached the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. *Balance pass (November 15):* wire-mesh wheels now model 3.3 m/s of real driving (11.9 km/h, inside the Apollo LRV's 9 to 13 km/h), so a light build drives 13.2 m/s; this keeps the dark crater reachable with good, not perfect, driving. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts.
+- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 13 m/s for a light one on wire-mesh wheels). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation), and 16 times faster while its wheels are off the ground (see [Ride over bumps](#ride-over-bumps)). Measured before the balance pass: a light build (12 m/s) reached the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. *Balance pass (November 15):* wire-mesh wheels now model 3.3 m/s of real driving (11.9 km/h, inside the Apollo LRV's 9 to 13 km/h), so a light build drives 13.2 m/s; this keeps the dark crater reachable with good, not perfect, driving. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts. *Generous pass (November 15, after the user's playtest):* compression 4 → 6, so a light build drives about 19.8 m/s and the slowest about 11; see [Generous pass](#generous-pass-november-15-2026-after-the-users-playtest).
 - **Milestones** come from driving and from using equipped instruments. A rover without a drill drives past the ice.
 - **Night (Mars and Titan only).** The player chooses:
   - **Lights on:** keep exploring, but energy drains fast.
@@ -330,6 +330,8 @@ The browser runs found one model error, now fixed: the boulder-field crossing po
 | Laser ranging site | 50 / 15 |
 | Science station | 50 / 10, once per campaign (record) |
 
+*The values and estimates below are superseded by the [Generous pass](#generous-pass-november-15-2026-after-the-users-playtest); the ways to win and lose still hold, except that more builds now win.*
+
 **Rough estimates** (simple arithmetic: 750 − (parts + ticket) + 50 survival + the milestones a build can reasonably earn; pass mark 780). "Browser" is the November 15 autopilot run (headless Chrome, unexplored map, real time) repriced with these values. Mapper is left out of every route that stays near the lander: the browser runs showed clustered routes reveal only about 1.3% of the map.
 
 | Build (parts + ticket) | Route | Milestones counted | Estimate | Browser |
@@ -355,6 +357,48 @@ The browser runs found one model error, now fixed: the boulder-field crossing po
 - **A drill sample at Rim viewpoint 1 also earns Fresh ejecta sample** (it lies inside Rocky area 1's 300 m ejecta ring): accepted, one more way to win.
 - **NW crater is discovered at the start** (its boulder spread is inside the 250 m reveal circle of the landing): accepted; it gives a first target close to the lander. Every other site starts hidden.
 - Everything else stays as it is: the 35 m hidden hydrogen zone (the browser Near prospector earned Hidden hydrogen), the Station keeper's Clean seismogram (clean in all four browser runs, quakes at 110 to 225 s), the dark crater counted as a cold trap for the survey (in the code since Phase 3).
+
+#### Generous pass (November 15, 2026, after the user's playtest)
+
+The user's playtest: milestones were too hard to earn; the rover could not get anywhere in time, sites were too far and hard to find, and one milestone left the player far below the Mars mark. Decided: **lean generous.** The goal is a quick "good enough", not a fine balance.
+
+**Player model** for every estimate: a first-time player averages **half of top speed**, drives routes about **1.5 times** the straight line, loses some time looking for sites, and does not know the map. With a typical mesh build (about 18 to 20 m/s top) that is about 9 m/s, about 2 km of driving after stops, so sites within about 1.3 km in a straight line are in reach. A solid-wheel build (about 11 to 12 m/s) reaches about 0.9 km.
+
+| Value | Before | Now |
+| --- | --- | --- |
+| Speed compression (`speed.compression`; real speeds unchanged, mesh still 3.3 m/s) | 4 | **6** (mesh top 13.2 → 19.8 m/s) |
+| Mass speed loss per kg above 60 kg | 0.01 | **0.006** |
+| Air gravity (`rover.airGravityScale`, compression squared) | 16 | **36** |
+| Acceleration / braking | 2.5 / 4 m/s² | **3.5 / 6** |
+| Drive energy per meter: solid / mesh / grouser | 0.24 / 0.18 / 0.22 | **0.16 / 0.12 / 0.15** |
+| Reveal radius / minimap start span | 250 / 700 m | **400 / 1000 m** |
+| Near-lander zone (samples, stations) / sample spacing | 200 / 200 m | **120 / 150 m** |
+| Earth photo minimum distance | 300 m | **150 m** |
+| Photo zone (viewpoints, wall) / ice spot radius | 60 / 50 m | **90 / 70 m** |
+| Crater descent depth / exit depth | 150 / 100 m | **120 / 80 m** |
+| Mapper share | 1.8% | **2.5%** (the wider circle reveals more; about 1.4 km of new ground) |
+| Single science, picture and record rewards | | **doubled**: Crater layers 160, Earth 200, Rim panorama 140, Water ice 700, Hidden hydrogen 200, Ice deposit 400, Rare rock 200, Boulder track 80, Documented sample 80, Fresh ejecta 100, Moonquake record 160, Clean seismogram 80, Laser ranging 100, Science station 100 |
+| Staged science rewards (per stage) | 100 / 60 / 50 | **1.5×**: Regolith sample 150, Rock collection 90, Cold trap survey 75 |
+
+Unchanged: capability milestones (Odometer, Mapper's money, Crater descent, Boulder field, Into the dark), Touchdown, Flare survivor, Clean run, survival payout, RP, costs, tickets and the 780 mark. Driving only and idling therefore stay weak; instruments carry the win. Hidden hydrogen and the other pipeline sites did not move.
+
+**Estimates** (750 − parts and ticket + 50 survival + 50 Touchdown + 30 Flare survivor + what this player earns near the lander; pass mark 780):
+
+| Build (parts + ticket) | Realistic milestones | Final |
+| --- | --- | --- |
+| Idle (camera scout build, 450) | Touchdown, Flare survivor, Clean run | about 480: **loses** |
+| Empty bay: steel, mesh, panel, NiH2 (400) | Boulder field, Crater descent, Odometer ×2 to 3, Clean run | about 650 to 760: **loses or scrapes** |
+| Camera: steel, mesh, panel, NiH2 (450) | Rim panorama, Earth, Crater layers, Odometer ×2 | about 990; 830 without Crater layers: wins |
+| Drill: steel, mesh, panel, Li-ion (550) | Regolith ×3, Fresh ejecta, Odometer ×2 | about 890: wins |
+| X-ray only: steel, mesh, panel, Li-ion (460) | Rock collection ×2, Rare rock, Odometer ×2 | about 810; 900 with a third rock type: wins |
+| Camera + X-ray: Ti, mesh, panel, Li-ion (600) | Rock collection ×2, Rare rock, Documented sample, Boulder track, Odometer ×2 | about 880: wins |
+| Station keeper: seismometer, reflector, X-ray (about 620) | Both stations, Moonquake, Clean seismogram, Rock collection ×2, Odometer ×2 | about 890: wins |
+| Neutron + X-ray: Ti, mesh, panel, Li-ion (630) | Hidden hydrogen, Cold trap ×2, Rock collection ×2, Odometer ×2 | about 790; 990 with Rare rock: wins |
+| Ice hunter (735) | Water ice, Into the dark, Regolith ×2, Odometer ×3 | about 1,390 if it finds the ice; about 540 if not |
+
+- **Physics.** 1.5 times is the cap: the time-lapse rule (air gravity = compression squared) is kept, and at 2 times (26 m/s) air gravity would be 64. Boulder hits hurt more at speed (8 + 4 per m/s above 3), so fast players should slow down in boulder fields.
+- **Mars shares** the wheels, compression, mass loss, acceleration and braking, the reveal radius, and the near-lander zone and sample spacing (Mars inherits `milestones` keys it does not override). Mars balance is not retuned here.
+- **Browser check:** two short runs with a dev fast-forward (`?sim=k`); the browser tool could not hold keys reliably and the pane was hidden, so neither is a valid playtest. The one leg driven reached 18.8 m/s on a 270 m run and held course; a camera and X-ray build earned Documented sample at Rocky area 1. A real playtest is still needed.
 
 **The ice with both instruments does not fit the Moon budget** *(decided, M1)*. The neutron/drill relationship's first answer used to be "bring both", but no version of that build fits the 750 budget, and no tier tweak alone fixes it:
 
@@ -578,7 +622,7 @@ The map is **bigger than one mission can cover**, so the player feels they could
 *Decided November 15, 2026 (playtest fix).* The first minimap showed the whole 8 km area under a light fog, with every crater and viewpoint marked from the start, so players saw every site at once and had little reason to explore. Now the map grows with the rover's own survey.
 
 - **Zoom.** The map starts zoomed in on the lander, about 700 m across (`minimap.startSpanM`). It widens smoothly to fit everything explored so far, and each discovered site whole (the dark crater is larger than the reveal circle), plus a 100 m margin (`minimap.marginM`), so the rover always has some ground around it. It never zooms back in during a mission; a long drive north ends with a map a few kilometers across.
-- **Fog.** Unexplored ground is hidden. The rover reveals a circle around itself on the same 20 m grid the Mapper milestone counts (`explore`), so Mapper is unchanged. *Reveal radius kept at 250 m* (`explore.revealRadiusM`): every site is hidden at the start except NW crater (about 250 m out, found at the start; accepted in Phase 6) (the nearest, Rim viewpoint 1 and Rocky area 1, are about 490 m away), the ground ahead still shows at driving speed, and Mapper's 1.8% and the balance model stay valid.
+- **Fog.** Unexplored ground is hidden. The rover reveals a circle around itself on the same 20 m grid the Mapper milestone counts (`explore`), so Mapper is unchanged. *Generous pass (November 15): reveal radius 250 → 400 m, start span 700 → 1000 m; Rocky area 1 and NW crater are found at the start, so the boulder field lead is already done when the mission starts.* Before that, *reveal radius kept at 250 m* (`explore.revealRadiusM`): every site is hidden at the start except NW crater (about 250 m out, found at the start; accepted in Phase 6) (the nearest, Rim viewpoint 1 and Rocky area 1, are about 490 m away), the ground ahead still shows at driving speed, and Mapper's 1.8% and the balance model stay valid.
 - **Sites appear when discovered.** Viewpoints, rocky areas (boulder fields), the de Gerlache wall descent point and the dark crater's outline are drawn only once the rover's reveal circle touches them: the 60 m viewpoint or wall zone, the boulder spread (1.1 times the crater radius), or the crater's permanent-shadow outline. A notice names each newly found site. The lander is always shown. The ice spot is never marked.
 - **New site kinds on the minimap** *(decided November 15; built in Phase 5, see [HUD, minimap and debrief](#rules-for-the-new-milestones))*. The same rules: hidden until the reveal circle touches a site, then drawn with a "Located" notice, except the two hydrogen sites, which only the neutron spectrometer can find.
 
