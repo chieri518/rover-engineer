@@ -19,6 +19,8 @@ import { MarsSky } from './marsSky';
 import { MARS_GROUND_HEX, marsLook, type MarsLook } from './marsLook';
 import { TitanRain, TitanSky } from './titanSky';
 import { titanLook, type TitanLook } from './titanLook';
+import { TitanRaindrops } from './titanRain'; // titan-fx: rain
+import { TitanWet } from './titanWet'; // titan-fx: rain
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
@@ -223,10 +225,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   scene.add(sunLight, sunLight.target, skyLight);
   const fog = hazy ? new THREE.FogExp2(0x000000, 0) : null;
   scene.fog = fog;
-  const rain = titanTuning
+  const rain = titanTuning?.rainDrops ? new TitanRaindrops(titanTuning.rainDrops) : titanTuning // titan-fx: rain
     ? new TitanRain({ count: titanTuning.rain.streakCount, boxM: titanTuning.rain.streakBoxM, fallMps: titanTuning.rain.fallMps, lengthM: titanTuning.rain.streakLengthM })
     : null;
   if (rain) scene.add(rain.object);
+  const wet = titanTuning?.wet ? new TitanWet(titanTuning.wet) : null; // titan-fx: rain
   let storm = 0;
   let stormTarget = 0;
   let look: MarsLook | TitanLook | null = null;
@@ -474,7 +477,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       camera.position.z += (Math.random() - 0.5) * a;
     }
     sky.update(camera, sun);
-    if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, look.rainStreaks, look.rainColor);
+    wet?.update(seconds, storm, sunLight, look, lamp); // titan-fx: rain
+    if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, rain instanceof TitanRaindrops ? storm : look.rainStreaks, look.rainColor); // titan-fx: rain
     draw();
 
     const boundaryDistance = limit - Math.max(Math.abs(pos.x), Math.abs(pos.z));
@@ -655,6 +659,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       input.dispose();
       boulders.dispose();
       rain?.dispose();
+      wet?.dispose(); // titan-fx: rain
       rover.dispose();
       lander.dispose();
       world.free();

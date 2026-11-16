@@ -242,6 +242,52 @@ export interface TitanLookTuning {
   /** Rover shadow blur (shadow map radius) and Sun-mask refresh bands; masks pause below minElevationDeg. */
   shadowRadius: number;
   sunMask: { bands: [number, number, number]; minElevationDeg: number };
+  // titan-fx: rain
+  rainDrops?: TitanRainDropsTuning;
+  wet?: TitanWetTuning;
+}
+
+// titan-fx: rain. Demo visuals (presentation only): methane raindrops and wet ground, data/titan/tuning.json look.
+/** Methane raindrops (world/titanRain.ts). */
+export interface TitanRainDropsTuning {
+  /** Drops at full rain (fewer drawn as the rain eases), in a box of boxM around the camera. */
+  count: number;
+  boxM: number;
+  /** Fall speed of the largest drops (m/s); the smallest fall (1 - fallSpread) x as fast. */
+  fallMps: number;
+  fallSpread: number;
+  /** Real drop diameters (mm), drawn drawScale x larger; stretch = drawn length over width (motion blur). */
+  sizeMinMm: number;
+  sizeMaxMm: number;
+  drawScale: number;
+  stretch: number;
+  /** Horizontal wind drift (m/s, world x and z) and a small sway (amplitude m, frequency Hz). */
+  windMps: [number, number];
+  swayM: number;
+  swayHz: number;
+  /** Smallest drawn size in pixels (fainter instead of smaller), fade-in near the camera and fade-out far (m), peak opacity. */
+  minPx: number;
+  fadeNearM: number;
+  fadeFarM: number;
+  opacity: number;
+  /** Drop color = the look's rain color x brightness (drops catch the sky light and stand out from the haze). */
+  brightness: number;
+}
+
+/** Wet ground (world/titanWet.ts). */
+export interface TitanWetTuning {
+  /** Wetting time constant toward the rain intensity, and seconds to dry from fully wet (mission time). */
+  wetTauS: number;
+  dryS: number;
+  /** Color multiplier when fully wet; sheen gains for the reflected sky, the Sun glint and the floodlight glint. */
+  darken: number;
+  sky: number;
+  sun: number;
+  lamp: number;
+  /** Glint sharpness (Phong exponent), reflectance looking straight down, size of the wet patches (m). */
+  shininess: number;
+  fresnel0: number;
+  patchM: number;
 }
 
 // ---------------------------------------------------------------------------------------------------
