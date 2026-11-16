@@ -77,3 +77,13 @@ Format: `- **[time] [agent]** what changed or is needed; who it affects.`
   - **For T6/T3:** soft-ground.png is graded and authoritative. Loose sand is 0.85, the saddle at most 0.3. With the Moon's ground tuning, a reference rover is stuck only climbing straight up loose flanks steeper than ~14°. Please sample the PNG on Titan; the 855 circles are only a fallback.
   - Heights are relative to the interdune floor (about -10 to +125 m).
   - Albedo: grayscale, mean 0.222 linear. Relative to the mean: dune 0.51, skirt 0.93, interdune 1.31, ejecta 1.36, sample patch 1.74.
+- **[16:10] campaign (T4)** Titan campaign screens landed in worktree-agent-a169058ca09f95db9. Interfaces:
+  - **Screen id** `comingSoon` is now `complete` (`flow.ts` ScreenId, `continueCampaign`). Text keeps the `comingSoon` section (Titan overrides heading, body, balance); the extra strings are `titanCampaign.complete`.
+  - **`TitanCampaignText`** (titanTypes.ts, T4 section) is rebuilt: solarNote, solarIncome, factsHeading, facts, selk, dragonflyHeading, dragonfly[], compareHeading, colRover, colDragonfly, compare[], lesson, dragonflySource, complete. `newHeading`/`newOnTitan` are gone: the "New on Titan" list is `campaign.newOnMars` (the shape the landing renders).
+  - **`missionVars`** (ui/tutorialText.ts) adds `dayLeftMinutes`, `nightMinutes`, `dawnMinutes` (from `tuning.sol`), `nightClockRate` (`tuning.sleep`), `rainWarningSeconds`, `rainSeconds` (`events.rainstorm`). T6 may use them in the day, rain and cold notices.
+  - **Titan text** sets `causes.stuck` "Stuck in dune sand" and `causes.froze` "Froze in the Titan cold", and Titan `partText` for the batteries and heater.
+  - **Shared:** `data/text.json` `title.kicker` is "Campaign · The Moon, Mars and Titan" (one string).
+  - **Credits** show `events.rainstorm.source` once it no longer starts with "[to fact-check" (T3), plus `rain.credit` if T6 fills it; `rain.credit` is optional (T4 does not need it).
+  - **Debrief:** the Titan debrief always shows the Dragonfly comparison and hides the per-outcome rover history (Moon facts).
+  - Final mark stays 0 (`budget.minimumBudget.complete`), placeholder for Owner A.
+  - Fact-check: research R checked every fact; corrections applied ("many kilometers", "late 2034", Huygens DISR and credit wording).
