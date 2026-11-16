@@ -22,9 +22,9 @@ describe('titan beams (titan-fx: beams)', () => {
     expect(beamStrength(-20, 0.5, t)).toBeGreaterThan(beamStrength(-20, 0, t));
   });
 
-  it('start at the two light bars on the front corners', () => {
+  it('start at the front face of the two lamp housings', () => {
     const [a, b] = lampMounts({ lengthM: 1.8, widthM: 1.3, heightM: 0.45 });
-    expect(a!.x).toBeCloseTo(0.94);
+    expect(a!.x).toBeCloseTo(0.93); // 1.8 / 2 - 0.02 + 0.05
     expect(a!.z).toBeCloseTo(-b!.z);
   });
 });

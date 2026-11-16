@@ -25,7 +25,7 @@ export function beamStrength(sunElevationDeg: number, storm: number, t: TitanBea
 export function lampMounts(body: { lengthM: number; widthM: number; heightM: number }): THREE.Vector3[] {
   const ht = body.heightM;
   const y = -ht / 2 + 0.08 + (ht * 0.78) / 2 + 0.02; // boxY + 0.02 in roverModel.ts
-  const x = body.lengthM / 2 + 0.04;
+  const x = body.lengthM / 2 - 0.02 + 0.05; // front face of the lamp housings, as floodlightOrigin() in roverModel.ts
   return [-1, 1].map((s) => new THREE.Vector3(x, y, s * body.widthM * 0.3));
 }
 
