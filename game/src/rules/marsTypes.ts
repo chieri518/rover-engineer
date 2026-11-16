@@ -322,6 +322,8 @@ export interface MarsInstrumentText {
   sunsetTooClose?: string; // {distance} {min}
   sunsetTooHigh?: string; // the Sun is in frame but not yet low
   captionSunset?: string;
+  captionCraterWall?: string; // {name}: the crater whose inner wall a Crater wall photo shows (Mars step 6b)
+  captionDustDevil?: string; // a dust devil in the photo (Mars step 6b)
 }
 
 /** Mars-only survey and minimap legend text (data/mars/text.json `survey`); absent on the Moon. */
@@ -381,7 +383,8 @@ export interface MarsTextSections {
   survey: MarsSurveyText; // M5
   hudMars: MarsHudText; // Mars step 6c
   sol: Record<'hudSol' | 'lasted', string>;
-  night: Record<'sunset' | 'dawn' | 'sleeping' | 'noLights' | 'lightsOn', string>;
+  /** dawnNoSolar: the dawn notice for a rover without solar income (an RTG), which no panel charges (Mars step 6b). */
+  night: Record<'sunset' | 'dawn' | 'sleeping' | 'noLights' | 'lightsOn', string> & { dawnNoSolar?: string };
   storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string>;
   /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
   campaign: MarsCampaignText;

@@ -114,6 +114,7 @@
   "night": {
     "sunset": "Sunset. Lights on to keep driving, or sleep until dawn.",
     "dawn": "Dawn. The solar panel is charging again.",
+    "dawnNoSolar": "Dawn. Daylight is back on the crater floor.",
     "sleeping": "Asleep until dawn. The rover wakes by itself.",
     "noLights": "No lights: the rover cannot drive at night. Power down with P to sleep until dawn.",
     "lightsOn": "Lights on. The battery is draining."
@@ -412,11 +413,13 @@
   },
   "instruments": {
     "_owner": "M5: Mars overrides of the shared instrument notices, plus the sunset notices (rules/marsTypes.ts MarsInstrumentText).",
-    "photoNoZone": "Photograph added to the album. Milestones count only at viewpoints, or with the setting Sun low in view.",
+    "photoNoZone": "Photograph added to the album. Milestones count at viewpoints, from a crater rim toward its far wall, with a dust devil or the setting Sun low in view, or close to a boulder already read.",
     "drillDone": "Rock core collected.",
     "captionDay": "{place}, sol {day}",
     "captionSurface": "Jezero crater floor",
     "captionSunset": "Sunset over Jezero crater",
+    "captionCraterWall": "Inner wall of {name}",
+    "captionDustDevil": "Dust devil crossing the crater floor",
     "sunsetHint": "The setting Sun is low in view. Press {key} to take a photograph.",
     "sunsetTooHigh": "The Sun is in view but still high. The sunset photo counts once it is within {max}° of the horizon.",
     "sunsetTooClose": "The setting Sun is in view, but the rover is only {distance} m from the lander. The sunset photo counts at least {min} m away."

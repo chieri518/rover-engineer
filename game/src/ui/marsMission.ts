@@ -49,10 +49,11 @@ export class MarsMission {
   /**
    * Words for a sunset, dawn or storm notice. A rover without lights hears it cannot drive at night. A
    * forecast the weather mast gave early credits the mast, with the storm's lead (`leadSeconds`) in sols.
+   * A rover without solar income (`solar` false: an RTG) is not told at dawn that its panel charges.
    */
-  noticeText(n: MarsNotice, hasLights: boolean, leadSeconds = 0): MarsNoticeText {
+  noticeText(n: MarsNotice, hasLights: boolean, leadSeconds = 0, solar = true): MarsNoticeText {
     if (n.kind === 'dusk') return { message: hasLights ? this.night.sunset : this.night.noLights, tone: 'warn' };
-    if (n.kind === 'dawn') return { message: this.night.dawn, tone: 'good' };
+    if (n.kind === 'dawn') return { message: solar ? this.night.dawn : this.night.dawnNoSolar ?? this.night.dawn, tone: 'good' };
     const mast = this.data.text.instrumentText.weather?.forecast;
     if (n.edge === 'forecast' && n.byMast && mast) {
       const sols = Math.max(0, leadSeconds) / this.data.tuning.sol!.secondsPerSol;
