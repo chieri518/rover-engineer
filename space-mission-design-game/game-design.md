@@ -912,12 +912,14 @@ The Moon teaches one trade-off. Mars and Titan add more intricate ones about wha
 
 | Kind | What it is | Real basis | Instruments it serves |
 | --- | --- | --- | --- |
-| Young crater | A small fresh crater (100 to 350 m across) with a ring of blocky ejecta. Rocky area 2 is one already | Fresh craters on the Jezero floor carry blocky ejecta in HiRISE images; craters dig up rock from about a tenth of their width down (Melosh 1989, *partly checked*) | Radar, X-ray, organics, laser, camera (the crater wall) |
+| Young crater | A small fresh crater (100 to 350 m across) with a blocky rim (*decided during implementation, Mars step 1:* the pipeline found blocky rims and sand-filled floors, and no crater within 1.6 km keeps a blocky ejecta blanket). East crater is one; Rocky area 2 is not fresh by that test | Fresh craters on the Jezero floor carry blocky ejecta in HiRISE images; craters dig up rock from about a tenth of their width down (Melosh 1989, *partly checked*) | Radar, X-ray, organics, laser, camera (the crater wall) |
 | Séítah edge | Séítah's north boundary at the Brac sample site, with olivine boulders on firm ground beside the ripples | Perseverance sampled Séítah's olivine cumulate at Brac (Liu et al. 2022) | X-ray, organics, drill, radar, neutron |
 | Delta foot | The nearest 400 m of the delta scarp's foot, where blocks fallen from the delta lie on firm ground; a 50 m zone (`delta-foot`), not the 150 m `delta-front` zone | The delta's layers were laid down in the lake (Mangold et al. 2021); Perseverance cored delta mudstone there in 2022 | Drill, organics, X-ray, laser (the cliff), radar, neutron |
 | Flood boulder | One 2.5 m boulder on the delta foot's lower slope, readable from its level downhill side; the only flood conglomerate | Boulders up to about 1.5 m in the delta's top layers record floods (Mangold et al. 2021). *Placed by design* | X-ray (rare rock), camera |
 | Hydrated ground | A small buried patch where the neutron meter reads highest; never drawn until found | Crater-floor rocks hold water-made salts and carbonate (Scheller et al. 2022; Tice et al. 2022). *Placed by design* | Neutron |
 | Slope targets | Boulders on 10 to 18° ground (steeper than the arm's limit, still drivable), each with level ground within a few meters | Perseverance's PIXL and SHERLOC must sit close to the rock | X-ray and organics (the arm lesson), laser |
+
+*Decided during implementation (Mars step 1; pipeline MP1 to MP4 and MP6 built in `game/tools/mars_sites.py`, provisional, for Chieri's review):* a Mars young crater is fresh when its rim is round, raised and blocky (boulder shadows in the 25 cm HiRISE mosaic). Of 22 craters 80 to 400 m across within 1.6 km, two pass: East crater (1,820, −720; 330 m across, 19 m deep) and a crater northeast at (1,640, −1,445), not in the plan (Chieri to decide whether it joins the east cluster). Rocky area 2 (345 m across, 15.5 m deep) and the other plan candidates are not fresh; (310, 70) is dropped. The knobs are at (305, −825) and (635, 445); the delta foot's nearest 400 m runs from (−425, −1,285) to (−634, −940), with the flood boulder at (−435, −1,290); Perseverance's sites in the area are Brac, Roubion (the first sample attempt, sol 164), Issole and Rochette, and Wright Brothers Field is at (1,008, −18). Sample names and sols are not fact-checked yet.
 
 | Cluster | Sites (candidate local x, z; distance from the landing) | Character |
 | --- | --- | --- |
@@ -977,6 +979,13 @@ The dust storm is built (see [How the Mars rules work](#how-the-mars-rules-work-
 - **The HUD's energy income line shows the dust factor.** The desk shows no `dustRate`: part descriptions say "more income" and "stands higher", never "less dust" (the dust lesson's spoiler guard).
 - **Dust devils** are a random event drawn as a moving dust column. Most missions show at least one within 300 m of the rover (MS8; starting value: on average one every 3 sols; real Jezero has about four whirlwinds per sol, Newman et al. 2022). A dust devil that passes within `dustDevilCleanM` (starting value 50 m) of the rover resets its dust factor to clean. The camera can photograph one (Dust devil) and a switched-on weather mast can record one passing within 150 m (Dust devil pass).
 - **The dust lesson** happens when dust has cut solar income by a set share (starting value 15%); see [Mars rover design](#mars-rover-design).
+- *Decided during implementation (Mars step 1; rules built in `rules/dust.ts`, not wired into the mission yet; provisional, for Chieri's review):*
+  - Dust settles all the time, day and night, as a straight-line share of the clean income (not compounding); the storm's ×3 follows the storm's intensity.
+  - The dust factor never falls below `tuning.dust.minFactor` (starting value 0.25): dimmed panels keep working. With one storm and no cleaning, the arrays end near 0.37 and a fixed panel near 0.58, so the floor is a safety guard.
+  - A rover's dust rate is its solar parts' `dustRate`, weighted by their income; a solar part without one counts ×1.
+  - A dust devil that passes within `dustDevilCleanM` (50 m) resets the dust factor to 1. `dustDevilCleanM` and `dustDevilSenseM` (150 m) live in `tuning.dust`.
+  - Dust devils form by day only, 8 to 24 s after sunrise, and last 20 s at 4 m/s. Each run of 3 sols gets one devil on a random sol of the run (3 per mission, a fourth one time in three). Each passes the point where the rover was when it formed, halfway through its life, at a random distance up to 300 m (uniform), so a rover that stands still is cleaned by about one devil in six, about 45% of missions.
+  - Open for Chieri: devils can form during the storm (real ones are rarer then); and a devil is visible and slow, so a player can drive to it, which makes "a route past dust devils" (Mars M14) partly a plan rather than luck.
 
 #### How the Mars rules work *(decided during implementation, M3)*
 

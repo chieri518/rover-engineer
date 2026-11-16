@@ -449,11 +449,11 @@ The user decided we build Owner B's items ourselves; each is marked "provisional
 
 | # | Item | Where it is recorded | Builds in |
 | --- | --- | --- | --- |
-| B1 | Dust on the panels: 3% per sol times each part's `dustRate`, three times faster in the storm, the HUD's dust factor, the dust lesson at 15% | game-design.md, Dust and events | Phase 5 |
-| B2 | Dust devils: about one every 3 sols (MS8), cleaning within 50 m, a moving column to photograph and record | Dust and events | Phase 5 |
+| B1 | Dust on the panels: 3% per sol times each part's `dustRate`, three times faster in the storm, the HUD's dust factor, the dust lesson at 15% | game-design.md, Dust and events | Phase 5. *Pure rules built in combined step 1c (`rules/dust.ts`, `c1f6404`), with a 0.25 floor; energy wiring in step 2* |
+| B2 | Dust devils: about one every 3 sols (MS8), cleaning within 50 m, a moving column to photograph and record | Dust and events | Phase 5. *Schedule and pass rules built in step 1c (`c1f6404`); open: devils in the storm, driving to a devil* |
 | B3 | Mars hydrogen (M3): the neutron spectrometer stays on Mars; the hidden hydrated ground near (780, 420) with a 25 m core; Séítah and the delta foot at 15%; the 10% floor; the RTG's raised floor and jitter | New Mars milestones | Sites plan Phases 2 to 4 |
 | B4 | Site placement: the three clusters, the new site kinds, East crater and the fourth lead (MS6), the flood boulder (MS3), slope targets, boulder counts at the new sites, the Mars `sites.json` overlay, rock suites by site | New sites and areas of interest; Mars rock types | Sites plan Phases 2 and 4 |
-| B5 | Mars terrain pipeline requests MP1 to MP6 to `build_terrain_mars.py` | Sites plan Phase 1 | Sites plan Phase 1 |
+| B5 | Mars terrain pipeline requests MP1 to MP6 to `build_terrain_mars.py` | Sites plan Phase 1 | Sites plan Phase 1. *MP1 to MP4 and MP6 built in step 1b (`mars_sites.py`, `e532e07`, `6949397`, `e3e0003`); MP5 waits for the hydrated ground. Open: a second fresh crater (NE); "blocky rim" wording; sample names not fact-checked* |
 | B6 | Triggers and placement of the 20 new milestones, including Sand crossing's rule and Clean run on Mars (MS7) | New Mars milestones | Sites plan Phases 2 and 3 |
 | B7 | Changes to the built milestones: Blue sunset 70 → 100; Signs of an ancient lake on the 50 m `delta-foot` zone (MS5); Night drive's heater requirement met by any heat (M17); Core sample's fact (Wildcat Ridge moves); Night drive's −83 °C source; Rocky area 2 re-measured | New Mars milestones | Sites plan Phase 2 |
 | B8 | Fact corrections in the built Dust and events table: the 2018 storm "in about a week", not "in 10 days"; no percentage for Spirit's cleaning | Dust and events | Text, Phase 5 |
