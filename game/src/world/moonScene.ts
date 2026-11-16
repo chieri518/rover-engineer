@@ -18,6 +18,7 @@ import { Sky } from './sky';
 import { MarsSky } from './marsSky';
 import { MARS_GROUND_HEX, marsLook, type MarsLook } from './marsLook';
 import { TitanRain, TitanSky } from './titanSky';
+import { MarsDust } from './marsDust';
 import { titanLook, type TitanLook } from './titanLook';
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
@@ -227,8 +228,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     ? new TitanRain({ count: titanTuning.rain.streakCount, boxM: titanTuning.rain.streakBoxM, fallMps: titanTuning.rain.fallMps, lengthM: titanTuning.rain.streakLengthM })
     : null;
   if (rain) scene.add(rain.object);
+  const dust = mars ? new MarsDust(camera) : null; // Mars: wind-blown dust in a storm
+  if (dust) scene.add(dust.object);
   let storm = 0;
   let stormTarget = 0;
+  let stormHold: number | null = null; // development hook: holds the storm haze (null: the mission's storm)
   let look: MarsLook | TitanLook | null = null;
   const applyHazeLook = (l: Pick<MarsLook, 'sun' | 'skyLight' | 'groundLight' | 'fog' | 'fogDensity'>) => {
     if (!fog) return;
@@ -458,6 +462,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     if (hazy) {
       storm += (stormTarget - storm) * Math.min(1, dt / STORM_EASE_S);
       applyMarsLook(sun);
+      if (dust && look) dust.update(paused ? 0 : dt, storm, look.fog, renderer.domElement.height);
     }
 
     chase.update(dt, pos, rover.forward(forward));
@@ -503,9 +508,10 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
         masks.updateAll(renderer, sunNow());
         applyMarsLook(sunNow());
       },
-      /** Set the storm haze at once (no easing), 0..1. */
-      setStorm(k: number) {
-        stormTarget = storm = Math.min(1, Math.max(0, k));
+      /** Set and hold the storm haze at once (no easing), 0..1; null returns it to the mission's storm. */
+      setStorm(k: number | null) {
+        stormHold = k === null ? null : Math.min(1, Math.max(0, k));
+        if (stormHold !== null) stormTarget = storm = stormHold;
         applyMarsLook(sunNow());
       },
       /** Force the floodlights on or off (null: back to the mission's choice). */
@@ -598,6 +604,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       if (p) input.clear();
     },
     setStorm(intensity: number) {
+      if (stormHold !== null) return; // development: a storm held for screenshots
       stormTarget = Math.min(1, Math.max(0, Number.isFinite(intensity) ? intensity : 0));
     },
     setFloodlights(on: boolean) {
@@ -664,6 +671,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       lightUniforms.moonAlbedo.value?.dispose();
       masks.dispose();
       sky.dispose();
+      dust?.dispose();
       renderer.dispose();
       renderer.forceContextLoss();
       renderer.domElement.remove();
