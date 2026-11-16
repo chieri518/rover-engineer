@@ -770,7 +770,46 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 | Event | What happens | Player response | Real basis |
 | --- | --- | --- | --- |
-| Methane rainstorm | One per mission, forecast 60 s ahead by the lander's weather station. For about 60 s, visibility closes in, photos do not count, and the cold rises faster. | Park near the lander or keep driving blind on a known route; sleep through it (and get colder) | Cassini saw a large equatorial cloud system in late 2010, and more than 500,000 km² of ground darkened afterward, most likely from methane rain ([research 09](research/rover-engineering/09-titan-surface-data.md)) |
+| Methane rainstorm | One per mission, forecast 60 s ahead by the lander's weather station. For about 60 s, visibility closes in, photos do not count, and the cold rises faster. | Park, or keep driving blind on a known route; sleep through it (and get colder) | Cassini saw a large equatorial cloud system in late 2010, and more than 500,000 km² of ground darkened afterward, most likely from methane rain ([research 09](research/rover-engineering/09-titan-surface-data.md)) |
+
+#### How the Titan rules work *(decided during implementation, T3)*
+
+The rules are in `game/src/rules/titan.ts`, plus the Titan parts of `mission.ts`, `sol.ts` and `storm.ts`. The numbers are in `game/data/titan/tuning.json` (`sol`, `night`, `sleep`, `titanPower`, `titanCold`) and `events.json` (`rainstorm`). All numbers are placeholders, tuned against the Moon parts.
+
+- **Day clock and Sun.** Titan reuses the Mars sol clock with a single sol of 900 s: 450 s of day, then 450 s of night.
+  - The mission starts 150 s after sunrise. Night falls at 300 s, dawn comes at 750 s, and the mission ends at 900 s.
+  - The Sun follows real local solar time at the site (5.2°N), at a steady rate.
+  - The season comes from Saturn's tilt (26.73°). Late 2034 is Ls 309, so the Sun is 20.5° south of the equator.
+  - The Sun starts about 51° up in the east-southeast, stands 64° up due south at noon, and sets in the west-southwest.
+- **Sleep fast-forwards the night.** Asleep at night, the clock runs 4× faster, and a step that crosses dawn finishes at normal speed. A slept night takes under 2 minutes, so a sleeper plays the mission in about 9.5 minutes. Drains and cooling follow game time.
+- **Power:**
+  - Solar income is the Moon panel rate × 0.001 by day and nothing at night. A fixed panel earns about 0.3 over the whole day.
+  - The electronics drain 0.2 per second whenever the rover is awake, day and night, because no sunlight covers them. *(Main agreed.)*
+  - The lights drain 0.6 per second (lights and electronics) when awake at night. A parked lights-on night costs 270.
+  - Asleep (P), the drain is 0.05 per second. A slept night costs 22.5.
+  - Without lights the rover cannot drive at night. Sleep ends at dawn by itself.
+- **The lander does not recharge.** A rover survives wherever it parks, as long as its energy and warmth last. Titan has no "return to base".
+- **Constant power.** A part may have a `constantPower` effect: steady income day and night, awake or asleep, on any world. Its waste heat is that part's own `heat` effect. No part uses it yet; Owner A's radioisotope source will.
+- **Cold, always on:**
+  - The freeze meter rises 0.36 per second everywhere.
+  - Heat cuts this by 0.1 per heat unit, which replaces the Moon's 1.5 on Titan, so the heater is about half the fight. The heater gives 2 units. The electronics give 2 while awake, and driving adds 1.5.
+  - Asleep, only the heater counts. A negative rate means the meter recovers.
+  - Without a heater, a sleeper freezes 278 s into the night and an awake parked rover freezes after about 625 s.
+  - With the heater, a sleeper reaches about 72 by dawn, or about 81 if the rain falls at night. Awake with the heater, the meter recovers.
+- **Methane rainstorm:**
+  - It starts at a random time from 240 to 600 s, is forecast 60 s ahead and lasts 60 s.
+  - It builds up and dies down over 10 s.
+  - At full strength the base freeze rate is ×1.5, so every rover cools faster, even awake with the heater.
+  - Photos do not count from start to end.
+  - Visibility comes from the renderer (`look.fog`), so the rain has no visibility number in the rules.
+- **Soft ground.** On Titan, softness comes straight from the graded `soft-ground.png` (value / 255, sampled between pixels). The terrain circles are a fallback.
+- **Battery-only check** (`titanEnergy.test.ts`, stands in for a Titan `winPaths`), with the Moon parts and over 8 rain seeds:
+  - Big battery (600), driving by day above a 30% reserve and sleeping at night, survives with about 1.2 km driven. The small battery (400) survives the same plan with about 0.9 km.
+  - The big battery reaches a goal 1.54 km out by day (1.4 km plus 10% for dunes), sleeps there and survives with about 10 left.
+  - The small battery runs out about 30 s into the night if it drives with the lights on, and before dawn if it parks with the lights on after driving by day.
+  - A careful lights-on night with the big battery survives with about 54 left: 300 m by day, 300 m at night, then parked with the lights on.
+  - Without a heater, a sleeper freezes before dawn and an awake rover freezes within the mission.
+  - Because of this check, the ejecta field moves to about 1.2 to 1.4 km and the Dune sea viewpoint to about 1 km (main asked the pipeline). At 3.4 km the field was out of reach of any Moon build on battery alone.
 
 #### Titan milestones
 

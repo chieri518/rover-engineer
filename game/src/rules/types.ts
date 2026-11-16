@@ -17,7 +17,8 @@ export interface PartEffects {
   energyIncome?: number; // power: energy per second in full sun
   batteryCapacity?: number; // battery: energy units
   lightRange?: number; // lights: meters
-  heat?: number; // heater: heat units, slows freezing
+  heat?: number; // heater (or a power source's waste heat): heat units, slows freezing
+  constantPower?: number; // power: energy per second day and night, independent of the Sun (e.g. a radioisotope source; no part uses it yet)
   instrument?: Instrument; // instrument slot
 }
 
