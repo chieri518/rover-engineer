@@ -6,7 +6,7 @@ Last updated November 15, 2026. The game rules themselves stay in [game-design.m
 
 **How to read this doc.** Same convention as game-design.md: everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). The first draft's open questions were all decided on November 15 (see [Decisions and later work](#11-decisions-and-later-work)). Game numbers in this doc are **indicative**: they show the intended scale against today's parts and are settled in a balance pass, then stored in `game/data/*.json`.
 
-**Scope.** Game design only. The technical implementation plan comes after this design is settled. New Moon milestones and map changes were out of scope for the first version; they are now designed in the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md) and recorded in game-design.md (decided November 15, not built yet). Milestone ideas in the catalog below for other worlds are listed to show what each instrument is for, not as a build list.
+**Scope.** Game design only. The technical implementation plan comes after this design is settled. New Moon milestones and map changes were out of scope for the first version; they are now designed in the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md) and recorded in game-design.md (decided November 15; built in Phases 2 to 6). Milestone ideas in the catalog below for other worlds are listed to show what each instrument is for, not as a build list.
 
 ## Contents
 
@@ -219,7 +219,7 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 
 - **Real basis:** neutron spectrometers have mapped hydrogen at the lunar poles from orbit: Lunar Prospector found extra hydrogen at both poles (Feldman et al. 1998, Science 281:1496, doi:10.1126/science.281.5382.1496), and LRO's LEND maps the same signal. VIPER's Neutron Spectrometer System is designed to prospect for hydrogen while the rover drives, sensing about 1 m into the ground ([NASA VIPER](https://science.nasa.gov/mission/viper/rover-and-instruments)). VIPER has not flown: NASA cancelled it in 2024 and now plans to deliver it on a Blue Origin lander (NASA release, September 2025). *(Decided November 15, M15.)* Game text says VIPER "is designed to", never that it found anything.
 - **In the game:** sense while driving. A live hydrogen meter rises as the rover nears buried hydrogen. It does not need the rover to stop.
-- **Could earn** *(decided November 15, not built yet)*: Cold trap survey (up to 3 stages), Hidden hydrogen, Ice deposit located (see [7](#7-the-moon-payload)); and it helps find the ice for the drill.
+- **Could earn** *(decided November 15; built in Phases 3 to 5)*: Cold trap survey (up to 3 stages), Hidden hydrogen, Ice deposit located (see [7](#7-the-moon-payload)); and it helps find the ice for the drill.
 - **Indicative numbers:** about 80 cost, 4 kg, size 2, standby energy while switched on.
 - **Levels:** Neutron spectrometer, passive (Moon) → Active neutron spectrometer (Mars; Curiosity's DAN fires its own neutron pulses and reads deeper while stopped) → Gamma-ray and neutron spectrometer (Titan; Dragonfly's DraGNS also reads elements).
 - **World:** Moon.
@@ -244,14 +244,14 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 
 - **Real basis:** Pragyan's Alpha Particle X-ray Spectrometer, lowered to the ground by a small mechanism, measured the elements in lunar soil ([ISRO](https://www.isro.gov.in/Chandrayaan3_Details.html)); Lunokhod and the MER rovers carried similar X-ray instruments.
 - **In the game:** touch. Park next to a rock and hold still for a few seconds; the HUD shows the rock type and its main elements.
-- **Could earn:** comparing different rocks (rocks in a boulder field are thrown out from different depths by the impact); finding an unusual rock. *Decided November 15, not built yet:* Rock collection (up to 3 stages), Rare rock, and Documented sample with the camera.
+- **Could earn:** comparing different rocks (rocks in a boulder field are thrown out from different depths by the impact); finding an unusual rock. *Decided November 15; built in Phases 3 to 5:* Rock collection (up to 3 stages), Rare rock, and Documented sample with the camera.
 - **Indicative numbers:** about 60 cost, 2 kg, size 1, a few seconds held still and a small energy cost per reading.
 - **Needs:** on the Moon a built-in deploy mechanism, as on Pragyan; from Mars, contact instruments need the robotic arm.
 - **World:** Moon.
 
 ##### Rock types by site
 
-*(Decided November 15, 2026, from the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md#5-rock-types) (M5); not built yet.)* This replaces the placeholder list built in Phase 3, which read the same mix at every rocky area, so a reading told the player nothing about place. Now each site has its own **suite** of two rock types, and one boulder holds a rare rock found nowhere else. Weights are starting values for the balance model. Built, the suites go in `tuning.json` → `instruments.xray.suites` (keyed by site kind or site), names, main elements and notes in `text.json` → `rocks`, and the site of each boulder in `game/data/sites.json`.
+*(Decided November 15, 2026, from the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md#5-rock-types) (M5); built in Phases 3 and 4.)* This replaces the placeholder list built in Phase 3, which read the same mix at every rocky area, so a reading told the player nothing about place. Now each site has its own **suite** of two rock types, and one boulder holds a rare rock found nowhere else. Weights are starting values for the balance model. Built, the suites go in `tuning.json` → `instruments.xray.suites` (keyed by site kind or site), names, main elements and notes in `text.json` → `rocks`, and the site of each boulder in `game/data/sites.json`.
 
 | Rock type | Readout (main elements) | Where it is read | What it tells scientists | Support |
 | --- | --- | --- | --- | --- |
@@ -322,7 +322,7 @@ The two milestones the placeholder section listed as possible, "read three diffe
 
 - **Real basis:** Apollo crews left seismometers that recorded moonquakes for years; Chandrayaan-3's ILSA was the first MEMS seismometer on the Moon ([ISRO](https://www.isro.gov.in/Chandrayaan3_Details.html)); InSight's SEIS recorded marsquakes.
 - **In the game:** deploy and leave. Stop, set the station down, drive on. If it is deployed before the mission's moonquake, it records the quake.
-- **Could earn:** recording a moonquake (the event every Moon mission already has). *Decided November 15, not built yet:* Moonquake record, Clean seismogram, and Science station with the reflector.
+- **Could earn:** recording a moonquake (the event every Moon mission already has). *Decided November 15; built in Phases 3 to 5:* Moonquake record, Clean seismogram, and Science station with the reflector.
 - **Indicative numbers:** about 70 cost, 4 kg, size 2. Deploying takes a few seconds held still. The station's mass leaves the rover, so the rover is lighter and a little faster afterwards.
 - **Levels:** Seismometer station (Moon) → Broadband seismometer (Mars, InSight-class; reads distant quakes and the planet's interior).
 - **World:** Moon.
@@ -331,7 +331,7 @@ The two milestones the placeholder section listed as possible, "read three diffe
 
 - **Real basis:** passive corner-cube arrays that bounce lasers from Earth to measure the Moon's distance. Apollo 11, 14 and 15 left arrays, and Lunokhod 1 and 2 each carried a French-built one; Lunokhod 1's was found again by LRO in 2010 and is still ranged.
 - **In the game:** deploy and leave. It needs no power, but it must be set down where Earth is in view, because Earth's lasers have to reach it. The HUD shows whether Earth is in view.
-- **Could earn:** placing a reflector Earth can range. *Decided November 15, not built yet:* Laser ranging site, and Science station with the seismometer.
+- **Could earn:** placing a reflector Earth can range. *Decided November 15; built in Phases 3 to 5:* Laser ranging site, and Science station with the seismometer.
 - **Indicative numbers:** about 30 cost, 3 kg (Lunokhod 1's array was about 3.7 kg, *unverified*), size 1, no energy. Its mass leaves the rover when deployed.
 - **World:** Moon.
 
@@ -391,7 +391,7 @@ The two milestones the placeholder section listed as possible, "read three diffe
 
 ## 7. The Moon payload
 
-**Decided (November 15):** six instruments, two of them today's. The list can be tuned later. **Built in Phase 3** with the indicative numbers below; the four new ones record into the debrief's instrument log (mechanics in [game-design.md](game-design.md#moon-parts)). **Milestones now exist** *(decided November 15, 2026, from the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md); not built yet)*: every Moon instrument earns at least one, two of them as combos, with new sites near the lander to earn them (rules in [game-design.md](game-design.md#moon-milestones)). Until they are built, the four new instruments still earn nothing in the game.
+**Decided (November 15):** six instruments, two of them today's. The list can be tuned later. **Built in Phase 3** with the indicative numbers below; the four new ones record into the debrief's instrument log (mechanics in [game-design.md](game-design.md#moon-parts)). **Milestones now exist** *(decided November 15, 2026, from the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md); built in Phases 2 to 6)*: every Moon instrument earns at least one, two of them as combos, with new sites near the lander to earn them (rules in [game-design.md](game-design.md#moon-milestones)).
 
 | Instrument | Verb | Uses what the game already has | Indicative cost / mass / size | Energy |
 | --- | --- | --- | --- | --- |
@@ -402,7 +402,7 @@ The two milestones the placeholder section listed as possible, "read three diffe
 | Seismometer station | Deploy and leave | The moonquake event | 70 / 4 kg / 2 | None after deploying |
 | Laser retroreflector | Deploy and leave | Earth visibility | 30 / 3 kg / 1 | None |
 
-**What each instrument earns** *(decided November 15, not built yet; names as on the desk cards, M14)*:
+**What each instrument earns** *(decided November 15; built in Phases 3 to 5; names as on the desk cards, M14)*:
 
 | Instrument | Before | Decided |
 | --- | --- | --- |
@@ -600,7 +600,7 @@ Every open question from the first draft was settled on November 15, 2026:
 | 3 | Instrument energy costs | Standby for the neutron spectrometer, per use for the drill and spectrometer, none for the camera and stations; values set in the balance patch |
 | 4 | Does the drill keep a weak hydrogen clue? | No. The hydrogen meter belongs only to the neutron spectrometer |
 | 5 | The Moon payload | The six in [7](#7-the-moon-payload); can be tuned later |
-| 6 | Milestones for the new Moon instruments | Not in the first scope. *Updated November 15, 2026:* decided in the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md) (open questions M1 to M15) and recorded in game-design.md ([Moon milestones](game-design.md#moon-milestones)): 12 new milestones covering every Moon instrument, two of them combos, new sites near the lander, and rock suites by site ([Rock types by site](#rock-types-by-site)). Not built yet |
+| 6 | Milestones for the new Moon instruments | Not in the first scope. *Updated November 15, 2026:* decided in the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md) (open questions M1 to M15) and recorded in game-design.md ([Moon milestones](game-design.md#moon-milestones)): 12 new milestones covering every Moon instrument, two of them combos, new sites near the lander, and rock suites by site ([Rock types by site](#rock-types-by-site)). Built in Phases 2 to 6 |
 | 7 | Mars and Titan instruments and support hardware | As in [8](#8-instruments-by-world) and [9](#9-other-components-the-bus), a first version to revisit after playtesting; feeds game-design.md open questions 2 and 3 |
 
 **Next:** the [implementation plan](rover-engineering-implementation-plan.md) for the payload bay, the four new Moon instruments, the relationships, the notebook, and the pre-launch review.
