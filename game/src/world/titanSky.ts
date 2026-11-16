@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import type { SkyDirection } from '../rules/sun';
 import type { TitanLook } from './titanLook';
 import { glowTexture, SKY_RADIUS } from './sky';
-import { TITAN_CLOUD_PARS, TITAN_CLOUD_SKY, titanCloudUniforms } from './titanClouds';
+import { TITAN_CLOUD_PARS, TITAN_CLOUD_SKY, TITAN_DUSK_SKY, titanCloudUniforms } from './titanClouds';
 
 const VERTEX = /* glsl */ `
 varying vec3 vDir;
@@ -35,6 +35,8 @@ void main() {
   // A broad, soft brightening around the Sun, spread along the horizon when the Sun is low.
   float spread = 1.0 + 1.2 * ( 1.0 - smoothstep( 0.0, 0.4, abs( d.y - sunDir.y ) ) );
   c += glow * ( exp( -a / ( glowWidth * spread ) ) + 0.25 * exp( -a / ( glowWidth * 3.0 ) ) );
+  // A deeper dusk: darker overhead, a brighter glow around the setting Sun (titanClouds.ts).
+  ${TITAN_DUSK_SKY}
   // Methane clouds (titanClouds.ts): a faint streaky layer, drawn over the haze and the Sun's glow.
   ${TITAN_CLOUD_SKY}
   gl_FragColor = vec4( max( c, 0.0 ), 1.0 );

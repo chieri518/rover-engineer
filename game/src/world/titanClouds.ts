@@ -33,6 +33,8 @@ export const titanCloudUniforms = {
   tclShadow: { value: 0 },
   tclSunXZ: { value: new THREE.Vector2() },
   tclShadowSoft: { value: 0.3 },
+  /** Richer dusk sky: x = darkening toward the zenith, y = extra glow around the low Sun, z = dusk strength (0..1). */
+  tclDusk: { value: new THREE.Vector3() },
 };
 
 /** GLSL: uniforms and the cloud field. Prefix tcl; needs nothing else from the shader. */
@@ -49,6 +51,7 @@ uniform float tclForward;
 uniform float tclShadow;
 uniform vec2 tclSunXZ;
 uniform float tclShadowSoft;
+uniform vec3 tclDusk;
 float tclHash( vec2 p ) {
   vec3 p3 = fract( vec3( mod( p.xyx, 289.0 ) ) * 0.1031 );
   p3 += dot( p3, p3.yzx + 33.33 );
@@ -90,6 +93,14 @@ float tclCloudShadow( vec2 pw ) {
 }
 `;
 
+/** GLSL for the sky dome fragment, before the clouds: a deeper dusk gradient and a brighter glow around the setting Sun. */
+export const TITAN_DUSK_SKY = /* glsl */ `
+if ( tclDusk.z > 0.001 ) {
+  c *= 1.0 - tclDusk.x * tclDusk.z * pow( max( d.y, 0.0 ), 0.7 );
+  c += glow * tclDusk.y * tclDusk.z * ( exp( -a / ( glowWidth * 0.5 ) ) + 0.3 * exp( -a / ( glowWidth * 1.5 ) ) * ( 1.0 - smoothstep( 0.0, 0.5, abs( d.y - sunDir.y ) ) ) );
+}
+`;
+
 /** GLSL for the sky dome fragment: `d` (unit view direction), `sunDir` and `c` (sky color, linear) in scope. */
 export const TITAN_CLOUD_SKY = /* glsl */ `
 if ( tclOpacity > 0.001 && d.y > 0.01 ) {
@@ -118,6 +129,8 @@ export interface TitanCloudLook {
   shade: RGB;
   forward: number;
   shadow: number;
+  /** Dusk sky strength, 0..1 (peaks with the Sun near the horizon, none in rain). */
+  dusk: number;
 }
 
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -146,6 +159,7 @@ export function titanCloudLook(elevationDeg: number, rainIntensity: number, look
     shade,
     forward: c.forwardGlow * smoothstep(-2, 2, elevationDeg) * (1 - rain),
     shadow: c.shadow.strength * smoothstep(c.shadow.lowDeg, c.shadow.highDeg, elevationDeg) * (1 - rain),
+    dusk: smoothstep(c.duskSky.belowDeg, 0, elevationDeg) * (1 - smoothstep(c.duskSky.fullDeg, c.duskSky.offDeg, elevationDeg)) * (1 - rain),
   };
 }
 
@@ -178,6 +192,7 @@ export function updateTitanClouds(dt: number, sun: SkyDirection, rain: number, l
   u.tclForward.value = l.forward;
   u.tclShadow.value = l.shadow * dev.shadow;
   u.tclShadowSoft.value = c.shadow.softness;
+  u.tclDusk.value.set(c.duskSky.darkenUp, c.duskSky.glowBoost, l.dusk);
   const sy = Math.max(sun.y, Math.sin((c.shadow.lowDeg * Math.PI) / 180), 0.05);
   u.tclSunXZ.value.set(sun.x / sy, sun.z / sy);
 }

@@ -211,7 +211,8 @@
       "duskTint": "#ffb070",
       "forwardGlow": 0.5,
       "rain": { "coverageDrop": 0.3, "opacityGain": 0.8, "darken": 0.6 },
-      "shadow": { "strength": 0.25, "softness": 0.03, "lowDeg": 4, "highDeg": 18 }
+      "shadow": { "strength": 0.25, "softness": 0.03, "lowDeg": 4, "highDeg": 18 },
+      "duskSky": { "darkenUp": 0.45, "glowBoost": 1.2, "belowDeg": -6, "fullDeg": 4, "offDeg": 14 }
     }
   },
   "survey": {

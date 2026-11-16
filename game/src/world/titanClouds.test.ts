@@ -43,4 +43,11 @@ describe('titan clouds (demo visuals)', () => {
     expect(clouds(-5).shadow).toBe(0);
     expect(clouds(40, 1).shadow).toBe(0);
   });
+
+  it('deepen the dusk sky only around sunset and not in the rain', () => {
+    expect(clouds(40).dusk).toBe(0);
+    expect(clouds(1).dusk).toBeGreaterThan(0.5);
+    expect(clouds(-20).dusk).toBe(0);
+    expect(clouds(1, 1).dusk).toBe(0);
+  });
 });

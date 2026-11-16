@@ -303,6 +303,9 @@ export interface TitanCloudTuning {
   rain: { coverageDrop: number; opacityGain: number; darken: number };
   /** Ground shadows: peak darkening (0..1), extra edge softness, Sun elevations over which they fade in (deg). */
   shadow: { strength: number; softness: number; lowDeg: number; highDeg: number };
+  /** Richer dusk sky (titanSky.ts): darkening toward the zenith (0..1) and extra Sun glow (× look glow), fading in from
+   *  belowDeg (Sun below the horizon) to 0°, full up to fullDeg, gone by offDeg; none in rain. */
+  duskSky: { darkenUp: number; glowBoost: number; belowDeg: number; fullDeg: number; offDeg: number };
 }
 // end titan-fx: clouds --------------------------------------------------------------------------------
 
