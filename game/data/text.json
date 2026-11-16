@@ -474,6 +474,12 @@
     "open": "Settings",
     "history": "Mission history",
     "historyHelp": "Show a one-sentence real fact on each milestone notice, and a comparison with a real rover in the debrief.",
+    "music": "Music",
+    "effects": "Sound effects",
+    "soundHelp": "Music and sound are made live in your browser. Press M at any time to mute or unmute.",
+    "muted": "Sound muted (M)",
+    "mute": "Mute sound (M)",
+    "unmute": "Unmute sound (M)",
     "back": "Back"
   },
   "tutorial": {

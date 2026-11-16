@@ -18,6 +18,23 @@ export interface HudMeters {
   panelText?: string; // replaces the sunlight line's words (Titan: almost no solar power)
 }
 
+/** The sound toggle's icon: a speaker with waves, or crossed out when muted. */
+function speakerIcon(muted: boolean): SVGSVGElement {
+  const ns = 'http://www.w3.org/2000/svg';
+  const svg = document.createElementNS(ns, 'svg');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  const path = (d: string) => {
+    const p = document.createElementNS(ns, 'path');
+    p.setAttribute('d', d);
+    svg.append(p);
+  };
+  path('M4 9h4l5-4v14l-5-4H4z');
+  if (muted) path('M16 9l6 6M22 9l-6 6');
+  else path('M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12');
+  return svg;
+}
+
 const NOTICE_SECONDS = 4;
 const LONG_NOTICE_SECONDS = 9; // a relationship's notice: longer text, read once per mission
 const MILESTONE_SECONDS = 6;
@@ -60,6 +77,7 @@ export class Hud {
   private readonly solText = el('span', {});
   private readonly nightText = el('span', { class: 'night-state' });
   private readonly power: HTMLButtonElement;
+  private readonly mute: HTMLButtonElement;
   private readonly warnings = el('ul', { class: 'hud-warnings', 'aria-live': 'polite' });
   private readonly notices = el('div', { class: 'hud-notices', 'aria-live': 'assertive' });
   // Relationship notices (first-time lessons) have their own slot, apart from the 3-notice limit, and
@@ -87,6 +105,7 @@ export class Hud {
     private readonly text: TextFile,
     onTogglePower: () => void,
     extra: HTMLElement,
+    onToggleMute: () => void = () => {},
   ) {
     const h = text.hud;
     this.energy = meter(h.energy, 'energy');
@@ -95,6 +114,8 @@ export class Hud {
     this.hydrogen = meter(text.instruments.hydrogenMeter, 'hydrogen');
     this.hydrogen.root.hidden = true;
     this.power = el('button', { class: 'power-toggle', type: 'button', onclick: () => onTogglePower() }, h.powerDown);
+    this.mute = el('button', { class: 'sound-toggle', type: 'button', id: 'sound-toggle', onclick: () => onToggleMute() });
+    this.setMuted(false);
     this.flare.append(this.flareText, el('div', { class: 'flare-bar' }, this.flareBar));
     this.sol.append(this.solText, this.nightText);
     this.root = el('div', { class: 'hud-layer' },
@@ -107,7 +128,7 @@ export class Hud {
         this.sol,
         this.earthLight,
         this.trace,
-        this.power,
+        el('div', { class: 'hud-power-row' }, this.power, this.mute),
         extra,
       ),
       el('div', { class: 'hud-center' }, this.banner, this.flare, this.warnings, this.lessons, this.notices, this.hint),
@@ -125,6 +146,16 @@ export class Hud {
     this.sun.classList.toggle('shadow', m.panelText !== undefined || m.sunlight <= 0.5);
     this.power.textContent = m.poweredDown ? h.powerUp : h.powerDown;
     this.power.classList.toggle('active', m.poweredDown);
+  }
+
+  /** The sound toggle: shows whether the sound is muted (the button and the M key both toggle it). */
+  setMuted(muted: boolean): void {
+    const label = muted ? this.text.settings.unmute : this.text.settings.mute;
+    this.mute.replaceChildren(speakerIcon(muted));
+    this.mute.title = label;
+    this.mute.setAttribute('aria-label', label);
+    this.mute.setAttribute('aria-pressed', String(muted));
+    this.mute.classList.toggle('active', muted);
   }
 
   /** Mars: the sol line and the night state under it (null hides each). */

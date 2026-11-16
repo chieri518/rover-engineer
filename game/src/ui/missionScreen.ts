@@ -43,6 +43,7 @@ import { openNotebook, type NotebookHandle } from './notebook';
 import { tutorialPages } from './tutorialText';
 import { MarsMission } from './marsMission';
 import { TitanMission } from './titanMission';
+import { MissionSound } from '../audio/missionSound';
 
 const DEG = 180 / Math.PI;
 const SUN_SAMPLE_STEPS = 12; // recompute sunlight at the rover every 12 physics steps (0.2 s)
@@ -133,10 +134,13 @@ export const missionScreen: Screen = (game, root) => {
   let nearBoundary = false;
   let maxImpact = 0; // largest velocity jolt so far (development readout)
   let limits: MoonDriveLimits = { allowForward: true, allowReverse: true, speedFactor: 1 };
+  let paused = false; // the tutorial or the notebook is open
+  const audio = new MissionSound(game.world, roverParams(parts, tuning).topSpeed, tuning.damage.impactMinMps);
 
   const togglePower = () => {
     if (ended) return;
     state = { ...state, poweredDown: !state.poweredDown };
+    audio.power(state.poweredDown);
   };
   const ti = text.instruments;
   const itx = text.instrumentText;
@@ -175,8 +179,10 @@ export const missionScreen: Screen = (game, root) => {
   };
   /** The tutorial and the notebook pause the scene and the HUD's lesson timers together. */
   const pauseMission = (on: boolean) => {
+    paused = on;
     scene?.setPaused(on);
     hud.setPaused(on);
+    if (on) audio.silence();
   };
   // Drive tutorial: opens by itself on the first mission (the scene loads meanwhile); the Help button
   // reopens it. The mission is paused while it is open.
@@ -243,9 +249,12 @@ export const missionScreen: Screen = (game, root) => {
     el('p', { class: 'muted' }, controls),
     status,
     el('div', { class: 'hud-help' }, help, notebookButton),
-  ));
+  ), () => game.setSettings({ muted: !game.settings.muted }));
+  hud.setMuted(game.settings.muted);
+  const stopListening = game.listen({ settings: (st) => hud.setMuted(st.muted) }); // the M key mutes too
 
   const announce = (u: MilestoneUpdate) => {
+    if (u.reached.length) audio.milestone();
     for (const r of u.reached) hud.milestone(milestoneCard(r, data, game.settings.missionHistory, recordsHeld));
     for (const m of u.missed) hud.notify(missedText(m, text));
     if (u.partialCrossings.length) hud.notify(fill(ti.partialCrossingHint, { angle: mt.boulderCrossMinAngleDeg }));
@@ -328,9 +337,11 @@ export const missionScreen: Screen = (game, root) => {
     if (!r.ok) {
       const msg = refusalText(inst, r.reason, r.cost);
       if (msg) hud.notify(msg);
+      if (msg) audio.refused();
       return false;
     }
     state = r.state;
+    audio.useStart(inst, r.holdSeconds);
     // The first time in a mission, the relationship's notice explains it; later uses get the short line.
     const lines = shortUseLines(r, relate(onUseStart(r)));
     const said = { name: partOf(inst).name, seconds: Math.round(r.holdSeconds) };
@@ -441,6 +452,7 @@ export const missionScreen: Screen = (game, root) => {
     const { quality, closestM } = o.record;
     log.quake = quality;
     hud.showQuakeTrace(quality);
+    audio.quakeRecorded(quality === 'noisy');
     // A noisy record is the seismometer's lesson: the first time, its notice replaces the short line.
     const fresh = relate(onSeismometer(o), { closest: Math.round(closestM) });
     if (quality === 'clean') hud.notify(ti.quakeClean, 'good');
@@ -454,9 +466,11 @@ export const missionScreen: Screen = (game, root) => {
     if (!r.ok) {
       const msg = refusalText(inst, r.reason, 0);
       if (msg) hud.notify(msg);
+      if (msg) audio.refused();
       return;
     }
     state = r.state;
+    audio.switched(on);
     const name = partOf(inst).name;
     hud.notify(on ? fill(ti.standbyOn, { name, standby: costOf(inst)?.standbyEnergy ?? 0 }) : fill(ti.standbyOff, { name }), 'good');
     if (on) showFact(inst);
@@ -468,6 +482,7 @@ export const missionScreen: Screen = (game, root) => {
     if (state.deployed.includes(inst)) {
       const msg = refusalText(inst, 'deployed', 0);
       if (msg) hud.notify(msg);
+      audio.refused();
     } else if (isSwitchInstrument(inst, setup)) toggleStandby(inst);
     else if (inst === 'camera') takePhoto();
     else tryUse(inst);
@@ -484,6 +499,7 @@ export const missionScreen: Screen = (game, root) => {
 
   const finish = (end: MissionEnd) => {
     ended = end;
+    audio.end(end.survived);
     for (const button of instrumentButtons.values()) button.disabled = true;
     scene?.stopClock();
     if (tracker) announce(tracker.finish(end.survived, state.damageBy));
@@ -550,6 +566,9 @@ export const missionScreen: Screen = (game, root) => {
     lastSample = sample;
     lastSlip = step.slip;
     maxImpact = Math.max(maxImpact, s.deltaV);
+    audio.notices(step.notices);
+    if (mars || titan) audio.dayNotices(step.marsNotices);
+    audio.drive({ speedMps: Math.abs(s.speed), throttle: throttle, wheelsOnGround: s.wheelsOnGround, awake: !ended && !paused && !state.poweredDown, deltaV: s.deltaV });
     for (const n of step.notices) {
       if (n.kind === 'quake') scene?.shake(data.events.quake?.shakeSeconds ?? 0);
       if (n.kind === 'standby-off') {
@@ -681,11 +700,13 @@ export const missionScreen: Screen = (game, root) => {
     if (mars && marsNow) {
       hud.setSol(mars.solLine(marsNow), ended ? null : mars.nightLine(marsNow, state.poweredDown));
       scene?.setStorm(marsNow.stormIntensity);
+      audio.setWeather(ended ? 0 : marsNow.stormIntensity, 0);
     }
     if (titan && titanNow) {
       hud.setSol(titan.dayLine(titanNow), ended ? null : titan.nightLine(titanNow, state.poweredDown));
       hud.setBanner(ended ? null : titan.sleepBanner(titanNow, state.poweredDown));
       scene?.setStorm(titanNow.stormIntensity);
+      audio.setWeather(0, ended ? 0 : titanNow.stormIntensity); // the methane rain
     }
     // On Mars and Titan the lights are on whenever the rover is awake at night (the rules drain the battery for it).
     scene?.setFloodlights(!ended && (dayNow() ? dayNow()!.lightsOn : !state.poweredDown && sunlight < 0.5));
@@ -722,6 +743,7 @@ export const missionScreen: Screen = (game, root) => {
     const noLights = mars && marsNow ? mars.noLightsWarning(marsNow, state.poweredDown, setup.hasLights)
       : titan && titanNow ? titan.noLightsWarning(titanNow, state.poweredDown, setup.hasLights) : null;
     hud.setWarnings([...(nearBoundary ? [text.mission.boundary] : []), ...(noLights ? [noLights] : []), ...ids.map(warningText)]);
+    audio.warnings([...(nearBoundary ? ['boundary'] : []), ...(noLights ? ['noLights'] : []), ...ids]);
     if (carries('camera') && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) {
       if (earthInSky) earthInView = scene.inView(earthDir, mt.photoFrameMargin);
       if (mars) sunInView = scene.inView(sunNow(), mt.photoFrameMargin);
@@ -732,6 +754,7 @@ export const missionScreen: Screen = (game, root) => {
       minimap?.reveal(p.x, p.z, tuning.explore.revealRadiusM);
       for (const site of discover(sites, p, tuning.explore.revealRadiusM)) {
         minimap?.includeSite(site);
+        audio.discovered();
         hud.notify(fill(text.survey.found, { name: text.survey.siteNames?.[site.name] ?? site.name }), 'good');
       }
     }
@@ -892,6 +915,8 @@ export const missionScreen: Screen = (game, root) => {
     tutorial?.dispose();
     notebook?.dispose();
     window.removeEventListener('keydown', onKey);
+    audio.dispose();
+    stopListening();
     scene?.dispose();
     if (import.meta.env.DEV) delete (window as unknown as { __mission?: unknown }).__mission;
   };

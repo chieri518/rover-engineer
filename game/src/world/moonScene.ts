@@ -80,6 +80,7 @@ export interface MoonStepSample {
   upY: number; // y of the rover's up vector: 1 upright, below 0 upside down
   deltaV: number; // sudden change in velocity this step, beyond gravity (m/s): impacts
   input: DriveInput; // what the driver asked for
+  wheelsOnGround: number; // 0..4 (the sound's wheel crunch)
 }
 
 /** What the mission systems allow for the next physics step. */
@@ -458,6 +459,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
           upY: rover.up(up).y,
           deltaV,
           input: raw,
+          wheelsOnGround: rover.wheelsInContact,
         });
         if (next) limits = next;
       }

@@ -92,6 +92,12 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .sol-state[hidden], .sol-state [hidden] { display: none; }
 .power-toggle { font-size: 0.85rem; padding: 6px 10px; }
 .power-toggle.active { background: #12304a; border-color: var(--info); color: #dff4ff; }
+.hud-power-row { display: flex; gap: 6px; align-items: stretch; }
+.hud-power-row .power-toggle { flex: 1; }
+.sound-toggle { padding: 4px 8px; display: inline-flex; align-items: center; justify-content: center; }
+.sound-toggle svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sound-toggle svg path:first-child { fill: currentColor; }
+.sound-toggle.active { border-color: var(--warn); color: var(--warn); }
 .hud-instruments { display: flex; flex-wrap: wrap; gap: 6px; }
 .instrument-button { font-size: 0.85rem; padding: 5px 10px; display: inline-flex; align-items: center; gap: 6px; }
 .instrument-button.active { background: #12304a; border-color: var(--info); color: #dff4ff; }
@@ -327,6 +333,9 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .setting { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; margin: 12px 0; }
 .setting input { margin-top: 4px; width: 18px; height: 18px; }
 .setting .muted { grid-column: 2; font-size: 0.85rem; margin: 0; }
+.setting.volume { grid-template-columns: 9rem 1fr 3.5rem; align-items: center; }
+.setting.volume input { width: 100%; height: auto; margin: 0; accent-color: var(--accent); }
+.volume-value { font-family: var(--font-mono); text-align: right; color: var(--muted); }
 
 /* Tutorial dialog and Help buttons */
 .help-button { font-size: 0.85rem; padding: 4px 12px; }
