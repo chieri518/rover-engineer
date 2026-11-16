@@ -52,9 +52,9 @@ describe('Mars parts (data)', () => {
     expect(part('instrument-organics').effects.needs).toEqual(['arm']);
   });
 
-  it('the X-ray spectrometer needs the arm on Mars only (Mars M6)', () => {
-    expect(part('instrument-xray').effects.needs).toEqual(['arm']);
-    expect(moon.parts.parts.find((p) => p.id === 'instrument-xray')!.effects.needs).toBeUndefined();
+  it('the X-ray spectrometer needs no arm on any world (November 16; Mars M6 replaced): it is the same part as on the Moon', () => {
+    expect(part('instrument-xray').effects.needs).toBeUndefined();
+    expect(part('instrument-xray').effects).toEqual(moon.parts.parts.find((p) => p.id === 'instrument-xray')!.effects);
   });
 
   it('keeps the spoiler guard on the desk: no dust, neutrons, noise or slopes in the new parts\' words', () => {
@@ -105,18 +105,31 @@ describe('Support hardware in the build', () => {
   });
 
   it('refuses an instrument whose support part is missing, with the part it needs', () => {
-    const xray = { ...scout, payload: ['instrument-xray'] };
-    expect(payloadProblems(xray, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-xray', support: 'arm' }]);
-    expect(payloadProblems(withArm(xray), mars.parts)).toEqual([]);
+    const organics = { ...scout, payload: ['instrument-organics'] };
+    expect(payloadProblems(organics, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-organics', support: 'arm' }]);
+    expect(payloadProblems(withArm(organics), mars.parts)).toEqual([]);
     const laser = { ...scout, payload: ['instrument-laser'] };
     expect(payloadProblems(laser, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-laser', support: 'mast' }]);
     expect(payloadProblems(withMast(laser), mars.parts)).toEqual([]);
     // Still refused while the arm slot is empty, and with the arm in the wrong build: the quote cannot launch.
     expect(payloadProblems({ payload: ['instrument-organics'] }, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-organics', support: 'arm' }]);
-    const q = quoteBuild(xray, mars, 1000);
+    const q = quoteBuild(organics, mars, 1000);
     expect(q.canLaunch).toBe(false);
     expect(q.tier).not.toBeNull();
-    // On the Moon the X-ray needs nothing.
+  });
+
+  it('the X-ray fits and launches without the arm on Mars, as on the Moon; a build or save with the X-ray and the arm stays valid', () => {
+    const xray = { ...scout, payload: ['instrument-xray'] };
+    expect(payloadProblems(xray, mars.parts)).toEqual([]);
+    expect(quoteBuild(xray, mars, 1000).canLaunch).toBe(true);
+    expect(unmetNeeds(part('instrument-xray'), scout, mars.parts)).toEqual([]);
+    // The old Mars X-ray build (arm fitted because it was needed) is still complete and launches.
+    expect(payloadProblems(withArm(xray), mars.parts)).toEqual([]);
+    expect(quoteBuild(withArm(xray), mars, 1000).canLaunch).toBe(true);
+    // A save from before the change, with the arm in the old support slot, still loads and validates.
+    const old = { ...xray, support: { arm: 'arm-robotic', mast: 'mast-none' } };
+    expect(payloadProblems(old, mars.parts)).toEqual([]);
+    expect(quoteBuild(old, mars, 1000).canLaunch).toBe(true);
     const { support: _s, ...moonXray } = xray;
     expect(payloadProblems(moonXray, moon.parts)).toEqual([]);
   });
@@ -299,7 +312,6 @@ describe('Support and power validation', () => {
     expect(validateGameData({ ...mars, parts: { ...mars.parts, parts } })).toEqual([
       'part heater-rhu has arm but is not in the arm slot',
       'part instrument-camera needs unknown support slot wings',
-      'part instrument-xray needs the arm, but no arm part on mars provides it',
       'part instrument-organics needs the arm, but no arm part on mars provides it',
     ]);
   });

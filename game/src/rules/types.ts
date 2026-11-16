@@ -363,9 +363,14 @@ export interface InstrumentTuning {
   chargedWhileHeld?: Instrument[];
 }
 
-/** The robotic arm (Mars MS2, Owner B item B13): contact instruments (whose `needs` include the arm) refuse to read on steeper ground. */
+/**
+ * The robotic arm (Mars MS2, Owner B item B13): contact instruments (whose `needs` include the arm) refuse to read on
+ * steeper ground. Fitted, it is the X-ray's optional upgrade (game-design.md, The X-ray spectrometer and the robotic arm).
+ */
 export interface ArmTuning {
   slopeLimitDeg: number; // the ground under the rover must be at most this steep (slope.png)
+  reachM: number; // with the arm fitted, every boulder reading reaches this far (surface distance) instead of xray.reachM
+  groundDownFactor: number; // with the arm fitted, the milestones an X-ray reading earns pay this times their money and RP
 }
 
 /** The remote sensing mast (Mars M5): the camera's photo zones (tuning.milestones.photoZoneRadiusM) grow by this on a rover with a mast. */

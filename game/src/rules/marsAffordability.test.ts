@@ -20,6 +20,8 @@ const base: Record<BusSlot, string> = {
 const STEEL = { chassis: 'chassis-steel' };
 const LIGHTS = { lights: 'lights-led' };
 const RTG_NO_HEATER = { power: 'power-rtg', heater: 'heater-none' };
+/** The robotic arm fitted by choice: since November 16 the X-ray needs none, and the arm is its upgrade. */
+const ARM = { arm: 'arm-robotic' };
 /** A reference build: the defaults, these changes, this bay, and the support hardware the bay needs. */
 const ref = (payload: string[], changes: Partial<Record<BusSlot, string>> = {}, support?: Build['support']): Build =>
   ({ ...base, ...changes, payload: payload.map((i) => `instrument-${i}`), support: { ...supportFor(payload.map((i) => `instrument-${i}`), mars), ...support } });
@@ -31,11 +33,13 @@ const REFERENCE: [string, Build][] = [
   ['Fast empty bay', ref([], { wheels: 'wheels-mesh', ...LIGHTS })],
   ['Electric heater, larger battery, lights, camera', ref(['camera'], { heater: 'heater-electric', battery: 'battery-large', ...LIGHTS })],
   ['Weather watcher', ref(['weather', 'camera'])],
-  ['Arm + X-ray', ref(['xray'])],
+  ['X-ray, no arm', ref(['xray'])],
+  ['X-ray + camera, no arm', ref(['xray', 'camera'])],
+  ['Arm + X-ray', ref(['xray'], {}, ARM)],
   ['Field geologist', ref(['camera', 'drill'])],
   ['Radar surveyor', ref(['radar', 'camera'])],
   ['Mast + laser', ref(['laser'])],
-  ['Rock hound', ref(['xray', 'camera'])],
+  ['Rock hound', ref(['xray', 'camera'], {}, ARM)],
   ['Organics hunter', ref(['organics'])],
   ['RTG, lights, no heater, camera', ref(['camera'], { ...RTG_NO_HEATER, ...LIGHTS })],
   ['Remote geologist', ref(['laser', 'camera'])],
@@ -43,8 +47,8 @@ const REFERENCE: [string, Build][] = [
   ['Empty bay (steel)', ref([], STEEL)],
   ['Empty bay + lights (steel)', ref([], { ...STEEL, ...LIGHTS })],
   ['Steel, RTG, lights, no heater, camera', ref(['camera'], { ...STEEL, ...RTG_NO_HEATER, ...LIGHTS })],
-  ['Steel geologist', ref(['xray', 'drill'], STEEL)],
-  ['Steel, arm + X-ray + mast + laser', ref(['xray', 'laser'], STEEL)],
+  ['Steel geologist', ref(['xray', 'drill'], STEEL, ARM)],
+  ['Steel, arm + X-ray + mast + laser', ref(['xray', 'laser'], STEEL, ARM)],
   ['Steel, arm + X-ray + organics + drill', ref(['xray', 'organics', 'drill'], STEEL)],
 ];
 
@@ -53,8 +57,13 @@ const REFERENCE: [string, Build][] = [
  * November 16 (game-design.md "Payload: instruments and systems", the arithmetic check).
  */
 const NO_LONGER_FIT: [string, Build][] = [
-  ['Steel, lights, arm + mast, laser + X-ray + camera (the old Heavy example)', ref(['laser', 'xray', 'camera'], { ...STEEL, ...LIGHTS })],
-  ['Titanium, lights, heater units, arm, X-ray + camera', ref(['xray', 'camera'], LIGHTS)],
+  ['Steel, lights, arm + mast, laser + X-ray + camera (the old Heavy example)', ref(['laser', 'xray', 'camera'], { ...STEEL, ...LIGHTS }, ARM)],
+  ['Titanium, lights, heater units, arm, X-ray + camera', ref(['xray', 'camera'], LIGHTS, ARM)],
+];
+
+/** Builds that fit again since the X-ray needs no arm (game-design.md, The X-ray spectrometer and the robotic arm). */
+const FIT_WITHOUT_ARM: [string, Build][] = [
+  ['Titanium, lights, heater units, X-ray + camera, no arm', ref(['xray', 'camera'], LIGHTS)],
 ];
 
 /** "Valid" Mars builds as the M12 analysis counted them: support only when needed (allBuilds does that), and a heater unless an RTG. */
@@ -68,7 +77,8 @@ describe('Mars build enumeration', () => {
     expect(builds.length).toBeGreaterThan(mixes);
     expect(builds.every((b) => payloadProblems(b, mars.parts).length === 0)).toBe(true);
     expect(builds.find((b) => b.payload.length === 0)!.support).toEqual({ arm: 'arm-none', mast: 'mast-none' });
-    expect(supportFor(['instrument-xray', 'instrument-laser'], mars)).toEqual({ arm: 'arm-robotic', mast: 'mast-remote' });
+    expect(supportFor(['instrument-organics', 'instrument-laser'], mars)).toEqual({ arm: 'arm-robotic', mast: 'mast-remote' });
+    expect(supportFor(['instrument-xray'], mars)).toEqual({ arm: 'arm-none', mast: 'mast-none' }); // the X-ray needs no arm
     expect(supportFor(['instrument-camera'], moon)).toBeUndefined();
   });
 
@@ -96,6 +106,12 @@ describe('Reference builds under the Mars tiers (the plan\'s Affordability / M12
     expect(quoteBuild(build, mars, 1000).canLaunch).toBe(false);
   });
 
+  it.each(FIT_WITHOUT_ARM)('%s: fits and can launch', (_name, build) => {
+    expect(build.support).toEqual({ arm: 'arm-none', mast: 'mast-none' });
+    expect(payloadProblems(build, mars.parts)).toEqual([]);
+    expect(quoteBuild(build, mars, 1000).canLaunch).toBe(true);
+  });
+
   it('reports mass, size, tier and parts cost of each reference build (not asserted)', () => {
     console.table(REFERENCE.map(([name, build]) => {
       const q = quoteBuild(build, mars, 1000);
@@ -115,10 +131,10 @@ const ANSWERS: { lesson: string; answer: string; build: Build | null; knownIssue
   { lesson: 'Dust on the panels', answer: 'An RTG', build: ref(['camera'], { ...RTG_NO_HEATER, ...LIGHTS }), knownIssue: 'expensive: about 655 of milestone money to pass from B = 780 (M14)' },
   { lesson: 'Dust on the panels', answer: 'The higher solar mast', build: ref(['camera'], { power: 'power-solar-mast', ...LIGHTS }) },
   { lesson: 'Dust on the panels', answer: 'A route past dust devils', build: null, knownIssue: 'luck, not a plan: devils are random (M14)' },
-  { lesson: 'The arm cannot reach on a slope', answer: '(the cause) arm + X-ray + camera', build: ref(['xray', 'camera']) },
-  { lesson: 'The arm cannot reach on a slope', answer: 'Park on level ground', build: ref(['xray', 'camera']) },
-  { lesson: 'The arm cannot reach on a slope', answer: 'The laser spectrometer from a distance', build: ref(['laser']), knownIssue: 'means buying a second build, or the 760 steel rover with both (M14)' },
-  { lesson: 'The arm cannot reach on a slope', answer: 'Laser alongside a contact instrument', build: ref(['xray', 'laser'], STEEL) },
+  // Since November 16 the arm lesson is the organics spectrometer's (the X-ray reads on any drivable ground).
+  { lesson: 'The organics reading needs gentle ground', answer: '(the cause) arm + organics', build: ref(['organics']) },
+  { lesson: 'The organics reading needs gentle ground', answer: 'Park on level ground', build: ref(['organics']) },
+  { lesson: 'The organics reading needs gentle ground', answer: 'Park on level ground within the arm\'s reach', build: ref(['organics']) },
   { lesson: 'No lights, no night driving', answer: 'Fit lights', build: ref(['camera'], LIGHTS) },
   { lesson: 'No lights, no night driving', answer: 'Sleep through the night', build: ref(['camera']) },
 ];

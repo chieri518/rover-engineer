@@ -105,23 +105,32 @@ describe('dust on the panels', () => {
   });
 });
 
-describe('the arm cannot reach on a slope', () => {
+describe('the organics reading needs gentle ground (arm-slope; the X-ray\'s too until November 16)', () => {
   it('fires when a contact reading is refused for the slope, and for no other refusal', () => {
     expect(onUseRefused('slope')).toEqual([{ id: 'arm-slope' }]);
     for (const reason of ['no-boulder', 'moving', 'energy', 'no-target', 'busy', 'powered-down'] as const) expect(onUseRefused(reason)).toEqual([]);
   });
 
   it('fires from the mission\'s own slope refusal, once per mission', () => {
-    const parts = selectedParts(build({ payload: ['instrument-xray'], support: { arm: 'arm-robotic' } }), mars.parts);
+    const parts = selectedParts(build({ payload: ['instrument-organics', 'instrument-xray'], support: { arm: 'arm-robotic' } }), mars.parts);
     const setup = missionSetup(parts, mars.tuning, [], marsSetup(site, mars.events, seededRng(1), mars.tuning));
     const s = startMission(setup);
     const at = (slopeDeg: number): UseConditions => ({ speedMps: 0, inColdZone: false, sunlight: 1, boulderInReach: true, boulder: 0, slopeDeg });
     const steep = mars.tuning.instruments.arm!.slopeLimitDeg + 3;
     const refusals = [steep, 0, steep].map((slope) => {
-      const r = startInstrumentUse(s, 'xray', at(slope), setup, mars.tuning);
+      const r = startInstrumentUse(s, 'organics', at(slope), setup, mars.tuning);
       return r.ok ? [] : onUseRefused(r.reason);
     });
     expect(meetSteps(refusals)).toEqual([['arm-slope'], [], []]);
+    // The X-ray on the same ground, with the same arm, is never refused, so it never meets the lesson.
+    expect(startInstrumentUse(s, 'xray', at(steep), setup, mars.tuning).ok).toBe(true);
+  });
+
+  it('names only the organics spectrometer and the arm', () => {
+    const r = relationshipEntry(file, 'arm-slope')!;
+    expect(r.parts).toEqual(['arm-robotic', 'instrument-organics']);
+    for (const t of [r.name, r.notice, r.reviewText, r.debrief, ...(r.answers ?? [])]) expect(t, t).not.toMatch(/x-ray|laser/i);
+    expect(r.name).toMatch(/organics/i);
   });
 });
 
@@ -229,16 +238,17 @@ describe('the Mars pre-launch review', () => {
     expect(review(build({ power: 'power-rtg' }), known)).toEqual([['dust-panels', 'green']]);
   });
 
-  it('the arm on a slope: a risk for any contact instrument, nothing for a build without one (the laser alone, say)', () => {
+  it('the organics lesson: a risk for the organics spectrometer, nothing for the X-ray (with the arm or without) or a build without one (the laser alone, say)', () => {
     const known = ['arm-slope'];
-    expect(review(build({ payload: ['instrument-xray'], support: { arm: 'arm-robotic' } }), known)).toEqual([['arm-slope', 'yellow']]);
+    expect(review(build({ payload: ['instrument-xray'], support: { arm: 'arm-robotic' } }), known)).toEqual([]);
+    expect(review(build({ payload: ['instrument-xray'] }), known)).toEqual([]);
     expect(review(build({ payload: ['instrument-organics'], support: { arm: 'arm-robotic' } }), known)).toEqual([['arm-slope', 'yellow']]);
     expect(review(build({ payload: ['instrument-laser'], support: { mast: 'mast-remote' } }), known)).toEqual([]);
     expect(review(build({}), known)).toEqual([]);
   });
 
   it('shows only discovered Mars relationships, in data order, and no Moon line', () => {
-    const b = build({ power: 'power-rtg', lights: 'lights-none', payload: ['instrument-neutron', 'instrument-xray'], support: { arm: 'arm-robotic' } });
+    const b = build({ power: 'power-rtg', lights: 'lights-none', payload: ['instrument-neutron', 'instrument-organics'], support: { arm: 'arm-robotic' } });
     expect(review(b, ['arm-slope', 'cold-dark', 'no-lights', 'xray-cold'])).toEqual([['arm-slope', 'yellow'], ['no-lights-night', 'red']]);
     expect(review(b, MARS_IDS)).toEqual([['rtg-neutron', 'yellow'], ['dust-panels', 'green'], ['arm-slope', 'yellow'], ['no-lights-night', 'red']]);
   });

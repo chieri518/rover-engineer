@@ -86,8 +86,8 @@
     "dustDevilSenseM": 150
   },
   "instruments": {
-    "_note": "Mars instruments (Mars step 4a; starting values from Phase 0 of the Mars engineering plan, tuned in the Mars balance phase). Rules: rules/instruments.ts and rules/mission.ts. arm: contact instruments (whose needs include the arm: the X-ray and organics spectrometers) refuse to read on ground steeper than slopeLimitDeg (MS2, Owner B item B13, provisional, for Chieri's review); ground stays drivable to 18 deg, so the arm lesson has a 10 to 18 deg band. mast: the camera's viewpoint photo zones grow by photoRangeFactor on a rover with a mast. chargedWhileHeld: the organics spectrometer pays its energyPerUse as it runs, energyPerUse / useSeconds per second of the hold (30 / 20 = 1.5/s), not up front; it starts only when the battery holds the whole 30.",
-    "arm": { "slopeLimitDeg": 10 },
+    "_note": "Mars instruments (Mars step 4a; starting values from Phase 0 of the Mars engineering plan, tuned in the Mars balance phase). Rules: rules/instruments.ts and rules/mission.ts. arm: contact instruments (whose needs include the arm: the organics spectrometer since November 16) refuse to read on ground steeper than slopeLimitDeg (MS2, Owner B item B13, provisional, for Chieri's review); ground stays drivable to 18 deg, so the arm lesson has a 10 to 18 deg band. With a robotic arm fitted (game-design.md, The X-ray spectrometer and the robotic arm; decided by the user November 16): every boulder reading (the X-ray and organics) reaches a boulder whose surface is within reachM of the rover's center instead of xray.reachM, and the X-ray's readings are ground down: the milestones an X-ray reading earns (Rock collection, Rare rock) pay groundDownFactor times their money and RP (rules/payout.ts). mast: the camera's viewpoint photo zones grow by photoRangeFactor on a rover with a mast. chargedWhileHeld: the organics spectrometer pays its energyPerUse as it runs, energyPerUse / useSeconds per second of the hold (30 / 20 = 1.5/s), not up front; it starts only when the battery holds the whole 30.",
+    "arm": { "slopeLimitDeg": 10, "reachM": 7, "groundDownFactor": 1.5 },
     "mast": { "photoRangeFactor": 1.5 },
     "chargedWhileHeld": ["organics"],
     "neutron": {
@@ -157,7 +157,7 @@
       "defaultLayer": "floor"
     },
     "laser": {
-      "_note": "Laser spectrometer: the nearest boulder (surface) or point of the delta cliff's foot line (terrain.json deltaFront.scarpLocal_xz) within reachM, inside a cone of coneDeg either side of the rover's heading. reachM is well beyond the X-ray's contact reach (4.5 m on Mars); the real SuperCam laser reads rocks up to about 7 m away (the game scales distances).",
+      "_note": "Laser spectrometer: the nearest boulder (surface) or point of the delta cliff's foot line (terrain.json deltaFront.scarpLocal_xz) within reachM, inside a cone of coneDeg either side of the rover's heading. reachM is well beyond the contact reach (4.5 m on Mars, 7 m with the robotic arm); the real SuperCam laser reads rocks up to about 7 m away (the game scales distances).",
       "reachM": 12,
       "coneDeg": 15
     }

@@ -7,7 +7,7 @@ import { instrumentCosts, type InstrumentCosts } from '../rules/payload';
 import type { GameData, Part } from '../rules/types';
 import { el, fill, money } from './dom';
 import { deskCardNotes } from './milestoneText';
-import { needsText } from './supportText';
+import { armNotes, needsText } from './supportText';
 
 /** An instrument's operating costs as text ("10 energy per use, holds the rover 3 s"), or null when it has none. */
 export function costsText(c: InstrumentCosts, data: GameData, withHold: boolean): string | null {
@@ -97,6 +97,8 @@ export function cardContent(part: Part, state: CardState, data: GameData): HTMLE
     ...(effect ? [el('p', { class: 'part-card-effect' }, effect)] : []),
     // What the instrument can earn here, by milestone name only (M14), and on Mars where it is used.
     ...(part.effects.instrument ? deskCardNotes(part.effects.instrument, data).map((note) => el('p', { class: 'part-card-note' }, note)) : []),
+    // What the robotic arm adds to the X-ray, on the X-ray's card and the arm's (worlds that offer the arm).
+    ...armNotes(part, data).map((note) => el('p', { class: 'part-card-note' }, note)),
     ...(needs ? [el('p', { class: state.refusal === needs ? 'part-card-state blocked' : 'part-card-note' }, needs)] : []),
     ...stateLines,
   ];

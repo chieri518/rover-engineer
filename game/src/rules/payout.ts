@@ -15,6 +15,7 @@ export interface MissionResult {
   earned: EarnedMilestone[];
   relationships?: RelationshipEvent[]; // relationships met, once each, in the order met; missing: none
   measure?: RoundMeasure; // what the mission measured, for the round stats; missing: no stats recorded
+  groundDown?: boolean; // the X-ray's readings were ground down by a fitted robotic arm (MissionSetup.groundDown); missing: no
 }
 
 export interface PaidMilestone {
@@ -22,6 +23,30 @@ export interface PaidMilestone {
   stages: number;
   money: number;
   rp: number;
+  factor?: number; // the reward was multiplied by this (ground-down X-ray readings); missing: 1
+}
+
+/** One stage's reward of a milestone, and the factor applied to it (1, or the arm's groundDownFactor). */
+export interface MilestoneReward {
+  money: number;
+  rp: number;
+  factor: number;
+}
+
+/** True for a milestone an X-ray reading earns (its trigger is an X-ray `reading`: Rock collection, Rare rock). */
+export function isXrayReading(m: Milestone): boolean {
+  return m.trigger.type === 'reading' && m.trigger.instrument === 'xray';
+}
+
+/**
+ * One stage's reward: the milestone's money and RP, times tuning.instruments.arm.groundDownFactor (rounded)
+ * for an X-ray reading milestone when the X-ray's readings were ground down by a fitted arm (game-design.md,
+ * The X-ray spectrometer and the robotic arm). Everything else pays as listed.
+ */
+export function milestoneReward(m: Milestone, groundDown: boolean, tuning: Tuning): MilestoneReward {
+  const f = tuning.instruments.arm?.groundDownFactor;
+  const factor = groundDown && f !== undefined && isXrayReading(m) ? f : 1;
+  return factor === 1 ? { money: m.money, rp: m.rp, factor } : { money: Math.round(m.money * factor), rp: Math.round(m.rp * factor), factor };
 }
 
 export interface Payout {
@@ -60,7 +85,8 @@ export function deathPenalty(cause: DeathCause, secondsLasted: number, tuning: T
 
 /**
  * Money = survival payout (if survived) + milestone money − death penalty (if died).
- * RP = milestone RP. Records already earned this campaign pay nothing.
+ * RP = milestone RP. Records already earned this campaign pay nothing. Ground-down X-ray readings raise
+ * their milestones' rewards (milestoneReward).
  */
 export function missionPayout(
   result: MissionResult,
@@ -81,7 +107,8 @@ export function missionPayout(
     const stages = Math.min(Math.max(earned.stages ?? 1, 0), maxStages);
     if (stages === 0) continue;
     if (milestone.record) newRecords.push(milestone.id);
-    paid.push({ milestone, stages, money: milestone.money * stages, rp: milestone.rp * stages });
+    const reward = milestoneReward(milestone, result.groundDown === true, tuning);
+    paid.push({ milestone, stages, money: reward.money * stages, rp: reward.rp * stages, ...(reward.factor !== 1 ? { factor: reward.factor } : {}) });
   }
   const milestoneMoney = paid.reduce((s, p) => s + p.money, 0);
   const milestoneRp = paid.reduce((s, p) => s + p.rp, 0);

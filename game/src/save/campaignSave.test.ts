@@ -3,7 +3,7 @@ import { clearCampaign, loadCampaign, saveCampaign } from './campaignSave';
 import { isPlayable, newCampaign, normalizeCampaign, restartRound, startRound } from '../rules/campaign';
 import { testTuning } from '../rules/testData';
 import { loadGameData } from '../gameData';
-import { carryBuild } from '../rules/payload';
+import { carryBuild, payloadProblems } from '../rules/payload';
 import { quoteBuild } from '../rules/quote';
 import { completeBuild } from '../rules/rover';
 import type { Build } from '../rules/types';
@@ -168,6 +168,19 @@ describe('builds in saves from before payload systems (November 16)', () => {
     const state = { ...startRound(newCampaign(testTuning)), lastBuild: moonSave as unknown as Build };
     store.setItem('rover-engineer.campaign.v1', JSON.stringify(state));
     expect(loadCampaign(store)?.lastBuild).toEqual(moonSave);
+  });
+
+  it('a Mars save with the X-ray and the arm loads on Mars complete and can launch, the arm kept as the X-ray\'s upgrade; without the arm it is complete too', () => {
+    const mars = loadGameData('mars');
+    const save = { ...moonSave, support: { arm: 'arm-robotic', mast: 'mast-none' } };
+    const { build, dropped } = carryBuild(save, all, 'mars');
+    expect(dropped).toEqual([]);
+    const done = completeBuild(build, mars.parts)!;
+    expect(done.support?.arm).toBe('arm-robotic');
+    expect(payloadProblems(done, mars.parts)).toEqual([]);
+    expect(quoteBuild(done, mars, 1000).canLaunch).toBe(true);
+    const noArm = completeBuild(carryBuild(moonSave, all, 'mars').build, mars.parts)!;
+    expect(payloadProblems(noArm, mars.parts)).toEqual([]);
   });
 
   it('a Moon save with "No lights" loads on the Moon complete, the lights not fitted', () => {

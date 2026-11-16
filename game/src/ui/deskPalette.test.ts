@@ -55,7 +55,12 @@ describe('desk palette: choosing parts', () => {
     const fitted = choosePart(full, part('instrument-camera'), mars.parts).build;
     expect(isChosen(fitted, part('instrument-camera'), mars.parts)).toBe(true);
     expect(choosePart(fitted, part('instrument-camera'), mars.parts).build.payload).toEqual([]);
-    expect(choosePart(full, part('instrument-xray'), mars.parts).build).toBe(full);
+    expect(choosePart(full, part('instrument-organics'), mars.parts).build).toBe(full);
+  });
+
+  it('fits the X-ray without the arm on Mars (November 16: the arm is its upgrade, not its need)', () => {
+    expect(full.support?.arm).toBeUndefined();
+    expect(choosePart(full, part('instrument-xray'), mars.parts).build.payload).toEqual(['instrument-xray']);
   });
 
   it('prices a part as fitted even when the bay would refuse it now', () => {

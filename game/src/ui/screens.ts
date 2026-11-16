@@ -9,7 +9,7 @@ import { instrumentsOf } from '../rules/payload';
 import { completeBuild, providesCapability, selectedParts } from '../rules/rover';
 import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
 import type { InstrumentLog } from '../rules/instruments';
-import { categoryLabel, causeText, milestoneSummary, notReachedLine } from './milestoneText';
+import { categoryLabel, causeText, milestoneSummary, notReachedLine, rewardText } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
 import { azimuthDeg, buildLeads, buildSites, compassPoint } from '../rules/survey';
@@ -293,7 +293,7 @@ const debrief: Screen = (game, root) => {
     return el('li', {},
       el('span', {}, el('strong', {}, maxStages > 1 ? fill(t.stagedCount, { name: m.name, stages, max: maxStages }) : m.name), ` · ${categoryLabel(m.category, text)}`),
       paid
-        ? el('span', { class: 'reward' }, fill(text.milestone.reward, { money: money(paid.money, text), rp: paid.rp }))
+        ? el('span', { class: 'reward' }, rewardText(paid, data))
         : el('span', { class: 'reward none' }, t.recordHeld),
       el('span', { class: 'sub' }, milestoneSummary(m, stages)),
       history && el('span', { class: 'sub fact' }, m.fact),

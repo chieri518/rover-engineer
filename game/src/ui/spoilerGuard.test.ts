@@ -19,7 +19,7 @@ import terrain from '../../public/terrain/terrain.json';
 import marsTerrain from '../../public/terrain/mars/terrain.json';
 import { foundNotice } from './surveyText';
 import { deskCardNotes, milestoneHowTo, milestoneSummary } from './milestoneText';
-import { needsText } from './supportText';
+import { armNotes, needsText } from './supportText';
 import { tutorialPages } from './tutorialText';
 
 const data = loadGameData();
@@ -108,7 +108,7 @@ describe('spoiler guard: new player-facing texts name no lesson', () => {
 // The four Mars lessons (Mars plan M15) and what keeps each unspoken. No lights is a hard block, stated
 // openly on the desk and in the review, so the guard does not apply to it, except that Night weather's text
 // must not suggest lights. Each rule checks the texts it is about (tags); a lesson's own mission signal is
-// exempt (the X-ray's slope refusal is the arm lesson happening, not a hint of it).
+// exempt (the organics spectrometer's slope refusal is the arm lesson happening, not a hint of it; the X-ray's until November 16).
 
 const mars = loadGameData('mars');
 
@@ -141,7 +141,7 @@ const MARS_RULES: { lesson: string; applies: (x: MarsText) => boolean; words: Re
 ];
 
 /** Paths in the Mars text that are a lesson's own mission signal, not a hint of it. */
-const SIGNALS = ['instrumentText.xray.slope'];
+const SIGNALS = ['instrumentText.organics.slope'];
 /**
  * Shared (Moon) text the Mars mission never shows: the Moon's stations, Earth, ice and shadow lines, and the
  * site notes, kind notes and site lines (Mars's own are checked as the notices the player sees, below).
@@ -171,10 +171,11 @@ function marsTexts(d: GameData): MarsText[] {
   const out: MarsText[] = [];
   const add = (label: string, text: string, tags: Iterable<Tag> = []) => out.push({ label, text, tags: new Set(tags) });
   const instruments = d.parts.parts.flatMap((p) => (p.slot === 'instrument' && p.effects.instrument ? [p.effects.instrument] : []));
-  // The desk: every part card as Mars shows it (name, description, what an instrument can earn and where, its needs).
+  // The desk: every part card as Mars shows it (name, description, what an instrument can earn and where, its needs,
+  // what the arm adds to the X-ray).
   for (const p of d.parts.parts) {
     const inst = p.effects.instrument;
-    const lines = [p.name, p.description, ...(inst ? deskCardNotes(inst, d) : []), needsText(p.effects.needs ?? [], d) ?? ''];
+    const lines = [p.name, p.description, ...(inst ? deskCardNotes(inst, d) : []), needsText(p.effects.needs ?? [], d) ?? '', ...armNotes(p, d)];
     const tags: Tag[] = [...(inst ? [inst] : []), ...(p.effects.neutronNoise ? ['rtg' as const] : []), ...(p.slot === 'arm' ? ['arm' as const] : [])];
     add(`desk ${p.id}`, lines.join(' '), tags);
   }
@@ -217,6 +218,10 @@ describe('spoiler guard, Mars: no Mars text names a Mars lesson before it happen
     expect(labels.some((l) => l.startsWith('notice '))).toBe(true);
     expect(labels.some((l) => l.startsWith('instrumentText.organics'))).toBe(true);
     expect(texts.find((x) => x.label === 'desk instrument-xray')!.text).toContain('Can earn: Rock collection');
+    expect(texts.find((x) => x.label === 'desk instrument-xray')!.text).toContain('With the robotic arm');
+    expect(texts.find((x) => x.label === 'desk arm-robotic')!.text).toContain('X-ray and organics');
+    expect(texts.some((x) => x.label === 'instrumentText.xray.slope')).toBe(false); // the X-ray has no slope refusal any more
+    for (const key of ['support.xrayWithArm', 'support.armAdds', 'support.groundDown', 'support.groundDownReward']) expect(texts.map((x) => x.label), key).toContain(key);
     for (const x of texts) expect(x.text.length, x.label).toBeGreaterThan(0);
   });
 

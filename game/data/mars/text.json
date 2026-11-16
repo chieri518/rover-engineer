@@ -17,11 +17,15 @@
     "mast": "Mast"
   },
   "support": {
-    "_note": "Support hardware on the desk (Mars M5): an instrument whose support part is missing is refused with a reason. {support}: the support part's name below; {part}: the instrument.",
+    "_note": "Support hardware on the desk (Mars M5): an instrument whose support part is missing is refused with a reason. {support}: the support part's name below; {part}: the instrument. The arm as the X-ray's optional upgrade (game-design.md, The X-ray spectrometer and the robotic arm; ui/supportText.ts armNotes, ui/milestoneText.ts rewardText, ui/missionScreen.ts finishXray): xrayWithArm on the X-ray's card and armAdds on the arm's ({reach}: tuning.instruments.arm.reachM), groundDown on the mission's first ground-down X-ray reading and groundDownReward after a raised milestone reward ({percent}: from groundDownFactor). Lesson-blind: no word about slopes or level ground.",
     "needs": "Needs the {support}.",
     "missing": "{part} needs the {support}. Fit it, or take the instrument out of the bay.",
     "arm": "robotic arm",
-    "mast": "remote sensing mast"
+    "mast": "remote sensing mast",
+    "xrayWithArm": "With the robotic arm: reaches about {reach} m and grinds the rock surface first, so readings earn more.",
+    "armAdds": "Gives the X-ray and organics spectrometers a reach of about {reach} m, and grinds the rock surface before each X-ray reading, so those readings earn more.",
+    "groundDown": "Ground down: the arm ground off the rock's weathered surface first. X-ray milestones pay {percent}% more this mission.",
+    "groundDownReward": "ground-down reading +{percent}%"
   },
   "landing": {
     "heading": "Landing: Jezero crater",
@@ -196,7 +200,7 @@
       {
         "title": "Arm and mast",
         "body": [
-          "On Mars the payload bay also offers a robotic arm and a remote sensing mast. Each takes one mounting point, like any payload item. The X-ray and organics spectrometers need the robotic arm; the laser spectrometer needs the remote sensing mast, which also widens the camera's viewpoint photo zones. Leave them off when no instrument needs them."
+          "On Mars the payload bay also offers a robotic arm and a remote sensing mast. Each takes one mounting point, like any payload item. The organics spectrometer needs the robotic arm. The X-ray spectrometer works without it, as on the Moon; with the arm it reaches boulders farther away and grinds the rock surface first, so its readings earn more. The laser spectrometer needs the remote sensing mast, which also widens the camera's viewpoint photo zones. Leave them off when nothing aboard uses them."
         ]
       }
     ],
@@ -238,7 +242,7 @@
           "camera": "Camera: {key} (or its button) takes a photograph. Photographs count toward milestones at the delta-front viewpoint, from a crater's rim facing its far inner wall, of a passing dust devil, and away from the lander with the setting Sun low in the frame: face west as the Sun goes down.",
           "drill": "Drill: stop the rover, then press {key} (or its button) to drill a core sample. Samples count at several sites, each at least {stationMinDistance} m from the lander and {sampleSpacing} m from each other. Séítah and the foot of the delta hold rock of their own.",
           "neutron": "Neutron spectrometer: {key} switches it on or off. While it is on, the hydrogen meter reads the ground under the rover. Drive it through Séítah or along the delta front, and watch for ground where the meter reads higher than anywhere else.",
-          "xray": "X-ray spectrometer: stop beside a boulder, then press {key} to read its rock with the arm. Each site has its own rocks; the readout says when a type is new.",
+          "xray": "X-ray spectrometer: stop beside a boulder, then press {key} to read its rock. Each site has its own rocks; the readout says when a type is new.",
           "weather": "Weather mast: {key} switches it on or off. Left on more than {stationMinDistance} m from the lander, it records the dust storm, part of a night while the rover is awake, and dust devils passing nearby. It can also forecast the storm before the orbital report.",
           "radar": "Radar: {key} switches it on or off. Keep it on for long drives more than {stationMinDistance} m from the lander, and drive past young craters, Séítah or the delta front to image their buried layers.",
           "laser": "Laser spectrometer: when the HUD shows a laser target ahead, a boulder or the delta cliff, stop and press {key} to read it from a distance.",
@@ -428,9 +432,8 @@
     }
   },
   "instrumentText": {
-    "_note": "Mars's own instruments (Mars M4, behavior built in Mars step 4a) and the X-ray's slope refusal. Real facts use the safe wording of the Mars engineering plan's Real anchors (ranges, \"signals consistent with\"); each cites its source. Placeholders: rules/types.ts InstrumentText.",
+    "_note": "Mars's own instruments (Mars M4, behavior built in Mars step 4a) and the organics spectrometer's slope refusal (the X-ray's until November 16; since then the X-ray reads on any drivable ground). Real facts use the safe wording of the Mars engineering plan's Real anchors (ranges, \"signals consistent with\"); each cites its source. Placeholders: rules/types.ts InstrumentText.",
     "xray": {
-      "slope": "{name}: the ground here is too steep for the arm ({slope}°). The arm reads on ground up to {max}°.",
       "fact": "Perseverance's X-ray spectrometer, PIXL, sits on the rover's arm and maps the elements in small patches of rock. In Séítah it found a rock made of packed olivine crystals that settled out of a thick body of cooling magma.",
       "source": "Liu et al. (2022), An olivine cumulate outcrop on the floor of Jezero crater, Mars, Science 377:1513-1519, doi:10.1126/science.abo2756"
     },
@@ -485,6 +488,7 @@
       "notCarried": "This rover carries no organics spectrometer.",
       "holding": "Organics reading. The rover holds still.",
       "target": "Boulder within reach. Stop and press {key} for an organics reading.",
+      "slope": "{name}: the ground here is too steep for the arm ({slope}°). The arm reads on ground up to {max}°.",
       "result": "Organics reading complete. The rock's spectrum is stored for scientists on Earth.",
       "stopped": "{name}: reading stopped. The battery could not pay for the rest of it.",
       "log": "Organics spectrometer: finished readings: {count}. Spectra stored.",

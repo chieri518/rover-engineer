@@ -5,8 +5,8 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import {
-  emptyInstrumentLog, emptyRadarTrack, laserTarget, radarLayer, radarTrack, stormForecastAt, stormHaze, trendOf, weatherReading,
-  weatherReadout, withMastPhotoRange, type RadarSample, type RadarTrack,
+  contactReachM, emptyInstrumentLog, emptyRadarTrack, groundDownReadings, hasArm, laserTarget, radarLayer, radarTrack, stormForecastAt, stormHaze,
+  trendOf, weatherReading, weatherReadout, withMastPhotoRange, xrayTarget, type RadarSample, type RadarTrack,
 } from './instruments';
 import {
   marsSetup, marsStatus, marsWeatherSky, missionSetup, setStandby, startInstrumentUse, startMission, stepMission, weatherMastOnSince,
@@ -15,6 +15,7 @@ import {
 import { MilestoneTracker, buildZones } from './milestones';
 import { seededRng } from './events';
 import { selectedParts } from './rover';
+import { payloadProblems } from './payload';
 import { validateGameData } from './validate';
 import type { Boulder } from './boulders';
 import type { Build, Milestone, Tuning } from './types';
@@ -261,17 +262,43 @@ describe('the mast widens the camera\'s photo zones', () => {
   });
 });
 
-describe('contact readings on slopes (MS2, B13, provisional, for Chieri\'s review)', () => {
+const NO_ARM = { support: { arm: 'arm-none', mast: 'mast-remote' } };
+
+describe('contact readings on slopes (MS2, B13, provisional, for Chieri\'s review; the organics spectrometer only since November 16)', () => {
   const limit = it_.arm!.slopeLimitDeg;
 
-  it('the X-ray and organics spectrometers refuse on ground steeper than the arm\'s limit', () => {
+  it('the organics spectrometer refuses on ground steeper than the arm\'s limit', () => {
     const { setup } = marsRover(['instrument-xray', 'instrument-organics']);
-    expect(setup.contact).toEqual(['xray', 'organics']);
+    expect(setup.contact).toEqual(['organics']);
     const s = startMission(setup);
-    for (const inst of ['xray', 'organics'] as const) {
-      expect(startInstrumentUse(s, inst, { ...still, slopeDeg: limit + 0.5 }, setup, mars.tuning)).toMatchObject({ ok: false, reason: 'slope' });
-      expect(startInstrumentUse(s, inst, { ...still, slopeDeg: limit }, setup, mars.tuning).ok).toBe(true);
+    expect(startInstrumentUse(s, 'organics', { ...still, slopeDeg: limit + 0.5 }, setup, mars.tuning)).toMatchObject({ ok: false, reason: 'slope' });
+    expect(startInstrumentUse(s, 'organics', { ...still, slopeDeg: limit }, setup, mars.tuning).ok).toBe(true);
+  });
+
+  it('the X-ray never refuses for the slope on Mars, with the arm or without it (a carried-over part never gets harder to use)', () => {
+    for (const over of [{}, NO_ARM]) {
+      const { setup } = marsRover(['instrument-xray'], over);
+      expect(setup.contact).toEqual([]);
+      const s = startMission(setup);
+      for (const slopeDeg of [limit + 0.5, mars.tuning.ground.slopeWarningDegrees, 19]) {
+        expect(startInstrumentUse(s, 'xray', { ...still, slopeDeg }, setup, mars.tuning).ok, `slope ${slopeDeg}`).toBe(true);
+      }
     }
+  });
+
+  it('the X-ray reads on Mars without the arm, and is refused only without a boulder in reach', () => {
+    const { setup } = marsRover(['instrument-xray'], NO_ARM);
+    const s = startMission(setup);
+    expect(startInstrumentUse(s, 'xray', still, setup, mars.tuning).ok).toBe(true);
+    expect(startInstrumentUse(s, 'xray', { ...still, boulderInReach: false }, setup, mars.tuning)).toMatchObject({ ok: false, reason: 'no-boulder' });
+  });
+
+  it('the organics spectrometer is still refused without the arm (its need) and on a slope with it', () => {
+    const noArm = { ...base, ...NO_ARM, payload: ['instrument-organics'] };
+    expect(mars.parts.parts.find((p) => p.id === 'instrument-organics')!.effects.needs).toEqual(['arm']);
+    expect(payloadProblems(noArm, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-organics', support: 'arm' }]);
+    const { setup } = marsRover(['instrument-organics']);
+    expect(startInstrumentUse(startMission(setup), 'organics', { ...still, slopeDeg: limit + 3 }, setup, mars.tuning)).toMatchObject({ ok: false, reason: 'slope' });
   });
 
   it('with no boulder in reach they say so first', () => {
@@ -284,6 +311,46 @@ describe('contact readings on slopes (MS2, B13, provisional, for Chieri\'s revie
     const setup = missionSetup(selectedParts(moonBuild, moon.parts), moon.tuning, []);
     expect(setup.contact).toEqual([]);
     expect(startInstrumentUse(startMission(setup), 'xray', { ...still, slopeDeg: 19 }, setup, moon.tuning).ok).toBe(true);
+  });
+});
+
+describe('the robotic arm as the X-ray\'s upgrade (November 16): a longer reach and ground-down readings', () => {
+  const arm = it_.arm!;
+
+  it('the effective reach: the arm\'s with an arm fitted on a world that offers it, else the world\'s X-ray reach', () => {
+    expect(arm.reachM).toBeGreaterThan(it_.xray.reachM);
+    expect(contactReachM(true, it_)).toBe(arm.reachM);
+    expect(contactReachM(false, it_)).toBe(it_.xray.reachM);
+    // The Moon offers no arm: its reach never changes.
+    expect(contactReachM(true, moon.tuning.instruments)).toBe(moon.tuning.instruments.xray.reachM);
+    expect(contactReachM(false, moon.tuning.instruments)).toBe(moon.tuning.instruments.xray.reachM);
+  });
+
+  it('the mission setup carries it, for the X-ray and organics alike', () => {
+    expect(marsRover(['instrument-xray']).setup.reachM).toBe(arm.reachM);
+    expect(marsRover(['instrument-organics']).setup.reachM).toBe(arm.reachM);
+    expect(marsRover(['instrument-xray'], NO_ARM).setup.reachM).toBe(it_.xray.reachM);
+    expect(missionSetup(selectedParts(moonBuild, moon.parts), moon.tuning, []).reachM).toBe(moon.tuning.instruments.xray.reachM);
+  });
+
+  it('a boulder between the two reaches is in reach only with the arm', () => {
+    const between = (it_.xray.reachM + arm.reachM) / 2;
+    const boulders: Boulder[] = [{ x: between + 1, z: 0, radius: 1 }];
+    const p = { x: 0, z: 0 };
+    expect(xrayTarget(p, boulders, { reachM: marsRover(['instrument-xray'], NO_ARM).setup.reachM })).toBeNull();
+    expect(xrayTarget(p, boulders, { reachM: marsRover(['instrument-xray']).setup.reachM })).toMatchObject({ index: 0 });
+    expect(xrayTarget(p, [{ x: arm.reachM + 1.5, z: 0, radius: 1 }], { reachM: arm.reachM })).toBeNull();
+  });
+
+  it('readings are ground down only with an arm fitted, and only where the world offers one', () => {
+    expect(hasArm(marsRover([]).parts)).toBe(true);
+    expect(hasArm(marsRover([], NO_ARM).parts)).toBe(false);
+    expect(groundDownReadings(true, it_)).toBe(arm.groundDownFactor > 1);
+    expect(groundDownReadings(false, it_)).toBe(false);
+    expect(groundDownReadings(true, moon.tuning.instruments)).toBe(false);
+    expect(marsRover(['instrument-xray']).setup.groundDown).toBe(true);
+    expect(marsRover(['instrument-xray'], NO_ARM).setup.groundDown).toBe(false);
+    expect(missionSetup(selectedParts(moonBuild, moon.parts), moon.tuning, []).groundDown).toBe(false);
   });
 });
 
@@ -416,8 +483,11 @@ describe('Mars instrument data', () => {
 
   it('validation catches broken Mars instrument tuning', () => {
     const bad = (patch: Partial<Tuning['instruments']>) => validateGameData({ ...mars, tuning: { ...mars.tuning, instruments: { ...it_, ...patch } } });
-    expect(bad({ arm: { slopeLimitDeg: mars.tuning.ground.slopeWarningDegrees } })).toContain(
+    expect(bad({ arm: { ...it_.arm!, slopeLimitDeg: mars.tuning.ground.slopeWarningDegrees } })).toContain(
       'tuning.instruments.arm.slopeLimitDeg must be below tuning.ground.slopeWarningDegrees (drivable ground the arm refuses)');
+    expect(bad({ arm: { ...it_.arm!, reachM: it_.xray.reachM - 1 } })).toContain(
+      'tuning.instruments.arm.reachM must be a finite number at least tuning.instruments.xray.reachM (the arm never shortens the reach)');
+    expect(bad({ arm: { ...it_.arm!, groundDownFactor: 0.5 } })).toContain('tuning.instruments.arm.groundDownFactor must be a finite number at least 1');
     expect(bad({ radar: { ...radarT, layers: [{ zone: 'nowhere', kind: 'floor' }] } })).toContain('tuning.instruments.radar.layers names unknown zone nowhere');
     expect(bad({ radar: { ...radarT, defaultLayer: 'basalt' } })).toContain('radar layer basalt has no text in instrumentText.radar.layers');
     expect(bad({ laser: { ...laserT, coneDeg: 90 } })).toContain('tuning.instruments.laser.coneDeg must be above 0 and below 90');

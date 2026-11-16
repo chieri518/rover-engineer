@@ -300,7 +300,8 @@ function instrumentTuningProblems(data: GameData): string[] {
 
 /**
  * The Mars instruments' tuning (Mars step 4a), where a world has it: finite numbers in range, the arm's
- * slope limit below the steep-slope warning (so the arm lesson has drivable ground to happen on), radar
+ * slope limit below the steep-slope warning (so the arm lesson has drivable ground to happen on), the arm's
+ * reach at least the X-ray's and its ground-down factor at least 1 (an upgrade, never a cost), radar
  * layers on known zones with text, and held uses charged as they run that are held uses.
  */
 function marsInstrumentProblems(data: GameData): string[] {
@@ -312,6 +313,9 @@ function marsInstrumentProblems(data: GameData): string[] {
   if (it.arm) {
     positive('arm.slopeLimitDeg', it.arm.slopeLimitDeg);
     if (!(it.arm.slopeLimitDeg < data.tuning.ground.slopeWarningDegrees)) problems.push('tuning.instruments.arm.slopeLimitDeg must be below tuning.ground.slopeWarningDegrees (drivable ground the arm refuses)');
+    // The arm is the X-ray's upgrade: it never shortens a reading's reach or lowers what a reading earns.
+    if (!(Number.isFinite(it.arm.reachM) && it.arm.reachM >= it.xray.reachM)) problems.push('tuning.instruments.arm.reachM must be a finite number at least tuning.instruments.xray.reachM (the arm never shortens the reach)');
+    if (!(Number.isFinite(it.arm.groundDownFactor) && it.arm.groundDownFactor >= 1)) problems.push('tuning.instruments.arm.groundDownFactor must be a finite number at least 1');
   }
   if (it.mast && !(Number.isFinite(it.mast.photoRangeFactor) && it.mast.photoRangeFactor >= 1)) problems.push('tuning.instruments.mast.photoRangeFactor must be at least 1');
   if (it.weather) {

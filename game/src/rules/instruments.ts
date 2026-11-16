@@ -75,8 +75,28 @@ export interface XrayTarget {
   gapM: number; // from the rover's center to the boulder's surface
 }
 
-/** The nearest boulder within `reachM` of the rover (surface distance), or null. */
-export function xrayTarget(p: Point, boulders: readonly Boulder[], t: InstrumentTuning['xray']): XrayTarget | null {
+/** True when a robotic arm is among the parts ("No arm" is not one). */
+export function hasArm(parts: readonly Part[]): boolean {
+  return parts.some((p) => p.effects.arm === true);
+}
+
+/**
+ * How far a boulder reading (the X-ray, organics) reaches, surface distance from the rover's center: the
+ * arm's reach with a robotic arm fitted on a world that offers it (tuning.instruments.arm), else the X-ray's
+ * (the world's contact reach). The arm is the X-ray's optional upgrade (game-design.md, The X-ray
+ * spectrometer and the robotic arm): without it the X-ray reads as it always has.
+ */
+export function contactReachM(armFitted: boolean, t: InstrumentTuning): number {
+  return armFitted && t.arm ? t.arm.reachM : t.xray.reachM;
+}
+
+/** Ground-down X-ray readings: a robotic arm fitted on a world whose arm tuning has a groundDownFactor above 1. */
+export function groundDownReadings(armFitted: boolean, t: InstrumentTuning): boolean {
+  return armFitted && (t.arm?.groundDownFactor ?? 1) > 1;
+}
+
+/** The nearest boulder within `reachM` of the rover (surface distance), or null (pass contactReachM's reach, or the X-ray tuning). */
+export function xrayTarget(p: Point, boulders: readonly Boulder[], t: { reachM: number }): XrayTarget | null {
   let best: XrayTarget | null = null;
   boulders.forEach((b, index) => {
     const gapM = Math.max(0, Math.hypot(p.x - b.x, p.z - b.z) - b.radius);

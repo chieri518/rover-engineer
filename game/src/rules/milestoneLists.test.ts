@@ -105,11 +105,11 @@ describe('debrief "Not reached": a missing support part (Mars M18)', () => {
   const byId = (id: string) => mars.milestones.milestones.find((m) => m.id === id)!;
 
   it('names the support part a carried instrument needs and the rover lacks, from the instrument\'s needs', () => {
-    expect(unmetSupport(byId('mars-rock-collection'), marsParts('arm-none', 'mast-none', 'instrument-xray'))).toEqual(['arm']);
     expect(unmetSupport(byId('organic-signals'), marsParts('arm-none', 'instrument-organics'))).toEqual(['arm']);
     expect(unmetSupport(byId('remote-reading'), marsParts('arm-robotic', 'mast-none', 'instrument-laser'))).toEqual(['mast']);
-    // A combo: the X-ray's arm, once.
-    expect(unmetSupport(byId('mars-documented-sample'), marsParts('arm-none', 'instrument-camera', 'instrument-xray'))).toEqual(['arm']);
+    // Since November 16 the X-ray needs no arm: its milestones, and its combo with the camera, name nothing.
+    expect(unmetSupport(byId('mars-rock-collection'), marsParts('arm-none', 'mast-none', 'instrument-xray'))).toEqual([]);
+    expect(unmetSupport(byId('mars-documented-sample'), marsParts('arm-none', 'instrument-camera', 'instrument-xray'))).toEqual([]);
   });
 
   it('nothing when the rover carries the support part, the instrument needs none, or the milestone needs no instrument', () => {

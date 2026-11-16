@@ -130,15 +130,15 @@
       "id": "arm-slope",
       "world": "mars",
       "kind": "conditions",
-      "name": "The arm cannot reach on a slope",
-      "parts": ["arm-robotic", "instrument-xray", "instrument-organics"],
+      "name": "The organics reading needs gentle ground",
+      "parts": ["arm-robotic", "instrument-organics"],
       "review": "yellow",
-      "notice": "Contact instruments ride on the arm, which must set them right against the rock. With the rover tilted on steep ground, the arm cannot place them, so the reading is refused. Park on gentler ground beside the rock, or read rocks on steep ground from a distance.",
-      "reviewText": "Conditions: the arm sets contact instruments against a rock only when the rover stands on gentle ground; on a steep slope the reading is refused. Park on level ground beside the target, or read rocks on steep ground from a distance with the laser spectrometer.",
-      "debrief": "The X-ray and organics spectrometers ride on the arm and must sit right against the rock. With the rover tilted on steep ground, the arm could not place them, so the reading was refused. On gentler ground beside the same rock, the reading works.",
+      "notice": "The organics spectrometer rides on the arm, which must hold it right against the rock for the whole long reading. With the rover tilted on steep ground, the arm cannot place it, so the reading is refused. Park on gentler ground near the rock: the arm reaches a few meters.",
+      "reviewText": "Conditions: the arm holds the organics spectrometer against a rock only when the rover stands on gentle ground; on a steep slope the reading is refused. Park on level ground beside the target, or on level ground within the arm's reach of it.",
+      "debrief": "The organics spectrometer rides on the arm and must sit right against the rock. With the rover tilted on steep ground, the arm could not place it, so the reading was refused. On gentler ground beside the same rock, or within the arm's reach of it, the reading works.",
       "answers": [
         "Park on level ground beside the target before reading it.",
-        "Carry the laser spectrometer on the mast: it reads rocks from a few meters away, without the arm."
+        "Use the arm's reach: park on level ground a few meters from a rock on a slope and read it from there."
       ],
       "fact": "NASA's Perseverance rover carries its PIXL and SHERLOC instruments on the turret at the end of its robotic arm. PIXL is placed close to its target rock only after the team judges the placement safe.",
       "source": "NASA Science, Perseverance science instruments (science.nasa.gov/mission/mars-2020-perseverance/science-instruments)"

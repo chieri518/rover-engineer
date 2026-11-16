@@ -402,8 +402,10 @@ export interface MarsTextSections {
   /**
    * Support hardware on the desk (Mars M5, ui/supportText.ts): `needs` on an instrument's card and its
    * refusal ({support}), `missing` in the warnings ({part}, {support}), and each support part's name.
+   * The arm as the X-ray's upgrade: `xrayWithArm` on the X-ray's card and `armAdds` on the arm's ({reach}),
+   * `groundDown` on the first ground-down X-ray reading and `groundDownReward` after a raised reward ({percent}).
    */
-  support: Record<'needs' | 'missing' | SupportSlot, string>;
+  support: Record<'needs' | 'missing' | SupportSlot, string> & Partial<Record<'xrayWithArm' | 'armAdds' | 'groundDown' | 'groundDownReward', string>>;
 }
 
 export interface MarsCampaignText {
