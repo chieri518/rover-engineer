@@ -323,7 +323,7 @@ function marsInstrumentProblems(data: GameData): string[] {
     for (const key of ['columnM', 'turnBreakDeg', 'stopBreakSeconds', 'columns'] as const) positive(`radar.${key}`, r[key]);
     const names = data.text.instrumentText?.radar?.layers;
     for (const l of r.layers) {
-      if (!(ZONE_IDS as readonly string[]).includes(l.zone)) problems.push(`tuning.instruments.radar.layers names unknown zone ${l.zone}`);
+      if (!worldZoneIds(data).includes(l.zone)) problems.push(`tuning.instruments.radar.layers names unknown zone ${l.zone}`);
     }
     for (const kind of new Set([r.defaultLayer, ...r.layers.map((l) => l.kind)])) {
       if (!names?.[kind]) problems.push(`radar layer ${kind} has no text in instrumentText.radar.layers`);

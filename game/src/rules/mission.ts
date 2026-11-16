@@ -118,7 +118,7 @@ export interface MissionState {
    * An instrument use the rover holds still for (paused while powered down). chargePerSecond: a use charged
    * as it runs (tuning.instruments.chargedWhileHeld), energy per second of the hold; absent: paid at the start.
    */
-  using: { instrument: Instrument; secondsLeft: number; site: UseSite; chargePerSecond?: number } | null;
+  using: { instrument: Instrument; secondsLeft: number; totalSeconds?: number /* the hold's length when it differs from useSeconds (cold, shadow) */; site: UseSite; chargePerSecond?: number } | null;
   deployed: Instrument[]; // stations set down on the ground, in the order deployed (they left the rover)
   impactCooldown: number;
   tiltSeconds: number; // how long the rover has been tilted past the rollover limit
@@ -551,10 +551,11 @@ export function startInstrumentUse(
     boulder: sample.boulder ?? null, inDarkCrater: sample.inDarkCrater ?? false, slowedByCold, fasterInShadow,
     ...(remote && sample.remoteTarget ? { target: sample.remoteTarget } : {}),
   };
-  // A use charged as it runs pays energyPerUse / useSeconds per second of its hold (stepMission), nothing now;
-  // it starts only when the battery holds the whole reading's energy, as any use.
-  const chargePerSecond = held && c.useSeconds > 0 && t.instruments.chargedWhileHeld?.includes(instrument) ? cost / c.useSeconds : 0;
-  const using = held ? { instrument, secondsLeft: holdSeconds, site, ...(chargePerSecond > 0 ? { chargePerSecond } : {}) } : s.using;
+  // A use charged as it runs pays energyPerUse spread over its actual hold (stepMission), nothing now, so a
+  // hold slowed by the cold or sped up in shadow still costs energyPerUse in all; it starts only when the
+  // battery holds the whole reading's energy, as any use.
+  const chargePerSecond = held && holdSeconds > 0 && t.instruments.chargedWhileHeld?.includes(instrument) ? cost / holdSeconds : 0;
+  const using = held ? { instrument, secondsLeft: holdSeconds, ...(holdSeconds !== c.useSeconds ? { totalSeconds: holdSeconds } : {}), site, ...(chargePerSecond > 0 ? { chargePerSecond } : {}) } : s.using;
   const state: MissionState = { ...s, energy: s.energy - (chargePerSecond > 0 ? 0 : cost), using };
   return { ok: true, state, holdSeconds, slowedByCold, fasterInShadow, cost };
 }

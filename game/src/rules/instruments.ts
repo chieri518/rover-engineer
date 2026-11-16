@@ -457,7 +457,7 @@ export function radarTrack(prev: RadarTrack, s: RadarSample, t: RadarTuning): Ra
   let next: RadarTrack = { ...prev, stillSeconds: 0 };
   if (next.columnHeadingDeg === null) next.columnHeadingDeg = s.headingDeg;
   else if (headingChangeDeg(s.headingDeg, next.columnHeadingDeg) > t.turnBreakDeg) next = { ...next, ...broken, columnHeadingDeg: s.headingDeg };
-  const d = Math.max(0, s.distanceM);
+  const d = Number.isFinite(s.distanceM) ? Math.max(0, s.distanceM) : 0;
   next.profileM += d;
   next.carryM += d;
   if (next.carryM >= t.columnM) {

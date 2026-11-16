@@ -893,7 +893,7 @@ export const missionScreen: Screen = (game, root) => {
     }) : null);
     const hold = state.using;
     if (!ended && hold?.chargePerSecond) {
-      const total = costOf(hold.instrument)?.useSeconds ?? hold.secondsLeft;
+      const total = hold.totalSeconds ?? costOf(hold.instrument)?.useSeconds ?? hold.secondsLeft;
       hud.setProgress(total > 0 ? 1 - hold.secondsLeft / total : 1, itx[hold.instrument].holding ?? partOf(hold.instrument).name);
     } else hud.setProgress(null);
     if (earthInSky && ctx && roverPos && frame % EARTH_CHECK_EVERY_FRAMES === 0) {
