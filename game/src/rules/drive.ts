@@ -15,6 +15,7 @@ export interface DriveStats extends RoverParams {
   energyPerMeter: number; // drive energy per meter on flat ground, after the mass penalty
   batteryCapacity: number;
   energyIncome: number; // energy per second in full sun
+  constantPower: number; // energy per second regardless of the Sun (PartEffects.constantPower)
 }
 
 /** Share of the base speed left after the mass penalty: 1 at or below the reference mass, never below the floor. */
@@ -51,7 +52,7 @@ export function roverParams(parts: Part[], tuning: Tuning): RoverParams {
 
 export function driveStats(parts: Part[], tuning: Tuning): DriveStats {
   const params = roverParams(parts, tuning);
-  const effect = (key: 'energyPerMeter' | 'batteryCapacity' | 'energyIncome') =>
+  const effect = (key: 'energyPerMeter' | 'batteryCapacity' | 'energyIncome' | 'constantPower') =>
     parts.reduce((sum, p) => sum + (p.effects[key] ?? 0), 0);
   return {
     ...params,
@@ -59,5 +60,6 @@ export function driveStats(parts: Part[], tuning: Tuning): DriveStats {
     energyPerMeter: effect('energyPerMeter') * massEnergyFactor(params.massKg, tuning.mass),
     batteryCapacity: effect('batteryCapacity'),
     energyIncome: effect('energyIncome'),
+    constantPower: effect('constantPower'),
   };
 }

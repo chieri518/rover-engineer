@@ -92,15 +92,17 @@ export interface TitanTerrainFeatures {
 
 /** Sleeping fast-forwards the clock at night (design: 4x). */
 export interface TitanSleepTuning {
-  nightClockRate: number; // mission clock rate while asleep at night (1 = normal)
+  nightClockRate: number; // mission clock rate while asleep at night (1 = normal); drains and cooling follow mission time
 }
 
 // ---------------------------------------------------------------------------------------------------
-// Power. Owner: rules (T3). Solar panels earn almost nothing; a constant-power part effect is supported
-// by the rules, but no part uses it (Owner A).
+// Power. Owner: rules (T3). Solar panels earn almost nothing; a constant-power part effect
+// (PartEffects.constantPower, waste heat through the part's own `heat`) is supported by the rules on every
+// world, but no part uses it (Owner A). The drains are tuning.night (NightTuning): on Titan the awake
+// drain (electronics) applies by day as well, because there is no solar to cover it.
 
 export interface TitanPowerTuning {
-  solarFactor: number; // multiplier on the Moon panel rate by day (effectively zero)
+  solarFactor: number; // multiplier on the Moon panel rate by day (effectively zero); nothing at night
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -108,9 +110,11 @@ export interface TitanPowerTuning {
 // while driving) slow freezing; asleep only the heater does.
 
 export interface TitanColdTuning {
-  freezeRatePerSecond: number; // base freeze rate everywhere, all mission, without heat
-  awakeHeat: number; // heat units from the electronics while awake (heaterReductionPerHeat from tuning.cold applies)
+  freezeRatePerSecond: number; // base freeze rate everywhere, all mission, without heat (the rainstorm multiplies it)
+  awakeHeat: number; // heat units from the electronics while awake
   drivingHeat: number; // extra heat units while driving
+  /** Freeze rate removed per heat unit on Titan (heater, awake, driving). Default: tuning.cold.heaterReductionPerHeat (the Moon's 1.5). */
+  heaterReductionPerHeat?: number;
 }
 
 // ---------------------------------------------------------------------------------------------------
@@ -122,9 +126,9 @@ export interface RainstormSpec {
   warningSeconds: number; // forecast lead time
   durationSeconds: number;
   rampSeconds: number;
-  freezeFactor: number; // freeze rate multiplier during the storm (> 1: colder)
-  visibilityFactor: number; // view distance multiplier at full strength (rendering, T2/T6)
-  blocksPhotos: boolean; // photos do not count during the storm
+  freezeFactor: number; // multiplier on the base freeze rate at full strength (> 1: colder)
+  blocksPhotos: boolean; // photos do not count while the rain falls (start to end, ramps included)
+  // Rain visibility is the renderer's (tuning.look.fog with scene.setStorm(intensity)); no visibility factor here.
   source: string;
 }
 

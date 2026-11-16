@@ -27,39 +27,40 @@
     "zones": []
   },
   "sol": {
-    "_placeholder": "Rules (T3) decide whether Titan reuses the sol clock (rules/sol.ts). Decided design: one day of 900 s, 450 s day then 450 s night, the mission starts 150 s after sunrise and ends 150 s after the next dawn. solarLongitudeDeg: Saturn's season at the site in 2034 (northern winter, to fact-check, R).",
+    "_note": "Rules (T3): Titan reuses the Mars sol clock (rules/sol.ts) with one sol of 900 s: 450 s day then 450 s night, the mission starts 150 s after sunrise (the Sun about 51 deg up) and ends 150 s after the next dawn. The Sun follows real local solar time at the site with Titan's obliquity (Saturn's 26.73 deg, rules/titan.ts titanSunAt). solarLongitudeDeg 309: late 2034, just after the northern winter solstice (research 09, our analysis, unverified), so the Sun is about 20.4 deg S and the noon Sun about 65 deg up toward the south. The season does not move in one Titan day. horizonRateShare 1: the Sun moves at a uniform rate (0 to 10 deg of elevation takes about 27 s).",
     "sols": 1,
     "secondsPerSol": 900,
     "daySeconds": 450,
     "nightSeconds": 450,
-    "solarLongitudeDeg": 300,
+    "solarLongitudeDeg": 309,
     "solarLongitudeDegPerSol": 0,
     "horizonRateShare": 1,
     "startSecondsIntoDay": 150
   },
   "night": {
-    "_placeholder": "Rules (T3) tune against the Moon batteries (400, 600) in titanEnergy.test.ts. The Mars night rules: lights on to drive, awake without lights, or sleep. freezeRatePerSecond and warmRecoveryPerSecond are unused on Titan (the cold is titanCold).",
-    "lightsDrainPerSecond": 1,
-    "awakeDrainPerSecond": 0.5,
-    "sleepDrainPerSecond": 0.15,
+    "_placeholder": "Rules (T3), placeholders tuned against the Moon batteries (400, 600) in rules/titanEnergy.test.ts. The Mars night rules (lights on to drive, awake without lights, or sleep), but on Titan the awake drain (electronics) applies day and night, because there is no solar to cover it. Per second, on top of driving: awake 0.2 (60 over the day), lights on at night 0.6 (a parked lights-on night costs 270), asleep 0.05 (a slept night costs 22.5). freezeRatePerSecond and warmRecoveryPerSecond are unused on Titan (the cold is titanCold); fullSunElevationDeg is unused (titanPower).",
+    "lightsDrainPerSecond": 0.6,
+    "awakeDrainPerSecond": 0.2,
+    "sleepDrainPerSecond": 0.05,
     "driveWithoutLights": false,
     "freezeRatePerSecond": 0,
     "warmRecoveryPerSecond": 0,
     "fullSunElevationDeg": 0
   },
   "sleep": {
-    "_placeholder": "Rules (T3). Proposed design: asleep at night, the clock runs 4x faster.",
+    "_placeholder": "Rules (T3). Asleep at night the mission clock runs nightClockRate times faster (rules/titan.ts titanMissionDelta), so a slept night of 450 s passes in under 2 minutes; drains and cooling follow mission time. The rover wakes at dawn.",
     "nightClockRate": 4
   },
   "titanPower": {
-    "_placeholder": "Rules (T3). Solar income = the Moon panel rate x solarFactor by day (effectively zero).",
+    "_placeholder": "Rules (T3). Solar income = the Moon panel rate x solarFactor by day, nothing at night (a fixed panel earns about 0.3 over the whole day).",
     "solarFactor": 0.001
   },
   "titanCold": {
-    "_placeholder": "Rules (T3). Always-on cold: base freeze rate everywhere; the heater (tuning.cold.heaterReductionPerHeat x heat) and the electronics while awake (awakeHeat, plus drivingHeat while driving) slow it; asleep only the heater does.",
-    "freezeRatePerSecond": 0.2,
-    "awakeHeat": 0.05,
-    "drivingHeat": 0.03
+    "_placeholder": "Rules (T3), placeholders checked by rules/titanEnergy.test.ts. Freeze meter per second = freezeRatePerSecond (x the rain's freezeFactor) - heaterReductionPerHeat x heat, where heat = the parts' heat (radioisotope heater 2) + awakeHeat while awake + drivingHeat while driving; asleep only the parts count. Negative = recovering. heaterReductionPerHeat 0.1 replaces the Moon's 1.5 on Titan, so the heater is half the fight, not all of it. No heater: asleep +0.36 (frozen 278 s into the night), awake +0.16 (frozen 625 s from a warm start), driving +0.01. Heater: asleep +0.16 (72 by dawn, about 81 if the rain falls at night), awake -0.04, driving -0.19.",
+    "freezeRatePerSecond": 0.36,
+    "awakeHeat": 2,
+    "drivingHeat": 1.5,
+    "heaterReductionPerHeat": 0.1
   },
   "look": {
     "_note": "T2 sky and light (rendering: world/titanLook.ts, world/titanSky.ts). Presentation values, not game rules; tuned with screenshots. Readability over realism: real Titan daylight is about a thousandth of Earth's, so a capped eye adaptation keeps the day a dim but legible orange; night is near black and the floodlights light the ground. Light is mostly diffuse (weak, soft rover shadows); the haze limits visibility (fog); rain (scene.setStorm) thickens it and darkens the scene.",
