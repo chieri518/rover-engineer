@@ -13,7 +13,7 @@ import jezero from '../public/terrain/mars/terrain.json';
 import titanTuning from '../data/titan/tuning.json';
 import titanText from '../data/titan/text.json';
 import marsMilestones from '../data/mars/milestones.json';
-import titanPlaceholder from '../public/terrain/titan-placeholder/terrain.json';
+import titanTerrain from '../public/terrain/titan/terrain.json';
 
 /** Paths of every key (objects only) that does not start with _, e.g. "mission.gravity". */
 function keyPaths(o: unknown, prefix = ''): string[] {
@@ -28,6 +28,7 @@ describe('worlds', () => {
   it('registers the Moon, Mars and Titan; the Moon terrain stays at terrain/', () => {
     expect(WORLDS.moon.terrainBase).toBe('terrain/');
     expect(WORLDS.mars.terrainBase).toBe(MARS_TERRAIN_BASE);
+    expect(TITAN_TERRAIN_BASE).toBe('terrain/titan/');
     expect(WORLDS.titan).toEqual({ id: 'titan', terrainBase: TITAN_TERRAIN_BASE, sky: 'titan', earthInSky: false });
     expect(isWorldId('mars')).toBe(true);
     expect(isWorldId('titan')).toBe(true);
@@ -160,9 +161,9 @@ describe('Titan data', () => {
   });
 });
 
-describe('Titan terrain (placeholder)', () => {
+describe('Titan terrain', () => {
   it('has the agreed terrain.json feature schema', () => {
-    const f: TitanTerrainFeatures = titanPlaceholder.features as unknown as TitanTerrainFeatures;
+    const f: TitanTerrainFeatures = titanTerrain.features as unknown as TitanTerrainFeatures;
     expect(f.duneCrests.lines.length).toBeGreaterThan(1);
     for (const l of f.duneCrests.lines) expect(l.crestLocal_xz.length).toBeGreaterThan(1);
     expect(f.interdunes.corridors.length).toBeGreaterThan(1);
@@ -174,9 +175,9 @@ describe('Titan terrain (placeholder)', () => {
     expect(f.crossingRoute.pathLocal_xz.length).toBeGreaterThan(1);
     expect(f.crossingRoute.crestPoint.name).toBeTruthy();
     expect(f.selk.diameter_km).toBeGreaterThan(0);
-    expect(titanPlaceholder.playArea.samples).toBe(1601);
-    expect(titanPlaceholder.playArea.files.softGround.file).toBe('soft-ground.png');
-    expect(titanPlaceholder.distantTerrain).toHaveLength(2);
-    expect('coldMask' in titanPlaceholder.playArea.files).toBe(false);
+    expect(titanTerrain.playArea.samples).toBe(1601);
+    expect(titanTerrain.playArea.files.softGround.file).toBe('soft-ground.png');
+    expect(titanTerrain.distantTerrain).toHaveLength(2);
+    expect('coldMask' in titanTerrain.playArea.files).toBe(false);
   });
 });

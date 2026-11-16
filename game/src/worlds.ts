@@ -22,10 +22,10 @@ export interface WorldDef {
 export const MARS_TERRAIN_BASE = 'terrain/mars/';
 
 /**
- * Where the Titan terrain is loaded from. The placeholder in terrain/titan-placeholder/ (scripts/make-titan-placeholder.mjs)
- * has the agreed file names and terrain.json shape; integration (T6) switches this to 'terrain/titan/' (the pipeline's output).
+ * Where the Titan terrain is loaded from: the Shangri-La dunes from the pipeline (tools/build_terrain_titan.py), modeled on
+ * Cassini data. The placeholder in terrain/titan-placeholder/ (scripts/make-titan-placeholder.mjs) has the same file names and shape.
  */
-export const TITAN_TERRAIN_BASE = 'terrain/titan-placeholder/';
+export const TITAN_TERRAIN_BASE = 'terrain/titan/';
 
 export const WORLDS: Record<WorldId, WorldDef> = {
   moon: { id: 'moon', terrainBase: 'terrain/', sky: 'moon', earthInSky: true },
