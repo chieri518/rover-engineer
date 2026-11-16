@@ -361,6 +361,8 @@ Additions to `terrain.json` `features` (and route measurements). No new image la
 
 **Done when:** the model and browser agree within about 50 per run, the empty bay fails, every archetype passes by at least 50, and game-design.md has the result tables.
 
+**Status (November 15, 2026): done, tuned by hand instead.** The user dropped the balance model mid-phase: `winPaths.ts`, its tests and `balance.json` are deleted, and rewards are tuned by hand (Rock collection 40 → 60; the rest at their starting values), so that several builds win and move on to Mars and idling or an empty bay loses. A ten-run browser autopilot check informed the values; two sanity runs confirmed a win and an idle loss. Decided simply: the low-energy switch-off now pauses a transect (rule change), a drill sample at Rim viewpoint 1 also earns Fresh ejecta, and NW crater is visible at the start. Values, estimates and browser lessons are in [Balance with the Moon sites and milestones](game-design.md#balance-with-the-moon-sites-and-milestones). Balance is tuned over time in later patches.
+
 ### Phase 7: Playtest and docs
 
 - Extend `rover-engineering-playtest-checklist.md`: each new milestone, each site, each lesson met through a new site, a restart (map and records reset, notebook kept).
