@@ -12,7 +12,7 @@ Written November 15, 2026, against `aon/moon-milestones` (at `7ddec31`). Game ru
 - design changes go into game-design.md before code;
 - nobody hand-edits `game/tools/` or `game/public/terrain/`.
 
-**Status: Phase 0 done (November 15, 2026)**, except Chieri's review of the placements and the other Owner B items ([list in the Mars plan](mars-rover-engineering-implementation-plan.md#items-for-chieris-review)). The Mars ticket tiers were approved by the user as drafted on November 15 ([Decided under M12](mars-rover-engineering-implementation-plan.md#mars-ticket-tiers-m12-decided)). game-design.md `d596eba` and rover-engineering-design.md `2bf2e0a` record this plan; game-design.md is now the source of truth for it. Earlier status: everything here was *Proposed* until Phase 0, except the open questions MS1 to MS15 ([§7](#7-open-questions)) and the Mars plan's M11 to M19, which are decided and applied below (see [What this plan depends on](#what-this-plan-depends-on)). **Owner B owns level layout and milestone placement** ([team-plan.md](team-plan.md)), so every placement here is a proposal to Owner B. [Changes to the built Mars world](#changes-to-the-built-mars-world) lists what this plan would change in the Mars world Owner B has built. Coordinates come from a quick offline scan of the game's own Mars layers ([How placement uses the terrain layers](#how-placement-uses-the-terrain-layers)), and the pipeline confirms them. Rewards are starting values; a future balance patch sets the final ones (MS1), and balance is by hand estimates and browser playtests (MS13).
+**Status: all phases built (Mars steps 1 to 8, November 15 and 16, 2026)** on `aon/mars-engineering`; commits in the [combined phase order](mars-rover-engineering-implementation-plan.md#combined-phase-order-both-mars-plans). Still waiting: Chieri's review of the placements and triggers (B3 to B7, built and provisional), a run of the [Mars playtest checklist](mars-playtest-checklist.md), and the balance patch (MS1). **Phase 0 done (November 15, 2026)**, except Chieri's review of the placements and the other Owner B items ([list in the Mars plan](mars-rover-engineering-implementation-plan.md#items-for-chieris-review)). The Mars ticket tiers were approved by the user as drafted on November 15 ([Decided under M12](mars-rover-engineering-implementation-plan.md#mars-ticket-tiers-m12-decided)). game-design.md `d596eba` and rover-engineering-design.md `2bf2e0a` record this plan; game-design.md is now the source of truth for it. Earlier status: everything here was *Proposed* until Phase 0, except the open questions MS1 to MS15 ([§7](#7-open-questions)) and the Mars plan's M11 to M19, which are decided and applied below (see [What this plan depends on](#what-this-plan-depends-on)). **Owner B owns level layout and milestone placement** ([team-plan.md](team-plan.md)), so every placement here is a proposal to Owner B. [Changes to the built Mars world](#changes-to-the-built-mars-world) lists what this plan would change in the Mars world Owner B has built. Coordinates come from a quick offline scan of the game's own Mars layers ([How placement uses the terrain layers](#how-placement-uses-the-terrain-layers)), and the pipeline confirms them. Rewards are starting values; a future balance patch sets the final ones (MS1), and balance is by hand estimates and browser playtests (MS13).
 
 Quick navigation: [Goals](#1-goals-and-principles) · [Sites](#2-sites-and-areas-of-interest) · [Milestones](#3-milestones) · [Balance](#4-balance) · [Rock types](#5-rock-types) · [Phases](#6-implementation-phases) · [Open questions](#7-open-questions) · [Sources](#sources-and-what-is-not-verified)
 
@@ -466,6 +466,8 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 
 **Done when:** `terrain.json` has the new feature lists, the candidates in [§2](#where-they-go-three-clusters) are confirmed or replaced, and the legs exist.
 
+**Status: MP1 to MP4 and MP6 done** in combined step 1b (`game/tools/mars_sites.py`; see B5). MP5 was not built: step 7 balanced by hand from straight-line distances, so no legs exist.
+
 ### Phase 2: Data and types
 
 - `rules/marsTypes.ts`: `MarsZoneId` gains `delta-foot`. Plus feature types for MP1 to MP4, Mars rock ids, and a `SitesFile` overlay for Mars (the Moon's type).
@@ -476,6 +478,8 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 **Parallel:** with Phase 1. Must land before Phase 3. Needs the Mars plan's Phase 1 (catalog per world) so instrument ids validate.
 
 **Done when:** Mars data loads and validates, and the game runs with the new milestones present but not yet firing.
+
+**Status (November 15, 2026): done in combined step 4b** (`74c6498`, `6b34545`; decisions `bccf3c1`).
 
 ### Phase 3: Pure rules with tests
 
@@ -494,6 +498,8 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 
 **Done when:** `npm test` covers every new Mars milestone with a firing and a non-firing case, and every Moon test passes unchanged.
 
+**Status (November 15, 2026): done in combined step 5**: 5a triggers and zones (`4a473bd`), 5b the hydrogen meter and rock suites (`9f8c6cd`), 5c boulders and survey (`89ed980`); decisions `b24cb8d`.
+
 ### Phase 4: World and site placement
 
 - Boulders at the new sites, with the flood boulder larger (`world/boulders.ts`).
@@ -508,6 +514,8 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 
 **Done when:** in the browser every new site is where `terrain.json` says, slope-target boulders sit on ground the arm refuses with level ground beside them, and the hydrated ground can be found with the meter.
 
+**Status (November 15, 2026): done in combined steps 6a and 6b** (`61d9a86`, `4d0e10b`; review fixes `b389521`: contact reach 4.5 m on Mars, so the flood boulder reads from its spot).
+
 ### Phase 5: HUD, minimap and debrief
 
 - Minimap: young crater rings, the delta foot stretch, the flood boulder icon, "Hydrated ground" after it is found, site check marks, the fourth lead, legend entries.
@@ -520,6 +528,8 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 
 **Done when:** a first-time player can find and earn each new milestone from the map and the notices alone, and no Mars text fails the [guard](#milestones-and-the-relationship-lessons). A grep test checks each lesson's key words in the new texts.
 
+**Status (November 15, 2026): done in combined steps 6c and 6d** (`7009a17`, `0aabb8b`; decisions `d6e052f`), with lead arrows and distances, the nearest lead first, and a "Where" line on each Mars instrument card (the generous rule). Mars step 8 added the Mars credits (`b961641`). Whether a first-time player finds each site from the map and notices alone waits for the checklist run.
+
 ### Phase 6: Balance and browser check
 
 - *Decided ([MS13](#7-open-questions)):* no Mars `winPaths` model. Balance by hand estimates and browser playtests, with a Mars energy-and-route check built on `marsNight.test.ts` and the MP5 legs.
@@ -528,10 +538,14 @@ These are requests to `game/tools/build_terrain_mars.py`, as additions to Mars `
 
 **Done when:** the hand estimates and the browser autopilot runs agree within about 50 per run, and game-design.md has the result tables.
 
+**Status (November 15, 2026): done in combined step 7 by hand** (`6cb831d`, browser run `1bc811a`): [Generous pass on Mars](game-design.md#generous-pass-on-mars-mars-step-7-november-15-2026). One browser run (the camera and drill build from B = 800) matched its estimate; the other rows are estimates, to be checked in the playtest checklist.
+
 ### Phase 7: Playtest and docs
 
 - A Mars playtest checklist (the Mars plan's Phase 7) covers each new milestone, each site, the arm lesson at Rocky area 2, and a restart.
 - game-design.md marks each piece built.
+
+**Status (November 16, 2026): done in combined step 8**, except running the checklist: the [Mars playtest checklist](mars-playtest-checklist.md) (`e7dd5c9`) covers each new milestone (with the step 6b reach log), each site, the four lessons (the arm lesson at the knobs, East crater's rim and the slope-target boulders), the instruments and their refusals, the desk, builds that should win or lose, the Moon, and a restart; game-design.md marks the Mars pieces built. Also in step 8: the Mars tutorial (`6fd4fb1`) and how-to lines for the eight carried-over milestones (`a3f4b0f`).
 
 **Shipping:** Phases 2 to 5 ship with the Mars plan's Phases 4 to 6 (new instruments arrive with their milestones), and Phase 6 must finish before the merge to `main`.
 

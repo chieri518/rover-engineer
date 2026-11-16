@@ -6,7 +6,7 @@ Decisions recorded November 15, 2026.
 
 Written November 15, 2026, against `aon/merge-everything` (the merge of `chieri/mars`, `chieri/minimap` and `aon/engineer-desk`). The rules of [the first-version plan](implementation-plan.md) still apply: game numbers in `game/data/*.json`, pure rules in `game/src/rules/` with unit tests, `npm test` and `npm run build` passing before each commit.
 
-**Status: Phase 0 done (November 15, 2026)**, except Chieri's review. The Mars ticket tiers, drafted under [M12](#mars-ticket-tiers-m12-decided), were approved by the user as drafted (November 15); what still waits is Chieri's review of the [Owner B items](#items-for-chieris-review). game-design.md `d596eba` and rover-engineering-design.md `2bf2e0a` record the plan; where the text below says *Proposed*, game-design.md is now the source of truth. Earlier status: everything was *Proposed* until Phase 0, except M11 to M19, which are decided (see [Decisions needed](#decisions-needed)) and applied through the doc. The Mars part catalog, unlock tree, ticket tiers and economy are Owner A's (game-design.md open questions 3 and 8); the night, cold, dust and events are Owner B's ([The Mars mission](game-design.md#the-mars-mission)). Items that cross the line are marked **interface**. Numbers are **indicative**: they show the scale against today's parts and are settled in the balance phase; like the Moon's (Moon plan M1), they can be revisited in a later balance patch.
+**Status: all phases built (Mars steps 1 to 8, November 15 and 16, 2026)** on `aon/mars-engineering`, with commits in [Combined phase order](#combined-phase-order-both-mars-plans). Still waiting: Chieri's review of the [Owner B items](#items-for-chieris-review) (B1 to B13, all built and provisional), a run of the [Mars playtest checklist](mars-playtest-checklist.md), the balance patch (M13, MS1), and the extended night-energy check (Phase 7, below). **Phase 0 done (November 15, 2026)**, except Chieri's review. The Mars ticket tiers, drafted under [M12](#mars-ticket-tiers-m12-decided), were approved by the user as drafted (November 15); what still waits is Chieri's review of the [Owner B items](#items-for-chieris-review). game-design.md `d596eba` and rover-engineering-design.md `2bf2e0a` record the plan; where the text below says *Proposed*, game-design.md is now the source of truth. Earlier status: everything was *Proposed* until Phase 0, except M11 to M19, which are decided (see [Decisions needed](#decisions-needed)) and applied through the doc. The Mars part catalog, unlock tree, ticket tiers and economy are Owner A's (game-design.md open questions 3 and 8); the night, cold, dust and events are Owner B's ([The Mars mission](game-design.md#the-mars-mission)). Items that cross the line are marked **interface**. Numbers are **indicative**: they show the scale against today's parts and are settled in the balance phase; like the Moon's (Moon plan M1), they can be revisited in a later balance patch.
 
 **Revised November 15, 2026**, applying what we learned planning the Moon's sites and milestones ([Moon plan](moon-sites-and-milestones-plan.md)). Changed sections are marked *Revised*:
 
@@ -445,23 +445,23 @@ Small details settled while writing Phase 0 down are marked "decided in Phase 0"
 
 #### Items for Chieri's review
 
-The user decided we build Owner B's items ourselves; each is marked "provisional, for Chieri's review" in game-design.md.
+The user decided we build Owner B's items ourselves; each is marked "provisional, for Chieri's review" in game-design.md. All thirteen are now built (or done, for the text-only B8); what is open in each is in its row.
 
-| # | Item | Where it is recorded | Builds in |
+| # | Item | Where it is recorded | Status (November 16, after Mars step 8) |
 | --- | --- | --- | --- |
-| B1 | Dust on the panels: 3% per sol times each part's `dustRate`, three times faster in the storm, the HUD's dust factor, the dust lesson at 15% | game-design.md, Dust and events | Phase 5. *Pure rules built in combined step 1c (`rules/dust.ts`, `c1f6404`), with a 0.25 floor; energy wiring built in step 2 (`1a1979f`); the HUD's dust factor waits for step 6c* |
-| B2 | Dust devils: about one every 3 sols (MS8), cleaning within 50 m, a moving column to photograph and record | Dust and events | Phase 5. *Schedule and pass rules built in step 1c (`c1f6404`); scheduling, placement at the rover and cleaning wired in step 2 (`1a1979f`, `86d3dcf`); the column, the notice and the photo wait for step 6; open: devils in the storm, driving to a devil* |
-| B3 | Mars hydrogen (M3): the neutron spectrometer stays on Mars; the hidden hydrated ground near (780, 420) with a 25 m core; Séítah and the delta foot at 15%; the 10% floor; the RTG's raised floor and jitter | New Mars milestones | Sites plan Phases 2 to 4 |
-| B4 | Site placement: the three clusters, the new site kinds, East crater and the fourth lead (MS6), the flood boulder (MS3), slope targets, boulder counts at the new sites, the Mars `sites.json` overlay, rock suites by site | New sites and areas of interest; Mars rock types | Sites plan Phases 2 and 4 |
-| B5 | Mars terrain pipeline requests MP1 to MP6 to `build_terrain_mars.py` | Sites plan Phase 1 | Sites plan Phase 1. *MP1 to MP4 and MP6 built in step 1b (`mars_sites.py`, `e532e07`, `6949397`, `e3e0003`); MP5 waits for the hydrated ground. Open: a second fresh crater (NE); "blocky rim" wording; sample names not fact-checked* |
-| B6 | Triggers and placement of the 20 new milestones, including Sand crossing's rule and Clean run on Mars (MS7) | New Mars milestones | Sites plan Phases 2 and 3 |
-| B7 | Changes to the built milestones: Blue sunset 70 → 100; Signs of an ancient lake on the 50 m `delta-foot` zone (MS5); Night drive's heater requirement met by any heat (M17); Core sample's fact (Wildcat Ridge moves); Night drive's −83 °C source; Rocky area 2 re-measured | New Mars milestones | Sites plan Phase 2. *M17 (heater met by any heat) built in step 2, in `rules/rover.ts` `meetsRequirements`* |
-| B8 | Fact corrections in the built Dust and events table: the 2018 storm "in about a week", not "in 10 days"; no percentage for Spirit's cleaning | Dust and events | Text, Phase 5 |
-| B9 | The weather mast moves the storm forecast 30 s earlier | Mars rover design | Phase 4 |
-| B10 | The night drain moves onto parts: `night.lightsDrainPerSecond` goes away and the LED carries `lightsDraw` 3/s (same numbers; interface, M1) | How the Mars rules work | Phase 2. *Built in step 2 (`1a1979f`); `marsNight.test.ts` unchanged* |
-| B11 | The electric heater (heat 3, only while its 1.2/s draw is paid) and the RTG's heat 2, against the 8/s freeze rate (interface) | Cold at night; Mars rover design | Phases 2 and 3. *Rules built in step 2 (`heaterDraw`, `steadyIncome`, `heatNow`, tested with fixture parts); the parts built in step 3 (`heater-electric` heat 3 / 1.2/s at 25 / 2 kg / 1; `power-rtg` heat 2 / 0.6/s at 200 / 15 kg / 5), with a two-sol real-parts run in `marsCatalog.test.ts`; the held-use cold slowdown now reads `heatNow`* |
-| B12 | Grouser wheels' feel on Séítah's sand (grip 0.95, 2.6 m/s) | Mars rover design | Phase 3. *Built in step 3 as `wheels-grouser` (110 / 18 kg / 5, 2.6 m/s, grip 0.95, 0.22 energy/m), Mars only; the feel on Séítah is not playtested yet* |
-| B13 | The arm's 10° slope limit (MS2) against the 18° steep-slope warning | Mars rover design | Phase 4 |
+| B1 | Dust on the panels: 3% per sol times each part's `dustRate`, three times faster in the storm, the HUD's dust factor, the dust lesson at 15% | game-design.md, Dust and events | **Built, provisional.** Rules in step 1c (`c1f6404`, 0.25 floor), energy wiring in step 2 (`1a1979f`), the dust lesson in step 5d (`7fd6a62`) and the mission (`4d0e10b`), the power line's "dust −n%" in step 6c (`7009a17`). No "panels cleaned" notice (decided in step 8: the share on the power line is the signal) |
+| B2 | Dust devils: about one every 3 sols (MS8), cleaning within 50 m, a moving column to photograph and record | Dust and events | **Built, provisional.** Schedule and pass rules in step 1c (`c1f6404`), placement and cleaning in step 2 (`1a1979f`, `86d3dcf`), the column in step 6a (`61d9a86`), the Dust devil photo and the weather mast's Dust devil pass in steps 5a and 6b (`4a473bd`, `4d0e10b`). Open: devils during the storm (kept as built), driving to a devil makes the dust answer partly a plan |
+| B3 | Mars hydrogen (M3): the neutron spectrometer stays on Mars; the hidden hydrated ground near (780, 420) with a 25 m core; Séítah and the delta foot at 15%; the 10% floor; the RTG's raised floor and jitter | New Mars milestones | **Built, provisional.** Data in step 4b (`6b34545`), the meter and the RTG's noise in step 5b (`9f8c6cd`), the mission and the RTG lesson in steps 5d and 6b (`7fd6a62`, `4d0e10b`). The hydrated ground is revealed only when Hydrated ground fires |
+| B4 | Site placement: the three clusters, the new site kinds, East crater and the fourth lead (MS6), the flood boulder (MS3), slope targets, boulder counts at the new sites, the Mars `sites.json` overlay, rock suites by site | New sites and areas of interest; Mars rock types | **Built, provisional.** `sites.json` and suites in steps 4b and 5b (`6b34545`, `9f8c6cd`), boulders and survey in step 5c (`89ed980`), the world in step 6a (`61d9a86`), the minimap in step 6c (`7009a17`); step 7 added the WSW and SW craters near the landing (`6cb831d`); contact reach 4.5 m on Mars (`b389521`). Open: the NE crater (left out) |
+| B5 | Mars terrain pipeline requests MP1 to MP6 to `build_terrain_mars.py` | Sites plan Phase 1 | **MP1 to MP4 and MP6 built** in step 1b (`mars_sites.py`, `e532e07`, `6949397`, `e3e0003`). MP5 (route legs) was not needed: step 7 balanced by hand from straight-line distances. Open: the NE crater; "blocky rim" wording; sample names not fact-checked |
+| B6 | Triggers and placement of the 20 new milestones, including Sand crossing's rule and Clean run on Mars (MS7) | New Mars milestones | **Built, provisional.** Data in step 4b (`6b34545`), rules in step 5a (`4a473bd`), wired in step 6b (`4d0e10b`), rewards tuned by hand in step 7 (`6cb831d`). Sand crossing is the `zone` crossing on Séítah's outline (any exit counts); Clean run pays 0 money |
+| B7 | Changes to the built milestones: Blue sunset 70 → 100; Signs of an ancient lake on the 50 m `delta-foot` zone (MS5); Night drive's heater requirement met by any heat (M17); Core sample's fact (Wildcat Ridge moves); Night drive's −83 °C source; Rocky area 2 re-measured | New Mars milestones | **Built, provisional.** M17 in step 2; Blue sunset 100, the delta-foot zone, Core sample's crater-floor fact and Night drive's checked source in step 4b (`6b34545`, `bccf3c1`); Rocky area 2 measured old and worn, not fresh (step 1b); Core sample 100 per site in step 7; how-to lines for the eight carried-over milestones in step 8 (`a3f4b0f`) |
+| B8 | Fact corrections in the built Dust and events table: the 2018 storm "in about a week", not "in 10 days"; no percentage for Spirit's cleaning | Dust and events | **Done** in game-design.md (Phase 0) and in the data (the storm's source in `events.json`; no text gives Spirit's gain) |
+| B9 | The weather mast moves the storm forecast 30 s earlier | Mars rover design | **Built, provisional,** in step 4a (`383fec5`): after 10 s switched on and awake, up to 30 s earlier; the notice credits the mast |
+| B10 | The night drain moves onto parts: `night.lightsDrainPerSecond` goes away and the LED carries `lightsDraw` 3/s (same numbers; interface, M1) | How the Mars rules work | **Built** in step 2 (`1a1979f`); `marsNight.test.ts` unchanged |
+| B11 | The electric heater (heat 3, only while its 1.2/s draw is paid) and the RTG's heat 2, against the 8/s freeze rate (interface) | Cold at night; Mars rover design | **Built, provisional.** Rules in step 2 (`heaterDraw`, `steadyIncome`, `heatNow`), parts in step 3 (`heater-electric` heat 3 / 1.2/s at 25 / 2 kg / 1; `power-rtg` heat 2 / 0.6/s at 200 / 15 kg / 5), a two-sol real-parts run in `marsCatalog.test.ts`; the held-use cold slowdown reads `heatNow` |
+| B12 | Grouser wheels' feel on Séítah's sand (grip 0.95, 2.6 m/s) | Mars rover design | **Built, provisional,** in step 3 as `wheels-grouser` (110 / 18 kg / 5, 2.6 m/s, grip 0.95, 0.22 energy/m), Mars only; the feel on Séítah is not playtested yet (a line in the Mars playtest checklist) |
+| B13 | The arm's 10° slope limit (MS2) against the 18° steep-slope warning | Mars rover design | **Built, provisional,** in step 4a (`383fec5`); the arm lesson in step 5d (`7fd6a62`); contact reach 4.5 m on Mars (step 6 review, `b389521`). Flagged: one ESE crater slope cell reads exactly 10.0°, which the arm accepts |
 
 ### Phase 1: A catalog per world
 
@@ -516,6 +516,8 @@ All behavior in `rules/instruments.ts`; the mission screen only measures and dra
 
 **Done when:** each works in the browser on a rover that carries it, refuses clearly when it cannot be used (no arm, no mast, slope, energy), and has unit tests.
 
+**Status (November 15, 2026): done in combined step 4a** (`383fec5`, decisions `5089bf7`, review fixes `253af9e`). See game-design.md, Mars rover design, "Decided during implementation (Mars step 4a)".
+
 ### Phase 5: Dust on the panels and dust devils (Owner B)
 
 Designed in game-design.md (*Proposed* there) and listed as "next after the demo" in the Mars plan; needed here because the arrays, the mast and the RTG differ by dust.
@@ -525,6 +527,8 @@ Designed in game-design.md (*Proposed* there) and listed as "next after the demo
 - HUD: the energy income line shows the dust factor.
 
 **Done when:** a solar rover ends the mission with visibly less income than it started with, an RTG rover does not, and a dust devil can clean the panels and be photographed.
+
+**Status (November 15, 2026): done** across combined steps 1c (rules, `c1f6404`), 2 (energy, `1a1979f`, `86d3dcf`), 6a (the column, `61d9a86`), 6b (the photo and the weather mast's pass, `4d0e10b`) and 6c (the power line's dust share, `7009a17`). Provisional, for Chieri's review (B1, B2).
 
 ### Phase 6: Milestones and relationships *(Revised)*
 
@@ -537,6 +541,8 @@ Designed in game-design.md (*Proposed* there) and listed as "next after the demo
 
 **Done when:** every new milestone can be earned on purpose in the browser, each relationship can be triggered and shows its notice once, the review shows a Mars lesson only after it was met on Mars, and no Mars text fails the guard.
 
+**Status (November 15, 2026): done in combined steps 5 and 6**: 5a triggers and zones (`4a473bd`), 5d the relationships and the no-lights block (`7fd6a62`), 6b the mission wiring (`4d0e10b`), 6d the desk cards, debrief and spoiler guard (`0aabb8b`), decisions `b24cb8d` and `d6e052f`, review fixes `b389521`. The step 6b browser run earned each new milestone on purpose and met each lesson once (the reach log is in the [Mars playtest checklist](mars-playtest-checklist.md#4-the-new-milestones-earned-on-purpose)).
+
 ### Phase 7: Balance, text and playtest
 
 - A Mars energy check that covers the new parts, extending `marsNight.test.ts`. *Decided (MS13):* no Mars `winPaths` model; balance is by hand estimates and browser playtests. The check covers the cheap build, an RTG build, an arrays-and-big-battery build, and an organics build, each over the storm seeds.
@@ -546,6 +552,8 @@ Designed in game-design.md (*Proposed* there) and listed as "next after the demo
 - A Mars playtest checklist, as for the Moon.
 
 **Done when:** the balance targets hold in the energy check, the hand estimates and the playtests, the playtest checklist is run, and game-design.md marks each piece built.
+
+**Status (November 16, 2026): done in combined steps 7 and 8, except the extended energy check and the checklist run.** Step 7 (`6cb831d`, `1bc811a`) tuned rewards by hand ([Generous pass on Mars](game-design.md#generous-pass-on-mars-mars-step-7-november-15-2026)): several builds win from B = 800, idle and the empty bay lose. Step 8 wrote the Mars tutorial (`6fd4fb1`: a power-through-the-night page, an arm-and-mast page, drive lines for all eight instruments, a Where to go first page), the how-to lines for the eight carried-over milestones (`a3f4b0f`), the Mars credits (`b961641`: instrument facts, parts, lessons' sources, placed by design) and the [Mars playtest checklist](mars-playtest-checklist.md) (`e7dd5c9`). **Not done:** `marsNight.test.ts` still covers the cheap, big-battery and light builds only, not the RTG, arrays-and-larger-battery and organics builds this phase names (`marsCatalog.test.ts` runs two sols with real parts); and nobody has run the checklist yet.
 
 ### Shipping
 
@@ -632,6 +640,18 @@ Phase 1 can ship alone. Phases 2 and 3 ship together (the power parts are the po
 | 6d | Desk cards, debrief, notebook, text | S5, E6 (UI) | `ui/designScreen.ts`, `ui/screens.ts`, `ui/notebook.ts`, `data/mars/text.json`, `data/mars/milestones.json` (facts), the spoiler grep test | 6a, 6b, 6c | Cards list milestones; "Not reached" names a missing arm; no Mars text fails the guard |
 | 7 | Balance and browser check | E7 (energy), S6 | `rules/marsNight.test.ts`, a Mars balance data file for the MP5 legs (new), `data/mars/milestones.json` (first reward pass) | MP5 (pipeline) must land first | Autopilot runs at B = 780 and 950: idle, empty bay, each archetype |
 | 8 | Tutorial, credits, playtest checklist, docs | E7, S7 | `ui/tutorialText.ts`, `ui/creditsScreen.ts`, a Mars playtest checklist (new), game-design.md "built" marks | | The full Mars playtest checklist, and a restart |
+
+**Status (November 16, 2026): steps 1 to 8 done** on `aon/mars-engineering`:
+
+| Step | Commits |
+| --- | --- |
+| 1a, 1b, 1c, 2, 3 | See the Phase 1 to 3 status lines and B1 to B13 |
+| 4a | `383fec5`, decisions `5089bf7` |
+| 4b | `74c6498`, `6b34545`, decisions `bccf3c1`; step 4 review fixes `253af9e`; the Moon crash fix `012819e` |
+| 5a to 5d | `4a473bd`, `9f8c6cd`, `89ed980`, `7fd6a62`; decisions `b24cb8d` |
+| 6a to 6d | `61d9a86`, `4d0e10b`, `7009a17`, `0aabb8b`; decisions `d6e052f`; review fixes `b389521` |
+| 7 | `6cb831d`, browser run `1bc811a` (no MP5 legs and no Mars balance data file: balance by hand) |
+| 8 | `a3f4b0f` (how-to lines), `6fd4fb1` (tutorial), `b961641` (credits), `e7dd5c9` (playtest checklist), and the docs commit that marks the pieces built |
 
 **Sequential, and why:**
 
