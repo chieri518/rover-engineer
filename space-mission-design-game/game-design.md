@@ -790,6 +790,20 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 | Crater ejecta | Record: first discovery | Drill in the Selk ejecta field, where water and organics may have mixed | Drill |
 | Clean run | Capability: robustness | Finish without damage | None |
 
+##### How the Titan milestones work *(decided during implementation, T5)*
+
+All 11 are built. Rules in `game/src/rules/milestones.ts` and `rules/titanMilestones.ts`; triggers, rewards and facts in `game/data/titan/milestones.json`. Zones come from the Titan `terrain.json` features and are sized by the terrain, so Titan needs no milestone tuning of its own. Money and RP are placeholders (`interface`, Owner A), sized like Mars. A rover that only survives at the lander earns about 270 with the survival payout (Touchdown, Dawn, Storm survivor, Clean run). An active camera run earns about 2.6 times that, and a drill run about 3 times. Facts were drafted from [research 09](research/rover-engineering/09-titan-surface-data.md) and fact-checked by the research track.
+
+- **Zones.** Each dune crest is a zone: within the crest's `zoneRadius_m` of its crest line. Each interdune corridor is a zone (its outline). The dune-crest viewpoint is a 60 m circle (`photoZoneRadiusM`). The sample patch uses its own radius. The Selk ejecta field is `rockyAreas[0]`, sized like the boulder zones.
+- **Dune crossing.** The rover must drive from one corridor into a different corridor, and it must be on a dune crest after leaving the first one. Corridors can join around the end of a dune, so the crest is required, and driving around a dune does not count. Getting stuck for good ends the mission, so any crossing the rover finishes was made without getting stuck.
+- **Dune sea** counts anywhere on a dune crest, and at the dune-crest viewpoint. The viewpoint is a survey lead and stands on a crest, but it is only a suggestion: the crossing saddle works too. The camera's direction is not checked, as with the Moon's rim viewpoints. During the methane rain, photos still go into the album but no photo milestone counts.
+- **Dawn** is earned on the step where the night ends while the mission is still running. A sleeping rover still counts as running.
+- **Storm survivor** is earned when the methane rain clears while the mission is still running, as on Mars. Sleeping through the rain counts too.
+- **Night drive** counts only distance driven at night, in two stages (100 m and 300 m). It needs lights and a heater, as on Mars. A lights-on night costs a lot of battery with the Moon parts, so the stages are the Mars ones.
+- **Odometer** stages are 400 m, 1 km and 2 km. Titan is battery only, and a whole mission drives about 1 to 2.4 km (from the rules track's numbers). **Mapper** is 1.2% of the map, about 1.3 km of driving on new ground.
+- **Organic sands sample** can be drilled anywhere at up to three sites: at least 200 m from the lander and from each other (the Moon rule). The bright interdune patch is a suggested first site, not a requirement. **Crater ejecta** is the first sample drilled in the ejecta field. That sample also counts as an Organic sands site.
+- **Survey leads**, nearest first: the bright interdune patch, the dune-crest viewpoint, the Selk ejecta field, and Selk crater itself. Selk's center is tens of kilometers off the map, so it is never discovered. Its lead stays an arrow on the map's edge, with a distance to the rim. The minimap draws dune crests as lines, interdune corridors as dashed outlines, the sample patch and the ejecta field as circles. Titan has no cold-zone legend. Lead text is in `data/titan/text.json` → `survey`.
+
 #### Campaign end
 
 *Proposed:* Titan is the last mission.
