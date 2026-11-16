@@ -4,7 +4,7 @@ New areas of interest on the Moon map and the milestones that give all six Moon 
 
 Written November 15, 2026, against `aon/moon-milestones` (from `main` at `8042a87`). Game rules stay in [game-design.md](game-design.md) (source of truth); the catalog is in [rover engineering design](rover-engineering-design.md). The repo rules still apply: game numbers in `game/data/*.json`, pure rules in `game/src/rules/` with unit tests, `npm test` and `npm run build` passing before each commit, design changes in game-design.md before code, and no hand edits to `game/tools/` or `game/public/terrain/`.
 
-**Status: open questions decided (November 15, 2026). Phase 0 done** except the agreement with the Mars plan's owner (M6): game-design.md `f4001d2`, rover-engineering-design.md `f0ec0be`. The team accepted every proposed answer in [Open questions](#7-open-questions). Coordinates are candidates from a quick offline look at the terrain layers (see [How placement uses the terrain layers](#how-placement-uses-the-terrain-layers)); the pipeline confirms them. Rewards are starting values; the balance model sets the final ones.
+**Status: Phases 0 to 7 done (November 15, 2026); open questions decided. Phase 0 done** except the agreement with the Mars plan's owner (M6): game-design.md `f4001d2`, rover-engineering-design.md `f0ec0be`. The team accepted every proposed answer in [Open questions](#7-open-questions). Coordinates are candidates from a quick offline look at the terrain layers (see [How placement uses the terrain layers](#how-placement-uses-the-terrain-layers)); the pipeline confirms them. Rewards are starting values; the balance model sets the final ones.
 
 Quick navigation: [Goals](#1-goals-and-principles) · [Sites](#2-sites-and-areas-of-interest) · [Milestones](#3-milestones) · [Balance](#4-balance) · [Rock types](#5-rock-types) · [Phases](#6-implementation-phases) · [Open questions](#7-open-questions) · [Sources](#sources-and-what-is-not-verified)
 
@@ -367,6 +367,8 @@ Additions to `terrain.json` `features` (and route measurements). No new image la
 
 - Extend `rover-engineering-playtest-checklist.md`: each new milestone, each site, each lesson met through a new site, a restart (map and records reset, notebook kept).
 - game-design.md and rover-engineering-design.md mark each piece built.
+
+**Status (November 15, 2026): done.** Playtest checklist extended (sections 8 to 17: sites, young craters, X-ray rocks, the rolled boulder, cold traps and hydrogen, stations, lessons through the new sites, desk and debrief, restart, builds that should win or lose) `8c0b66b`; game-design.md and rover-engineering-design.md mark the Moon sites pieces built `7f18af6`. Docs only, no code changes. Earlier phases: Phase 1 `5b61185`, `6957f9b`, `d8dc8af`; Phase 2 `384102a`; Phase 3 `bbfab15`, `104ab91`; Phase 4 `d842bd7`; Phase 5 `51d527d`, `3207458`, `0e12366`; Phase 6 `c895fab`, `0a2e378`, `5a16b5e`, `6bec07c`. The browser playtest itself is for the team to run from the checklist.
 
 **Shipping:** Phases 2 to 5 ship together (a milestone without its site, or a site without its milestone, is worse than neither). Phase 6 must finish before the merge to `main`, because the reward changes affect every build.
 
