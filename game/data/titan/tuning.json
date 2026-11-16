@@ -111,7 +111,7 @@
       "radiusDeg": 0.5
     },
     "fog": {
-      "clearDensity": 0.00036,
+      "clearDensity": 0.00032,
       "rainDensity": 0.0075,
       "rainEase": 0.3,
       "shapePower": 1.2
@@ -137,10 +137,11 @@
       "darkSandTint": "#e6dcd4",
       "darkToneLow": 0.5,
       "darkToneHigh": 1.1,
-      "reliefGain": 3,
-      "reliefOcclusion": 2.5,
+      "reliefGain": 5,
+      "reliefOcclusion": 3,
       "reliefNearM": 40,
-      "reliefFarM": 400
+      "reliefFarM": 400,
+      "farToneBoost": 0.8
     },
     "floodlight": {
       "color": "#ffe8cc",

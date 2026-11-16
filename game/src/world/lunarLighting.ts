@@ -32,6 +32,8 @@ export interface MoonLightUniforms {
   moonTitanRelief: THREE.IUniform<THREE.Vector4>;
   /** Titan: haze shape power (1 soft exp, 2 = three's exp²). */
   moonHazeShape: THREE.IUniform<number>;
+  /** Titan: extra albedo contrast far away (tone^k, fading in over the relief depth range), so dune and interdune bands read. */
+  moonTitanFarTone: THREE.IUniform<number>;
 }
 
 /** How a patched material scatters sunlight: lunar regolith, Mars ground, Titan ground, or plain Lambert (false). */
@@ -51,6 +53,7 @@ export function createMoonLightUniforms(fine: HeightGrid, near: HeightGrid, far:
     moonDarkTone: { value: new THREE.Vector2(0, 1) },
     moonTitanRelief: { value: new THREE.Vector4(1, 0, 0, 1) },
     moonHazeShape: { value: 2 },
+    moonTitanFarTone: { value: 0 },
   };
 }
 
@@ -170,6 +173,8 @@ ${OCTAVES.map(([w, h, a], i) => `  {
   #ifdef MOON_TITAN
     // Dark dune sand takes its own tint; the bright interdune ground keeps the ground color.
     diffuseColor.rgb *= mix( moonDarkTint, vec3( 1.0 ), smoothstep( moonDarkTone.x, moonDarkTone.y, tone ) );
+    // Far away, dark dune sand and bright interdunes part further, so the bands read through the haze.
+    diffuseColor.rgb *= pow( max( tone, 0.05 ), moonTitanFarTone * smoothstep( moonTitanRelief.z, moonTitanRelief.w, length( vViewPosition ) ) );
   #endif
 }
 `;
@@ -189,6 +194,7 @@ const GROUND_NORMAL = /* glsl */ `
 const TITAN_PARS = /* glsl */ `
 uniform vec4 moonTitanRelief;
 uniform float moonHazeShape;
+uniform float moonTitanFarTone;
 float moonSkyOcc = 1.0;
 `;
 
