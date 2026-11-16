@@ -8,6 +8,8 @@ Last updated November 15, 2026 (all six phases of the payload bay and relationsh
 
 **Mars draft (November 15, 2026, Owner B):** the Mars lesson, site (Jezero crater), time (10 sols, 60 s each), night, cold, events, and milestones are drafted in [The Mars mission](#the-mars-mission). Items the team plan says to decide together are marked for Owner A to confirm.
 
+**Moon sites and milestones (November 15, 2026, decided; not built yet):** 12 new Moon milestones so that every Moon instrument earns something (two of them combos), Boulder field and Mapper repriced, new sites near the lander (three young craters, cold traps, a rolled boulder, a hidden hydrogen spot), a fourth survey lead, rock suites by site, and three new archetypes as balance targets. Recorded in Phase 0 of the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md), whose open questions M1 to M15 the team decided as proposed. Small details settled while writing them down are marked "decided in Phase 0". Rewards and distances in these sections are **starting values for the balance model**; Phase 6 sets the final ones.
+
 **Recent changes (November 15, 2026, playtest fixes):** the minimap starts zoomed in and widens as the rover explores, hides unexplored ground and undiscovered sites, and points to orbital survey leads; the map resets on every try; the rover no longer flies over bumps (time-lapse gravity while its wheels are in the air).
 
 **Earlier changes (November 14, 2026):** mission play times shortened to 5 / 10 / 15 minutes; the Moon map is now bigger than one mission can cover; game name, agency, and tone chosen; Moon site (de Gerlache rim), play area size, landing point, NASA datasets, minimap, optional history facts, and mass-based speed decided; no clock; seventh part slot (chassis); launch ticket tiers.
@@ -148,9 +150,9 @@ The rules live in `game/src/rules/` and every number in `game/data/tuning.json` 
 - **Energy.** The battery starts full. Driving costs energy per meter (the wheels' rate, raised by mass above the reference), plus 5% per degree of uphill grade; downhill costs the flat rate. Solar income is the power source's full-sun rate times the share of the Sun's disc visible from the rover (the same terrain-shadow test that draws the shadows), so it is zero in shadow. The design screen shows the drive energy per km and the flat range on a full battery. Zero energy ends the mission.
   - *Balance pass (Phase 5):* driving at full speed always uses more than a panel earns. Wheels cost 0.24 (solid) or 0.18 (mesh) energy per meter, plus 1% per kg above 60 kg. A fixed panel earns 1 per second in full sun and a solar mast 2; batteries store 400 (lithium-ion) or 600 (nickel-hydrogen). The default build uses about 2.1 per second at full speed against 1 from its panel, so it must stop in sunlight to recharge. With a mast, it about breaks even.
   - *Shadow test check:* averaged over a full lunar day, the game's terrain-shadow test reproduces NASA's LOLA average-illumination map (mean error 1.5 points over 150 random spots; landing 67% against 66%).
-- **Damage.** A hard impact (a sudden change in the rover's velocity of 3 m/s or more, such as hitting a boulder) does 8 plus 4 per extra m/s. Driving on ground steeper than 20° (`slope.png`) does 4 per second. An overloaded frame does 0.05 per kg over its maximum load per second while driving. Each moonquake does 10. A flare that hits an unprotected rover does 20 plus 2.5 per X above X1 (`events.json`): about 26 for an X3.3 flare and 41 for an X9.3. Boulders are scattered in the two rocky areas (small fresh craters).
+- **Damage.** A hard impact (a sudden change in the rover's velocity of 3 m/s or more, such as hitting a boulder) does 8 plus 4 per extra m/s. Driving on ground steeper than 20° (`slope.png`) does 4 per second. An overloaded frame does 0.05 per kg over its maximum load per second while driving. Each moonquake does 10. A flare that hits an unprotected rover does 20 plus 2.5 per X above X1 (`events.json`): about 26 for an X3.3 flare and 41 for an X9.3. Boulders are scattered in the two rocky areas (small fresh craters). *(Decided November 15, not built yet:)* also at the three young craters, plus the one rolled boulder; see [Map](#map).
 - **Rollover** is a tilt beyond 75° held for 0.6 s.
-- **Cold.** Cold zones are the permanent-shadow patches of the dark crater and of the small cold patch in Rocky area 1; other tiny shadowed spots are left out. Inside, the freeze meter rises 4 per second (full after 25 s), slowed by 1.5 per heat unit of the heater (radioisotope units: full after 100 s). Outside it recovers 6 per second.
+- **Cold.** Cold zones are the permanent-shadow patches of the dark crater and of the small cold patch in Rocky area 1; other tiny shadowed spots are left out. *(Decided November 15, not built yet:)* the East and South cold traps join them (see [Rules for the new milestones](#rules-for-the-new-milestones)). Inside, the freeze meter rises 4 per second (full after 25 s), slowed by 1.5 per heat unit of the heater (radioisotope units: full after 100 s). Outside it recovers 6 per second.
 - **No lights.** A rover without lights stops automatically at the edge of permanent shadow, with the notice "Permanent shadow ahead. Without lights the rover cannot enter." It can turn or reverse away.
 - **Soft ground and getting stuck.** Ground is soft inside the rocky areas (fresh crater rims), fading out to 1.5 times their radius. Sinkage follows Apollo 15: about 1.5 cm on normal ground and 6 cm on soft rims for a 60 kg rover on solid wheels, scaled up with mass and down with wheel grip. Slip is 3% per cm of sinkage, plus 1% per degree of uphill grade above 10°. Above 20% slip the wheels dig in: pushing the throttle with slip above the limit for 5 s in total leaves the rover stuck for good; easing off recovers. Slip also slows the rover.
 - **Flares.** Two per mission, at random times in set windows, each a real past X-class flare from NASA DONKI named by class and date. The warning shows 6 s ahead. The rover is protected if it is powered down (the HUD toggle or P) or in shadow when the flare hits. Powered down, the rover cannot drive but its panel still charges.
@@ -246,6 +248,8 @@ The real NASA milestone types and rewards behind this design are in [rover-engin
 | Rim panorama | 20 | **70** |
 | Wire-mesh wheels, real speed | 3.0 m/s | **3.3 m/s** (13.2 m/s in game) |
 
+*(Decided November 15, Moon sites and milestones, not built yet:)* Mapper 60 → **40** and Boulder field 100 → **60**, now that instruments earn their own way; see [Balance with the Moon sites and milestones](#balance-with-the-moon-sites-and-milestones).
+
 Moon minimum (520), starting budget (750), part costs, ticket tiers, death penalties and RP are unchanged. The restart loop is unchanged: a restart restores the round snapshot (750), which is above the Moon minimum. Instruments now earn real money, so the camera's pictures and the drill's samples pay more than the categories table above suggests ("mainly RP", "a little money"). Survival alone is worth little; staying alive matters because dying forfeits it and costs a penalty on top.
 
 **How it was checked.** `src/rules/winPaths.ts` (pure, unit-tested) drives every build along route plans with the real mission rules: energy, solar income from the real lit share of each leg over time, cold, overload, soft-ground slip at boulder fields, and two flares (the player powers down for 8 s each). Drive legs between the milestone sites were measured once on the real terrain (least-cost routes on a 10 m grid, slopes up to 18°) and are stored with the plans in `game/data/balance.json`, which the game does not load. "Reasonable play" means driving at 90% of top speed, recharging in sunlight before a leg the battery cannot cover with a 10% reserve, and touching a rock when crossing a boulder field (so no Clean run there; real drives often keep it). `winPaths.test.ts` holds the targets: idling fails for every build by more than 100; wandering, or one or two short stops near the lander, fails for every build; at least three archetypes with different parts and routes, using both instruments, pass with a margin of at least 50; each archetype fails if it skips its instrument; fewer than 35% of affordable builds can pass even with their best route; the cheapest build fails on every route; more than five builds pass without the ice.
@@ -303,6 +307,65 @@ The browser runs found one model error, now fixed: the boulder-field crossing po
 
 **Limits of the estimate.** The ice route needs good driving (about 90% of top speed for 3.3 km) and the hydrogen clue to find the spot; the model assumes the spot is found. Boulder-field crossings assume one rock touch. Mapper uses the playtest rate of about 0.77% of the map per km of new ground.
 
+#### Balance with the Moon sites and milestones
+
+*Decided November 15, 2026 (Moon sites and milestones plan, M1 and M3); not built yet.* Everything in this subsection is a **target for the balance model**, not a result: the finals are hand estimates with the November 15 model's assumptions (90% of top speed, one rock touch per boulder-field crossing, two flares with 8 s power-downs, the hidden spots found). `winPaths` has not confirmed them; it needs the drive legs to the new sites (pipeline request P5). Phase 6 of the plan runs the model and the browser checks and records the results here. The design rule above is unchanged: idling, wandering, a short trip, or carrying an instrument without using it fails; several different builds pass on different routes.
+
+**Repricing (M3).** Boulder field 100 → **60** and Mapper 60 → **40**. Both were raised in the balance pass to prop up the instrument archetypes; with every instrument now able to earn, they come back down. Crater descent stays at 60 (the camera scout's main capability reward). Regolith sample is unchanged; a drill sample that also earns Fresh ejecta sample still counts as a regolith site.
+
+**The empty bay now fails.** Before, a steel/mesh empty bay reached 790 on Boulder field (100), Crater descent (60), Mapper (60) and the Odometer, so it passed by 10. With the repricing it ends at **730, failing by 50** (the model's mistake margin). An empty bay with only the reflector ends at 750, failing by 30.
+
+**Starting rewards for the new milestones** (rules in [Rules for the new milestones](#rules-for-the-new-milestones)):
+
+| Milestone | Money / RP |
+| --- | --- |
+| Cold trap survey | 50 / 8 per stage, up to 3 |
+| Hidden hydrogen | 100 / 20 |
+| Ice deposit located | 200 / 30 |
+| Rock collection | 40 / 8 per stage (2, 3 and 4 types) |
+| Rare rock | 100 / 30, once per campaign (record) |
+| Boulder track | 40 / 10 |
+| Documented sample | 40 / 10 |
+| Fresh ejecta sample | 50 / 15 |
+| Moonquake record | 80 / 20 |
+| Clean seismogram | 40 / 10 |
+| Laser ranging site | 50 / 15 |
+| Science station | 50 / 10, once per campaign (record) |
+
+**Archetypes, as targets** (hand estimates; pass mark 780; final = 750 − (parts + ticket) + 50 survival + milestone money):
+
+| Build (parts; ticket) | Cost + ticket | Route | Main milestones | Target final (margin) | Without using its instruments |
+| --- | --- | --- | --- | --- | --- |
+| Camera scout (as above; Medium) | 450 | Unchanged | As before, minus the Boulder field and Mapper cuts | 930 (+150) | 680, fails |
+| Drill geologist (as above; Medium) | 550 | Unchanged north route; the sample at Rocky area 1 also counts as fresh ejecta | Regolith ×3, Fresh ejecta, Boulder field | 870 (+90) | 520, fails |
+| Ice hunter (as above; Medium) | 735 | Unchanged | Water ice, Regolith ×2 | 875 (+95); 525 without the ice | 325, fails |
+| **Rock hound:** titanium, mesh, panel, Li-ion, camera + X-ray (49 kg, size 19; Small) | 600 | NW crater → Rocky area 1, across → Rim viewpoint 1 (photo) → East crater, rolled boulder → East bench, Earth after 238 s; about 2.3 km | Rock collection ×3, Rare rock, Boulder track, Documented sample, Boulder field, Rim panorama, Earth | 940 (+160) | 470, fails (680 with the camera alone) |
+| **Station keeper:** steel, mesh, panel, Li-ion, seismometer + reflector + X-ray (67 kg, size 21; Medium) | 620 | East bench: both stations down by about 40 s (the rover then weighs 60 kg) → East crater, rolled boulder → NW crater → Rocky area 1, across → Rim viewpoint 1; about 2.5 km | Science station, Laser ranging site, Moonquake record, Clean seismogram, Rock collection ×3, Rare rock, Boulder field | 890 (+110) | 450, fails |
+| **Near prospector:** titanium, mesh, panel, Li-ion, neutron + X-ray (50 kg, size 20; Small) | 630 | NW crater → Rocky area 1 cold patch edge → hidden hydrogen → East crater, rolled boulder → East cold trap; about 2.3 km | Cold trap survey ×2, Hidden hydrogen, Rock collection ×3, Rare rock, Boulder field | 860 (+80) | 450, fails |
+| Dark prospector (example, not a test archetype): steel, mesh, panel, Li-ion, lights, heater, neutron (68 kg, size 21; Medium) | 635 | Straight to the dark crater, 20 m in, out; about 3.0 km, done by about 275 s with no stop to drill | Ice deposit located, Into the dark, Cold trap survey ×1 (the dark crater, decided in Phase 0), Clean run | 825 (+45) | 575, fails |
+| Empty bay: steel, mesh, panel, NiH2 (Medium) | 400 | Best capability route | Boulder field, Crater descent, Odometer, Mapper | **730 (fails by 50)**; was 790 | |
+| Empty bay + reflector only (Medium) | 430 | As above, reflector on the north side | + Laser ranging site | 750 (fails by 30) | |
+| Idle, any build | | | | at most 510 | |
+
+- **A neutron route now exists,** near (Near prospector) and far (Dark prospector). The far one is tight on time, like the ice, and its margin is small; adding a camera on steel (Earth on the way out) would give about +80 but finish at about 283 s.
+- **Every new archetype fails without its instruments,** and the station builds fail hard, because the stations earn most of their run. The Station keeper's Clean seismogram depends on where the rover is when the moonquake comes, which the route cannot fully control (decided in Phase 0: the model credits it only for a route that stays 150 m from the stations through the moonquake window; without it the target is 850, still +70).
+- **The new archetypes pass by 45 to 160,** the same spread as before (Camera scout +210 before). The risk is the share of passing builds (below).
+
+**The tight ice route** is not changed. The Dark prospector reaches the dark crater's science without the drill stop and the search, and the dense clusters near the lander let an ice hunter whose run goes badly turn back and still earn. A larger ice spot or a shorter route was rejected: the spot's size and depth are real-shadow placements, and the route is real terrain.
+
+**The ice with both instruments does not fit the Moon budget** *(decided, M1)*. The neutron/drill relationship's first answer used to be "bring both", but no version of that build fits the 750 budget, and no tier tweak alone fixes it:
+
+| Ice build | Cost | Mass / size | Ticket | Total |
+| --- | --- | --- | --- | --- |
+| Ice hunter (drill) | 615 | 58 kg / 22 | Medium 120 | 735 |
+| + neutron as it is (80 / 4 kg / 2) | 695 | 62 kg / 24 | Large 200 | 895 |
+| + neutron at 60 / 3 kg / 1 | 675 | 61 kg / 23 | Medium 120 | 795 |
+| Steel or NiH2 variants | 605 to 635 | 75 to 76 kg | Large, or too slow | 805 and up |
+
+Every version is at least 45 over budget. Decided: **accept it for the Moon.** Ice deposit located gives the neutron spectrometer its own answer in the dark crater, Water ice still needs the drill, and the lesson's answers are reworded (see [Relationships in the mission](#moon-parts)). Rejected: raising the starting budget to about 800 (re-runs the whole balance and shifts Mars) and cutting the neutron spectrometer to about 15 cost (not honest pricing). **The exact numbers (budget, part prices, rewards) can be revisited in a later balance patch** to reach different gameplay outcomes, for example making the two-instrument ice route affordable.
+
+**Targets for `winPaths.test.ts`.** The existing targets stay, with these changes: the archetypes add Rock hound, Station keeper and Near prospector (each must pass by at least 50 and fail without its instruments); "an empty bay fails by at least 50" becomes a target; "fewer than 35% of affordable builds pass with their best route" stays and is the main risk. If it breaks, lower the new rewards evenly (not the existing archetypes' rewards) until it holds.
+
 ## 7. Rover design
 
 ### Moon parts
@@ -319,7 +382,7 @@ The Moon parts table: six slots with two options each, plus the payload bay with
 | Battery | Energy storage |
 | Lights | None, or floodlights. Needed to drive into permanent shadow: without them the rover stops at its edge. |
 | Heater | None, or radioisotope heater units. Slows freezing in the cold. |
-| Payload bay | Any mix of the instruments, one of each, or none. Decides which milestones the rover can complete. The chassis sets the bay's mounting points (steel 3, titanium 2), one per instrument. **Built (Phases 1 to 3):** the bay, instrument operating costs, and the six Moon instruments (science camera, regolith drill, neutron spectrometer, X-ray spectrometer, seismometer station, laser retroreflector); see [rover engineering design](rover-engineering-design.md#7-the-moon-payload). The new four earn no milestones yet. |
+| Payload bay | Any mix of the instruments, one of each, or none. Decides which milestones the rover can complete. The chassis sets the bay's mounting points (steel 3, titanium 2), one per instrument. **Built (Phases 1 to 3):** the bay, instrument operating costs, and the six Moon instruments (science camera, regolith drill, neutron spectrometer, X-ray spectrometer, seismometer station, laser retroreflector); see [rover engineering design](rover-engineering-design.md#7-the-moon-payload). *(Decided November 15, not built yet:)* every instrument now has milestones; see [Moon milestones](#moon-milestones). |
 
 **Moon instrument options** *(built, Phases 1 to 3)*. The bay takes any mix of these, one of each, up to the chassis's mounting points. Numbers are in `game/data/parts.json`; mission behavior is described below.
 
@@ -354,7 +417,7 @@ The Moon parts table: six slots with two options each, plus the payload bay with
 - Each instrument's mode follows from its part: a standby draw makes a switch, `deploy` makes a station, anything else is a use. A switch cannot also have a use cost, a hold time, or deploy (data validation).
 - The desk shows each instrument's costs on its card, and the specification sheet has an "Instrument energy" line for the bay under the range estimate.
 
-**The four new Moon instruments** *(decided during implementation, Phase 3; built)*. Rules in `game/src/rules/instruments.ts` and `rules/mission.ts`; numbers in `tuning.json` → `instruments` and in `parts.json`. None earns money or RP yet; the desk card of each says so (derived: the line shows while no milestone requires the instrument, and goes away once one does), and so does the design tutorial's Payload bay page. The debrief's **Instrument log** has one line for each of these four that the rover **carried**, and none for those it did not carry: the highest hydrogen reading (or "not switched on"), one line per rock read (or "no rocks were read"), the seismometer's record and its quality ("not set down" if the station never went down; "set down, but no moonquake came" if the mission ended first), and "placed" or "not placed" for the reflector.
+**The four new Moon instruments** *(decided during implementation, Phase 3; built)*. Rules in `game/src/rules/instruments.ts` and `rules/mission.ts`; numbers in `tuning.json` → `instruments` and in `parts.json`. None earns money or RP yet; the desk card of each says so (derived: the line shows while no milestone requires the instrument, and goes away once one does), and so does the design tutorial's Payload bay page. *(Decided November 15, M14, not built yet:)* each of the six now has milestones ([Moon milestones](#moon-milestones)), so the "earns no milestones yet" line goes away by itself, and the tutorial sentence that says some instruments earn none goes too. Instead **each desk card lists the milestones its instrument can earn, by name only** (combos on both cards, for example Documented sample on the camera's and the X-ray spectrometer's), with no rewards and no hints at how. The debrief's instrument log links to them ("Rock collection: 4 of 5 types"). The debrief's **Instrument log** has one line for each of these four that the rover **carried**, and none for those it did not carry: the highest hydrogen reading (or "not switched on"), one line per rock read (or "no rocks were read"), the seismometer's record and its quality ("not set down" if the station never went down; "set down, but no moonquake came" if the mission ended first), and "placed" or "not placed" for the reflector.
 
 - **Keys and buttons stay in bay order.** A deployed station keeps its key and its button, which reads "Deployed" and is disabled; pressing its key says it is already on the ground.
 - **Neutron spectrometer** (switch, 0.1 energy/s). While it is on and the rover is powered up, a Hydrogen meter (0 to 100%) shows under the cold meter; it is hidden and draws nothing while powered down, and stays on through a power-down. The reading:
@@ -364,8 +427,9 @@ The Moon parts table: six slots with two options each, plus the payload bay with
   - The reading wobbles by up to 3% so the meter looks live. The ice signal needs permanent shadow, so sunlit ground near the crater shows nothing.
   - *(Phase 4)* The meter reads at once when it turns on (no stale or empty reading), then about five times a second.
   - Inside the dark crater, a rover with a neutron spectrometer and no drill sees the hint "Watch the hydrogen meter".
+  - *(Decided November 15, not built yet:)* an edge ramp at cold traps and a hidden hydrogen anomaly; see [Rules for the new milestones](#rules-for-the-new-milestones).
 - **The drill gives no hydrogen reading** (built). The drill's hydrogen signal, its tuning flags (`hydrogenSignal`, `hydrogenStrongWithinM`, `hydrogenModerateWithinM`) and the LEND fact on the first reading are removed; the drill only confirms the ice. The LEND fact is not used elsewhere for now; the neutron spectrometer's fact is VIPER's.
-- **X-ray spectrometer** (use: 3 energy, 4 s held). Only with a boulder within 3 m of the rover's center, measured to the boulder's surface (`xray.reachM`); elsewhere it is refused with a notice. A hint shows when a boulder is in reach. The reading shows the rock type and its main elements. Each boulder always reads the same rock (placeholder list; see [rover engineering design](rover-engineering-design.md#rock-types-placeholder)); reading the same boulder again says so and is logged once.
+- **X-ray spectrometer** (use: 3 energy, 4 s held). Only with a boulder within 3 m of the rover's center, measured to the boulder's surface (`xray.reachM`); elsewhere it is refused with a notice. A hint shows when a boulder is in reach. The reading shows the rock type and its main elements. Each boulder always reads the same rock (placeholder list built in Phase 3; *decided November 15, not built yet:* rock suites by site and a rare magnesian norite boulder, see [rover engineering design](rover-engineering-design.md#rock-types-by-site)); reading the same boulder again says so and is logged once. *(Decided, not built:)* when a reading adds a type not yet read this mission, the readout adds "New type: 3 of 5".
   - **Faster in shadow:** below 50% sunlight at the rover (`instruments.shadowSunlight`, the same line as the HUD's "panel in shadow"), the hold is halved (`shadowHoldFactor` 0.5 on the part), with a notice.
   - **The target is locked when the reading starts** *(Phase 4)*: the reading reports the boulder that was in reach at the start, even if the rover was nudged while it worked; if no boulder was recorded, a notice says the reading was lost.
   - **Cold tolerant:** the cold slowdown does not apply (`coldTolerant` on the part), so in permanent shadow without a heater the reading still takes 2 s.
@@ -394,7 +458,11 @@ The Moon parts table: six slots with two options each, plus the payload bay with
 - **Each notice shows once per mission**, the first time the relationship happens, in its own place under the standing warnings *(Phase 5)*: other notices never push it out, and two lessons at once queue, each shown for its full time (9 s). Later uses get the short line ("working slowly in the cold", "reading finishes sooner", "trace is noisy"), so the player still sees the hold time or the record.
 - **The review text has no color word**: the review draws the color from the entry's `review` field.
 - **Debrief: "What the rover taught us"** lists each relationship met, in the order met: what happened and why, then the ways to solve it; the real fact and its source only with Mission history on. The relationships met are on the mission result and enter the engineering notebook when the mission ends.
-- **Real basis used:** VIPER's neutron spectrometer (the drill step of VIPER's plan is not claimed); Chandrayaan-3's ILSA recording its own rover (ISRO); LRO Diviner's shadow temperatures for cold and dark; VIPER as NASA's first rover with headlights, built to explore dark craters (NASA Science VIPER page, checked in Phase 5) for no lights; Curiosity's APXS cooler (without "in daytime", which was not confirmed).
+- **Neutron/drill answers reworded** *(decided November 15, M1; text not changed yet)*. The ice with both instruments does not fit the Moon budget ([Balance with the Moon sites and milestones](#balance-with-the-moon-sites-and-milestones)), so "bring both" can no longer be the first answer as it stands. New wording for the entry's `answers` and the last sentence of its `reviewText` in `relationships.json` (a Phase 2 data change):
+  - Answers: "Bring the neutron spectrometer to locate the ice and the drill to confirm it." / "On a tight budget, choose one of the two, or earn points with other instruments."
+  - Review text, last sentence: "Bring the neutron spectrometer to locate the ice and the drill to confirm it; on a tight budget, choose one, or earn points elsewhere."
+  - The notice, debrief text and "Solved" line stay. The fact changes to VIPER "is designed to" (M15), as for the neutron spectrometer's first-use fact in `text.json`.
+- **Real basis used:** VIPER's neutron spectrometer, as designed (VIPER has not flown, M15; the drill step of VIPER's plan is not claimed); Chandrayaan-3's ILSA recording its own rover (ISRO); LRO Diviner's shadow temperatures for cold and dark; VIPER as NASA's first rover with headlights, built to explore dark craters (NASA Science VIPER page, checked in Phase 5) for no lights; Curiosity's APXS cooler (without "in daytime", which was not confirmed).
 - **The Diviner fact** *(Phase 5 fact check)*: "as cold as -414 °F (about -248 °C, or 25 K)", from NASA SVS 11230, which gives the Fahrenheit figure; the Celsius and kelvin values are conversions. Paige et al. (2010) is no longer cited for it: its abstract does not give 25 K (it gives about 38 K at the LCROSS site). The "Into the dark" milestone fact uses the same wording and source.
 
 **Engineering notebook and pre-launch review** *(decided during implementation, Phase 5; built)*. Rules in `game/src/rules/relationships.ts` and `rules/campaign.ts`; text in `text.json` → `notebook` and `review`.
@@ -472,7 +540,34 @@ The map is **bigger than one mission can cover**, so the player feels they could
 - **Landing point:** a flat, sunlit spot on the crater rim near the middle of the play area, with Earth in view (88.52°S, 67.96°W; sunlit about 66% of the time, Earth visible about 60%). These are the same kinds of criteria real landing sites are chosen by. The exact spot is picked when processing the data, using the real slope and sunlight maps. *(Our recommendation, accepted by the team.)*
   - **Distances (drive):** rim viewpoint 0.5 km, rocky area 0.3 km, descent into de Gerlache's inner wall 0.9 km, second viewpoint and rocky area about 1.2 to 1.6 km, shadowed crater entry 2.9 km, ice spot about 3.2 km (hidden, see below). In one 5-minute mission the player can reach some of these, but not all, so choosing a route is part of the puzzle. Exact distances are tuned once rover speeds are set.
   - **The lander stays on the map** as a landmark the player can navigate by.
-- **Small cold patch:** a tiny real cold spot inside the nearby rocky area also uses the freeze rule. It is an early, low-risk taste of the cold. *(Decided during implementation.)*
+- **Small cold patch:** a tiny real cold spot inside the nearby rocky area also uses the freeze rule. It is an early, low-risk taste of the cold. *(Decided during implementation.)* *(November 15, not built yet:)* it becomes one of the cold trap sites below.
+- **New sites near the lander** *(decided November 15, 2026, Moon sites and milestones plan, M4; not built yet)*. Reaching the ice took nearly the whole mission and four instruments had nothing to do, so the map gets more to do **near** the lander, not farther away. Every new site is within about 1 km of the lander, most within 650 m; the dark crater stays the one far destination.
+
+| Kind | What it is | Real basis | Instruments it serves | Count |
+| --- | --- | --- | --- | --- |
+| Young crater | A small fresh crater (40 to 120 m across) ringed by boulders and bright ejecta | Fresh craters are ringed by boulders and bright, little-weathered ejecta (Grier et al. 2001, JGR 106, doi:10.1029/1999JE001160) | X-ray (its own rock suite), drill (fresh ejecta), camera | 3 |
+| Cold trap | A small permanently shadowed patch from the LOLA 60 m permanent-shadow map | Small cold traps are common and may hold ice (Hayne, Aharonson & Schorghofer 2021, Nature Astronomy 5:169, doi:10.1038/s41550-020-1198-9) | Neutron (survey), and the cold rules for everything else | East and South, plus Rocky area 1's cold patch |
+| Rolled boulder | One large boulder (about 3.5 m) at the foot of a steep wall, with a track up the slope behind it. *Placed by design* | LRO images show more than 136,000 boulders that rolled downslope (Bickel et al. 2020, Nature Communications 11:2862, doi:10.1038/s41467-020-16653-3) | X-ray (the rare rock), camera | 1 |
+| Hidden hydrogen | A sunlit but poorly lit slope where the hydrogen meter reads higher than in the cold traps. Never marked until found. *Placed by design* | LEND found hydrogen-rich areas that do not line up with permanent shadow (Mitrofanov et al. 2010, Science 330:483, doi:10.1126/science.1185696) | Neutron | 1 |
+| Ice signal | The area around the existing hidden ice spot where the meter reads at least 70% | VIPER's neutron spectrometer is designed to prospect for hydrogen while driving | Neutron | 1 (the existing spot) |
+
+  Candidate places (from a quick look at the terrain layers; the pipeline confirms them, requests P1 to P5 in the plan). Directions are compass points from the lander; distances are straight lines.
+
+| Ring | Site | Kind | From the lander | Notes |
+| --- | --- | --- | --- | --- |
+| Home (under 650 m) | NW crater | Young crater | 244 m NNW | On the way to Rocky area 1 |
+| | Rocky area 1 and its cold patch | Rocky area + cold trap | 492 m WNW (341 m drive) | Existing |
+| | Hidden hydrogen | Hidden hydrogen | about 534 m NW | Shaded slope between Rocky area 1 and Rim viewpoint 1 (average sunlight 5 to 9%, not permanent shadow) |
+| | East crater and the rolled boulder | Young crater + rolled boulder | 509 m ENE | The boulder sits on the floor below the steepest inner wall |
+| | East cold trap | Cold trap | 615 m ESE | About one 60 m pixel of the LOLA map |
+| Middle (0.65 to 1.6 km) | South cold trap | Cold trap | 930 m SSW | 240 m from the wall descent point |
+| | West crater | Young crater | 1,055 m W | |
+| Far | Dark crater and the ice signal | Existing | 2.9 km N | The ice signal is a zone around the existing ice spot |
+
+  - **Two clusters.** The East cluster (East crater, rolled boulder, East cold trap and the Earth-facing bench between them and the lander) and the West cluster (NW crater, Rocky area 1 and its cold patch, hidden hydrogen, Rim viewpoint 1) each hold something for every instrument. They are about 900 m apart through the lander, so a run can do both and still reach a rim photo, or do one and head for the wall or the dark crater.
+  - **Left out:** the North cold trap near the dark crater route (2.65 km NNE) unless the pipeline shows a real route passes within 100 m of it (M13); a fault scarp viewpoint unless the pipeline shows the de Gerlache scarp in view from the play area (M12); a "peak of light" site (within 1 km the brightest ground is the landing's 66%).
+  - **Earth in view is not a site.** Earth is in view from about half the ground within 1.5 km of the lander, because the north flank falls away. That is the landing site's selection criterion working, so it stays (M2); the stations' 200 m lander rule and the reflector milestone's low price handle it.
+  - **Honest placement.** The rolled boulder, the hidden hydrogen and the magnesian norite are placed by design. Their fact texts say "inspired by" real findings, never that they were observed at this spot. The East and South cold traps are at the LOLA map's resolution limit, so fact text speaks of small cold traps in general and gives them no size.
 - **Edge:** a "leaving the planned operating area" notice stops the rover at the boundary. Real missions also plan an operating zone.
 - **Why this works:** the Moon is small, so from rover camera height (about 1.7 m) the horizon is only about 2.4 km away. Only high ground shows beyond it, so a large detailed area plus coarse distant terrain looks like one continuous surface.
 
@@ -483,7 +578,19 @@ The map is **bigger than one mission can cover**, so the player feels they could
 - **Zoom.** The map starts zoomed in on the lander, about 700 m across (`minimap.startSpanM`). It widens smoothly to fit everything explored so far, and each discovered site whole (the dark crater is larger than the reveal circle), plus a 100 m margin (`minimap.marginM`), so the rover always has some ground around it. It never zooms back in during a mission; a long drive north ends with a map a few kilometers across.
 - **Fog.** Unexplored ground is hidden. The rover reveals a circle around itself on the same 20 m grid the Mapper milestone counts (`explore`), so Mapper is unchanged. *Reveal radius kept at 250 m* (`explore.revealRadiusM`): every site is hidden at the start (the nearest, Rim viewpoint 1 and Rocky area 1, are about 490 m away), the ground ahead still shows at driving speed, and Mapper's 1.8% and the balance model stay valid.
 - **Sites appear when discovered.** Viewpoints, rocky areas (boulder fields), the de Gerlache wall descent point and the dark crater's outline are drawn only once the rover's reveal circle touches them: the 60 m viewpoint or wall zone, the boulder spread (1.1 times the crater radius), or the crater's permanent-shadow outline. A notice names each newly found site. The lander is always shown. The ice spot is never marked.
-- **Bearings, not markers: orbital survey leads.** The landing briefing lists three leads from orbital data, each a rough direction and distance from the lander. Real missions plan their drives on orbital maps the same way; NASA planned VIPER's routes on Lunar Reconnaissance Orbiter elevation and illumination data.
+- **New site kinds on the minimap** *(decided November 15, not built yet)*. The same rules: hidden until the reveal circle touches a site, then drawn with a "Located" notice, except the two hydrogen sites, which only the neutron spectrometer can find.
+
+| Kind | Before discovery | When discovered | After discovery |
+| --- | --- | --- | --- |
+| Young crater | Hidden (fog) | Ring icon; the notice names it and, for instruments aboard only, what they can do there ("East crater: fresh boulders and ejecta. X-ray spectrometer: read the rocks.") | Ring; a small check once every milestone this rover can earn there is earned |
+| Cold trap | Hidden | Its permanent-shadow outline in the dark crater's style, smaller; notice "Cold trap: a patch of permanent shadow." plus a neutron line if one is aboard | Outline; a check once surveyed |
+| Rolled boulder | Hidden | Boulder icon with a short track line up the slope | A check once read and photographed (whichever this rover can) |
+| Hidden hydrogen | **Never drawn until found.** The reveal circle does not discover it; only the neutron meter's rise does | When Hidden hydrogen is earned: a dotted area labeled "Hydrogen-rich ground" | Stays drawn |
+| Ice signal | Never drawn | Not drawn: earning it would show where the ice is, which is the meter's job. The ice spot stays unmarked | |
+
+  - **Site notices are instrument-aware but lesson-blind.** They say what the carried instruments can do there, never what might go wrong (no "watch the cold", no "drive away from the station").
+  - The dark crater keeps its existing outline; surveying it adds no new mark *(decided in Phase 0)*.
+- **Bearings, not markers: orbital survey leads.** The landing briefing lists three leads from orbital data (*four once built*, see the table), each a rough direction and distance from the lander. Real missions plan their drives on orbital maps the same way; NASA planned VIPER's routes on Lunar Reconnaissance Orbiter elevation and illumination data.
   - While a lead's area is undiscovered, an arrow on the minimap's edge points from the rover toward the area's center, and a list under the minimap gives its current direction and distance. Once the rover discovers the area, the arrow goes and the site itself appears.
   - Leads point to areas, not exact spots: the direction is one of 16 compass points and the distance is rounded (to 0.1 km below 1 km, to 0.5 km above) and measured to the near edge of the area.
   - Each winning archetype has a starting direction:
@@ -493,9 +600,10 @@ The map is **bigger than one mission can cover**, so the player feels they could
 | Layered wall exposure | LROC images | de Gerlache wall descent | about 0.7 km south-southwest | Camera scout: Crater layers, Crater descent |
 | Boulder field | LROC images | Rocky area 1 | about 0.3 km west-northwest | Drill geologist and camera scout: Boulder field, samples. Rim viewpoint 1 is about 280 m beyond the field's center, so it shows up while crossing. |
 | Permanent shadow | LOLA illumination maps | the dark crater | about 3 km north | Ice hunter |
+| Young crater *(decided November 15, M7; not built yet)* | LROC images | East crater | about 0.5 km east-northeast | Rock hound, Station keeper, Near prospector: pulls first-time players to the East cluster, as the boulder field lead pulls them to Rocky area 1 |
 
-  - Rim viewpoint 2 and Rocky area 2 have no lead; they are found by driving. The leads, the rounding and the area sizes are in `survey` in `tuning.json`; their text is in `text.json` → `survey`.
-- **Map memory: reset each try.** Every mission starts with an unexplored map, including a restart after a failed round. The explored area and discovered sites are not saved, which matches the restart snapshot rule: a restarted round starts as new. The leads stay the same on every try.
+  - Rim viewpoint 2 and Rocky area 2 have no lead; they are found by driving. *(Decided November 15:)* nor do the cold traps and the other young craters: Rocky area 1's cold patch is inside the boulder field lead's area, and the others are found by driving or by the hydrogen meter's rise near them. The leads, the rounding and the area sizes are in `survey` in `tuning.json`; their text is in `text.json` → `survey`.
+- **Map memory: reset each try.** Every mission starts with an unexplored map, including a restart after a failed round (the new sites too, including "Hydrogen-rich ground"). The explored area and discovered sites are not saved, which matches the restart snapshot rule: a restarted round starts as new. The leads stay the same on every try.
 
 ### Sun and shadows
 
@@ -550,7 +658,24 @@ The starting list. Distances and amounts are game values to balance.
 | Earth on the horizon | Pretty picture | Photograph a sunlit Earth (at least a quarter lit) from the surface, at least 300 m from the lander. Earth is only visible from the north side of the rim. | Camera |
 | Rim panorama | Pretty picture | Photograph the view from a crater rim | Camera |
 
-- The Moon's science choice is the **payload bay**: any mix of up to three (steel) or two (titanium) of the six Moon instruments, or none. The camera earns pictures and imaging science; the drill earns samples and the water ice. *(The four new instruments are built (Phase 3) and record into the debrief's instrument log; their milestones come later, see [rover engineering design](rover-engineering-design.md#7-the-moon-payload).)*
+**Twelve new milestones** *(decided November 15, 2026, Moon sites and milestones plan, M1 to M15; not built yet)*. With them the Moon has 25 milestones, and every instrument earns at least one. Rewards are in [Balance with the Moon sites and milestones](#balance-with-the-moon-sites-and-milestones); rules in [Rules for the new milestones](#rules-for-the-new-milestones). Two existing ones are repriced there: Boulder field 60, Mapper 40.
+
+| Milestone | Category | How to earn it | Equipment |
+| --- | --- | --- | --- |
+| Cold trap survey | Scientific: new information | With the neutron spectrometer switched on, drive an unbroken 50 m that passes within 25 m of a cold trap, or through it. One stage per cold trap, up to 3 | Neutron spectrometer |
+| Hidden hydrogen | Scientific: strange formation | With the neutron spectrometer on, drive through the hidden hydrogen spot, where the meter peaks higher than in the cold traps. *Placed by design* | Neutron spectrometer |
+| Ice deposit located | Scientific: new material | With the neutron spectrometer on, drive inside the dark crater where the meter reads at least 70% (within about 90 m of the ice spot) | Neutron spectrometer, lights |
+| Rock collection | Scientific: new information | Read 2, 3 and 4 different rock types with the X-ray spectrometer (one stage each) | X-ray spectrometer |
+| Rare rock | Record: first discovery | Read the rolled boulder (magnesian norite, found nowhere else). Once per campaign. *Placed by design* | X-ray spectrometer |
+| Boulder track | Scientific: strange formation | Photograph the rolled boulder in frame from within 80 m | Camera |
+| Documented sample | Scientific: new information | Photograph a boulder the X-ray spectrometer has read this mission, in frame, from within 15 m | Camera + X-ray spectrometer (combo) |
+| Fresh ejecta sample | Scientific: new information | Drill a sample inside a young crater's or rocky area's ejecta ring (1.5 times its radius) | Drill |
+| Moonquake record | Scientific: new information | The seismometer station, set down more than 200 m from the lander, records the moonquake (clean or noisy) | Seismometer station |
+| Clean seismogram | Scientific: new information | That record is clean (the HUD's existing quality word) | Seismometer station |
+| Laser ranging site | Scientific: new information | Set the reflector down where Earth is in view, more than 200 m from the lander | Laser retroreflector |
+| Science station | Record: key milestone | Both stations on the ground within 100 m of each other, more than 200 m from the lander, Earth in view at the reflector. Once per campaign | Seismometer station + laser retroreflector (combo) |
+
+- The Moon's science choice is the **payload bay**: any mix of up to three (steel) or two (titanium) of the six Moon instruments, or none. The camera earns pictures and imaging science; the drill earns samples and the water ice. *(The four new instruments are built (Phase 3) and record into the debrief's instrument log. Their milestones are decided above but not built yet, so in the game they still earn nothing; see [rover engineering design](rover-engineering-design.md#7-the-moon-payload).)*
 - The Moon has almost no atmosphere, so air samples start on Mars and Titan.
 
 #### How the milestones work *(decided during implementation, Phase 5)*
@@ -571,12 +696,61 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
   - The ice is reachable, with about 20 s to search. With the old Sun start (17.4°), the same build runs out of energy at about 250 s.
 - **Mapper** is 1.8% of the map, counted on the explored grid; the minimap's zoom and fog are display only (see [Minimap and exploration](#minimap-and-exploration)). Measured in playtests with full-throttle drives: a light build drove 3.2 km and revealed 2.8% (Mapper at about 2.2 km); the default build drove 2.0 km before its battery ran out and revealed 1.84%. The share grows about 0.77% per km of new ground.
 - **Clean run** ignores moonquake damage, because every mission has one quake and nothing can prevent its damage. Any other damage (impacts, slopes, overload, flares) loses it. The milestone notice says so.
-- **Records** (Touchdown, Water ice) pay once per campaign. A record already held still shows in the debrief, without a reward. A restart restores the records list from the round snapshot, so records from a failed round can be earned again.
+- **Records** (Touchdown, Water ice; *decided, not built:* Rare rock, Science station) pay once per campaign. A record already held still shows in the debrief, without a reward. A restart restores the records list from the round snapshot, so records from a failed round can be earned again.
 - **Mission history setting** (title screen → Settings; on by default, saved in the browser). When on, each milestone pop-up shows its real fact (staged milestones on the first stage only), the debrief lists the facts, and the debrief compares the rover's fate with a real rover's. Every fact has a source in `milestones.json` or `text.json`; the debrief shows the comparison's source.
 - **Rollover** is reported as "Destroyed by rollover", with its own real-rover comparison (no planetary rover is known to have been lost to a rollover).
 - **Earth's look.** Earth's phase follows the angle between the Sun and Earth, which is real geometry.
   - With the decided Sun path (start 75°, subsolar latitude −1.54°), Earth starts as a 37% crescent. It is nearly dark (new Earth, 1% lit) when the Sun passes 1.5° beside it at about 132 s, then fills again to 55% at the end.
   - The Sun no longer passes behind Earth (see [Sun and shadows](#sun-and-shadows)).
+
+#### Rules for the new milestones
+
+*Decided November 15, 2026 (Moon sites and milestones plan); not built yet.* Rules will be in `game/src/rules/milestones.ts`, `instruments.ts` and `survey.ts`; triggers, rewards and facts in `milestones.json`; distances in `tuning.json`; which crater holds the rolled boulder, which low-light slope is the hidden hydrogen, each site's rock suite and display names in a new `game/data/sites.json`. Numbers below are starting values for the balance model. "Near the lander" is the existing 200 m zone around the landing point (`sampleMinDistanceM`, reused as `stationMinDistanceM`; M9).
+
+**Triggers.** Three generic triggers are shared with the Mars plan ([Milestone types](mars-rover-engineering-implementation-plan.md#milestone-types)) with Moon extensions (marked), plus one new trigger. The Moon builds them first; Mars reuses them (M6).
+
+| Trigger | Shape | Fires when | Moon milestones |
+| --- | --- | --- | --- |
+| `transect` | `{ type, instrument, zone, meters, sites? }` | The instrument was switched on for an unbroken drive of at least `meters` that touches the zone. *Moon extension:* `sites` stages one per distinct zone instance | Cold trap survey (`cold-trap`, 50 m, 3 sites), Hidden hydrogen (`hydrogen-anomaly`, 30 m), Ice deposit located (`ice-signal`, 20 m) |
+| `reading` | `{ type, instrument, zone?, target?, sites?, rocks?, rock? }` | A use of the instrument finishes. *Moon extensions:* `rocks: number[]` stages by distinct rock types read this mission; `rock` needs that rock type | Rock collection (`rocks: [2, 3, 4]`), Rare rock (`rock: "magnesian-norite"`) |
+| `record` | `{ type, instrument, event, quality? }` | The instrument was deployed when the event came. *Moon extensions:* `quality` needs that record quality; the station must have been set down outside the near-lander zone | Moonquake record, Clean seismogram (`quality: "clean"`) |
+| `deploy` (new) | `{ type, instrument, needs?: 'earth', near?: { instrument, withinM } }` | A station is set down outside the near-lander zone, with Earth in view if asked, and within `withinM` of the other station if asked | Laser ranging site, Science station (`near`: `stationPairMaxM` 100) |
+| `photo` (exists) | New targets `rolled-boulder` (in frame within `boulderTrackPhotoRangeM` 80) and `read-boulder` (a boulder read this mission, in frame within `documentedSampleRangeM` 15) | | Boulder track, Documented sample |
+| `drill` (exists) | New zone `young-crater`: within `youngCraterEjectaFactor` (1.5) times the radius of a young crater or rocky area | | Fresh ejecta sample |
+
+- **Combos need every listed instrument.** `MilestoneRequirements` gains `instruments?: Instrument[]` (all required); `instrument` stays for single ones. A combo that fires on a rover missing one is not credited, with the existing missed-part notice naming it.
+- **Stations and the lander: warned before, not after** (M9). Stations cannot be picked up again, so within 200 m of the landing point a station's HUD hint reads "Too close to the lander to count", and the first press of its key or button asks for a second press to set it down anyway (decided in Phase 0: the second press must come within 5 s, `instruments.stationConfirmSeconds`, or the first press is forgotten). The reflector's Earth light gains a third state, "Earth in view · too close to the lander". A station set down inside still works as today (the seismometer records, both go in the instrument log) but earns none of the station milestones.
+- **The record does not care about the rover's power** *(decided in Phase 0)*. A deployed station records the moonquake whether or not the rover is powered down at that moment (the Mars plan's `record` asks the rover not to be powered down, which suits instruments aboard the rover, not stations on the ground).
+- **Cold trap survey.** A cold trap's zone is its permanent-shadow outline plus a 25 m edge (`coldTrapEdgeM`), so a rover without lights can survey from the edge. *Decided in Phase 0:* "unbroken" means the meters count only while the spectrometer is on and the rover powered up; switching it off, by hand or at the low-energy level, starts the count again; a power-down (for a flare) pauses it; the drive may touch the zone anywhere along its 50 m, and the stage is credited as soon as both are true. *Decided in Phase 0, flagged for the balance model:* the dark crater counts as a cold trap for the survey (it is the biggest one on the map), since the Dark prospector's estimate assumes one stage there; without it that route ends at 775 and fails. The North cold trap stays out unless the pipeline shows a real route near it (M13).
+- **Hidden hydrogen.** A 60 m circle around a low-light slope's center that `sites.json` picks from the pipeline's low-light patches (request P4); a 30 m switched-on drive touching it earns the milestone. The reveal circle never discovers it; it is drawn only once earned.
+- **Ice deposit located.** The zone is the part of the dark crater where the meter's ice signal reaches 70% (`neutron.iceSignalShare`), which with `iceRangeM` 300 is within about 90 m of the ice spot; a 20 m switched-on drive touching it earns the milestone. It needs the neutron spectrometer and lights (decided in Phase 0: no heater, because the zone starts about 10 m inside the shadow edge and a short visit does not freeze an unheated rover). It is separate from Water ice, which still needs the drill. Earning it marks nothing on the map.
+- **The hydrogen meter learns two things.** Near a cold trap it rises over a short edge ramp (`neutron.edgeRampM`, 25 m) from the noise floor to the cold background (20%). The hidden hydrogen spot reads `neutron.anomalyPeak` (45%) at its center, falling to the noise floor at `anomalyRangeM` (80 m). *Decided in Phase 0:* both fall off in a straight line, like the ice signal; the edge ramp applies outside every cold zone, the dark crater included; inside the dark crater the reading is unchanged; where several apply, the meter shows the highest. This is a game simplification: a real rover-mounted detector senses only about its own footprint. (With these numbers the meter reads about 15% at the hidden spot's 60 m edge, below the cold traps' 20%; text says the spot "peaks" higher than the cold traps.)
+- **Cold traps join the cold rules.** Their names go into `tuning.cold.zones`, so they freeze an unheated rover, stop a rover without lights at their edge, and slow held uses without a heater, like Rocky area 1's patch today.
+- **Rock types depend on the site** ([rover engineering design](rover-engineering-design.md#rock-types-by-site)). Rock collection counts distinct types read this mission; the X-ray readout adds "New type: 3 of 5" when one counts. Rare rock is a record.
+- **Photo milestones.** Boulder track and Documented sample use the Earth photo's frame test (`photoFrameMargin`) on the boulder's center (decided in Phase 0). One photo can earn both, as one photo can earn Rim panorama and Earth.
+- **Fresh ejecta sample.** Any drill sample within 1.5 times a young crater's or rocky area's radius of its center, the crater floor included (decided in Phase 0). The usual drill rule still applies: only samples at least 200 m from the landing point count, so the part of NW crater's ring nearer the lander does not count. One drill action can earn both Fresh ejecta and a Regolith site.
+- **Science station** fires when the second station goes down. Both must be outside the near-lander zone, within 100 m of each other, with Earth in view at the reflector (already required to set it down). It is a record, once per campaign; it is the Apollo 11 package and should feel like a one-time event.
+- **Desk cards** list each instrument's milestones by name (M14; see [Moon parts](#moon-parts)).
+- **Debrief: "Not reached"** (M11). With 25 Moon milestones, the debrief adds a short list of milestones the rover carried the parts for and did not earn, names only. *Decided in Phase 0:* only milestones that need at least one instrument count (capability milestones need no parts and would always be listed); the rover must have carried every part the milestone requires; records already held this campaign are left out; a staged milestone is listed only if none of its stages was earned. The debrief groups milestones by instrument and shows staged ones as one line with a count.
+- **No lesson is spoiled.** The five Moon lessons stay as they are. No milestone, site name, notice, lead or desk line names a lesson's cause or its fix: no milestone needs the neutron spectrometer and the drill together (Water ice already rewards the pair), the seismometer texts say only "record" and "clean", no milestone needs a use inside the cold or mentions shadow, temperature or lights. The survey text says "pass near or through". A test greps the new texts for each lesson's key words.
+
+**Real basis of the new milestones** (checked November 15 against the sources below, some from publisher abstracts; every fact is checked again before it goes into `text.json`):
+
+| Milestone | Real basis |
+| --- | --- |
+| Cold trap survey | Lunar Prospector's neutron spectrometer found extra hydrogen at both poles (Feldman et al. 1998, Science 281:1496, doi:10.1126/science.281.5382.1496; hydrogen, not proven water); small cold traps are common and may hold ice (Hayne et al. 2021) |
+| Hidden hydrogen | LRO's LEND found hydrogen-rich areas near the south pole that do not match the permanently shadowed regions (Mitrofanov et al. 2010). *Placed by design* |
+| Ice deposit located | VIPER's neutron spectrometer is designed to find hydrogen in the top meter of soil while driving ([NASA VIPER](https://science.nasa.gov/mission/viper/rover-and-instruments); the depth is from NASA presentations). VIPER has not flown: cancelled in 2024, NASA now plans to deliver it on a Blue Origin lander (NASA release, September 2025) |
+| Rock collection | Chandrayaan-3's X-ray spectrometer measured south polar soil as mostly ferroan anorthosite with a magnesium-rich part (Vadawale et al. 2024, Nature, doi:10.1038/s41586-024-07870-7) |
+| Rare rock | Same study: the magnesium-rich material may come from deeper down; rocks that roll down a wall bring material from upslope (Bickel et al. 2020). *Placed by design* |
+| Boulder track | More than 136,000 rockfalls mapped in LRO images, most set off by impacts (Bickel et al. 2020) |
+| Documented sample | Apollo crews photographed rocks where they lay before collecting them (USGS Apollo 14 and 17 reports; NASA TR R-353, Apollo 12) |
+| Fresh ejecta sample | Fresh crater material is less weathered by space and looks brighter (Grier et al. 2001) |
+| Moonquake record | The Apollo seismic network recorded moonquakes for years; a strong 1973 shallow moonquake may have come from a fault near de Gerlache crater (Watters et al. 2024, Planetary Science Journal 5:22, doi:10.3847/PSJ/ad1332; where the fault lies relative to the play area is not checked) |
+| Clean seismogram | Apollo 17's seismometers picked up many small quakes as the ground heated and cooled (Civilini, Weber & Husker 2023, JGR Planets, doi:10.1029/2022JE007704; worded to avoid the paper's lander signals) |
+| Laser ranging site | Apollo's reflectors are still ranged from Earth (Murphy et al. 2010, Icarus 208:31, doi:10.1016/j.icarus.2010.02.015); in December 2023 LRO ranged the small reflector on India's Vikram lander (news coverage citing NASA; "first ever" not claimed) |
+| Science station | Apollo 11 left a seismometer and a laser reflector side by side, the Early Apollo Scientific Experiments Package (ALSJ crew handbook) |
+
 
 ## 9. NASA data
 
