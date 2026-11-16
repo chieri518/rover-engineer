@@ -6,7 +6,7 @@ Last updated November 15, 2026. The game rules themselves stay in [game-design.m
 
 **How to read this doc.** Same convention as game-design.md: everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). The first draft's open questions were all decided on November 15 (see [Decisions and later work](#11-decisions-and-later-work)). Game numbers in this doc are **indicative**: they show the intended scale against today's parts and are settled in a balance pass, then stored in `game/data/*.json`.
 
-**Scope.** Game design only. The technical implementation plan comes after this design is settled. New Moon milestones and map changes are also out of scope for now; milestone ideas below are listed to show what each instrument is for, not as a build list.
+**Scope.** Game design only. The technical implementation plan comes after this design is settled. New Moon milestones and map changes were out of scope for the first version; they are now designed in the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md) and recorded in game-design.md (decided November 15, not built yet). Milestone ideas in the catalog below for other worlds are listed to show what each instrument is for, not as a build list.
 
 ## Contents
 
@@ -30,7 +30,7 @@ Last updated November 15, 2026. The game rules themselves stay in [game-design.m
 | Variety | Instruments differ by **what the player does** with them (look, dig, sense while driving, touch, deploy), not by levels of the same thing. Levels exist for a few instruments and appear on later worlds. |
 | Instrument costs | Instruments cost energy and time in a mission, not only cost, mass, and size at the desk. Power and battery choices then matter for science as well as for driving. |
 | Mission features | Some instruments give the player live information as well as milestones: the neutron spectrometer's hydrogen meter, the spectrometer's rock readout, an Earth line-of-sight light for the retroreflector. |
-| Moon payload | Six instruments: science camera, regolith drill, neutron spectrometer, X-ray spectrometer, seismometer station, laser retroreflector. Every one flew on a real lunar mission. |
+| Moon payload | Six instruments: science camera, regolith drill, neutron spectrometer, X-ray spectrometer, seismometer station, laser retroreflector. Five types worked on the lunar surface; the neutron spectrometer has flown in lunar orbit (Lunar Prospector, LRO's LEND) and is designed to drive on NASA's VIPER, which has not flown. |
 | Relationships | **Decided (November 15):** parts affect each other (needs, conditions, conflicts, wear). Players discover them in the mission, an engineering notebook collects them (kept across failed runs), and a pre-launch review flags the ones already discovered. About four on the Moon, more on Mars and Titan. See [10](#10-relationships-and-consequences). |
 | Later worlds | The rest of the catalog unlocks with RP on Mars and Titan, together with support hardware (robotic arm, mast) and new constraints (data, dust, night, cold). A first version, to revisit after playtesting. |
 
@@ -190,7 +190,7 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 
 #### Regolith drill *(exists)*
 
-- **Real basis:** VIPER's TRIDENT drills to 1 m in 10 cm bites ([02](research/rover-engineering/02-rover-subsystems.md#drills-and-sampling-systems)).
+- **Real basis:** VIPER's TRIDENT drill is designed to reach 1 m in 10 cm bites ([02](research/rover-engineering/02-rover-subsystems.md#drills-and-sampling-systems)). VIPER has not flown: NASA cancelled it in 2024 and now plans to deliver it on a Blue Origin lander. Apollo crews drilled cores on the Moon.
 - **In the game:** dig. Stop and drill; samples count away from the lander; the ice must be drilled to be found.
 - **Could earn:** regolith samples, water ice.
 - **Indicative numbers:** 90 cost, 8 kg, size 3, an energy cost per sample. No hydrogen clue: that moves to the neutron spectrometer (see [7](#7-the-moon-payload)).
@@ -217,9 +217,9 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 
 #### Neutron spectrometer
 
-- **Real basis:** VIPER's Neutron Spectrometer System prospects for hydrogen while the rover drives, sensing about 1 m into the ground ([NASA VIPER](https://science.nasa.gov/mission/viper/rover-and-instruments)); LRO's LEND maps the same signal from orbit (already a history fact in the game).
+- **Real basis:** neutron spectrometers have mapped hydrogen at the lunar poles from orbit: Lunar Prospector found extra hydrogen at both poles (Feldman et al. 1998, Science 281:1496, doi:10.1126/science.281.5382.1496), and LRO's LEND maps the same signal. VIPER's Neutron Spectrometer System is designed to prospect for hydrogen while the rover drives, sensing about 1 m into the ground ([NASA VIPER](https://science.nasa.gov/mission/viper/rover-and-instruments)). VIPER has not flown: NASA cancelled it in 2024 and now plans to deliver it on a Blue Origin lander (NASA release, September 2025). *(Decided November 15, M15.)* Game text says VIPER "is designed to", never that it found anything.
 - **In the game:** sense while driving. A live hydrogen meter rises as the rover nears buried hydrogen. It does not need the rover to stop.
-- **Could earn:** a hydrogen survey (drive a line through a cold area), and it helps find the ice for the drill.
+- **Could earn** *(decided November 15, not built yet)*: Cold trap survey (up to 3 stages), Hidden hydrogen, Ice deposit located (see [7](#7-the-moon-payload)); and it helps find the ice for the drill.
 - **Indicative numbers:** about 80 cost, 4 kg, size 2, standby energy while switched on.
 - **Levels:** Neutron spectrometer, passive (Moon) → Active neutron spectrometer (Mars; Curiosity's DAN fires its own neutron pulses and reads deeper while stopped) → Gamma-ray and neutron spectrometer (Titan; Dragonfly's DraGNS also reads elements).
 - **World:** Moon.
@@ -244,33 +244,44 @@ Every instrument the game could offer, grouped by family. For each: what it is i
 
 - **Real basis:** Pragyan's Alpha Particle X-ray Spectrometer, lowered to the ground by a small mechanism, measured the elements in lunar soil ([ISRO](https://www.isro.gov.in/Chandrayaan3_Details.html)); Lunokhod and the MER rovers carried similar X-ray instruments.
 - **In the game:** touch. Park next to a rock and hold still for a few seconds; the HUD shows the rock type and its main elements.
-- **Could earn:** comparing different rocks (rocks in a boulder field are thrown out from different depths by the impact); finding an unusual rock.
+- **Could earn:** comparing different rocks (rocks in a boulder field are thrown out from different depths by the impact); finding an unusual rock. *Decided November 15, not built yet:* Rock collection (up to 3 stages), Rare rock, and Documented sample with the camera.
 - **Indicative numbers:** about 60 cost, 2 kg, size 1, a few seconds held still and a small energy cost per reading.
 - **Needs:** on the Moon a built-in deploy mechanism, as on Pragyan; from Mars, contact instruments need the robotic arm.
 - **World:** Moon.
 
-##### Rock types (placeholder)
+##### Rock types by site
 
-*(Decided November 15, built in Phase 3.)* What an X-ray reading reports is placeholder content: which rocks lie where is Moon content for the later map work. The list and weights are in `tuning.json` → `instruments.xray.rocks`; names, main elements and notes in `text.json` → `rocks`.
+*(Decided November 15, 2026, from the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md#5-rock-types) (M5); not built yet.)* This replaces the placeholder list built in Phase 3, which read the same mix at every rocky area, so a reading told the player nothing about place. Now each site has its own **suite** of two rock types, and one boulder holds a rare rock found nowhere else. Weights are starting values for the balance model. Built, the suites go in `tuning.json` → `instruments.xray.suites` (keyed by site kind or site), names, main elements and notes in `text.json` → `rocks`, and the site of each boulder in `game/data/sites.json`.
 
-| Rock type | Readout (main elements) | Weight | What it tells scientists | Support |
+| Rock type | Readout (main elements) | Where it is read | What it tells scientists | Support |
 | --- | --- | --- | --- | --- |
-| Ferroan anorthosite | Calcium and aluminum rich; iron and titanium poor | 6 | The pale, ancient crust of the highlands, formed from the early Moon's magma ocean | Well supported: Chandrayaan-3's APXS found the soil near its south polar site to be typical highland anorthosite (Vadawale et al. 2024, Nature 633:327, doi:10.1038/s41586-024-07870-7) |
-| Noritic anorthosite | Calcium and aluminum rich, with more iron and magnesium | 3 | Highland crust with more pyroxene | Supported by Apollo 16 samples and orbital spectra of the South Pole-Aitken basin interior (Pieters et al. 1997, GRL); the Apollo 16 clast study citation is not yet checked |
-| Impact melt breccia | Glassy, mixed fragments, once melted by an impact | 3 | Rock melted by an impact then cooled; its age dates the impact | Well supported in Apollo samples (Apollo 16 sample 65015); its occurrence at the south pole is not confirmed |
-| Regolith breccia | Soil fragments pressed together into rock | 3 | Ancient surface soil turned to rock, a record of the old surface | Well supported in Apollo samples (Apollo 16 sample 60016) |
+| Ferroan anorthosite | Calcium and aluminum rich; iron and titanium poor | The common rock: every site except the rolled boulder | The pale, ancient crust of the highlands, formed from the early Moon's magma ocean | Well supported: Chandrayaan-3's APXS found the soil near its south polar site mostly ferroan anorthosite (Vadawale et al. 2024, Nature, doi:10.1038/s41586-024-07870-7; volume and page not confirmed) |
+| Noritic anorthosite | Calcium and aluminum rich, with more iron and magnesium | East crater, Rocky area 2 | Highland crust with more pyroxene | Supported by Apollo 16 samples and orbital spectra of the South Pole-Aitken basin interior (Pieters et al. 1997, GRL); the Apollo 16 clast study citation is not yet checked |
+| Impact melt breccia | Glassy, mixed fragments, once melted by an impact | Rocky area 1 (near its rim) | Rock melted by an impact then cooled; its age dates the impact | Well supported in Apollo samples (Apollo 16 sample 65015); its occurrence at the south pole is not confirmed |
+| Regolith breccia | Soil fragments pressed together into rock | NW crater, West crater, Rocky area 2 | Ancient surface soil turned to rock, a record of the old surface | Well supported in Apollo samples (Apollo 16 sample 60016) |
+| **Magnesian norite** (new, rare) | Rich in magnesium and iron, poor in calcium; pyroxene-rich | The rolled boulder only | Rock from deeper in the crust, brought up by impacts | *Placed by design*, plausible but not observed here: the magnesium-rich part of Chandrayaan-3's soil may come from deeper rock (Vadawale et al. 2024); Mg-suite norites are well known from Apollo 17 samples (citation still to check). The fact text says "inspired by", never that it was found at this spot |
 
-Left out as speculative at a highland polar site: mare basalt (rare ejecta from the lowlands) and magnesium-rich material (possibly deep South Pole-Aitken material; Chandrayaan-3's APXS saw a magnesium excess, but the deep-source link is an interpretation). Pragyan's LIBS sulfur finding is reported only in news coverage, not on ISRO's own page, and is not used.
+**Site suites** (starting weights). Each boulder still reads the same rock in every mission, picked by weight from its site's suite and seeded by its position (`rockTypeFor`).
 
-**How rock types are assigned today.** Each boulder (scattered deterministically in the two rocky areas, `rules/boulders.ts`) gets one rock type, picked by weight from the list and seeded by the boulder's position (`rockTypeFor` in `rules/instruments.ts`). The same boulder reads the same rock in every mission, and both rocky areas hold the same mix, so a reading tells the player nothing about place yet.
+| Site | Suite (weight) | Types a full visit finds |
+| --- | --- | --- |
+| Rocky area 1 | Impact melt breccia 6, ferroan anorthosite 4 | 2 |
+| East crater | Noritic anorthosite 6, ferroan anorthosite 4 | 2 |
+| NW crater, West crater | Regolith breccia 6, ferroan anorthosite 4 | 2 |
+| Rocky area 2 | Noritic anorthosite 5, regolith breccia 5 | 2 |
+| Rolled boulder | Magnesian norite (fixed) | 1 (rare) |
 
-**What a real assignment needs from the map** (later map work):
+- **Two types per site** means Rock collection's top stage (4 types) needs three sites; the nearest three (NW crater, Rocky area 1, East crater) are all within about 500 m of the lander. Five types exist in all, so the X-ray readout's count reads "New type: 3 of 5".
+- **Left out:** mare basalt (rare lowland ejecta, speculative at a highland polar site), as before. Pragyan's LIBS sulfur finding is reported only in news coverage, not on ISRO's own page, and is not used.
 
-- **Rock-type areas.** Highland anorthosite as the default everywhere; noritic anorthosite and breccias in older or crater-blasted zones; basalt only near the South Pole-Aitken interior or lowland edges, if at all in our play area.
-- **Distance from a young crater.** Boulders near a fresh crater's rim were thrown out from deeper down, so a fresh-crater zone (our rocky areas are small fresh craters) should give a higher chance of impact melt breccia or deeper, more mafic rock, falling with distance from the rim.
-- **Terrain pipeline.** Either hand-made areas in `terrain.json` (per rocky area, or rings by distance from each crater rim), or a rock-type layer exported by the pipeline from real data (LRO, Moon Mineralogy Mapper, Diviner). We did not find M3 or Diviner rock maps of this south-pole site in our review, so the export is not yet known to be feasible; the hand-made areas are the fallback.
+**Map-design impact.**
 
-**How that would change the game.** With real areas, readings at two places differ, which is something to learn and to plan a route for, and the readout stays honest. Possible future milestones, both needing the map layer first: "Read three different rock types" and "Find a rare rock".
+- **Boulders at young craters.** `scatterBoulders` gains the three young craters (30 boulders each, `boulders.perYoungCrater`, spread over 1.1 times the crater radius) and the one rolled boulder (`boulders.rolledBoulderDiameterM` 3.5). Soft ground stays only at the two rocky areas: a 50 m crater's soft rim would be a trap with no warning.
+- **Boulders know their site** (`Boulder.site`), so a reading picks from the right suite.
+- **The rolled boulder needs a track:** a darker groove on the terrain texture up the slope behind it, the one new world graphic. Fallback if the decal is costly: the boulder alone.
+- **No rock map from the pipeline.** We found no Moon Mineralogy Mapper or Diviner rock map of this site, so the suites are design, anchored to crater freshness (fresh craters throw up boulders from deeper down), as the placeholder notes suggested. Placement of the young craters and the rolled boulder comes from pipeline requests P2 and P3 in the plan.
+
+The two milestones the placeholder section listed as possible, "read three different rock types" and "find a rare rock", are now decided as **Rock collection** and **Rare rock** (see [7](#7-the-moon-payload)).
 
 #### Laser spectrometer (LIBS)
 
@@ -311,7 +322,7 @@ Left out as speculative at a highland polar site: mare basalt (rare ejecta from 
 
 - **Real basis:** Apollo crews left seismometers that recorded moonquakes for years; Chandrayaan-3's ILSA was the first MEMS seismometer on the Moon ([ISRO](https://www.isro.gov.in/Chandrayaan3_Details.html)); InSight's SEIS recorded marsquakes.
 - **In the game:** deploy and leave. Stop, set the station down, drive on. If it is deployed before the mission's moonquake, it records the quake.
-- **Could earn:** recording a moonquake (the event every Moon mission already has).
+- **Could earn:** recording a moonquake (the event every Moon mission already has). *Decided November 15, not built yet:* Moonquake record, Clean seismogram, and Science station with the reflector.
 - **Indicative numbers:** about 70 cost, 4 kg, size 2. Deploying takes a few seconds held still. The station's mass leaves the rover, so the rover is lighter and a little faster afterwards.
 - **Levels:** Seismometer station (Moon) → Broadband seismometer (Mars, InSight-class; reads distant quakes and the planet's interior).
 - **World:** Moon.
@@ -320,7 +331,7 @@ Left out as speculative at a highland polar site: mare basalt (rare ejecta from 
 
 - **Real basis:** passive corner-cube arrays that bounce lasers from Earth to measure the Moon's distance. Apollo 11, 14 and 15 left arrays, and Lunokhod 1 and 2 each carried a French-built one; Lunokhod 1's was found again by LRO in 2010 and is still ranged.
 - **In the game:** deploy and leave. It needs no power, but it must be set down where Earth is in view, because Earth's lasers have to reach it. The HUD shows whether Earth is in view.
-- **Could earn:** placing a reflector Earth can range.
+- **Could earn:** placing a reflector Earth can range. *Decided November 15, not built yet:* Laser ranging site, and Science station with the seismometer.
 - **Indicative numbers:** about 30 cost, 3 kg (Lunokhod 1's array was about 3.7 kg, *unverified*), size 1, no energy. Its mass leaves the rover when deployed.
 - **World:** Moon.
 
@@ -380,7 +391,7 @@ Left out as speculative at a highland polar site: mare basalt (rare ejecta from 
 
 ## 7. The Moon payload
 
-**Decided (November 15):** six instruments, two of them today's. The list can be tuned later. **Built in Phase 3** with the indicative numbers below; the four new ones record into the debrief's instrument log and earn nothing until their milestones come (mechanics in [game-design.md](game-design.md#moon-parts)).
+**Decided (November 15):** six instruments, two of them today's. The list can be tuned later. **Built in Phase 3** with the indicative numbers below; the four new ones record into the debrief's instrument log (mechanics in [game-design.md](game-design.md#moon-parts)). **Milestones now exist** *(decided November 15, 2026, from the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md); not built yet)*: every Moon instrument earns at least one, two of them as combos, with new sites near the lander to earn them (rules in [game-design.md](game-design.md#moon-milestones)). Until they are built, the four new instruments still earn nothing in the game.
 
 | Instrument | Verb | Uses what the game already has | Indicative cost / mass / size | Energy |
 | --- | --- | --- | --- | --- |
@@ -391,15 +402,26 @@ Left out as speculative at a highland polar site: mare basalt (rare ejecta from 
 | Seismometer station | Deploy and leave | The moonquake event | 70 / 4 kg / 2 | None after deploying |
 | Laser retroreflector | Deploy and leave | Earth visibility | 30 / 3 kg / 1 | None |
 
+**What each instrument earns** *(decided November 15, not built yet; names as on the desk cards, M14)*:
+
+| Instrument | Before | Decided |
+| --- | --- | --- |
+| Science camera | Crater layers, Rim panorama, Earth on the horizon | + Boulder track; Documented sample (with the X-ray spectrometer) |
+| Regolith drill | Regolith sample (up to 3 sites), Water ice | + Fresh ejecta sample |
+| Neutron spectrometer | Nothing (the hydrogen meter only) | Cold trap survey (up to 3), Hidden hydrogen, Ice deposit located |
+| X-ray spectrometer | Nothing (the instrument log only) | Rock collection (up to 3 stages), Rare rock; Documented sample (with the camera) |
+| Seismometer station | Nothing (the instrument log only) | Moonquake record, Clean seismogram; Science station (with the reflector) |
+| Laser retroreflector | Nothing | Laser ranging site; Science station (with the seismometer) |
+
 **Why these six.**
 
 - **Six different things to do.** No two share a verb except the two stations, and those differ: the seismometer is about timing (deploy before the quake), the reflector about place (Earth in view).
-- **All lunar.** Each type flew on a real lunar rover or lander (Pragyan, Lunokhod, Apollo, VIPER, Chandrayaan-3), so the Moon payload is historically honest.
-- **They work with the current map and events.** Boulders, cold areas, the moonquake, and Earth visibility already exist, so the instruments add things to do without needing new terrain. New milestones for them are a later step.
+- **All lunar.** Five types worked on the Moon's surface on real rovers or landers (Apollo, Lunokhod, Pragyan and the Chandrayaan-3 lander). The neutron spectrometer is the exception *(corrected November 15, M15)*: neutron spectrometers have mapped lunar hydrogen from orbit (Lunar Prospector, LRO's LEND), and NASA's VIPER rover is designed to carry one while it drives, but VIPER has not flown (cancelled in 2024, now planned to fly on a Blue Origin lander). Earlier versions of this doc said all six flew, including on VIPER; that was wrong.
+- **They work with the current map and events.** Boulders, cold areas, the moonquake, and Earth visibility already exist, so the instruments add things to do without needing new terrain. *(Updated November 15)* The milestones now decided add a few sites near the lander (young craters, cold traps, a rolled boulder, a hidden hydrogen spot) so each instrument has a reason to stop; see [game-design.md](game-design.md#map).
 - **Range of prices.** The reflector is cheap and light; the drill is expensive and heavy. A tight budget still has choices.
-- **Combinations.** Neutron spectrometer and drill for the ice; spectrometer and camera at a boulder field; a station dropped on the way to somewhere else.
+- **Combinations.** Neutron spectrometer and drill for the ice; spectrometer and camera at a boulder field (Documented sample); both stations set down together (Science station); a station dropped on the way to somewhere else.
 
-**The hydrogen clue moves to the neutron spectrometer** *(decided November 15; built in Phase 3)*. Until now each drill sample in the dark crater reported a hydrogen signal (strong, moderate, weak; game-design.md). With the bay, the live hydrogen meter belongs only to the neutron spectrometer, as on VIPER, and the drill only confirms the ice; the drill gives no hydrogen reading of its own. An ice hunter therefore needs two mounting points and the energy for both. This changes the ice route's balance: with today's numbers and the indicative ones above, the cheapest ice build plus a neutron spectrometer reaches size 24, over the Medium limit of 23, so it would need the Large ticket and cost about 895 against a 750 budget. That is left to the later balance patch, with the tiers.
+**The hydrogen clue moves to the neutron spectrometer** *(decided November 15; built in Phase 3)*. Until now each drill sample in the dark crater reported a hydrogen signal (strong, moderate, weak; game-design.md). With the bay, the live hydrogen meter belongs only to the neutron spectrometer, as VIPER is designed to carry it, and the drill only confirms the ice; the drill gives no hydrogen reading of its own. An ice hunter therefore needs two mounting points and the energy for both. This changes the ice route's balance: with today's numbers and the indicative ones above, the cheapest ice build plus a neutron spectrometer reaches size 24, over the Medium limit of 23, so it would need the Large ticket and cost about 895 against a 750 budget. *(Decided November 15, M1)* Accepted for the Moon: the ice with both instruments does not fit the 750 budget in any variant, so the neutron spectrometer gets its own dark-crater milestone (Ice deposit located) and the lesson's answers are reworded (see [Moon relationships](#moon-relationships)). The exact numbers (budget, part prices, rewards) can be revisited in a later balance patch; see [game-design.md](game-design.md#balance-with-the-moon-sites-and-milestones).
 
 **Held back for Mars and Titan.** Ground-penetrating radar and the mass spectrometer have also flown on the Moon (Yutu-2, PRIME-1) but are kept for later worlds so each world brings new verbs; their history facts can say they also flew on the Moon.
 
@@ -516,10 +538,10 @@ A collection of relationships the player has met, kept across the campaign. The 
 
 | Relationship | Kind | What the player sees | Answers | Real basis |
 | --- | --- | --- | --- | --- |
-| The neutron spectrometer finds the ice, the drill confirms it | Needs | Hydrogen meter rises near the ice; the drill alone gets no clue | Bring both; or skip the ice and earn elsewhere | VIPER's neutron spectrometer senses hidden water up to about 1 m below the surface while it drives ([NASA VIPER](https://science.nasa.gov/mission/viper/rover-and-instruments)); that VIPER would then drill where it reads high was not confirmed and is not claimed |
+| The neutron spectrometer finds the ice, the drill confirms it | Needs | Hydrogen meter rises near the ice; the drill alone gets no clue | *(Reworded November 15, M1)* Bring the neutron spectrometer to locate the ice and the drill to confirm it; on a tight budget, choose one, or earn elsewhere | VIPER's neutron spectrometer is designed to sense hidden water up to about 1 m below the surface while it drives ([NASA VIPER](https://science.nasa.gov/mission/viper/rover-and-instruments)); VIPER has not flown (M15). That VIPER would then drill where it reads high was not confirmed and is not claimed |
 | The seismometer needs quiet ground | Conditions | The moonquake record is noisy if the rover drove nearby while the station listened; clean if it kept far enough away or parked | Deploy early and drive on; or deploy where the route does not return | Chandrayaan-3's ILSA seismometer recorded the vibrations of its own rover driving nearby on August 25, 2023 ([ISRO](https://www.isro.gov.in/Ch3_ILSA_Listens_Landing_Site.html)); InSight isolated its seismometer from its own tether and covered it with a wind and thermal shield to cut noise ([JPL](https://www.jpl.nasa.gov/news/insights-seismometer-now-has-a-cozy-shelter-on-mars/)) |
 | Cold and dark: in the cold, instruments need the heater | Needs | Without the heater, instruments in permanent shadow work slowly | Bring a heater; or keep instrument work in sunlight | LRO Diviner: permanently shadowed regions near the poles as cold as -414 °F, about 25 K ([NASA SVS 11230](https://svs.gsfc.nasa.gov/11230)) |
-| No lights, no permanent shadow (hard block) | Needs | A rover without lights stops at the edge of permanent shadow | Fit lights; or plan the mission on sunlit ground | VIPER was built to explore dark craters where the Sun never reaches and is NASA's first rover with headlights ([NASA Science](https://science.nasa.gov/mission/viper/rover-and-instruments/)) |
+| No lights, no permanent shadow (hard block) | Needs | A rover without lights stops at the edge of permanent shadow | Fit lights; or plan the mission on sunlit ground | VIPER is designed to explore dark craters where the Sun never reaches and is NASA's first rover with headlights; it has not flown (M15) ([NASA Science](https://science.nasa.gov/mission/viper/rover-and-instruments/)) |
 | A colder X-ray detector gives sharper readings | Conditions | X-ray spectrometer readings finish faster in shadow; the one instrument that likes the cold | Plan readings in shade; or accept slower readings in sunlight | Curiosity's APXS reaches its best resolution below about −15 °C and can switch on a small cooler to chill its detector ("in daytime" was not confirmed) ([MSL APXS](https://an.rsl.wustl.edu/help/Content/About%20the%20mission/MSL/Instruments/APXS%20Alpha%20Particle%20X-ray%20Spectrometer.htm)) |
 
 *(Phase 5, lead decision)* The cold-and-dark lights lesson (a photo in shadow comes out black) is dropped: a rover without lights cannot enter permanent shadow, so it could never happen. No lights is instead a lesson of its own, discovered at the shadow edge, and still a hard block in the review. The earlier VIPER-lights citation ([NTRS](https://ntrs.nasa.gov/api/citations/20220008301/downloads/2022-06-02-spaceops-viper-planning.pdf)) was not confirmed; NASA's VIPER page, which says VIPER is NASA's first rover with headlights, was checked instead.
@@ -549,12 +571,13 @@ The retroreflector's need for Earth in view is a condition of a single instrumen
 
 ### Checked claims
 
-Two claims were checked against sources on November 15 before going in (Phase 5 checked two more: see the end of this list):
+Two claims were checked against sources on November 15 before going in (Phase 5 checked two more, and the Moon sites plan corrected one: see the end of this list):
 
 - **Heater units and neutron noise: not used.** A light-weight radioisotope heater unit holds about 2.7 g of plutonium dioxide, against about 4.8 kg in an MMRTG. By that ratio (our estimate) a rover with 1 to 10 heater units has roughly 0.1% to 2% of an RTG's neutron output, too little to matter next to the cosmic-ray background. The noise relationship applies only to a full RTG, so it starts on Mars. Safe wording: "A small heater gives off only a few neutrons, but a big nuclear generator gives off enough to drown out a neutron detector."
 - **X-ray detector and cold: used, worded carefully.** Curiosity's APXS documentation confirms a colder detector gives sharper readings and that it uses a cooler. That the team ran it overnight *for this reason* is not documented, so the game does not say so. Safe wording: "Curiosity's X-ray tool gets sharper readings when its detector is colder, so it uses a small cooler to chill the detector."
 - **Diviner's 25 K: reworded** *(Phase 5)*. NASA SVS 11230 gives "as low as -414 °F" for permanently shadowed regions (about -248 °C, 25 K by conversion). Paige et al. (2010) does not give 25 K in its abstract (it gives about 38 K at the LCROSS site), so it is no longer cited for this number. NASA's 2009 Hermite crater figure (-248 °C, 25 K) is one crater, near the north pole.
 - **VIPER's headlights: used** *(Phase 5)*. NASA's VIPER rover and instruments page says VIPER is NASA's first rover with headlights, next to "VIPER will explore inside dark craters where the Sun never reaches." The game says only that, not that VIPER could not drive without them.
+- **VIPER has not flown: corrected** *(November 15, M15, from the Moon sites and milestones plan)*. Earlier text here and in game-design.md said all six Moon instruments flew on real lunar missions, including VIPER. VIPER was cancelled in 2024 and NASA now plans to deliver it on a Blue Origin lander (NASA release, September 2025). Neutron spectrometers have flown in lunar orbit (Lunar Prospector; LRO's LEND). Safe wording: "VIPER is designed to ..."; never "VIPER found" or "VIPER carries ... while it drives" as if it operated. Neutron detectors probably also worked on the surface (Apollo 17's Lunar Neutron Probe Experiment, Chang'e 4's LND on its lander; *not checked against a source*), so the docs do not claim neutron instruments flew *only* in orbit, only that none has driven on a rover.
 
 ### Questions for relationships
 
@@ -577,7 +600,7 @@ Every open question from the first draft was settled on November 15, 2026:
 | 3 | Instrument energy costs | Standby for the neutron spectrometer, per use for the drill and spectrometer, none for the camera and stations; values set in the balance patch |
 | 4 | Does the drill keep a weak hydrogen clue? | No. The hydrogen meter belongs only to the neutron spectrometer |
 | 5 | The Moon payload | The six in [7](#7-the-moon-payload); can be tuned later |
-| 6 | Milestones for the new Moon instruments | Not in this scope. Nothing on the Moon level changes yet, including new milestones; that is a later iteration |
+| 6 | Milestones for the new Moon instruments | Not in the first scope. *Updated November 15, 2026:* decided in the [Moon sites and milestones plan](moon-sites-and-milestones-plan.md) (open questions M1 to M15) and recorded in game-design.md ([Moon milestones](game-design.md#moon-milestones)): 12 new milestones covering every Moon instrument, two of them combos, new sites near the lander, and rock suites by site ([Rock types by site](#rock-types-by-site)). Not built yet |
 | 7 | Mars and Titan instruments and support hardware | As in [8](#8-instruments-by-world) and [9](#9-other-components-the-bus), a first version to revisit after playtesting; feeds game-design.md open questions 2 and 3 |
 
 **Next:** the [implementation plan](rover-engineering-implementation-plan.md) for the payload bay, the four new Moon instruments, the relationships, the notebook, and the pre-launch review.
