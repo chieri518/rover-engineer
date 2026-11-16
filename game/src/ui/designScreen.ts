@@ -11,6 +11,7 @@ import { chosenParts } from '../rules/rover';
 import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
+import { sound } from '../audio';
 import { tierWhyText } from './tierText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
@@ -96,7 +97,11 @@ export const designScreen: Screen = (game, root) => {
   // a smaller chassis then drops the ones added last.
   const maxPoints = Math.max(0, ...data.parts.parts.map((p) => p.effects.mountingPoints ?? 0));
   let bayNotice = ''; // why instruments were just dropped from the bay
+  /** Real parts on the rover (a "none" option weighs nothing): more is a part added, fewer a part removed. */
+  const partCount = (build: DraftBuild) => chosenParts(build, data.parts).filter((p) => p.mass > 0).length;
   const setBuild = (build: DraftBuild, notice = '') => {
+    const [before, after] = [partCount(game.build), partCount(build)];
+    if (after !== before || JSON.stringify(build) !== JSON.stringify(game.build)) sound.cue(after < before ? 'partRemove' : 'partAdd');
     game.build = build;
     bayNotice = notice;
     update();
