@@ -65,6 +65,23 @@
   },
   "look": {
     "_note": "T2 sky and light (rendering: world/titanLook.ts, world/titanSky.ts). Presentation values, not game rules; tuned with screenshots. Readability over realism: real Titan daylight is about a thousandth of Earth's, so a capped eye adaptation keeps the day a dim but legible orange; night is near black and the floodlights light the ground. Light is mostly diffuse (weak, soft rover shadows); the haze limits visibility (fog); rain (scene.setStorm) thickens it and darkens the scene.",
+    "pebbles": {
+      "_about": "titan-fx: ground. Huygens-like water-ice pebbles on firm interdune ground (visual only, no colliders; world/titanPebbles.ts). Densest at the landing, thinning with distance; none where soft-ground softness is above softHigh. Drawn within drawRadiusM of the rover (thinning out from edgeFadeShare of it), rounder within nearRadiusM, rebuilt every rebuildStepM.",
+      "seed": 2005, "drawRadiusM": 30, "edgeFadeShare": 0.45, "nearRadiusM": 10, "cellM": 4, "rebuildStepM": 2, "maxInstances": 8000,
+      "landingPerM2": 3.0, "farPerM2": 0.25, "landingFalloffM": 140,
+      "softLow": 0.02, "softHigh": 0.12,
+      "sizeMinM": 0.05, "sizeMaxM": 0.15, "sizePower": 2,
+      "heightShareMin": 0.45, "heightShareMax": 0.7, "buriedShare": 0.3,
+      "color": "#bdb7ad"
+    },
+    "ripples": {
+      "_about": "titan-fx: ground. Wind ripples on loose dune sand, in the ground shader (normal and shading; world/titanRipples.ts). Crests lie across the wind, which blows along the W-E dunes. Each wavelength fades by pixel size, and all fade with camera distance.",
+      "windAzimuthDeg": 90,
+      "fineWavelengthM": 0.3, "fineHeightM": 0.02, "fineShade": 0.1,
+      "coarseWavelengthM": 1.1, "coarseHeightM": 0.03, "coarseShade": 0.06,
+      "warpScaleM": 3.5, "warpM": 0.7, "breakScaleM": 6, "breakAmount": 0.8,
+      "softLow": 0.15, "softHigh": 0.5, "fadeStartM": 60, "fadeEndM": 140
+    },
     "sunIntensity": 4,
     "referenceElevationDeg": 65,
     "radiusOverScaleHeight": 64,

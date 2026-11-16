@@ -292,3 +292,65 @@ export interface TitanCompleteText {
   lessonsHeading: string;
   lessons: string[]; // one line per world
 }
+
+// ---------------------------------------------------------------------------------------------------
+// titan-fx: ground. Demo visuals: ice pebbles and sand ripples (data/titan/tuning.json `look.pebbles`,
+// `look.ripples`; world/titanPebbles.ts, world/titanRipples.ts). Presentation only. Declaration merging
+// adds the two optional keys to TitanLookTuning without touching its body.
+
+export interface TitanLookTuning {
+  pebbles?: TitanPebbleTuning;
+  ripples?: TitanRippleTuning;
+}
+
+/** Water-ice pebbles on firm ground, scattered per cell around the rover (visual only). Lengths in meters. */
+export interface TitanPebbleTuning {
+  seed: number;
+  /** Pebbles are drawn within this distance of the rover, in square cells of cellM, rebuilt each rebuildStepM moved. */
+  drawRadiusM: number;
+  /** Pebbles thin out from edgeFadeShare × drawRadiusM to the edge, so there is no visible ring. */
+  edgeFadeShare: number;
+  /** Within this distance of the rover pebbles get the rounder (80-triangle) shape; beyond, a 20-triangle one. */
+  nearRadiusM: number;
+  cellM: number;
+  rebuildStepM: number;
+  maxInstances: number;
+  /** Density per m²: landingPerM2 at the landing, easing to farPerM2 as exp(-(distance / landingFalloffM)²). */
+  landingPerM2: number;
+  farPerM2: number;
+  landingFalloffM: number;
+  /** Softness (0..1) at which pebbles start thinning and above which there are none. */
+  softLow: number;
+  softHigh: number;
+  /** Width across: sizeMin + (sizeMax - sizeMin) × u^sizePower; height is that × heightShare; buriedShare of the height sinks. */
+  sizeMinM: number;
+  sizeMaxM: number;
+  sizePower: number;
+  heightShareMin: number;
+  heightShareMax: number;
+  buriedShare: number;
+  color: string;
+}
+
+/** Wind ripples on loose dune sand (ground shader). */
+export interface TitanRippleTuning {
+  /** Direction the wind blows toward (degrees clockwise from north); ripple crests lie across it. */
+  windAzimuthDeg: number;
+  fineWavelengthM: number;
+  fineHeightM: number;
+  /** Shading amplitude (share of the ground color) of each ripple set. */
+  fineShade: number;
+  coarseWavelengthM: number;
+  coarseHeightM: number;
+  coarseShade: number;
+  /** Crest wander: noise scale and displacement (m); patchiness: noise scale and amount (0..1). */
+  warpScaleM: number;
+  warpM: number;
+  breakScaleM: number;
+  breakAmount: number;
+  /** Softness range over which ripples fade in, and the camera distance range over which they fade out. */
+  softLow: number;
+  softHigh: number;
+  fadeStartM: number;
+  fadeEndM: number;
+}
