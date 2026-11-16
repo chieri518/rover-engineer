@@ -961,6 +961,7 @@ The Moon teaches one trade-off. Mars and Titan add more intricate ones about wha
 - *Proposed:* freezing is slower during the dust storm, because airborne dust keeps nights milder (JPL, 2018 storm).
 - Interface: the freeze rate per night (Owner B) against heater strength and draw (Owner A).
 - *Decided November 15 (Mars plans):* the heater choice on Mars is three-way: radioisotope heater units (heat 2, no draw, 60 / 3 kg), the electric heater (heat 3 while its 1.2/s draw is paid, 25 / 2 kg) or an RTG's waste heat (heat 2, counts as a heater, Mars M17). See [Mars rover design](#mars-rover-design). The electric heater's heat counts only while the battery can pay its draw, so an empty battery means freezing too.
+- *Decided during implementation (Mars step 2; built in `rules/cold.ts` `heatNow`; provisional, for Chieri's review):* "paid" means the battery is above zero. The heat that stops is the heat of the parts that draw for it (`heaterDraw` above 0); heater units' and an RTG's heat always count. An empty battery also ends the mission as out of energy, so today this only matters within the step that empties it; the rule is there so the freeze meter and the HUD's freeze rate agree if that ever changes.
 
 #### Dust and events
 
@@ -986,6 +987,13 @@ The dust storm is built (see [How the Mars rules work](#how-the-mars-rules-work-
   - A dust devil that passes within `dustDevilCleanM` (50 m) resets the dust factor to 1. `dustDevilCleanM` and `dustDevilSenseM` (150 m) live in `tuning.dust`.
   - Dust devils form by day only, 8 to 24 s after sunrise, and last 20 s at 4 m/s. Each run of 3 sols gets one devil on a random sol of the run (3 per mission, a fourth one time in three). Each passes the point where the rover was when it formed, halfway through its life, at a random distance up to 300 m (uniform), so a rover that stands still is cleaned by about one devil in six, about 45% of missions.
   - Open for Chieri: devils can form during the storm (real ones are rarer then); and a devil is visible and slow, so a player can drive to it, which makes "a route past dust devils" (Mars M14) partly a plan rather than luck.
+- *Decided during implementation (Mars step 2; wired into the energy step in `rules/mission.ts`; provisional, for Chieri's review):*
+  - **The dust factor** lives in the Mars mission state (`MissionState.mars.dustFactor`). A step's solar income uses the factor at the start of the step, then dust settles (or a devil cleans). It multiplies `energyIncome` only: steady income (an RTG) never. The storm's ×3 follows the storm's intensity at the start of the step. Dust settles on every rover, but a rover without solar income has a dust rate of 0, so its factor stays 1.
+  - **The HUD gets the factor separately:** `MarsStatus.dustFactor`, not folded into `solarFactor` (low Sun × storm), so the dust factor on the energy line (step 6c) can show it alone. No HUD line or visual yet.
+  - **Every solar part says its dust rate.** On a world with `tuning.dust`, validation requires a `dustRate` on every part with `energyIncome`, and refuses a `dustRate` on a part without it. The fixed panel (1) and the solar mast (0.8) carry theirs in the shared `parts.json` (the Moon has no dust, so it ignores them). `roverDustRate` keeps its ×1 for a solar part without a rate, which only test fixtures can reach now.
+  - **Dust devils are scheduled from their own stream:** `marsSetup` seeds it with one draw from the mission's generator after the storm, so every seed keeps its storm. The schedule is in `MarsSetup.devils`.
+  - **Placement and cleaning are wired.** The mission screen gives the rules step the rover's position (`MissionSample.position`); a devil whose forming time falls in a step is placed relative to that position, and one passing within `dustDevilCleanM` along the step (both moving in straight lines) resets the factor to 1. The placed devils stay in `MissionState.mars.devils`, for the renderer (6a) and the Dust devil milestones (5a/6b). A step without a position places no devil, so the night-energy check (`marsNight.test.ts`) runs with dust but without devils.
+  - **No cleaning notice yet.** A clean happens silently until the HUD shows the dust factor; the notice ("A dust devil cleaned the panels") and the column belong to steps 6b and 6c.
 
 #### How the Mars rules work *(decided during implementation, M3)*
 
@@ -1004,7 +1012,7 @@ The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the 
   - 4 awake with lights on (lights and electronics). A parked night costs 60.
   - 1 awake without lights (electronics only; the rover cannot drive).
   - 0.2 asleep: P powers down, as on the Moon.
-  - Sleep ends at dawn by itself. An empty battery ends the mission as out of energy. The radioisotope heater draws no power. *(Decided November 15, not built:)* the Mars parts add an electric heater that draws 1.2/s every night, asleep too, and the lights' 3/s moves onto the LED part; see the power model below.
+  - Sleep ends at dawn by itself. An empty battery ends the mission as out of energy. The radioisotope heater draws no power. *(Built in Mars step 2:)* the lights' 3/s is the LED part's `lightsDraw`, and an electric heater part (step 3) will draw 1.2/s every night, asleep too; see the power model below.
 - **No lights, no night driving.** A rover without lights cannot drive at night (`night.driveWithoutLights` false).
 - **Night cold:**
   - The freeze meter rises 8 per second everywhere at night. Without a heater, the rover freezes 12.5 s into its first 15 s night, even asleep.
@@ -1021,7 +1029,7 @@ The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the 
   - The cheap build runs out by sol 4 if it drives with lights every night, and by sol 6 if it only parks with lights on.
   - One night of driving with lights is affordable.
   - With the Moon parts, the heater is effectively required. The heater choice becomes real only with Owner A's Mars catalog (decided November 15: see [Mars rover design](#mars-rover-design)). *(Decided, Mars plans:)* the check grows to cover an RTG build, an arrays-and-larger-battery build and an organics build, each over the storm seeds; it stays the Mars regression and energy check, since Mars has no `winPaths` (MS13).
-- **Parts own their power draws** *(decided November 15, 2026, Mars M1; not built yet)*. The night drain stops being three world constants: the world keeps only the electronics draw, which every rover has whatever its parts, and everything else moves onto parts. These effects apply only on a world whose tuning has a `night` section (Mars); the Moon's LED keeps drawing nothing.
+- **Parts own their power draws** *(decided November 15, 2026, Mars M1; built in Mars step 2, provisional, for Chieri's review)*. The night drain stops being three world constants: the world keeps only the electronics draw, which every rover has whatever its parts, and everything else moves onto parts. These effects apply only on a world whose tuning has a `night` section (Mars); the Moon's LED keeps drawing nothing.
 
 | Draw | Where it lives | When it applies |
 | --- | --- | --- |
@@ -1035,6 +1043,11 @@ The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the 
   - **Same numbers today.** With today's parts (LED 3/s, heater units 0) the model gives exactly 4 / 1 / 0.2, so `marsNight.test.ts` must pass unchanged; `night.lightsDrainPerSecond` goes away.
   - **Why only at night.** A panel's `energyIncome` is effectively net: the daytime draw is folded into its rating (the Moon has no idle drain). At night, with no solar income, the hidden draw appears. The rules say so in a comment.
   - **Caps.** Standby keeps its rule (never below the low-energy warning, then it switches off). Lights and heaters are not capped: they keep the rover driving and alive, and an empty battery at night ends the mission, as today. The electric heater's heat counts only while its draw is paid.
+  - *Decided during implementation (Mars step 2):*
+    - `PartEffects` gains `lightsDraw`, `heaterDraw`, `steadyIncome` and `dustRate`. `missionSetup` sums them once into `MissionSetup.power` (with the electric heat and the rover's dust rate), and `deployPart` sums them again. `rules/energy.ts` `nightDraw` replaces `nightDrainPerSecond`: electronics (awake or asleep) + the lights while awake on a rover with lights + the heater draw.
+    - **Steady income is Mars-only for now, like the draws:** it applies only where `tuning.night` exists, as this section says of all these effects. No Moon part has one; a Moon RTG would need the Moon balance pass that turns the draws on there.
+    - **The lights draw when they are on:** awake at night on a rover with lights (`lightRange` above 0), the same rule as the floodlights in the scene. A rover without lights draws only the electronics.
+    - **The heater requirement met by any heat (Mars M17)** is built in `rules/rover.ts` `meetsRequirements`, which the milestone tracker, the debrief's missed-part list and the balance model all use, so it needed no change in `rules/milestones.ts`. No Moon rover has heat without a heater part, so the Moon does not change.
   - **Real basis.** Real rovers spend power at night just to stay alive: Opportunity needed about 120 Wh per sol and Spirit about 180 Wh; Curiosity is said to draw about 45 to 70 W asleep and 150 W or more awake (single-sourced, unverified). The game's 5:1 ratio between awake and asleep is steeper than Curiosity's reported 2 to 3:1. That is a game choice that makes sleeping clearly worth it, and the text does not claim the ratio is real.
 
 #### Mars rover design
@@ -1105,6 +1118,8 @@ The rules are in `game/src/rules/` (`sol.ts`, `marsSun.ts`, `storm.ts`, and the 
 - **Not in this wave:** instrument levels (multispectral camera, deep drill, active neutron spectrometer, broadband seismometer) and the rest of the catalog (magnetometer, microscopic imager, penetrometer, dosimeter, dust monitor, heat flow probe, oxygen maker, coring drill and cache). They come once the first wave plays well.
 
 **The night budget line** (Mars M15). On Mars the specification sheet shows what one 15 s night costs this build, asleep and awake with lights, next to the battery capacity, for example "Night: 3 asleep · 60 with lights · RTG +9". It includes the electric heater's draw: the heater is a plain part cost, so the line gives nothing away. It is the most useful number for Mars's lesson, which today the player finds only by running out of energy.
+
+- *Decided during implementation (Mars step 2; built):* the row sits under Battery: "Night energy (15 s): 3 asleep · 60 with lights", with "heater 18 of each" when the build has an electric heater and "RTG +9" when it has steady income. "With lights" is a parked night with the floodlights on (driving costs more on top); a build without lights shows only the asleep cost. The totals include the heater, which is also named on its own. The row shows a dash until power, lights and heater are chosen, and is absent on the Moon. The numbers come from `rules/energy.ts` `nightBudget` and the words from `data/mars/text.json` `nightBudget`.
 
 ##### Mars ticket tiers (decided)
 
