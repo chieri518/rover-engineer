@@ -12,14 +12,14 @@
     "instrument-drill": { "name": "Rock drill", "description": "Drills rock cores. Heavier and bulkier than the camera." }
   },
   "slots": {
-    "_note": "Names of the support slots Mars offers (data/mars/parts.json supportSlots), merged into the shared slot names.",
+    "_note": "Names of the support slots Mars offers (data/mars/parts.json supportSlots), merged into the shared slot names. Since November 16 the arm and the mast are payload systems in the bay; these names are kept for the parts' slots.",
     "arm": "Arm",
     "mast": "Mast"
   },
   "support": {
     "_note": "Support hardware on the desk (Mars M5): an instrument whose support part is missing is refused with a reason. {support}: the support part's name below; {part}: the instrument.",
     "needs": "Needs the {support}.",
-    "missing": "{part} needs the {support}. Choose it, or take the instrument out of the bay.",
+    "missing": "{part} needs the {support}. Fit it, or take the instrument out of the bay.",
     "arm": "robotic arm",
     "mast": "remote sensing mast"
   },
@@ -196,7 +196,7 @@
       {
         "title": "Arm and mast",
         "body": [
-          "Mars adds two support slots, Arm and Mast. Support hardware takes no mounting point in the payload bay. The X-ray and organics spectrometers need the robotic arm; the laser spectrometer needs the remote sensing mast, which also widens the camera's viewpoint photo zones. Choose No arm or No mast when no instrument needs them."
+          "On Mars the payload bay also offers a robotic arm and a remote sensing mast. Each takes one mounting point, like any payload item. The X-ray and organics spectrometers need the robotic arm; the laser spectrometer needs the remote sensing mast, which also widens the camera's viewpoint photo zones. Leave them off when no instrument needs them."
         ]
       }
     ],

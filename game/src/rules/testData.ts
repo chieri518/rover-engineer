@@ -8,8 +8,8 @@ const part = (id: string, slot: Part['slot'], cost: number, mass: number, size: 
 export const testParts: PartsFile = {
   slots: ['chassis', 'wheels', 'power', 'battery', 'lights', 'heater'],
   parts: [
-    part('steel', 'chassis', 60, 30, 5, { maxLoad: 80, mountingPoints: 3 }),
-    part('titanium', 'chassis', 160, 15, 4, { maxLoad: 70, mountingPoints: 2 }),
+    part('steel', 'chassis', 60, 30, 5, { maxLoad: 80, mountingPoints: 5 }),
+    part('titanium', 'chassis', 160, 15, 4, { maxLoad: 70, mountingPoints: 4 }),
     part('solid', 'wheels', 30, 20, 4),
     part('mesh', 'wheels', 70, 10, 5),
     part('panel', 'power', 40, 10, 4),

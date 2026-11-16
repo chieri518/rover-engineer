@@ -136,17 +136,21 @@ describe('game data', () => {
     expect(instruments.sort()).toEqual(['camera', 'drill', 'neutron', 'reflector', 'seismometer', 'xray']);
   });
 
-  it('the chassis sets the payload bay: steel 3 mounting points, titanium 2', () => {
+  it('the chassis sets the payload bay: steel 5 mounting points, titanium 4 (shared by instruments and systems)', () => {
     const points = (id: string) => data.parts.parts.find((p) => p.id === id)!.effects.mountingPoints;
-    expect(points('chassis-steel')).toBe(3);
-    expect(points('chassis-titanium')).toBe(2);
+    expect(points('chassis-steel')).toBe(5);
+    expect(points('chassis-titanium')).toBe(4);
   });
 
-  it('every bay that fits is enumerated: 64 bus builds; steel takes up to 3 of the 6 instruments (42 bays), titanium up to 2 (22)', () => {
+  it('every bay that fits is enumerated: 64 bus builds; the lights and heater take a point each beside the instruments', () => {
+    // Per chassis 32 buses: 8 with no system, 16 with one, 8 with both. Bays of the 6 instruments up to
+    // k: k=2: 22, 3: 42, 4: 57, 5: 63. Steel (5 points) 8·63 + 16·57 + 8·42; titanium (4) 8·57 + 16·42 + 8·22.
     const builds = allBuilds();
-    expect(builds).toHaveLength(32 * 42 + 32 * 22);
-    expect(builds.filter((b) => b.payload.length === 2 && b.chassis === 'chassis-titanium').length).toBe(32 * 15);
-    expect(builds.some((b) => b.payload.length === 3 && b.chassis === 'chassis-titanium')).toBe(false);
+    expect(builds).toHaveLength(8 * 63 + 16 * 57 + 8 * 42 + (8 * 57 + 16 * 42 + 8 * 22));
+    // Titanium with lights and a heater keeps two instruments, as before the change.
+    const tiLH = builds.filter((b) => b.chassis === 'chassis-titanium' && b.lights === 'lights-led' && b.heater === 'heater-rhu');
+    expect(Math.max(...tiLH.map((b) => b.payload.length))).toBe(2);
+    expect(builds.some((b) => b.payload.length === 5 && b.chassis === 'chassis-titanium')).toBe(false);
   });
 
   it('a mid build fits the Medium tier and is affordable from the starting budget', () => {

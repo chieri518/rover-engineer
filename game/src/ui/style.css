@@ -243,7 +243,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .option-stats { display: flex; flex-wrap: wrap; gap: 0 12px; font-variant-numeric: tabular-nums; }
 .option-effect { color: var(--accent-soft); }
 .option-note { color: var(--muted); font-size: 0.85rem; }
-/* The payload bay: mounting-point sockets, instrument cards with their mission key, and "No instruments". */
+/* The payload bay: mounting-point sockets, and the instrument and system cards (instruments show their mission key). */
 .bay-body { display: grid; gap: 6px; min-width: 0; }
 .bay-head { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.8rem; color: var(--muted); font-variant-numeric: tabular-nums; }
 .bay-sockets { display: inline-flex; gap: 4px; }
@@ -254,8 +254,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .option-key { justify-self: start; font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); }
 .option-key:empty { display: none; }
 .bay-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 0.8rem; }
-.bay-none { font-size: 0.85rem; padding: 5px 12px; }
-.bay-none.active { border-color: var(--accent); background: var(--accent-bg); }
 .bay-notice { margin: 0; font-size: 0.8rem; color: var(--warn); }
 .bay-notice[hidden] { display: none; }
 .sheet { position: sticky; top: 16px; background: var(--panel); border-radius: 4px; padding: 16px 18px; border: 1px solid var(--edge); }

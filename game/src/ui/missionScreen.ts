@@ -7,7 +7,7 @@
 import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
 import { buildZones, MilestoneTracker, PHOTO_ZONE_IDS, type FramedBoulder, type MilestoneUpdate, type PhotoView, type Point3, type SunPhoto, type Zone } from '../rules/milestones';
-import { isCompleteBuild, selectedParts } from '../rules/rover';
+import { completeBuild, selectedParts } from '../rules/rover';
 import { instrumentForKey, instrumentKeys, instrumentsOf } from '../rules/payload';
 import type { Instrument } from '../rules/types';
 import type { Boulder } from '../rules/boulders';
@@ -74,8 +74,9 @@ export const missionScreen: Screen = (game, root) => {
   let scene: MoonScene | null = null;
 
   // Mission state
-  if (!isCompleteBuild(game.build, data.parts)) throw new Error('the mission needs a complete rover');
-  const parts = selectedParts(game.build, data.parts);
+  const build = completeBuild(game.build, data.parts);
+  if (!build) throw new Error('the mission needs a complete rover');
+  const parts = selectedParts(build, data.parts);
   const seed = (Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0;
   const rng = seededRng(seed);
   // The setup changes when a station is set down (lighter rover, fewer instruments aboard), and on Mars

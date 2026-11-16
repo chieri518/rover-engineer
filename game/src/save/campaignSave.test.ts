@@ -2,6 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { clearCampaign, loadCampaign, saveCampaign } from './campaignSave';
 import { isPlayable, newCampaign, normalizeCampaign, restartRound, startRound } from '../rules/campaign';
 import { testTuning } from '../rules/testData';
+import { loadGameData } from '../gameData';
+import { carryBuild } from '../rules/payload';
+import { quoteBuild } from '../rules/quote';
+import { completeBuild } from '../rules/rover';
+import type { Build } from '../rules/types';
 
 function memoryStore() {
   const map = new Map<string, string>();
@@ -143,5 +148,52 @@ describe('campaign save across worlds', () => {
     clearCampaign(store);
     saveCampaign(startRound(newCampaign(testTuning)), store);
     expect(loadCampaign(store)).toMatchObject({ mission: 'moon', completed: [], log: [] });
+  });
+});
+
+describe('builds in saves from before payload systems (November 16)', () => {
+  // The desk loads campaign.lastBuild through carryBuild (src/flow/flow.ts carryToWorld): real data, each world's catalog.
+  const all = loadGameData('mars').allParts;
+  const moonSave = {
+    chassis: 'chassis-titanium', wheels: 'wheels-mesh', power: 'power-fixed-panel', battery: 'battery-li-ion',
+    lights: 'lights-none', heater: 'heater-rhu', payload: ['instrument-camera', 'instrument-xray'],
+  };
+  const marsSave = {
+    chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion', lights: 'lights-led', heater: 'heater-rhu',
+    payload: ['instrument-laser', 'instrument-xray', 'instrument-camera'], support: { arm: 'arm-robotic', mast: 'mast-remote' },
+  };
+
+  it('a saved campaign with an old lastBuild loads as it is', () => {
+    const store = memoryStore();
+    const state = { ...startRound(newCampaign(testTuning)), lastBuild: moonSave as unknown as Build };
+    store.setItem('rover-engineer.campaign.v1', JSON.stringify(state));
+    expect(loadCampaign(store)?.lastBuild).toEqual(moonSave);
+  });
+
+  it('a Moon save with "No lights" loads on the Moon complete, the lights not fitted', () => {
+    const { build, dropped } = carryBuild(moonSave, all, 'moon');
+    const { lights: _l, ...rest } = moonSave;
+    expect(build).toEqual(rest);
+    expect(dropped).toEqual([]);
+    expect(completeBuild(build, loadGameData('moon').parts)).toEqual(rest);
+  });
+
+  it('a save without a bay loads with an empty one, complete', () => {
+    const { payload: _p, ...noBay } = moonSave;
+    const { build } = carryBuild(noBay, all, 'moon');
+    expect(build.payload).toBeUndefined();
+    expect(completeBuild(build, loadGameData('moon').parts)?.payload).toEqual([]);
+  });
+
+  it('a Mars save now over capacity loads with the over-capacity problem; on Titan it loses the arm and mast with the notice', () => {
+    const mars = loadGameData('mars');
+    const { build } = carryBuild(marsSave, all, 'mars');
+    expect(quoteBuild(build, mars, 1000).payloadProblems).toEqual([{ kind: 'over-capacity', count: 7, points: 5 }]);
+    const titan = carryBuild(marsSave, all, 'titan');
+    expect(titan.dropped.map((p) => p.id)).toEqual(['arm-robotic', 'mast-remote', 'instrument-laser']);
+    expect(titan.build.support).toBeUndefined();
+    expect(titan.build.payload).toEqual(['instrument-xray', 'instrument-camera']);
+    // A Mars save with "No arm" and "No mast" names nothing lost on Titan.
+    expect(carryBuild({ ...marsSave, payload: ['instrument-camera'], support: { arm: 'arm-none', mast: 'mast-none' } }, all, 'titan').dropped).toEqual([]);
   });
 });

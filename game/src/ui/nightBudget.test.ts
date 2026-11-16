@@ -16,7 +16,8 @@ describe('night budget line', () => {
     const parts = selectedParts(build, mars.parts);
     expect(nightBudgetLine(mars, parts)).toEqual({ label: 'Night energy (15 s)', value: '3 asleep · 60 with lights' });
     expect(nightBudgetLine(mars, selectedParts({ ...build, lights: 'lights-none' }, mars.parts))?.value).toBe('3 asleep');
-    expect(nightBudgetLine(mars, parts.filter((p) => p.slot !== 'heater'))?.value).toBe('—');
+    expect(nightBudgetLine(mars, parts.filter((p) => p.slot !== 'lights' && p.slot !== 'heater'))?.value).toBe('3 asleep'); // left off: nothing to add
+    expect(nightBudgetLine(mars, parts.filter((p) => p.slot !== 'power'))?.value).toBe('—');
   });
 
   it('adds the electric heater and an RTG when the build has them', () => {

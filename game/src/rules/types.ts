@@ -6,14 +6,27 @@ import type {
   TitanTextSections,
 } from './titanTypes';
 
-/** The rover's bus: one part per slot. */
-export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
 /**
- * Support hardware (Mars M5): optional slots a world may offer (PartsFile.supportSlots), one part each,
- * "No arm" / "No mast" included. Instruments that need one say so (PartEffects.needs). They take no
- * mounting point.
+ * The rover's bus slots as the catalog lists them (PartsFile.slots). The first four are required, one
+ * part each; the lights and the heater are payload systems (see SystemSlot).
+ */
+export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
+/** The required bus (November 16): a build is complete once each of these has a part. */
+export type RequiredSlot = 'chassis' | 'wheels' | 'power' | 'battery';
+/** The bus slots that hold payload systems: fitted in the payload bay, or left off. */
+export type SystemBusSlot = Exclude<BusSlot, RequiredSlot>;
+/**
+ * Support hardware (Mars M5): slots a world may offer (PartsFile.supportSlots), one part each.
+ * Instruments that need one say so (PartEffects.needs). Since November 16 a payload system.
  */
 export type SupportSlot = 'arm' | 'mast';
+/**
+ * Payload systems (November 16, "Payload: instruments and systems"): the lights, the heater and, where
+ * the world offers them, the arm and the mast. Each fitted one takes one mounting point, like an
+ * instrument; leaving one off is just not fitting it. A slot with no part, or with a part that provides
+ * nothing (the catalog's "No lights", kept for old saves), is not fitted.
+ */
+export type SystemSlot = SystemBusSlot | SupportSlot;
 /** A part's catalog category: a bus slot, a support slot, or 'instrument' for the payload bay (which holds a list). */
 export type Slot = BusSlot | SupportSlot | 'instrument';
 /** The instruments. weather, radar, laser and organics are Mars's (their behavior arrives in Mars step 4a). */
@@ -21,7 +34,7 @@ export type Instrument = 'camera' | 'drill' | 'neutron' | 'xray' | 'seismometer'
 
 export interface PartEffects {
   maxLoad?: number; // chassis: kg of total rover mass it can carry
-  mountingPoints?: number; // chassis: instruments the payload bay can hold (one point each)
+  mountingPoints?: number; // chassis: payload items the bay can hold, instruments and fitted systems (one point each)
   baseSpeed?: number; // wheels: m/s
   grip?: number; // wheels: 0..1, higher = less slip
   energyPerMeter?: number; // wheels: energy per meter at reference mass
@@ -599,7 +612,7 @@ export interface SharedTextFile {
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
-    | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
+    | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay (instruments and systems)
     | 'notOffered' // parts a carried build lost because this world does not offer them ({parts}; reworded per world)
     | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
     string
@@ -903,13 +916,17 @@ export interface RelationshipsFile {
 }
 
 /**
- * A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order), and
- * one part id per support slot on a world that offers them (absent on the Moon, so every Moon build and
- * save stays valid as it is).
+ * A rover build: one part id per required bus slot, the payload bay's instruments (part ids, in bay
+ * order), and the payload systems fitted: `lights` and `heater`, and `support` (the arm and the mast) on a
+ * world that offers them. A system slot that is absent is not fitted; one naming a part that provides
+ * nothing ("No lights", from older saves and tests) is not fitted either (rules/payload.ts fittedSystem).
  */
-export type Build = Record<BusSlot, string> & { payload: string[]; support?: Partial<Record<SupportSlot, string>> };
+export type Build = Record<RequiredSlot, string> & Partial<Record<SystemBusSlot, string>> & {
+  payload: string[];
+  support?: Partial<Record<SupportSlot, string>>;
+};
 /**
- * A build on the design screen: a new campaign starts with every slot empty. `payload` undefined: the
- * player has not confirmed the bay yet; `[]`: a confirmed empty bay.
+ * A build on the design screen: a new campaign starts with every slot empty. `payload` undefined reads
+ * as an empty bay (no bay confirmation since November 16; older drafts and saves may still lack it).
  */
 export type DraftBuild = Partial<Record<BusSlot, string>> & { payload?: string[]; support?: Partial<Record<SupportSlot, string>> };

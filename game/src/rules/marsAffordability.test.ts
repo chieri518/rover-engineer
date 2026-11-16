@@ -46,7 +46,15 @@ const REFERENCE: [string, Build][] = [
   ['Steel geologist', ref(['xray', 'drill'], STEEL)],
   ['Steel, arm + X-ray + mast + laser', ref(['xray', 'laser'], STEEL)],
   ['Steel, arm + X-ray + organics + drill', ref(['xray', 'organics', 'drill'], STEEL)],
-  ['Steel, lights, arm + mast, laser + X-ray + camera', ref(['laser', 'xray', 'camera'], { ...STEEL, ...LIGHTS })],
+];
+
+/**
+ * Builds that fitted when the arm, the mast and the lights took no mounting point, and do not fit since
+ * November 16 (game-design.md "Payload: instruments and systems", the arithmetic check).
+ */
+const NO_LONGER_FIT: [string, Build][] = [
+  ['Steel, lights, arm + mast, laser + X-ray + camera (the old Heavy example)', ref(['laser', 'xray', 'camera'], { ...STEEL, ...LIGHTS })],
+  ['Titanium, lights, heater units, arm, X-ray + camera', ref(['xray', 'camera'], LIGHTS)],
 ];
 
 /** "Valid" Mars builds as the M12 analysis counted them: support only when needed (allBuilds does that), and a heater unless an RTG. */
@@ -81,6 +89,11 @@ describe('Reference builds under the Mars tiers (the plan\'s Affordability / M12
     const q = quoteBuild(build, mars, 1000);
     expect(q.canLaunch).toBe(true);
     expect(q.overloaded).toBe(false);
+  });
+
+  it.each(NO_LONGER_FIT)('%s: over capacity, so it cannot launch', (_name, build) => {
+    expect(payloadProblems(build, mars.parts).map((p) => p.kind)).toEqual(['over-capacity']);
+    expect(quoteBuild(build, mars, 1000).canLaunch).toBe(false);
   });
 
   it('reports mass, size, tier and parts cost of each reference build (not asserted)', () => {

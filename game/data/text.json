@@ -60,16 +60,14 @@
   },
   "design": {
     "heading": "Rover design",
-    "tutorial": "Select one part for each slot and choose the instruments for the payload bay. Mass and size set the launch ticket tier. Light parts cost more.",
+    "tutorial": "Choose a chassis, wheels, a power source and a battery, and fit the payload bay. Mass and size set the launch ticket tier. Light parts cost more.",
     "slotEmpty": "Not chosen",
-    "bayHint": "Any mix of instruments, or none. Each takes one mounting point; the chassis sets how many there are.",
+    "bayHint": "Instruments and systems, one of each and one heater at most, in any mix. Each item takes one mounting point; the chassis sets how many there are. Leave off what the rover does not need.",
     "bayPoints": "{used} of {points} mounting points used",
     "bayNoChassis": "Choose a chassis to see the mounting points",
-    "bayFull": "The payload bay is full. Remove an instrument to fit another.",
-    "bayNone": "No instruments",
-    "bayNoneChosen": "No instruments (confirmed)",
+    "bayFull": "The payload bay is full. Take something out to fit another item.",
     "bayDropped": "The {chassis} has {points} mounting points: {parts} removed from the payload bay.",
-    "bayOverCapacity": "The payload bay holds more instruments than the chassis has mounting points.",
+    "bayOverCapacity": "The payload bay holds more items than the chassis has mounting points. Take something out.",
     "bayKey": "Key {key}",
     "notOffered": "Not offered on the Moon: {parts}.",
     "instrumentEnergy": "Instrument energy",
@@ -80,8 +78,8 @@
     "energyPerUse": "{energy} energy per use",
     "energyStandby": "{energy} energy/s while switched on",
     "useHold": "holds the rover {seconds} s",
-    "slotsEmpty": "Select a part for every slot and choose the payload bay before launch. Still to choose: {slots}.",
-    "tierSoFar": "Tier for the parts chosen so far. The empty slots will add mass and size.",
+    "slotsEmpty": "Choose a chassis, wheels, a power source and a battery before launch. Still to choose: {slots}.",
+    "tierSoFar": "Tier for the parts chosen so far. The missing parts will add mass and size.",
     "previewLabel": "3D view of the rover as built so far. Drag to turn it.",
     "previewEmpty": "Choose parts to start building",
     "overTopTier": "Exceeds the Large ticket limits. The rover cannot launch.",
@@ -602,15 +600,15 @@
       {
         "title": "Parts, mass and cost",
         "body": [
-          "Select one part for each of the six slots, and choose the instruments for the payload bay. Everything starts empty, and the rover can launch only when each slot has a part and the bay is chosen; \"No lights\", \"No heater\" and \"No instruments\" count as choices. Each part has a cost, a mass and a size. The specification sheet shows the totals for the rover.",
+          "Choose one part for each of the four bus slots: chassis, wheels, power source and battery. Then fit the payload bay. Everything starts empty, and the rover can launch once the four bus slots have a part; the bay may stay empty. Each part has a cost, a mass and a size. The specification sheet shows the totals for the rover.",
           "Cheap parts are heavy and light parts are expensive. A heavier rover is slower, uses more energy per meter and sinks deeper in soft ground."
         ]
       },
       {
         "title": "Payload bay",
         "body": [
-          "The payload bay holds the instruments, one of each. Each instrument takes one mounting point, and the chassis sets how many there are: {bayMin} or {bayMax}, depending on the frame. A full bay cannot take another instrument, and a chassis with fewer points removes the last ones added.",
-          "Each instrument card shows its cost, mass and size, and what it costs in energy: some use energy every time they work, and some draw a little while switched on. The specification sheet adds these to the range estimate. \"No instruments\" is also a choice, but a rover with no instruments cannot earn much.",
+          "The payload bay holds the instruments, one of each, and the rover's systems: the lights and a heater. Each item takes one mounting point, and the chassis sets how many there are: {bayMin} or {bayMax}, depending on the frame. A full bay cannot take another item, and a chassis with fewer points removes the instruments added last. To leave something off, just do not fit it.",
+          "Each instrument card shows its cost, mass and size, and what it costs in energy: some use energy every time they work, and some draw a little while switched on. The specification sheet adds these to the range estimate. An empty bay is allowed, but a rover with no instruments cannot earn much.",
           "Each instrument card lists the milestones it can earn.",
           "The order of the bay is the order of the number keys in the mission: the first instrument added is key 1."
         ]

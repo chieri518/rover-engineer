@@ -97,14 +97,15 @@ export class MarsMission {
 /**
  * The desk's night budget line (Mars M15): what one night costs this build asleep and parked awake with the
  * lights on (with the electric heater's share of each), and an RTG's income over the night. Null where
- * there is no night (the Moon); a dash until the power, lights and heater are chosen.
+ * there is no night (the Moon); a dash until the power source is chosen (the lights and the heater are
+ * payload: left off, they add nothing).
  */
 export function nightBudgetLine(data: GameData, parts: Part[]): { label: string; value: string } | null {
   const { night, sol } = data.tuning;
   const t = data.text.nightBudget;
   if (!night || !sol || !t) return null;
   const label = fill(t.label, { seconds: sol.nightSeconds });
-  if (!(['power', 'lights', 'heater'] as const).every((slot) => parts.some((p) => p.slot === slot))) return { label, value: '—' };
+  if (!parts.some((p) => p.slot === 'power')) return { label, value: '—' };
   const hasLights = parts.some((p) => (p.effects.lightRange ?? 0) > 0); // as rules/mission.ts missionSetup
   const b = nightBudget(partPower(parts), hasLights, night, sol.nightSeconds);
   const energy = (x: number) => String(Number(x.toFixed(1)));

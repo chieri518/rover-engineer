@@ -1,13 +1,16 @@
-// The design screen ("the engineer's desk"): pick one part per bus slot, fill the payload bay, and watch
-// the specification sheet.
+// The design screen ("the engineer's desk"): pick one part per required bus slot, fit the payload bay
+// (instruments and payload systems: lights, heater, and on Mars the arm and the mast), and watch the
+// specification sheet.
 // All numbers come from rules/ (quoteBuild); this file only lays them out.
 import type { Screen } from '../flow/flow';
 import { canStartMission, isPlayable, nextMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
-import { fitPayload, instrumentCosts, instrumentKeys, togglePayload, unmetNeeds, type InstrumentCosts } from '../rules/payload';
-import { chosenParts, slotPartId, supportSlotsOf, withSlotPart } from '../rules/rover';
+import {
+  bayCapacity, bayParts, fitBayToChassis, fitRefusal, instrumentCosts, instrumentKeys, isFitted, pointsUsed, toggleBayPart, type InstrumentCosts,
+} from '../rules/payload';
+import { chosenParts, requiredSlots, slotPartId, withSlotPart } from '../rules/rover';
 import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
@@ -99,13 +102,8 @@ export const designScreen: Screen = (game, root) => {
   const notOffered = game.notOffered;
 
   const partById = (id: string) => data.parts.parts.find((p) => p.id === id);
-  const chassisPoints = (build: DraftBuild): number | null => {
-    const chassis = build.chassis ? partById(build.chassis) : undefined;
-    return chassis ? chassis.effects.mountingPoints ?? 0 : null;
-  };
-  // Before a chassis is chosen the bay may take as many instruments as the roomiest chassis; choosing
-  // a smaller chassis then drops the ones added last.
-  const maxPoints = Math.max(0, ...data.parts.parts.map((p) => p.effects.mountingPoints ?? 0));
+  // Before a chassis is chosen the bay may take as many items as the roomiest chassis (rules/payload
+  // bayCapacity); choosing a smaller chassis then drops the instruments added last.
   let bayNotice = ''; // why instruments were just dropped from the bay
   const setBuild = (build: DraftBuild, notice = '') => {
     game.build = build;
@@ -136,8 +134,9 @@ export const designScreen: Screen = (game, root) => {
     return node;
   };
 
-  // Part cards: one radio group per bus slot, then per support slot (Mars: the arm and the mast).
-  const slots = [...data.parts.slots, ...supportSlotsOf(data.parts)].map((slot) => {
+  // Part cards: one radio group per required bus slot (chassis, wheels, power, battery). The payload
+  // systems are cards in the payload bay.
+  const slots = requiredSlots(data.parts).map((slot) => {
     const options = data.parts.parts.filter((p) => p.slot === slot);
     const fieldset = el('fieldset', { class: 'slot' },
       el('legend', {}, text.slots[slot] ?? slot, el('span', { class: 'slot-empty' }, t.slotEmpty)),
@@ -149,13 +148,13 @@ export const designScreen: Screen = (game, root) => {
           checked: part.id === slotPartId(game.build, slot),
           onchange: () => {
             const build: DraftBuild = withSlotPart(game.build, slot, part.id);
-            // A chassis with fewer mounting points drops the instruments added last.
-            const points = chassisPoints(build);
-            if (slot !== 'chassis' || !build.payload || points === null) return setBuild(build);
-            const { kept, dropped } = fitPayload(build.payload, points);
-            if (!dropped.length) return setBuild(build);
-            const names = dropped.map((id) => partById(id)?.name ?? id).join(text.ticket.and);
-            setBuild({ ...build, payload: kept }, fill(t.bayDropped, { chassis: part.name, points, parts: names }));
+            // A chassis with fewer mounting points drops the instruments added last (systems stay).
+            if (slot !== 'chassis') return setBuild(build);
+            const fitted = fitBayToChassis(build, data.parts);
+            if (!fitted.dropped.length) return setBuild(build);
+            const names = fitted.dropped.map((id) => partById(id)?.name ?? id).join(text.ticket.and);
+            const points = bayCapacity(build, data.parts).points;
+            setBuild(fitted.build, fill(t.bayDropped, { chassis: part.name, points, parts: names }));
           },
         }))),
       ),
@@ -164,33 +163,25 @@ export const designScreen: Screen = (game, root) => {
     return fieldset;
   });
 
-  // The payload bay: instrument cards with checkboxes, in the order they were added (the mission keys).
-  const instrumentParts = data.parts.parts.filter((p) => p.slot === 'instrument');
+  // The payload bay: a toggle card per payload item, the systems first (lights, heater, and on Mars the
+  // arm and the mast; the two heaters swap), then the instruments, which take their mission keys in the
+  // order they were added. "None" parts are never shown: leaving an item off is just not fitting it.
   const bayInputs = new Map<string, HTMLInputElement>();
   const bayKeys = new Map<string, HTMLElement>();
   const bayCounter = el('span', { class: 'bay-counter' });
   const baySockets = el('span', { class: 'bay-sockets', 'aria-hidden': 'true' });
   const bayStatus = el('p', { class: 'bay-notice', role: 'status' });
-  const noneButton = el('button', {
-    type: 'button',
-    class: 'bay-none',
-    onclick: () => setBuild({ ...game.build, payload: [] }),
-  }, t.bayNone);
   const bay = el('fieldset', { class: 'slot bay' },
-    el('legend', {}, text.slots.instrument, el('span', { class: 'slot-empty' }, t.slotEmpty)),
+    el('legend', {}, text.slots.instrument),
     el('div', { class: 'bay-body' },
       el('p', { class: 'bay-head' }, baySockets, bayCounter),
       el('div', { class: 'options' },
-        ...instrumentParts.map((part) => {
+        ...bayParts(data.parts).map((part) => {
           const input = el('input', {
             type: 'checkbox',
             name: 'payload',
             value: part.id,
-            onchange: () => {
-              const payload = togglePayload(game.build.payload, part.id, chassisPoints(game.build) ?? maxPoints);
-              // Taking out the last instrument leaves a confirmed empty bay: the player has decided on the bay.
-              setBuild({ ...game.build, payload });
-            },
+            onchange: () => setBuild(toggleBayPart(game.build, part.id, data.parts)),
           });
           bayInputs.set(part.id, input);
           const key = el('span', { class: 'option-key' });
@@ -198,7 +189,7 @@ export const designScreen: Screen = (game, root) => {
           return card(part, input, key);
         }),
       ),
-      el('div', { class: 'bay-foot' }, noneButton, el('span', { class: 'muted' }, t.bayHint)),
+      el('div', { class: 'bay-foot' }, el('span', { class: 'muted' }, t.bayHint)),
       bayStatus,
     ),
   );
@@ -206,33 +197,25 @@ export const designScreen: Screen = (game, root) => {
   slots.push(bay);
 
   function updateBay(): void {
-    const payload = game.build.payload;
-    const used = payload?.length ?? 0;
-    const points = chassisPoints(game.build);
-    const full = used >= (points ?? maxPoints);
-    // The same mission keys as in the mission (rules/payload instrumentKeys), from the bay's parts in bay order.
-    const bayParts = (payload ?? []).flatMap((id) => partById(id) ?? []);
-    const keys = instrumentKeys(bayParts);
-    bayCounter.textContent = points === null ? t.bayNoChassis : fill(t.bayPoints, { used, points });
-    baySockets.replaceChildren(...Array.from({ length: points ?? 0 }, (_, i) => el('span', { class: `socket${i < used ? ' filled' : ''}` })));
+    const used = pointsUsed(game.build, data.parts);
+    const capacity = bayCapacity(game.build, data.parts);
+    // The same mission keys as in the mission (rules/payload instrumentKeys), from the bay's instruments in bay order.
+    const keys = instrumentKeys((game.build.payload ?? []).flatMap((id) => partById(id) ?? []));
+    bayCounter.textContent = capacity.chassis ? fill(t.bayPoints, { used, points: capacity.points }) : t.bayNoChassis;
+    baySockets.replaceChildren(...Array.from({ length: capacity.chassis ? capacity.points : 0 }, (_, i) => el('span', { class: `socket${i < used ? ' filled' : ''}` })));
     for (const [id, input] of bayInputs) {
-      const at = payload?.indexOf(id) ?? -1;
-      // An instrument whose support part is missing is refused like a full bay (an instrument already in the bay can still be taken out).
-      const part = partById(id);
-      const unmet = at < 0 && part ? needsText(unmetNeeds(part, game.build, data.parts), data) : null;
-      input.checked = at >= 0;
-      input.disabled = at < 0 && (full || unmet !== null);
+      // A full bay, or an instrument whose support part is not fitted, refuses the card (a fitted item can always come out).
+      const fitted = isFitted(game.build, id, data.parts);
+      const refusal = fitted ? null : fitRefusal(game.build, id, data.parts);
+      input.checked = fitted;
+      input.disabled = refusal !== null;
       const node = cards.get(id)!;
       node.classList.toggle('disabled', input.disabled);
-      node.title = !input.disabled ? '' : full ? t.bayFull : unmet ?? '';
+      node.title = !refusal ? '' : refusal.kind === 'full' ? t.bayFull : needsText(refusal.support, data) ?? '';
       const inst = partById(id)?.effects.instrument;
-      const key = at >= 0 && inst ? keys.get(inst) : undefined;
+      const key = fitted && inst ? keys.get(inst) : undefined;
       bayKeys.get(id)!.textContent = key ? fill(t.bayKey, { key }) : '';
     }
-    const confirmedEmpty = payload !== undefined && payload.length === 0;
-    noneButton.textContent = confirmedEmpty ? t.bayNoneChosen : t.bayNone;
-    noneButton.classList.toggle('active', confirmedEmpty);
-    noneButton.setAttribute('aria-pressed', String(confirmedEmpty));
     bayStatus.textContent = bayNotice;
     bayStatus.hidden = !bayNotice;
   }
@@ -277,10 +260,8 @@ export const designScreen: Screen = (game, root) => {
 
   /** The bay's instrument energy for the spec sheet: per use and standby, per instrument that has any. */
   function instrumentEnergyText(): string {
-    const payload = game.build.payload;
-    if (payload === undefined) return '—';
-    const bayParts = payload.flatMap((id) => partById(id) ?? []);
-    const items = bayParts.flatMap((part) => {
+    const instruments = (game.build.payload ?? []).flatMap((id) => partById(id) ?? []);
+    const items = instruments.flatMap((part) => {
       const c = instrumentCosts([part])[0];
       const costs = c && costsText(c, data, false);
       return costs ? [fill(t.instrumentEnergyItem, { name: part.name, costs })] : [];
@@ -313,12 +294,10 @@ export const designScreen: Screen = (game, root) => {
     const chosen = chosenParts(game.build, data.parts);
     preview?.show(chosen);
     previewHint.hidden = chosen.length > 0;
-    const busAndSupport = [...data.parts.slots, ...supportSlotsOf(data.parts)];
-    const selected = new Set([...busAndSupport.map((s) => slotPartId(game.build, s)), ...(game.build.payload ?? [])]);
-    for (const [id, node] of cards) node.classList.toggle('selected', selected.has(id));
-    for (const [slot, fieldset] of fieldsets) {
-      fieldset.classList.toggle('empty', slot === 'instrument' ? game.build.payload === undefined : !slotPartId(game.build, slot as (typeof busAndSupport)[number]));
-    }
+    const bus = requiredSlots(data.parts);
+    const selected = new Set(bus.map((s) => slotPartId(game.build, s)));
+    for (const [id, node] of cards) node.classList.toggle('selected', selected.has(id) || isFitted(game.build, id, data.parts));
+    for (const slot of bus) fieldsets.get(slot)?.classList.toggle('empty', !slotPartId(game.build, slot));
     updateBay();
     const q = quoteBuild(game.build, data, game.state.balance);
     const d = q.drive;
@@ -336,8 +315,7 @@ export const designScreen: Screen = (game, root) => {
       row('Size', `${q.size}`, 'gauge-row'),
       tierGauge(q.size, tiers.map((tier) => ({ tier, limit: tier.sizeLimit })), 'size units'),
       row('Chassis load', `${q.mass} / ${q.maxLoad ?? '—'} kg`, q.overloaded ? 'bad' : ''),
-      row('Payload bay', q.mountingPoints === null ? `${q.instruments} / — instruments` : `${q.instruments} / ${q.mountingPoints} instruments`,
-        q.mountingPoints !== null && q.instruments > q.mountingPoints ? 'bad' : ''),
+      row('Payload bay', `${q.pointsUsed} / ${q.mountingPoints ?? '—'} mounting points`, bayOver ? 'bad' : ''),
 
       el('h3', {}, 'Launch ticket'),
       row('Tier', q.tier ? `${q.tier.name}` : 'None fits', q.tier ? '' : 'bad'),

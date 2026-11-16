@@ -582,6 +582,10 @@ The raise keeps a Moon build's instrument count when it fits both lights and a h
 - **No bay confirmation.** With "No instruments" gone, an empty bay needs no confirmation: a build is complete when the four bus parts are chosen. The old "unconfirmed bay" state is read as an empty bay.
 - **A smaller chassis drops instruments first.** Choosing a chassis with fewer points drops the instruments fitted last, with the existing notice. Systems are never dropped this way: the four systems together take at most four points, which every chassis has.
 - **Carry-over and saves.** A carried build loses the parts its new world does not offer (the arm and the mast leave on Titan, the Moon-only stations on Mars), with the existing notice. A save from before this change loads as it is: its "None" choices read as not fitted, and a build now over capacity (for example an old Mars steel rover with lights, heater, arm, mast and three instruments) loads with the over-capacity warning, so the player takes something out.
+- *Decided during implementation:* **not fitted is an empty slot.** A system left off is absent from the build; the "None" parts stay in `parts.json` (old saves, the relationships' part lists, tests) but are never shown on the desk, and the rules read a "None" part and an empty slot alike as not fitted. A save's "None" choices load as empty slots, and a "None" part is never named in the not-offered notice.
+- *Decided during implementation:* **the heater swap needs no free point.** Fitting the other heater replaces the fitted one even in a full bay. Before a chassis is chosen the bay takes as many items as the roomiest chassis (5), systems included, as it did for instruments.
+- *Decided during implementation:* **taking the arm or the mast off keeps its instrument in the bay,** with the existing needs warning blocking the launch, so the player decides what goes.
+- *Decided during implementation:* the Mars night energy line needs only the power source (it waited for the lights and heater slots), and the Titan debrief's Dragonfly row reads "No heater" for a rover flown without one.
 
 ### Mass versus cost
 

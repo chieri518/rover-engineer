@@ -1,20 +1,21 @@
 import { describe, expect, it } from 'vitest';
 import {
-  carryBuild, catalogFor, earnsMilestones, fitPayload, offeredOn, instrumentCosts, instrumentForKey, instrumentKeys, instrumentsOf, isBayOverCapacity, mountingPoints, payloadProblems,
+  bayCapacity, bayParts, carryBuild, catalogFor, earnsMilestones, fitBayToChassis, fitPayload, fitRefusal, fittedSystem, fittedSystems, isFitted, isSystemPart, offeredOn,
+  instrumentCosts, instrumentForKey, instrumentKeys, instrumentsOf, isBayOverCapacity, mountingPoints, payloadProblems, pointsUsed, systemSlotsOf, toggleBayPart,
   togglePayload, upgradeSavedBuild,
 } from './payload';
 import { selectedParts } from './rover';
 import { testParts } from './testData';
-import type { Build, PartsFile } from './types';
+import type { Build, DraftBuild, Part, PartsFile } from './types';
 
 const build: Build = {
   chassis: 'steel', wheels: 'solid', power: 'panel', battery: 'battery', lights: 'lamp', heater: 'heater', payload: ['camera'],
 };
 
 describe('mounting points', () => {
-  it('come from the chassis: steel 3, titanium 2 in the test data; none without a chassis', () => {
-    expect(mountingPoints(selectedParts(build, testParts))).toBe(3);
-    expect(mountingPoints(selectedParts({ ...build, chassis: 'titanium' }, testParts))).toBe(2);
+  it('come from the chassis: steel 5, titanium 4 in the test data; none without a chassis', () => {
+    expect(mountingPoints(selectedParts(build, testParts))).toBe(5);
+    expect(mountingPoints(selectedParts({ ...build, chassis: 'titanium' }, testParts))).toBe(4);
     expect(mountingPoints([])).toBe(0);
   });
 
@@ -25,7 +26,7 @@ describe('mounting points', () => {
 });
 
 describe('payload problems', () => {
-  it('none for a bay that fits, an empty bay, or an unconfirmed one', () => {
+  it('none for a bay that fits, an empty bay, or an untouched one', () => {
     expect(payloadProblems({ ...build, payload: ['camera', 'drill'] }, testParts)).toEqual([]);
     expect(payloadProblems({ ...build, payload: [] }, testParts)).toEqual([]);
     expect(payloadProblems({ chassis: 'titanium' }, testParts)).toEqual([]);
@@ -47,15 +48,18 @@ describe('payload problems', () => {
     expect(payloadProblems({ payload: ['camera', 'camera-2'] }, catalog)).toEqual([{ kind: 'duplicate', id: 'camera-2' }]);
   });
 
-  it('reports more instruments than mounting points, once a chassis is chosen', () => {
-    const three = ['camera', 'drill', 'extra'];
-    const catalog: PartsFile = {
-      ...testParts,
-      parts: [...testParts.parts, { id: 'extra', slot: 'instrument', name: 'x', description: '', cost: 1, mass: 1, size: 1, effects: { instrument: 'camera' } }],
-    };
-    expect(payloadProblems({ chassis: 'titanium', payload: three }, catalog)).toContainEqual({ kind: 'over-capacity', count: 3, points: 2 });
-    expect(isBayOverCapacity({ chassis: 'titanium', payload: ['camera', 'drill'] }, testParts)).toBe(false);
-    expect(isBayOverCapacity({ payload: three }, catalog)).toBe(false); // no chassis yet
+  it('reports more payload items than mounting points, once a chassis is chosen', () => {
+    const five = ['camera', 'drill', 'neutron', 'xray', 'seismometer'];
+    expect(payloadProblems({ chassis: 'titanium', payload: five }, testParts)).toContainEqual({ kind: 'over-capacity', count: 5, points: 4 });
+    expect(isBayOverCapacity({ chassis: 'titanium', payload: five.slice(0, 4) }, testParts)).toBe(false);
+    expect(isBayOverCapacity({ payload: five }, testParts)).toBe(false); // no chassis yet
+  });
+
+  it('counts the fitted systems with the instruments; a none part or an empty slot counts nothing', () => {
+    const three = ['camera', 'drill', 'neutron'];
+    expect(payloadProblems({ chassis: 'titanium', lights: 'lamp', heater: 'heater', payload: three }, testParts)).toContainEqual({ kind: 'over-capacity', count: 5, points: 4 });
+    expect(isBayOverCapacity({ chassis: 'titanium', lights: 'lamp', payload: three }, testParts)).toBe(false);
+    expect(isBayOverCapacity({ chassis: 'titanium', lights: 'no-lights', heater: 'heater', payload: three }, testParts)).toBe(false);
   });
 });
 
@@ -79,7 +83,7 @@ describe('saved builds', () => {
     expect(upgradeSavedBuild({ chassis: 'steel', instrument: 'camera' }, testParts)).toEqual({ chassis: 'steel', payload: ['camera'] });
   });
 
-  it('keeps a current build as it is, and an unconfirmed bay unconfirmed', () => {
+  it('keeps a current build as it is; a save without a bay loads without one (an empty bay)', () => {
     expect(upgradeSavedBuild(build, testParts)).toEqual(build);
     expect(upgradeSavedBuild({ ...build, payload: [] }, testParts)).toEqual({ ...build, payload: [] });
     expect(upgradeSavedBuild({ chassis: 'steel' }, testParts)).toEqual({ chassis: 'steel' });
@@ -96,11 +100,25 @@ describe('saved builds', () => {
 
   it('drops unknown, non-instrument and repeated payload ids, keeping bay order', () => {
     expect(upgradeSavedBuild({ ...build, payload: ['gone', 'drill', 'steel', 'drill', 7, 'camera'] }, testParts).payload).toEqual(['drill', 'camera']);
-    expect(upgradeSavedBuild({ chassis: 'steel', instrument: 'gone' }, testParts)).toEqual({ chassis: 'steel' });
+    expect(upgradeSavedBuild({ chassis: 'steel', instrument: 'gone' }, testParts)).toEqual({ chassis: 'steel', payload: [] });
   });
 
-  it('a bay emptied by dropped ids is unconfirmed, so the player chooses again', () => {
-    expect(upgradeSavedBuild({ ...build, payload: ['gone'] }, testParts)).not.toHaveProperty('payload');
+  it('a bay emptied by dropped ids is just empty (no bay confirmation since November 16)', () => {
+    expect(upgradeSavedBuild({ ...build, payload: ['gone'] }, testParts).payload).toEqual([]);
+  });
+
+  it('a "None" system from an old save loads as not fitted', () => {
+    const { lights: _l, heater: _h, ...bus } = build;
+    expect(upgradeSavedBuild({ ...build, lights: 'no-lights' }, testParts)).toEqual({ ...bus, heater: 'heater', payload: ['camera'] });
+    expect(upgradeSavedBuild({ ...bus, payload: [] }, testParts)).toEqual({ ...bus, payload: [] });
+  });
+
+  it('an old save now over capacity loads as it is, with the over-capacity problem', () => {
+    // Titanium, lamp, heater and three instruments: 5 items on 4 points (it fitted when systems took no point).
+    const old = upgradeSavedBuild({ ...build, chassis: 'titanium', payload: ['camera', 'drill', 'neutron'] }, testParts);
+    expect(old.payload).toEqual(['camera', 'drill', 'neutron']);
+    expect(old.lights).toBe('lamp');
+    expect(isBayOverCapacity(old, testParts)).toBe(true);
   });
 
   it('keeps more instruments than mounting points for the desk to report', () => {
@@ -189,9 +207,9 @@ describe('a catalog per world', () => {
     expect(out.dropped.map((p) => p.name)).toEqual(['reflector', 'seismometer']);
   });
 
-  it('a bay holding only Moon-only parts is left unconfirmed on Mars; unknown ids drop silently', () => {
+  it('a bay holding only Moon-only parts is empty on Mars; unknown ids drop silently', () => {
     const out = carryBuild({ ...build, payload: ['reflector', 'gone'] }, worldParts, 'mars');
-    expect(out.build).not.toHaveProperty('payload');
+    expect(out.build.payload).toEqual([]);
     expect(out.dropped.map((p) => p.id)).toEqual(['reflector']);
   });
 
@@ -199,5 +217,129 @@ describe('a catalog per world', () => {
     expect(carryBuild({ ...build, payload: ['reflector'] }, worldParts, 'moon')).toEqual({ build: { ...build, payload: ['reflector'] }, dropped: [] });
     expect(carryBuild(null, worldParts, 'mars')).toEqual({ build: {}, dropped: [] });
     expect(carryBuild(build, worldParts, 'mars')).toEqual({ build, dropped: [] });
+  });
+});
+
+describe('payload systems in the bay (November 16)', () => {
+  const p = (id: string, slot: Part['slot'], effects: Part['effects'] = {}): Part => ({ id, slot, name: id, description: '', cost: 10, mass: 1, size: 1, effects });
+  // The test catalog with a second heater, the "None" parts, the arm and the mast, and an instrument that needs the arm.
+  const catalog: PartsFile = {
+    ...testParts,
+    supportSlots: ['arm', 'mast'],
+    parts: [
+      ...testParts.parts,
+      p('no-heater', 'heater'),
+      p('heater-2', 'heater', { heat: 3 }),
+      p('no-arm', 'arm'),
+      p('arm', 'arm', { arm: true }),
+      p('no-mast', 'mast'),
+      p('mast', 'mast', { mast: true }),
+      p('organics', 'instrument', { instrument: 'organics', needs: ['arm'] }),
+    ],
+  };
+  const bus = { chassis: 'titanium', wheels: 'solid', power: 'panel', battery: 'battery' }; // 4 mounting points
+  const toggle = (b: DraftBuild, ...ids: string[]) => ids.reduce((acc, id) => toggleBayPart(acc, id, catalog), b);
+
+  it('the bay offers the systems that do something, then the instruments: no "None" parts', () => {
+    expect(systemSlotsOf(catalog)).toEqual(['lights', 'heater', 'arm', 'mast']);
+    expect(systemSlotsOf(testParts)).toEqual(['lights', 'heater']); // no arm or mast where the world does not offer them
+    expect(bayParts(catalog).map((x) => x.id)).toEqual([
+      'lamp', 'heater', 'heater-2', 'arm', 'mast', 'camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector', 'organics',
+    ]);
+    expect(isSystemPart(catalog.parts.find((x) => x.id === 'no-lights')!, catalog)).toBe(false);
+    expect(isSystemPart(catalog.parts.find((x) => x.id === 'steel')!, catalog)).toBe(false);
+  });
+
+  it('an empty system slot and a none part are both not fitted', () => {
+    expect(fittedSystem({ ...bus }, 'lights', catalog)).toBeUndefined();
+    expect(fittedSystem({ ...bus, lights: 'no-lights' }, 'lights', catalog)).toBeUndefined();
+    expect(fittedSystem({ ...bus, support: { arm: 'no-arm' } }, 'arm', catalog)).toBeUndefined();
+    expect(fittedSystem({ ...bus, lights: 'lamp' }, 'lights', catalog)?.id).toBe('lamp');
+    expect(isFitted({ ...bus, lights: 'no-lights' }, 'no-lights', catalog)).toBe(false);
+    expect(pointsUsed({ ...bus, lights: 'no-lights', heater: 'no-heater', support: { arm: 'no-arm', mast: 'no-mast' }, payload: ['camera'] }, catalog)).toBe(1);
+  });
+
+  it('systems take a mounting point each, like instruments', () => {
+    const b = toggle({ ...bus }, 'lamp', 'heater', 'camera');
+    expect(fittedSystems(b, catalog).map((x) => x.id)).toEqual(['lamp', 'heater']);
+    expect(b.payload).toEqual(['camera']);
+    expect(pointsUsed(b, catalog)).toBe(3);
+    expect(isFitted(b, 'lamp', catalog) && isFitted(b, 'camera', catalog)).toBe(true);
+  });
+
+  it('at most one heater: fitting one replaces the other, even in a full bay', () => {
+    const full = toggle({ ...bus }, 'lamp', 'heater', 'camera', 'drill');
+    expect(pointsUsed(full, catalog)).toBe(4);
+    expect(fitRefusal(full, 'heater-2', catalog)).toBeNull();
+    const swapped = toggle(full, 'heater-2');
+    expect(swapped.heater).toBe('heater-2');
+    expect(pointsUsed(swapped, catalog)).toBe(4);
+    // Over a none part it is a fit, not a swap, so capacity applies.
+    expect(fitRefusal({ ...full, heater: 'no-heater' }, 'heater-2', catalog)).toBeNull(); // 3 used: room for one
+    expect(fitRefusal({ ...full, heater: 'no-heater', payload: ['camera', 'drill', 'xray'] }, 'heater-2', catalog)).toEqual({ kind: 'full' });
+  });
+
+  it('a full bay refuses both kinds; taking something off makes room', () => {
+    const full = toggle({ ...bus }, 'camera', 'drill', 'neutron', 'xray');
+    expect(fitRefusal(full, 'lamp', catalog)).toEqual({ kind: 'full' });
+    expect(fitRefusal(full, 'seismometer', catalog)).toEqual({ kind: 'full' });
+    expect(toggle(full, 'lamp')).toBe(full); // refused: nothing changes
+    const room = toggle(full, 'xray', 'lamp');
+    expect(room.lights).toBe('lamp');
+    expect(room.payload).toEqual(['camera', 'drill', 'neutron']);
+    expect(toggle(room, 'lamp')).not.toHaveProperty('lights'); // taken off: the slot is empty again
+  });
+
+  it('without a chassis the bay takes as many items as the roomiest chassis', () => {
+    expect(bayCapacity({}, catalog)).toEqual({ points: 5, chassis: false });
+    expect(bayCapacity({ chassis: 'titanium' }, catalog)).toEqual({ points: 4, chassis: true });
+    expect(pointsUsed(toggle({}, 'lamp', 'heater', 'camera', 'drill', 'neutron', 'xray'), catalog)).toBe(5);
+  });
+
+  it('an instrument whose support is not fitted is refused; the arm fitted, it goes in', () => {
+    expect(fitRefusal({ ...bus }, 'organics', catalog)).toEqual({ kind: 'needs', support: ['arm'] });
+    expect(fitRefusal({ ...bus, support: { arm: 'no-arm' } }, 'organics', catalog)).toEqual({ kind: 'needs', support: ['arm'] });
+    const armed = toggle({ ...bus }, 'arm', 'organics');
+    expect(armed.support).toEqual({ arm: 'arm' });
+    expect(armed.payload).toEqual(['organics']);
+    // Taking the arm off leaves the instrument in the bay with the needs problem (it blocks the launch).
+    const unarmed = toggle(armed, 'arm');
+    expect(unarmed).not.toHaveProperty('support');
+    expect(payloadProblems(unarmed, catalog)).toEqual([{ kind: 'needs', id: 'organics', support: 'arm' }]);
+  });
+
+  it('refuses a part the bay does not offer, and a second part giving the same instrument', () => {
+    expect(fitRefusal({ ...bus }, 'no-lights', catalog)).toEqual({ kind: 'full' });
+    expect(fitRefusal({ ...bus }, 'steel', catalog)).toEqual({ kind: 'full' });
+    const twin: PartsFile = { ...catalog, parts: [...catalog.parts, p('camera-2', 'instrument', { instrument: 'camera' })] };
+    expect(fitRefusal({ ...bus, payload: ['camera'] }, 'camera-2', twin)).toEqual({ kind: 'full' });
+  });
+
+  it('a smaller chassis drops the instruments fitted last, never the systems', () => {
+    const steel = toggle({ ...bus, chassis: 'steel' }, 'lamp', 'heater', 'camera', 'drill', 'neutron');
+    expect(pointsUsed(steel, catalog)).toBe(5);
+    const { build: ti, dropped } = fitBayToChassis({ ...steel, chassis: 'titanium' }, catalog);
+    expect(dropped).toEqual(['neutron']);
+    expect(ti.payload).toEqual(['camera', 'drill']);
+    expect([ti.lights, ti.heater]).toEqual(['lamp', 'heater']);
+    // All four systems on a one-point chassis: every instrument goes, the systems stay (over capacity).
+    const tiny: PartsFile = { ...catalog, parts: catalog.parts.map((x) => (x.id === 'titanium' ? { ...x, effects: { ...x.effects, mountingPoints: 1 } } : x)) };
+    const all = toggle({ ...bus, chassis: 'steel' }, 'lamp', 'heater', 'arm', 'mast', 'camera');
+    const out = fitBayToChassis({ ...all, chassis: 'titanium' }, tiny);
+    expect(out.dropped).toEqual(['camera']);
+    expect(fittedSystems(out.build, tiny)).toHaveLength(4);
+    expect(fitBayToChassis({ ...steel, chassis: undefined }, catalog).dropped).toEqual([]); // no chassis: nothing to fit to
+  });
+
+  it('carry-over: a Mars build on a world without the arm and mast loses them with the notice; "No arm" is not named', () => {
+    const marsOnly = (x: Part): Part => (x.slot === 'arm' || x.slot === 'mast' || x.id === 'organics' ? { ...x, worlds: ['mars'] } : x);
+    const all: PartsFile = { ...catalog, parts: catalog.parts.map(marsOnly) };
+    const mars = { ...bus, lights: 'lamp', heater: 'heater', support: { arm: 'arm', mast: 'no-mast' }, payload: ['organics', 'camera'] };
+    const onTitan = carryBuild(mars, { ...all, supportSlots: undefined }, 'titan');
+    expect(onTitan.dropped.map((x) => x.id)).toEqual(['arm', 'organics']);
+    expect(onTitan.build).toEqual({ ...bus, lights: 'lamp', heater: 'heater', payload: ['camera'] });
+    // An old Moon save with "No lights" on Mars: the none part reads as not fitted, nothing is named lost.
+    const moon = carryBuild({ ...bus, lights: 'no-lights', heater: 'heater', payload: ['camera'] }, all, 'mars');
+    expect(moon).toEqual({ build: { ...bus, heater: 'heater', payload: ['camera'] }, dropped: [] });
   });
 });

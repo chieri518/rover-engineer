@@ -66,12 +66,12 @@ describe('Mars parts (data)', () => {
 });
 
 describe('Support hardware in the build', () => {
-  it('Mars asks for the arm and mast slots; the Moon does not', () => {
+  it('the arm and mast are payload you fit or leave off: neither world asks for them (November 16)', () => {
     const { support: _s, ...noSupport } = scout;
-    expect(missingSlots(noSupport, mars.parts)).toEqual(['arm', 'mast']);
-    expect(isCompleteBuild(noSupport, mars.parts)).toBe(false);
+    expect(missingSlots(noSupport, mars.parts)).toEqual([]);
+    expect(isCompleteBuild(noSupport, mars.parts)).toBe(true);
     expect(isCompleteBuild(scout, mars.parts)).toBe(true);
-    expect(missingSlots({ ...noSupport, payload: undefined }, mars.parts)).toEqual(['arm', 'mast', 'instrument']);
+    expect(missingSlots({ ...noSupport, payload: undefined }, mars.parts)).toEqual([]);
     const moonBuild: Build = { ...noSupport, payload: ['instrument-camera'] };
     expect(isCompleteBuild(moonBuild, moon.parts)).toBe(true);
     expect(missingSlots(moonBuild, moon.parts)).toEqual([]);
@@ -94,10 +94,14 @@ describe('Support hardware in the build', () => {
     expect(withSlotPart({}, 'mast', 'mast-remote')).toEqual({ support: { mast: 'mast-remote' } });
   });
 
-  it('support parts take no mounting point: titanium still carries two instruments with the arm and mast', () => {
+  it('the arm and the mast take a mounting point each (November 16): titanium with the heater, both and two instruments is over', () => {
     const b = withMast(withArm({ ...scout, payload: ['instrument-xray', 'instrument-laser'] }));
-    expect(payloadProblems(b, mars.parts)).toEqual([]);
-    expect(quoteBuild(b, mars, 1000).canLaunch).toBe(true);
+    expect(payloadProblems(b, mars.parts)).toEqual([{ kind: 'over-capacity', count: 5, points: 4 }]);
+    expect(quoteBuild(b, mars, 1000).canLaunch).toBe(false);
+    // Steel's five points take them: heater units, arm, mast, X-ray and laser.
+    const steel = { ...b, chassis: 'chassis-steel' };
+    expect(payloadProblems(steel, mars.parts)).toEqual([]);
+    expect(quoteBuild(steel, mars, 1000).canLaunch).toBe(true);
   });
 
   it('refuses an instrument whose support part is missing, with the part it needs', () => {
@@ -136,22 +140,38 @@ describe('Support hardware in the build', () => {
 
   it('the cheapest Mars build has no arm and no mast and can launch', () => {
     const b = cheapestBuild(mars.parts);
-    expect(b.support).toEqual({ arm: 'arm-none', mast: 'mast-none' });
+    expect(b.support).toBeUndefined();
     expect(quoteBuild(b, mars, 1000).canLaunch).toBe(true);
     expect(cheapestBuild(moon.parts).support).toBeUndefined();
   });
 });
 
 describe('Saves with support hardware', () => {
-  it('an old save without support loads on Mars, with the support slots still to choose', () => {
+  it('an old save without support loads on Mars complete, with no arm and no mast fitted', () => {
     const { support: _s, ...old } = scout;
     const draft = upgradeSavedBuild(old, mars.parts);
     expect(draft.support).toBeUndefined();
-    expect(missingSlots(draft, mars.parts)).toEqual(['arm', 'mast']);
+    expect(missingSlots(draft, mars.parts)).toEqual([]);
+  });
+
+  it('a Mars save from before November 16 loads: "No arm", "No mast" and "No lights" read as not fitted', () => {
+    const draft = upgradeSavedBuild(scout, mars.parts);
+    expect(draft).toEqual({
+      chassis: 'chassis-titanium', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion', heater: 'heater-rhu', payload: ['instrument-camera'],
+    });
+    expect(isCompleteBuild(draft, mars.parts)).toBe(true);
+    // A steel rover with lights, heater, arm, mast and three instruments (it fitted before) loads with the over-capacity problem.
+    const heavy = upgradeSavedBuild({
+      chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion', lights: 'lights-led', heater: 'heater-rhu',
+      payload: ['instrument-laser', 'instrument-xray', 'instrument-camera'], support: { arm: 'arm-robotic', mast: 'mast-remote' },
+    }, mars.parts);
+    expect(heavy.payload).toHaveLength(3);
+    expect(heavy.support).toEqual({ arm: 'arm-robotic', mast: 'mast-remote' });
+    expect(payloadProblems(heavy, mars.parts)).toEqual([{ kind: 'over-capacity', count: 7, points: 5 }]);
   });
 
   it('keeps support ids the catalog has in that slot and drops the rest', () => {
-    expect(upgradeSavedBuild(withArm(scout), mars.parts).support).toEqual({ arm: 'arm-robotic', mast: 'mast-none' });
+    expect(upgradeSavedBuild(withArm(scout), mars.parts).support).toEqual({ arm: 'arm-robotic' });
     expect(upgradeSavedBuild({ ...scout, support: { arm: 'arm-gone', mast: 'arm-robotic' } }, mars.parts).support).toBeUndefined();
     expect(upgradeSavedBuild({ ...scout, support: 'arm-robotic' }, mars.parts).support).toBeUndefined();
     // The Moon offers no support slots: they are dropped silently.
@@ -160,9 +180,10 @@ describe('Saves with support hardware', () => {
 
   it('carries a Mars build on Mars unchanged, and names the Mars parts it loses on the Moon', () => {
     const b = withArm({ ...scout, power: 'power-rtg', payload: ['instrument-xray'] });
-    expect(carryBuild(b, mars.allParts, 'mars')).toEqual({ build: b, dropped: [] });
+    const { lights: _l, ...fitted } = b; // "No lights" and "No mast" read as not fitted
+    expect(carryBuild(b, mars.allParts, 'mars')).toEqual({ build: { ...fitted, support: { arm: 'arm-robotic' } }, dropped: [] });
     const toMoon = carryBuild(b, mars.allParts, 'moon');
-    expect(toMoon.dropped.map((p) => p.id)).toEqual(['power-rtg', 'arm-robotic', 'mast-none']);
+    expect(toMoon.dropped.map((p) => p.id)).toEqual(['power-rtg', 'arm-robotic']); // a "None" part is not lost
     expect(toMoon.build.power).toBeUndefined();
   });
 });
@@ -199,10 +220,10 @@ describe('Mars ticket tiers (Mars M12)', () => {
     expect(ticketTier(95, 20, moon.tiers.tiers)).toBeNull();
   });
 
-  it('a steel rover with arm, mast and three instruments launches Heavy on Mars', () => {
+  it('a steel rover with heater, arm, mast and two instruments (a full bay) launches Heavy on Mars', () => {
     const b: Build = {
-      chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
-      lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-laser', 'instrument-xray', 'instrument-camera'],
+      chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-large',
+      heater: 'heater-rhu', payload: ['instrument-laser', 'instrument-xray'],
       support: { arm: 'arm-robotic', mast: 'mast-remote' },
     };
     const q = quoteBuild(b, mars, 1000);

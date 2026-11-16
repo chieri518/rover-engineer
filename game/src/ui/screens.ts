@@ -6,7 +6,7 @@ import type { Build, BusSlot, GameData, HistoryKey, Instrument, Milestone } from
 import type { TitanCampaignText } from '../rules/titanTypes';
 import { earnedWith, groupMilestones, notReached, rockTypeTally, stagesEarned, type MilestoneGroupKey } from '../rules/milestoneLists';
 import { instrumentsOf } from '../rules/payload';
-import { isCompleteBuild, selectedParts } from '../rules/rover';
+import { completeBuild, providesCapability, selectedParts } from '../rules/rover';
 import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
 import type { InstrumentLog } from '../rules/instruments';
 import { categoryLabel, causeText, milestoneSummary, notReachedLine } from './milestoneText';
@@ -279,7 +279,8 @@ const debrief: Screen = (game, root) => {
   const taught = taughtItems(result.relationships, data, history);
 
   // The rover as launched (the mission flies game.build) and the records held before this mission.
-  const launchParts = isCompleteBuild(game.build, data.parts) ? selectedParts(game.build, data.parts) : [];
+  const launched = completeBuild(game.build, data.parts);
+  const launchParts = launched ? selectedParts(launched, data.parts) : [];
   const bay = launchParts.length ? instrumentsOf(launchParts) : (game.instrumentLog?.carried ?? []);
   const recordsHeldAtLaunch = state.records.filter((id) => !payout.newRecords.includes(id));
 
@@ -367,12 +368,17 @@ const debrief: Screen = (game, root) => {
  */
 function dragonflyView(t: TitanCampaignText, build: Build | null, data: GameData): HTMLElement {
   const part = (slot: BusSlot) => data.parts.parts.find((p) => p.id === build?.[slot]);
+  const fitted = (slot: BusSlot) => {
+    const p = part(slot);
+    return p && providesCapability(p) ? p : undefined;
+  };
   const vars = {
     wheels: part('wheels')?.name ?? '',
     battery: part('battery')?.name ?? '',
     capacity: part('battery')?.effects.batteryCapacity ?? 0,
-    heater: part('heater')?.name ?? '',
-    lights: part('lights')?.name ?? '',
+    // A system left off (or an old save's "None" part) reads as not fitted.
+    heater: fitted('heater')?.name ?? t.noHeater,
+    lights: fitted('lights')?.name ?? t.noLights,
   };
   return el('section', { class: 'dragonfly' },
     el('h3', {}, t.dragonflyHeading),

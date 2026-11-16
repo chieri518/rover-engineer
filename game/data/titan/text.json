@@ -278,6 +278,8 @@
     "compareHeading": "Your rover and Dragonfly",
     "colRover": "Your rover",
     "colDragonfly": "Dragonfly",
+    "noHeater": "No heater",
+    "noLights": "No lights",
     "compare": [
       {
         "label": "Vehicle",
