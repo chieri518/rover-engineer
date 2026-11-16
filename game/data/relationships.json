@@ -8,14 +8,14 @@
       "parts": ["instrument-neutron", "instrument-drill"],
       "review": "yellow",
       "notice": "The drill tests only the ground under it: it cannot tell where the ice is. A neutron spectrometer senses buried hydrogen as the rover drives, so it shows where to drill.",
-      "reviewText": "Needs: the drill confirms ice but cannot find it. The neutron spectrometer senses buried hydrogen while the rover drives. Bring both, or earn points elsewhere.",
+      "reviewText": "Needs: the drill confirms ice but cannot find it. The neutron spectrometer senses buried hydrogen while the rover drives. Bring the neutron spectrometer to locate the ice and the drill to confirm it; on a tight budget, choose one, or earn points elsewhere.",
       "reviewSolved": "Solved: the neutron spectrometer shows where hydrogen is buried, and the drill confirms the ice.",
       "debrief": "The drill only tests the ground it stands on, so in the dark crater it could not tell how close the ice was. A neutron spectrometer senses hydrogen under the surface as the rover drives, which shows where to dig.",
       "answers": [
-        "Add a neutron spectrometer and drill where its hydrogen meter rises.",
-        "Skip the ice and earn points with other instruments."
+        "Bring the neutron spectrometer to locate the ice and the drill to confirm it.",
+        "On a tight budget, choose one of the two, or earn points with other instruments."
       ],
-      "fact": "NASA's VIPER rover carries a Neutron Spectrometer System that senses hidden water up to about 1 m (3 feet) below the surface while it drives.",
+      "fact": "NASA's VIPER rover is designed to sense hidden water up to about 1 m (3 feet) below the surface with its Neutron Spectrometer System while it drives. VIPER has not flown yet.",
       "source": "NASA Science, VIPER rover and instruments (science.nasa.gov/mission/viper/rover-and-instruments)"
     },
     {
