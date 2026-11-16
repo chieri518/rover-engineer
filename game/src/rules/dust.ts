@@ -11,6 +11,7 @@
 // relative to where the rover is then, so it passes that point within maxPassM. It moves in a straight
 // line as a dust column. One passing within dustDevilCleanM of the rover resets its dust factor to clean.
 import type { DustDevil, DustDevilSlot, DustDevilSpec, DustTuning, SolTuning } from './marsTypes';
+import type { PartEffects } from './types';
 import type { Rng } from './events';
 
 interface Point { x: number; z: number }
@@ -20,14 +21,13 @@ const DEG = Math.PI / 180;
 // ---------------------------------------------------------------------------------------------------
 // Dust on the panels
 
-/** The effects that matter for dust (PartEffects gains `dustRate` in step 2). */
-export interface DustPartEffects {
-  energyIncome?: number;
-  dustRate?: number;
-}
+/** The effects that matter for dust. */
+export type DustPartEffects = Pick<PartEffects, 'energyIncome' | 'dustRate'>;
 
 /**
- * The rover's dust rate: its solar parts' dustRate weighted by their income (a part without one counts ×1).
+ * The rover's dust rate: its solar parts' dustRate weighted by their income. Validation requires a dustRate
+ * on every solar part of a world with dust, so the ×1 for a part without one only covers test fixtures and
+ * parts from a world without dust.
  * 0 for a rover with no solar income, such as an RTG rover, so dust never touches it.
  */
 export function roverDustRate(effects: DustPartEffects[]): number {

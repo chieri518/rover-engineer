@@ -62,6 +62,7 @@ export function validateGameData(data: GameData): string[] {
     if (!parts.some((p) => p.slot === slot)) problems.push(`slot ${slot} has no parts on ${data.world}`);
   }
   problems.push(...catalogProblems(data));
+  problems.push(...dustProblems(data));
   const allIds = new Set(data.allParts.parts.map((p) => p.id));
   for (const id of Object.keys(data.text.partText ?? {})) {
     if (!allIds.has(id)) problems.push(`text.partText names unknown part ${id}`);
@@ -113,6 +114,46 @@ function catalogProblems(data: GameData): string[] {
     if (part.worlds === undefined) continue;
     if (!Array.isArray(part.worlds) || part.worlds.length === 0) problems.push(`part ${part.id} has an empty worlds list (leave it out to offer the part everywhere)`);
     else for (const w of part.worlds) if (!KNOWN_WORLDS.includes(w)) problems.push(`part ${part.id} names unknown world ${String(w)}`);
+  }
+  return problems;
+}
+
+/**
+ * Dust on the panels and dust devils (rules/dust.ts). On a world with dust every part with solar income
+ * says how fast dust settles on it (a dustRate), and only such parts have one. tuning.dust and
+ * events.dustdevil hold numbers the rules can use: dust never speeds up in the storm, the floor keeps
+ * some income, the lesson fires above the floor, a devil cleans no farther than it is sensed and can pass
+ * that close, and every devil forms and ends inside the day.
+ */
+function dustProblems(data: GameData): string[] {
+  const problems: string[] = [];
+  const { dust, sol } = data.tuning;
+  const devil = data.events.dustdevil;
+  for (const part of data.parts.parts) {
+    const e = part.effects;
+    if (dust && (e.energyIncome ?? 0) > 0 && e.dustRate === undefined) problems.push(`part ${part.id} has solar income but no dustRate (needed on ${data.world}, which has dust)`);
+    if (e.dustRate !== undefined && !((e.energyIncome ?? 0) > 0)) problems.push(`part ${part.id} has a dustRate but no solar income`);
+  }
+  if (dust) {
+    const finite = Object.values(dust).every((v) => typeof v === 'number' && Number.isFinite(v));
+    if (!finite) problems.push('tuning.dust needs finite numbers');
+    if (!(dust.perSol >= 0)) problems.push('tuning.dust.perSol must not be negative');
+    if (!(dust.stormMultiplier >= 1)) problems.push('tuning.dust.stormMultiplier must be at least 1 (the storm never slows dust down)');
+    if (!(dust.minFactor > 0 && dust.minFactor <= 1)) problems.push('tuning.dust.minFactor must be above 0 and at most 1');
+    if (!(dust.lessonLoss > 0 && dust.lessonLoss < 1 - dust.minFactor)) problems.push('tuning.dust.lessonLoss must be above 0 and below 1 - minFactor (the lesson must be reachable above the floor)');
+    if (!(dust.dustDevilCleanM >= 0 && dust.dustDevilCleanM <= dust.dustDevilSenseM)) problems.push('tuning.dust needs 0 <= dustDevilCleanM <= dustDevilSenseM');
+    if (devil && !(dust.dustDevilSenseM <= devil.maxPassM)) problems.push('tuning.dust.dustDevilSenseM must be at most events.dustdevil.maxPassM (or no devil could pass that close)');
+  }
+  if (devil) {
+    const [w0, w1] = devil.daySecondsWindow;
+    if (!(devil.everySols > 0)) problems.push('events.dustdevil.everySols must be above 0');
+    if (!(devil.lifeSeconds > 0)) problems.push('events.dustdevil.lifeSeconds must be above 0');
+    if (!(devil.speedMps >= 0)) problems.push('events.dustdevil.speedMps must not be negative');
+    if (!(devil.maxPassM >= 0 && devil.rampSeconds >= 0 && devil.radiusM > 0 && devil.heightM > 0)) problems.push('events.dustdevil needs maxPassM and rampSeconds not negative, radiusM and heightM above 0');
+    if (!sol) problems.push('events.dustdevil needs tuning.sol (devils form by day)');
+    else if (!(w0 !== undefined && w1 !== undefined && w0 >= 0 && w0 <= w1 && w1 + devil.lifeSeconds <= sol.daySeconds)) {
+      problems.push('events.dustdevil.daySecondsWindow must be a [start, end] in the day, with end + lifeSeconds at most tuning.sol.daySeconds');
+    }
   }
   return problems;
 }

@@ -1,6 +1,6 @@
 // Types for the JSON files in game/data/. These are the data contract.
 import type { DamageCause } from './damage';
-import type { DustStormSpec, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
+import type { DustDevilSpec, DustStormSpec, DustTuning, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
 
 /** The rover's bus: one part per slot. */
 export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
@@ -27,6 +27,12 @@ export interface PartEffects {
   coldTolerant?: boolean; // instrument: exempt from the cold slowdown (its sensor head sits outside the warm body)
   needsEarth?: boolean; // instrument: usable only where Earth is above the terrain horizon from the rover
   needsBoulder?: boolean; // instrument: usable only with a boulder within tuning.instruments.xray.reachM
+  // Power the parts own (Mars M1). The draws and steadyIncome apply only on a world whose tuning has a
+  // `night` section (Mars): the Moon has no idle drain, so its panels' energyIncome is net of it.
+  lightsDraw?: number; // lights: energy per second while the floodlights are on (awake at night)
+  heaterDraw?: number; // heater: energy per second every second of night, awake and asleep; its heat counts only while the draw is paid
+  steadyIncome?: number; // power: energy per second, day and night, never scaled by sunlight, the low Sun, the storm, shadow or dust
+  dustRate?: number; // power: how fast dust settles on this part (x tuning.dust.perSol); every part with energyIncome needs one on a world with dust
 }
 
 export interface Part {
@@ -236,6 +242,7 @@ export interface Tuning {
   /** Mars only (data/mars/tuning.json): the sol clock and the night. See rules/marsTypes.ts. */
   sol?: SolTuning;
   night?: NightTuning;
+  dust?: DustTuning; // dust on the panels (rules/dust.ts)
   instruments: InstrumentTuning;
 }
 
@@ -377,6 +384,7 @@ export interface EventsFile {
   flare?: FlareSpec;
   quake?: QuakeSpec;
   duststorm?: DustStormSpec;
+  dustdevil?: DustDevilSpec; // Mars (rules/dust.ts)
 }
 
 export interface SharedTextFile {

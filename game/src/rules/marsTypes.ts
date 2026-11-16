@@ -80,9 +80,8 @@ export interface SolTuning {
 
 /** Night: lights on or sleep, and the map-wide night cold. Owner: rules (M3). */
 export interface NightTuning {
-  lightsDrainPerSecond: number; // awake at night with lights on (lights, electronics): battery drain on top of driving
-  awakeDrainPerSecond: number; // awake at night without lights (electronics only): the rover cannot drive
-  sleepDrainPerSecond: number; // powered down (P) at night
+  awakeDrainPerSecond: number; // the electronics awake at night: battery drain on top of driving (the lights and heater draws are the parts', rules/energy.ts nightDraw)
+  sleepDrainPerSecond: number; // the electronics powered down (P) at night
   driveWithoutLights: boolean; // design: false, a rover without lights cannot drive at night
   freezeRatePerSecond: number; // night-wide freezing without a heater (heaterReductionPerHeat from tuning.cold applies)
   warmRecoveryPerSecond: number; // freeze meter recovery by day
@@ -92,7 +91,7 @@ export interface NightTuning {
 
 /**
  * Dust on the panels (data/mars/tuning.json `dust`). Owner B, provisional, for Chieri's review (Mars M8,
- * MS8). Rules: rules/dust.ts. Not on Tuning yet: step 2 adds `dust?: DustTuning` when it wires the energy step.
+ * MS8). Rules: rules/dust.ts; Tuning.dust, wired into the energy step (rules/mission.ts).
  */
 export interface DustTuning {
   perSol: number; // share of a part's clean solar income lost per sol, times the part's dustRate
@@ -119,7 +118,7 @@ export interface DustStormSpec {
 
 /**
  * Dust devils (data/mars/events.json `dustdevil`). Owner B, provisional, for Chieri's review (Mars M8,
- * MS8). Rules: rules/dust.ts. Not on EventsFile yet: step 2 adds `dustdevil?: DustDevilSpec`.
+ * MS8). Rules: rules/dust.ts; EventsFile.dustdevil, scheduled in rules/mission.ts marsSetup.
  */
 export interface DustDevilSpec {
   everySols: number; // one dust devil in each run of this many sols, so on average one every everySols sols
@@ -195,6 +194,11 @@ export interface MarsTextSections {
   storm: Record<'forecast' | 'started' | 'cleared' | 'credit', string>;
   /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
   campaign: MarsCampaignText;
+  /**
+   * The desk's night budget line (Mars M15, ui/marsMission.ts nightBudgetLine): what one night costs this
+   * build asleep and awake with lights, the electric heater's share and an RTG's income. {energy}, {seconds}.
+   */
+  nightBudget: Record<'label' | 'asleep' | 'lights' | 'heater' | 'steady' | 'separator', string>;
   /** Per-world part wording, by part id: replaces the shared name or description (rules/merge.ts withPartText). */
   partText?: Record<string, { name?: string; description?: string }>;
 }

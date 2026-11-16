@@ -78,6 +78,8 @@ export function requiredInstruments(milestone: Milestone): Instrument[] {
 export function meetsRequirements(parts: Part[], milestone: Milestone): boolean {
   const { slots = [] } = milestone.requires;
   for (const slot of slots) {
+    // Any heat meets a heater requirement (Mars M17): an RTG's waste heat warms a rover with "No heater".
+    if (slot === 'heater' && parts.reduce((sum, p) => sum + (p.effects.heat ?? 0), 0) > 0) continue;
     const part = parts.find((p) => p.slot === slot);
     if (!part || !slotProvidesCapability(part, slot)) return false;
   }
