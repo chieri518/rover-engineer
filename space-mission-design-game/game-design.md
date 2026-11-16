@@ -809,7 +809,7 @@ The rules are in `game/src/rules/titan.ts`, plus the Titan parts of `mission.ts`
   - The small battery runs out about 30 s into the night if it drives with the lights on, and before dawn if it parks with the lights on after driving by day.
   - A careful lights-on night with the big battery survives with about 54 left: 300 m by day, 300 m at night, then parked with the lights on.
   - Without a heater, a sleeper freezes before dawn and an awake rover freezes within the mission.
-  - The ejecta field was moved closer because of this check. At 3.4 km it was out of reach of any Moon build on battery alone.
+  - Because of this check, the ejecta field moves to about 1.2 to 1.4 km and the Dune sea viewpoint to about 1 km (main asked the pipeline). At 3.4 km the field was out of reach of any Moon build on battery alone.
 
 #### Titan milestones
 
