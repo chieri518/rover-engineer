@@ -946,7 +946,7 @@ All 11 are built. Rules in `game/src/rules/milestones.ts` and `rules/titanMilest
 - **Mars to Titan.** The Mars debrief's button reads "Continue to Titan"; the Titan design screen shows "Mission 3 · Titan, Shangri-La dunes", the balance carried over, and that parts and tiers are the Moon's in this version. A short Titan design tutorial and drive tutorial explain the new rules: no solar, always cold, sleep cools, one long night.
 - **Landing briefing.** Titan in a few facts (thick nitrogen air, methane rain, −179 °C), the site, and "New on Titan".
 - **Debrief: the real mission flies.** The Titan debrief compares the rover with Dragonfly, a nuclear-powered rotorcraft that flies between sites because Titan's thick air and low gravity make flight easier than driving. The lesson: the right vehicle depends on the world ([rover-engineering/04](research/rover-engineering/04-rover-games-and-scenarios.md), card 12).
-- **Campaign complete.** Replaces "Titan: coming soon": banked RP, final balance, records held, and the campaign table with one row per mission. *Proposed:* a failed Titan round (rover lost before dawn and the balance below a final mark, interface) can be retried from the Titan snapshot; otherwise the campaign ends.
+- **Campaign complete.** Replaces "Titan: coming soon": banked RP, final balance, records held, and the campaign table with one row per mission. Superseded: see [Titan goal and the campaign dashboard](#titan-goal-and-the-campaign-dashboard-decided-november-15-by-owner-b-replaces-the-final-mark).
 - **Credits** add the Titan sources (Cassini radar and maps, Huygens, Dragonfly).
 
 ##### Campaign end as built *(decided during implementation, Phase T4, Owner B to confirm)*
@@ -956,8 +956,19 @@ All 11 are built. Rules in `game/src/rules/milestones.ts` and `rules/titanMilest
 - **Landing briefing.** "Titan in a few facts" (air, cold and methane rain, gravity, dim light), the site and Selk (distance and direction computed from `terrain.json` `features.selk`), "New on Titan", the survey leads and the sources.
 - **Debrief.** "The real mission flies": Dragonfly in four short paragraphs (rotorcraft, why flying is easier on Titan, nuclear power and waste heat, launch no earlier than July 2028 and arrival in late 2034), a table comparing the rover flown (its wheels, battery and heater) with Dragonfly, and the lesson. It is always shown on Titan and replaces the per-outcome rover history there (that history is Moon and Mars facts). Fact-checked by research.
 - **Campaign complete** (screen id `complete`): banked RP, final balance, records held, the start and final balance, the campaign table with a total row, one line per world on what it asked of the rover, and buttons for the title, the credits and a new campaign.
-- **Titan final mark.** Kept at the placeholder 0 (`budget.minimumBudget.complete`): a Titan round fails only if the balance goes negative, and then restarts from the Titan snapshot. The "rover lost before dawn" condition is not added. Owner A sets the mark.
+- **Titan final mark** *(superseded November 15: Titan passes on survival, see below)*. Kept at the placeholder 0 (`budget.minimumBudget.complete`): a Titan round fails only if the balance goes negative, and then restarts from the Titan snapshot. The "rover lost before dawn" condition is not added. Owner A sets the mark.
 - **Credits.** The Titan section lists the terrain and texture sources from the pipeline's files ("modeled on Cassini data"), the landing briefing sources, the rainstorm source once it is fact-checked, and the Dragonfly debrief sources.
+
+##### Titan goal and the campaign dashboard *(decided November 15 by Owner B; replaces the final mark)*
+
+- **Titan's goal is to survive.** Titan is the last mission, so a Titan round passes when the rover is still running at the end of the 15 minutes (900 s of mission time; a sleeping rover counts as running). It fails if the mission ends early: out of energy, frozen, stuck or destroyed. The balance does not decide Titan: the final money mark (`budget.minimumBudget.complete`) is no longer used. Money and RP are still earned and shown.
+- **A failed Titan round** shows when and how the rover was lost, and offers two choices: try Titan again from the Titan snapshot, or end the campaign and see the dashboard with Titan marked as not survived. *(Decided by main so a player is never trapped on the last mission.)*
+- **Campaign dashboard.** When the player is done, the Campaign complete screen becomes a stats dashboard for the whole campaign:
+  - A headline: whether the Titan rover survived, total distance driven, milestones earned out of those available, final balance, banked RP.
+  - One card per mission (Moon, Mars, Titan): outcome, time survived out of the mission length, distance driven, milestones earned out of available (by category), money earned, money spent on the rover and ticket, RP, energy used and the lowest battery level, the highest cold reading, samples drilled and photos taken, the rover build (parts and payload), and for Mars and Titan the nights survived and how many were spent asleep or with lights on.
+  - Charts: the balance across the campaign (start, then after each mission) and milestones by category per mission.
+  - Records held, then buttons for the title, the credits and a new campaign.
+  - The stats are recorded per round as each mission ends and are kept in the save, so the dashboard survives a reload.
 
 #### The Titan mission as played *(decided during implementation, Phase T6, Owner B to confirm)*
 
@@ -978,7 +989,7 @@ How the Titan rules reach the player (`game/src/ui/titanMission.ts`, small hooks
 #### Spine decisions *(decided during implementation, Phase T0, Owner B to confirm)*
 
 - **Campaign end marker.** The campaign order is Moon → Mars → Titan → `complete`. Titan is playable; `complete` is the end screen. Saves at the old `titan` end marker (after a passed Mars round) now open the Titan design screen.
-- **Titan final mark.** A placeholder of 0 (`budget.minimumBudget.complete`), so a Titan round fails only if the balance goes negative. The Titan entry minimum stays the Mars pass mark (800). The final-mark rule ("rover lost before dawn and the balance below a final mark") is left to the campaign track and Owner A.
+- **Titan final mark** *(superseded November 15: Titan passes on survival)*. A placeholder of 0 (`budget.minimumBudget.complete`), so a Titan round fails only if the balance goes negative. The Titan entry minimum stays the Mars pass mark (800). The final-mark rule ("rover lost before dawn and the balance below a final mark") is left to the campaign track and Owner A.
 - **Handling.** Titan gravity is 1.35 m/s². `rover.gravityScale` is 4.8, so ground gravity is 6.48 m/s², the Moon's tuned value, as on Mars.
 - **Placeholders.** Until the sky track lands, Titan uses the Mars look. Until the rules and integration tracks land, it uses the lunar Sun model fixed near noon. The one Titan day is written in the Mars sol format (`tuning.sol`: 1 sol of 900 s, 450 s day, 450 s night, start 150 s after sunrise), and the rules track decides whether to keep it.
 
