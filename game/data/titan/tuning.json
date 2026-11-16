@@ -81,7 +81,7 @@
     "skyAdaptMax": 2.2,
     "adaptK": 0.55,
     "adaptMax": 5,
-    "nightLight": 0.04,
+    "nightLight": 0.07,
     "groundBounce": 0.12,
     "skyLightSaturation": 0.75,
     "colors": {
