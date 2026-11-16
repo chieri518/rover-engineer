@@ -1,6 +1,10 @@
 // Types for the JSON files in game/data/. These are the data contract.
 import type { DamageCause } from './damage';
 import type { DustStormSpec, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
+import type {
+  RainstormSpec, TitanColdTuning, TitanLookTuning, TitanMilestoneTrigger, TitanMilestoneTuning, TitanPowerTuning, TitanSleepTuning,
+  TitanTextSections,
+} from './titanTypes';
 
 /** The rover's bus: one part per slot. */
 export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
@@ -17,7 +21,8 @@ export interface PartEffects {
   energyIncome?: number; // power: energy per second in full sun
   batteryCapacity?: number; // battery: energy units
   lightRange?: number; // lights: meters
-  heat?: number; // heater: heat units, slows freezing
+  heat?: number; // heater (or a power source's waste heat): heat units, slows freezing
+  constantPower?: number; // power: energy per second day and night, independent of the Sun (e.g. a radioisotope source; no part uses it yet)
   instrument?: Instrument; // instrument parts (payload bay)
   energyPerUse?: number; // instrument: energy each use costs (absent: none)
   standbyEnergy?: number; // instrument: energy per second while switched on, not while powered down (absent: no standby; the instrument is a switch when it has one)
@@ -70,7 +75,8 @@ export type MilestoneTrigger =
   | { type: 'event'; event: 'flare' | 'quake'; condition: 'no-damage' }
   /** no-damage: no damage from any cause except those listed (moonquakes cannot be avoided). */
   | { type: 'survive'; condition?: 'no-damage'; except?: DamageCause[] }
-  | MarsMilestoneTrigger;
+  | MarsMilestoneTrigger
+  | TitanMilestoneTrigger;
 
 export interface MilestoneRequirements {
   slots?: BusSlot[]; // the part in each slot must have a non-zero capability effect
@@ -99,17 +105,17 @@ export type DeathCause = 'energy' | 'stuck' | 'froze' | 'destroyed';
 /** Debrief real-rover comparisons: one per ending; a rollover is 'destroyed' with its own comparison. */
 export type HistoryKey = DeathCause | 'survived' | 'rollover';
 /** A playable world, and the mission played on it. See src/worlds.ts. */
-export type MissionId = 'moon' | 'mars';
-/** A step of the campaign: a playable mission, or the end marker after the last one ("Titan: coming soon"). */
-export type CampaignStep = MissionId | 'titan';
+export type MissionId = 'moon' | 'mars' | 'titan';
+/** A step of the campaign: a playable mission, or the end marker after the last one ('complete': the campaign is over). */
+export type CampaignStep = MissionId | 'complete';
 
 export interface Tuning {
   /** gravity: the world's surface gravity in m/s² (Mars sets its own in data/mars/tuning.json). */
   mission: { lengthSeconds: number; gameDays: number; gravity: number };
     budget: {
     startingBudget: number;
-    /** A step's minimum is the pass mark of the mission before it (titan: the Mars pass mark). */
-    minimumBudget: Record<CampaignStep, number>;
+    /** A step's minimum is the pass mark of the mission before it (titan: the Mars pass mark; complete: the Titan final mark). */
+    minimumBudget: Record<MissionId, number>; // the balance needed to start each mission (the last mission passes on survival)
   };
   payout: {
     survivalPayout: number;
@@ -186,11 +192,16 @@ export interface Tuning {
     boundaryInsetM: number; // the operating boundary sits this far inside the 8 km play area
     warningDistanceM: number; // the "leaving the area" notice shows this close to the boundary
   };
-  milestones: MilestoneTuning & Partial<MarsMilestoneTuning>; // Mars fields: rules/marsTypes.ts
-  /** Mars only (data/mars/tuning.json): the sol clock and the night. See rules/marsTypes.ts. */
+  milestones: MilestoneTuning & Partial<MarsMilestoneTuning> & Partial<TitanMilestoneTuning>; // rules/marsTypes.ts, rules/titanTypes.ts
+  /** Mars and Titan (data/<world>/tuning.json): the sol clock (Titan: one sol of 900 s) and the night. See rules/marsTypes.ts. */
   sol?: SolTuning;
   night?: NightTuning;
   instruments: InstrumentTuning;
+  /** Titan only (data/titan/tuning.json). See rules/titanTypes.ts. */
+  sleep?: TitanSleepTuning;
+  titanPower?: TitanPowerTuning;
+  titanCold?: TitanColdTuning;
+  look?: TitanLookTuning;
 }
 
 /** How the instruments behave in a mission (rules/mission.ts, rules/instruments.ts). */
@@ -308,18 +319,84 @@ export interface QuakeSpec extends EventSpec {
   shakeSeconds: number;
 }
 
-/** Each world has its own events: the Moon has flares and quakes, Mars a dust storm (data/mars/events.json). */
+/** Each world has its own events: the Moon has flares and quakes, Mars a dust storm, Titan a methane rainstorm. */
 export interface EventsFile {
   flare?: FlareSpec;
   quake?: QuakeSpec;
   duststorm?: DustStormSpec;
+  rainstorm?: RainstormSpec; // Titan
+}
+
+/** text.json → dashboard: the Campaign complete dashboard. {placeholders} are filled by src/ui/dashboard.ts. */
+export interface DashboardText {
+  kicker: string;
+  heading: string;
+  body: string;
+  tileFinal: string; // headline: did the last mission's rover survive
+  yes: string;
+  no: string;
+  notRecorded: string;
+  tileDistance: string;
+  tileMilestones: string;
+  tileBalance: string;
+  tileRp: string;
+  tileSumNote: string;
+  meters: string; // {m}
+  kilometers: string; // {km}
+  ofTotal: string; // {n} of {total}
+  percent: string; // {pct}
+  missionsHeading: string;
+  missionNumber: string; // {n}
+  passed: string;
+  notPassed: string;
+  survivedToEnd: string;
+  lostAt: string; // {cause} at {time}
+  notRecordedBody: string;
+  labelOutcome: string;
+  labelTime: string;
+  labelDistance: string;
+  labelMilestones: string;
+  labelEarned: string;
+  labelPenalty: string;
+  labelSpentRover: string;
+  labelSpentTicket: string;
+  labelBalanceAfter: string;
+  labelRp: string;
+  labelEnergy: string;
+  labelBattery: string;
+  labelLowestBattery: string;
+  labelCold: string;
+  labelSamples: string;
+  labelPhotos: string;
+  labelBuild: string;
+  labelParts: string;
+  labelPayload: string;
+  noPayload: string;
+  labelNights: string;
+  nightsSurvived: string;
+  nightsAsleep: string;
+  nightsLights: string;
+  nightsDark: string;
+  chartsHeading: string;
+  balanceChartTitle: string;
+  balanceChartDesc: string; // {points}
+  balanceStart: string;
+  milestonesChartTitle: string;
+  milestonesChartDesc: string; // {points}
+  legendAvailable: string;
+  legendEarned: string;
+  chartNoData: string;
+  worldShort: Record<MissionId, string>;
+  recordsHeading: string;
+  recordsCount: string; // {n}
+  recordName: string; // {world} {name}
+  noRecords: string;
 }
 
 export interface SharedTextFile {
   moneyPrefix: string;
   moneySuffix: string;
-  moneyNote: string;
-  title: Record<'heading' | 'subtitle' | 'kicker' | 'coverCaption' | 'newCampaign' | 'continueCampaign', string>;
+  title: Record<'heading' | 'subtitle' | 'kicker' | 'newCampaign' | 'continueCampaign', string>;
   slots: Record<Slot, string>;
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
@@ -366,18 +443,24 @@ export interface SharedTextFile {
     | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
     | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource', // "What the rover taught us": the relationships met
     string
-  >;
+  > & Partial<Record<
+    // The last mission (Titan overlay): lostAt {time} {total} {cause} when the rover was lost, survivedTitan {minutes}, endCampaign button
+    'lostAt' | 'survivedTitan' | 'endCampaign',
+    string
+  >>;
   causes: Record<DeathCause, string>;
   history: Record<HistoryKey, string>;
   historySources: Record<HistoryKey, string>;
   /** Each world's name, for the credits and the campaign summary. */
   worlds: Record<MissionId, string>;
-  /** After the last playable mission ("Titan: coming soon"): banked RP and the campaign summary. */
+  /** After the last playable mission (the 'complete' end marker): banked RP and the campaign summary. */
   comingSoon: Record<
     | 'heading' | 'body' | 'rpBanked' | 'balance' | 'backToTitle' | 'summaryHeading' | 'colMission' | 'colOutcome'
     | 'colNet' | 'colRp' | 'colMilestones' | 'completed' | 'records' | 'noLog',
     string
   >;
+  /** The Campaign complete dashboard (game-design.md, "Titan goal and the campaign dashboard"). */
+  dashboard: DashboardText;
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
     | 'buttonsLabel' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull'
@@ -408,8 +491,8 @@ export interface SharedTextFile {
   > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
 }
 
-/** text.json, with the Mars-only sections that data/mars/text.json adds. */
-export type TextFile = SharedTextFile & Partial<MarsTextSections>;
+/** text.json, with the Mars-only and Titan-only sections that data/mars/text.json and data/titan/text.json add. */
+export type TextFile = SharedTextFile & Partial<MarsTextSections> & Partial<TitanTextSections>;
 
 /** An instrument's mission text. {key} is its mission key; controls may also use {energy} and {standby}. */
 export interface InstrumentText {

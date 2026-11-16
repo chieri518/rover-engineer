@@ -1,9 +1,9 @@
 // Screen flow: title → design → ticket → landing → mission → debrief, then restart the round (back to
-// design, snapshot restored) or continue to the next world's design screen (Moon → Mars), and after the
-// last world the "coming soon" screen (comingSoon: "Titan: coming soon", with the campaign summary).
+// design, snapshot restored) or continue to the next world's design screen (Moon → Mars → Titan), and after the
+// last world the end screen ('complete': Campaign complete, with the campaign summary).
 import type { DraftBuild, GameData, MissionId } from '../rules/types';
 import {
-  buyRover, finishMission, isPlayable, newCampaign, normalizeCampaign, recordLessons, restartRound, startRound,
+  buyRover, endCampaign, finishMission, isPlayable, MISSION_ORDER, newCampaign, normalizeCampaign, recordLessons, restartRound, startRound,
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
 import { worldOfStep, type WorldId } from '../worlds';
@@ -14,7 +14,7 @@ import { isCompleteBuild } from '../rules/rover';
 import { upgradeSavedBuild } from '../rules/payload';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 import { loadSettings, saveSettings, type Settings } from '../save/settings';
-import { loadTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen, type TutorialSeenByWorld } from '../save/tutorialSeen';
+import { loadTutorialSeen, resetTutorialSeen, saveTutorialSeen, type TutorialId, type TutorialSeen, type TutorialSeenByWorld } from '../save/tutorialSeen';
 
 /** A photograph taken during the mission, kept in memory for the debrief album. */
 export interface AlbumPhoto {
@@ -22,7 +22,7 @@ export interface AlbumPhoto {
   caption: string;
 }
 
-export type ScreenId = 'title' | 'settings' | 'credits' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'comingSoon';
+export type ScreenId = 'title' | 'settings' | 'credits' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'complete';
 
 /** A screen renders into root and may return a cleanup function. */
 export type Screen = (game: Game, root: HTMLElement) => void | (() => void);
@@ -47,7 +47,7 @@ export class Game {
   world: WorldId;
   private current: ScreenId = 'title';
   private cleanup: (() => void) | null = null;
-  /** false for a debug start (?world=mars): the throwaway campaign does not overwrite the save. */
+  /** false for a debug start (?world=mars, ?world=titan): the throwaway campaign does not overwrite the save. */
   private persist = true;
 
   constructor(
@@ -107,18 +107,19 @@ export class Game {
     this.persist = true;
     this.world = 'moon';
     clearCampaign();
+    this.seenByWorld = resetTutorialSeen(); // a new campaign shows every tutorial again; Continue and round restarts keep them
     this.setCampaign(startRound(newCampaign(this.data.tuning)));
     this.build = {};
     this.outcome = null;
     this.go('design');
   }
 
-  /** From the title or the debrief: on to the campaign's current mission, or the coming-soon screen at the end. */
+  /** From the title or the debrief: on to the campaign's current mission, or Campaign complete at the end. */
   continueCampaign(): void {
     const mission = this.state.mission;
     this.world = worldOfStep(mission);
     this.outcome = null;
-    if (!isPlayable(mission)) return this.go('comingSoon');
+    if (!isPlayable(mission)) return this.go('complete');
     // Any round in progress is rolled back to its snapshot, as on a restart.
     this.setCampaign(startRound(restartRound(this.state)));
     this.go('design');
@@ -131,7 +132,7 @@ export class Game {
   debugStart(world: MissionId): void {
     this.persist = false;
     this.world = world;
-    const order: MissionId[] = ['moon', 'mars'];
+    const order = MISSION_ORDER;
     const fresh = newCampaign(this.data.tuning);
     // A debug start skips the earlier missions, so it starts with at least this mission's minimum budget.
     const balance = Math.max(fresh.balance, this.data.tuning.budget.minimumBudget[world] ?? 0);
@@ -174,6 +175,25 @@ export class Game {
     this.outcome = finishMission(this.state, result, this.data);
     this.setCampaign(this.outcome.state);
     this.go('debrief');
+  }
+
+  /** After a lost Titan round: end the campaign with Titan not survived, on to Campaign complete. */
+  endCampaign(): void {
+    this.setCampaign(endCampaign(this.state));
+    this.world = worldOfStep(this.state.mission);
+    this.outcome = null;
+    this.go('complete');
+  }
+
+  /**
+   * Debug start (?dashboard=demo): show Campaign complete for a given finished campaign (not saved).
+   */
+  debugComplete(state: CampaignState): void {
+    this.persist = false;
+    this.campaign = state;
+    this.world = worldOfStep(state.mission);
+    this.outcome = null;
+    this.go('complete');
   }
 
   restartRound(): void {

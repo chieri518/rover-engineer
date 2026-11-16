@@ -4,7 +4,7 @@
 import type { DeathCause, EventsFile, Instrument, Part, RealFlare, Tuning } from './types';
 import { driveStats, type DriveStats } from './drive';
 import { roverTotals } from './rover';
-import { canDriveMars, driveEnergy, lowSunFactor, nightDrainPerSecond, solarIncome } from './energy';
+import { canDriveMars, constantPowerIncome, driveEnergy, lowSunFactor, nightDrainPerSecond, solarIncome } from './energy';
 import { impactDamage, overloadDamage, steepSlopeDamage, tiltDeg, type DamageCause } from './damage';
 import { marsFreezeRate, stepFreeze } from './cold';
 import { stepDig, wheelSlip } from './ground';
@@ -12,8 +12,10 @@ import { flareDamage, flareProtected, type MissionEvent, type Rng } from './even
 import type { DustStormSpec } from './marsTypes';
 import { solClock, solEdge, type SolState } from './sol';
 import { marsSunAt } from './marsSun';
-import { scheduleDustStorm, stormEdge, stormFreezeFactor, stormIntensity, stormPhase, stormSolarFactor, type DustStorm, type StormEdge, type StormPhase } from './storm';
+import { scheduleDustStorm, scheduleRainstorm, stormEdge, stormFreezeFactor, stormIntensity, stormPhase, stormSolarFactor, type DustStorm, type StormEdge, type StormPhase } from './storm';
 import type { SkyDirection } from './sun';
+import type { RainstormSpec } from './titanTypes';
+import { rainBlocksPhotos, titanClock, titanClockRate, titanDrainPerSecond, titanFreezeRate, titanSolarFactor, titanSunAt, type TitanSite } from './titan';
 
 /** Mars only: what the day-and-night rules need beyond the parts. */
 export interface MarsSetup {
@@ -28,6 +30,18 @@ export function marsSetup(site: MarsSetup['site'], events: EventsFile, rng: Rng)
 }
 import { instrumentCosts, type InstrumentCosts } from './payload';
 
+/** Titan only: what the day, cold and rain rules need beyond the parts. */
+export interface TitanSetup {
+  site: TitanSite; // terrain.json sunAndEarth
+  storm: DustStorm | null; // the methane rainstorm, rules/storm.ts scheduleRainstorm
+  stormSpec?: RainstormSpec; // events.rainstorm
+}
+
+/** The Titan setup for a mission: the site and the mission's methane rainstorm, drawn from the events' random generator. */
+export function titanSetup(site: TitanSite, events: EventsFile, rng: Rng): TitanSetup {
+  return { site, storm: scheduleRainstorm(events, rng), ...(events.rainstorm ? { stormSpec: events.rainstorm } : {}) };
+}
+
 /** What the parts mean for the mission systems. */
 export interface MissionSetup {
   stats: DriveStats;
@@ -37,9 +51,10 @@ export interface MissionSetup {
   instruments: InstrumentCosts[]; // the payload still aboard, in bay order (deployed stations leave it)
   events: MissionEvent[];
   mars?: MarsSetup; // present on Mars: the sol clock, night, map-wide cold and the dust storm apply
+  titan?: TitanSetup; // present on Titan: the one-day clock, night, always-on cold and the methane rain apply
 }
 
-export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent[], mars?: MarsSetup): MissionSetup {
+export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent[], mars?: MarsSetup, titan?: TitanSetup): MissionSetup {
   const { mass } = roverTotals(parts);
   const maxLoad = parts.find((p) => p.slot === 'chassis')?.effects.maxLoad;
   return {
@@ -50,6 +65,7 @@ export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent
     instruments: instrumentCosts(parts),
     events,
     ...(mars ? { mars } : {}),
+    ...(titan ? { titan } : {}),
   };
 }
 
@@ -116,14 +132,14 @@ export type MissionNotice =
   | { kind: 'instrument-done'; instrument: Instrument; deployed: boolean; site: UseSite } // a held instrument use finished (deployed: a station was set down)
   | { kind: 'standby-off'; instruments: Instrument[] }; // the battery fell to the low-energy warning: switched-on instruments were switched off
 
-/** Mars notices: sunset, dawn (the rover wakes if it was asleep) and the dust storm's forecast, start and end. */
+/** Mars and Titan notices: sunset, dawn (the rover wakes if it was asleep) and the storm's forecast, start and end (Titan: the methane rain). */
 export type MarsNotice = { kind: 'dusk' } | { kind: 'dawn'; woke: boolean } | { kind: 'storm'; edge: StormEdge };
 
 export interface MissionStep {
   state: MissionState;
   slip: number; // current wheel slip, 0..1
   notices: MissionNotice[];
-  marsNotices: MarsNotice[]; // always empty on the Moon
+  marsNotices: MarsNotice[]; // Mars and Titan day, night and storm notices; always empty on the Moon
 }
 
 export function startMission(setup: MissionSetup): MissionState {
@@ -165,17 +181,20 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   state.seconds = Math.min(t.mission.lengthSeconds, prev.seconds + s.dt);
 
   const mars = marsConditions(prev, setup, t);
+  const world = mars ?? titanConditions(prev, setup, t, driving);
   const marsNotices: MarsNotice[] = [];
 
   // Energy: driving and instruments on standby (nothing while powered down), against solar income.
   // Mars: low Sun and the dust storm cut solar income (none at night), and a night drain applies awake
-  // or asleep. Standby never ends the mission by itself: its draw never takes the battery below the
-  // low-energy warning level; when it would, the switched-on instruments switch off (with a notice).
-  // The Mars night drain is not capped that way: it can empty the battery.
+  // or asleep. Titan: almost no solar; the electronics drain day and night. Constant power, from any part
+  // that has it, on every world. Standby never ends the mission by itself: its draw never takes the
+  // battery below the low-energy warning level; when it would, the switched-on instruments switch off
+  // (with a notice). The Mars and Titan drains are not capped that way: they can empty the battery.
   const drive = prev.poweredDown ? 0 : driveEnergy(s.distanceM, s.uphillDeg, stats.energyPerMeter, t.energy);
-  const sunlight = mars ? s.sunlight * mars.solarFactor : s.sunlight;
-  const drain = mars ? mars.drainPerSecond * s.dt : 0;
-  const afterDrive = Math.min(stats.batteryCapacity, prev.energy - drive - drain + solarIncome(stats.energyIncome, sunlight, s.dt));
+  const sunlight = world ? s.sunlight * world.solarFactor : s.sunlight;
+  const drain = world ? world.drainPerSecond * s.dt : 0;
+  const income = solarIncome(stats.energyIncome, sunlight, s.dt) + constantPowerIncome(stats.constantPower ?? 0, s.dt);
+  const afterDrive = Math.min(stats.batteryCapacity, prev.energy - drive - drain + income);
   const standby = prev.poweredDown ? 0 : standbyDraw(prev, setup) * s.dt;
   const aboveLow = Math.max(0, afterDrive - lowEnergyLevel(setup, t));
   let standbyOff = false;
@@ -196,8 +215,8 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
   state.tiltSeconds = tiltDeg(s.upY) > t.damage.rolloverTiltDeg ? prev.tiltSeconds + s.dt : 0;
 
   // Cold and soft ground
-  state.freeze = mars
-    ? Math.min(t.cold.freezeMax, Math.max(0, prev.freeze + mars.freezeRate * s.dt))
+  state.freeze = world
+    ? Math.min(t.cold.freezeMax, Math.max(0, prev.freeze + world.freezeRate * s.dt))
     : stepFreeze(prev.freeze, s.inColdZone, setup.heat, s.dt, t.cold);
   state.dig = stepDig(prev.dig, slip, s.throttling, s.dt, t.ground);
 
@@ -248,15 +267,16 @@ export function stepMission(prev: MissionState, s: MissionSample, setup: Mission
     }
   }
 
-  // Mars: sunset and dawn (sleep ends at dawn by itself), the dust storm's forecast, start and end
-  if (mars && t.sol && !state.end) {
+  // Mars and Titan: sunset and dawn (sleep ends at dawn by itself), the storm's forecast, start and end
+  const daySetup = setup.mars ?? setup.titan;
+  if (world && daySetup && t.sol && !state.end) {
     const edge = solEdge(prev.seconds, state.seconds, t.sol);
     if (edge === 'dusk') marsNotices.push({ kind: 'dusk' });
     if (edge === 'dawn') {
       marsNotices.push({ kind: 'dawn', woke: state.poweredDown });
       state.poweredDown = false;
     }
-    const storm = stormEdge(prev.seconds, state.seconds, setup.mars!.storm);
+    const storm = stormEdge(prev.seconds, state.seconds, daySetup.storm);
     if (storm) marsNotices.push({ kind: 'storm', edge: storm });
   }
   return { state, slip, notices, marsNotices };
@@ -314,7 +334,7 @@ export function partsAboard(parts: Part[], deployed: readonly Instrument[]): Par
  * dust storm (the same object, so the night, cold and storm rules carry on).
  */
 export function deployPart(setup: MissionSetup, parts: Part[], deployed: readonly Instrument[], tuning: Tuning): MissionSetup {
-  return missionSetup(partsAboard(parts, deployed), tuning, setup.events, setup.mars);
+  return missionSetup(partsAboard(parts, deployed), tuning, setup.events, setup.mars, setup.titan);
 }
 
 /** The low-energy warning level: tuning.energy.lowWarningShare of the battery. */
@@ -418,6 +438,53 @@ export function startInstrumentUse(
   return { ok: true, state, holdSeconds, slowedByCold, fasterInShadow, cost };
 }
 
+/** Everything the Titan rules say about one moment, for the HUD, the scene and the milestones. */
+export interface TitanStatus {
+  clock: SolState; // isNight, local solar time, sunSetting (sol is always 1)
+  sun: SkyDirection; // the real Sun at the site (elevation < 0 at night)
+  stormPhase: StormPhase; // the methane rain: none, forecast, active, cleared
+  stormIntensity: number; // 0..1, for scene.setStorm
+  photosBlocked: boolean; // the rain is falling and blocks photos
+  solarFactor: number; // multiplies the measured sunlight: the Titan factor by day, 0 at night
+  drainPerSecond: number; // drain apart from driving: electronics day and night, lights at night, or sleep
+  freezeRate: number; // freeze meter change per second (negative = recovering)
+  canDrive: boolean; // false asleep, and at night without lights
+  lightsOn: boolean; // awake at night with lights
+  clockRate: number; // mission seconds per wall second (sleep fast-forward at night); see titanMissionDelta
+}
+
+/**
+ * The Titan conditions at the state's time, or null off Titan (no `setup.titan` or no sol/night/titanCold
+ * tuning). `driving` adds the driving heat to the freeze rate (stepMission passes it).
+ */
+export function titanStatus(state: MissionState, setup: MissionSetup, t: Tuning, driving = false): TitanStatus | null {
+  return titanConditions(state, setup, t, driving);
+}
+
+function titanConditions(state: MissionState, setup: MissionSetup, t: Tuning, driving: boolean): TitanStatus | null {
+  const ti = setup.titan;
+  if (!ti || !t.sol || !t.night || !t.titanCold) return null;
+  const at = state.seconds;
+  const clock = titanClock(at, t.sol, ti.site.latitudeDeg);
+  const spec = ti.stormSpec;
+  const phase = stormPhase(at, ti.storm);
+  const intensity = stormIntensity(at, ti.storm, spec);
+  const night = clock.isNight;
+  return {
+    clock,
+    sun: titanSunAt(at, t.sol, ti.site),
+    stormPhase: phase,
+    stormIntensity: intensity,
+    photosBlocked: rainBlocksPhotos(phase, spec),
+    solarFactor: titanSolarFactor(night, t.titanPower),
+    drainPerSecond: titanDrainPerSecond(night, state.poweredDown, setup.hasLights, t.night),
+    freezeRate: titanFreezeRate(setup.heat, state.poweredDown, driving && !state.poweredDown, stormFreezeFactor(intensity, spec), t.titanCold, t.cold),
+    canDrive: canDriveMars(night, state.poweredDown, setup.hasLights, t.night),
+    lightsOn: night && setup.hasLights && !state.poweredDown,
+    clockRate: titanClockRate(night, state.poweredDown, t.sleep),
+  };
+}
+
 /** The end conditions, most severe first. Null while the mission goes on. */
 export function missionEnd(s: MissionState, t: Tuning): MissionEnd | null {
   const at = s.seconds;
@@ -453,7 +520,7 @@ export function missionWarnings(
   const w: WarningId[] = [];
   if (blockedByShadow) w.push('noLights');
   const marsNight = !!(setup.mars && t.sol && solClock(s.seconds, t.sol, setup.mars.site.latitudeDeg).isNight);
-  if ((sample.inColdZone || marsNight) && s.freeze > 0) w.push('cold');
+  if ((sample.inColdZone || marsNight || !!setup.titan) && s.freeze > 0) w.push('cold');
   if (slip > t.ground.slipLimit) w.push('slip');
   if (sample.slopeDeg >= t.ground.slopeWarningDegrees && sample.speedMps > t.ground.movingSpeedMps) w.push('steepSlope');
   if (isLowEnergy(s, setup, t)) w.push('lowEnergy');

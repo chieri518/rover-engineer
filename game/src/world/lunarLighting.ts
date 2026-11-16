@@ -7,8 +7,13 @@
 //   shimmers. See public/terrain/texture.json for the albedo map's grid and values.
 // - Mars ('mars' photometry): near-Lambert with a mild backscatter, and the grayscale HiRISE image
 //   used as relative brightness (contrast-limited) on the Mars ground color, darker areas greyer.
+// - Titan ('titan' photometry): plain Lambert (the light is nearly all diffuse), the grayscale albedo map
+//   as relative brightness on the Titan ground color, the dark dune sand tinted (moonDarkTint/moonDarkTone).
 import * as THREE from 'three';
 import type { HeightGrid } from './terrainData';
+import { TITAN_RIPPLE_COLOR, TITAN_RIPPLE_PARS, titanRippleUniforms } from './titanRipples'; // titan-fx: ground
+import { TITAN_CLOUD_PARS, TITAN_CLOUD_SHADOW, titanCloudUniforms } from './titanClouds'; // titan-fx: clouds
+import { TITAN_WET_GROUND, TITAN_WET_PARS, titanWetUniforms } from './titanWet'; // titan-fx: rain
 
 /** Shared uniforms: every patched material reads the same objects, so one update reaches all. */
 export interface MoonLightUniforms {
@@ -23,10 +28,19 @@ export interface MoonLightUniforms {
   moonAlbedoRect: THREE.IUniform<THREE.Vector4>;
   /** Albedo map tone: x = its mean linear value (maps to the material color), y = contrast (1 = as is). */
   moonAlbedoTone: THREE.IUniform<THREE.Vector2>;
+  /** Titan: color multiplier for dark ground (dune sand), and the tone range over which it fades out (x..y). */
+  moonDarkTint: THREE.IUniform<THREE.Color>;
+  moonDarkTone: THREE.IUniform<THREE.Vector2>;
+  /** Titan: dune relief (x = normal tilt gain, y = sky-light occlusion power, z..w = depth range over which it fades in, m). */
+  moonTitanRelief: THREE.IUniform<THREE.Vector4>;
+  /** Titan: haze shape power (1 soft exp, 2 = three's exp²). */
+  moonHazeShape: THREE.IUniform<number>;
+  /** Titan: extra albedo contrast far away (tone^k, fading in over the relief depth range), so dune and interdune bands read. */
+  moonTitanFarTone: THREE.IUniform<number>;
 }
 
-/** How a patched material scatters sunlight: lunar regolith, Mars ground, or plain Lambert (false). */
-export type Photometry = boolean | 'mars';
+/** How a patched material scatters sunlight: lunar regolith, Mars ground, Titan ground, or plain Lambert (false). */
+export type Photometry = boolean | 'mars' | 'titan';
 
 export function createMoonLightUniforms(fine: HeightGrid, near: HeightGrid, far: HeightGrid): MoonLightUniforms {
   return {
@@ -38,6 +52,11 @@ export function createMoonLightUniforms(fine: HeightGrid, near: HeightGrid, far:
     moonAlbedo: { value: null },
     moonAlbedoRect: { value: new THREE.Vector4(0, 0, 1, 1) },
     moonAlbedoTone: { value: new THREE.Vector2(ALBEDO_MEAN, 1) },
+    moonDarkTint: { value: new THREE.Color(1, 1, 1) },
+    moonDarkTone: { value: new THREE.Vector2(0, 1) },
+    moonTitanRelief: { value: new THREE.Vector4(1, 0, 0, 1) },
+    moonHazeShape: { value: 2 },
+    moonTitanFarTone: { value: 0 },
   };
 }
 
@@ -76,6 +95,8 @@ const GROUND_PARS = /* glsl */ `
 uniform sampler2D moonAlbedo;
 uniform vec4 moonAlbedoRect;
 uniform vec2 moonAlbedoTone;
+uniform vec3 moonDarkTint;
+uniform vec2 moonDarkTone;
 
 // Gradient noise with its analytic derivative (returns value, d/dx, d/dy), range about -0.7..0.7.
 // Lattice cells wrap every 289 so the hash stays exact in 32-bit floats far from the origin.
@@ -152,6 +173,15 @@ ${OCTAVES.map(([w, h, a], i) => `  {
     // Dark basaltic sand is greyer than the bright red dust.
     diffuseColor.rgb = mix( vec3( dot( diffuseColor.rgb, vec3( 0.2126, 0.7152, 0.0722 ) ) ), diffuseColor.rgb, 0.55 + 0.45 * smoothstep( 0.5, 1.1, tone ) );
   #endif
+  #ifdef MOON_TITAN
+    // Dark dune sand takes its own tint; the bright interdune ground keeps the ground color.
+    diffuseColor.rgb *= mix( moonDarkTint, vec3( 1.0 ), smoothstep( moonDarkTone.x, moonDarkTone.y, tone ) );
+    // Far away, dark dune sand and bright interdunes part further, so the bands read through the haze.
+    diffuseColor.rgb *= pow( max( tone, 0.05 ), moonTitanFarTone * smoothstep( moonTitanRelief.z, moonTitanRelief.w, length( vViewPosition ) ) );
+    ${TITAN_RIPPLE_COLOR} // titan-fx: ground
+    ${TITAN_CLOUD_SHADOW} // titan-fx: clouds
+    ${TITAN_WET_GROUND} // titan-fx: rain
+  #endif
 }
 `;
 
@@ -163,6 +193,37 @@ const GROUND_NORMAL = /* glsl */ `
   nw = normalize( nw - ( g - nw * dot( g, nw ) ) );
   normal = normalize( ( viewMatrix * vec4( nw, 0.0 ) ).xyz );
 }
+`;
+
+// Titan only: the flat, diffuse light hides dune relief, so the shading normal's tilt is exaggerated (fading in
+// with distance, so the ground near the rover keeps its own look) and the sky light falls on steeper flanks.
+const TITAN_PARS = /* glsl */ `
+uniform vec4 moonTitanRelief;
+uniform float moonHazeShape;
+uniform float moonTitanFarTone;
+float moonSkyOcc = 1.0;
+${TITAN_RIPPLE_PARS} // titan-fx: ground
+${TITAN_CLOUD_PARS} // titan-fx: clouds
+${TITAN_WET_PARS} // titan-fx: rain
+`;
+
+const TITAN_NORMAL = /* glsl */ `
+{
+  vec3 nw = inverseTransformDirection( normal, viewMatrix );
+  float far = smoothstep( moonTitanRelief.z, moonTitanRelief.w, length( vViewPosition ) );
+  float gain = mix( 1.0, moonTitanRelief.x, far );
+  vec3 nr = normalize( vec3( nw.x * gain, max( nw.y, 0.0 ), nw.z * gain ) );
+  moonSkyOcc = mix( 1.0, pow( max( nr.y, 0.0 ), moonTitanRelief.y ), far );
+  normal = normalize( ( viewMatrix * vec4( nr, 0.0 ) ).xyz );
+}
+`;
+
+// Titan only: a soft haze, 1 - exp(-(density × depth)^shape), in place of three's exp² fog line.
+const TITAN_FOG = /* glsl */ `
+#ifdef USE_FOG
+  float moonHaze = 1.0 - exp( - pow( max( fogDensity * vFogDepth, 0.0 ), moonHazeShape ) );
+  gl_FragColor.rgb = mix( gl_FragColor.rgb, fogColor, saturate( moonHaze ) );
+#endif
 `;
 
 const LAMBERT_PARS = /* glsl */ `
@@ -192,6 +253,10 @@ void RE_Direct_Lambert( const in IncidentLight directLight, const in vec3 geomet
 }
 
 void RE_IndirectDiffuse_Lambert( const in vec3 irradiance, const in vec3 geometryPosition, const in vec3 geometryNormal, const in vec3 geometryViewDir, const in vec3 geometryClearcoatNormal, const in LambertMaterial material, inout ReflectedLight reflectedLight ) {
+  #ifdef MOON_TITAN
+    reflectedLight.indirectDiffuse += irradiance * moonSkyOcc * BRDF_Lambert( material.diffuseColor );
+    return;
+  #endif
   reflectedLight.indirectDiffuse += irradiance * BRDF_Lambert( material.diffuseColor );
 }
 
@@ -212,6 +277,7 @@ export function patchMoonLighting(
   material.onBeforeCompile = (shader) => {
     Object.assign(shader.uniforms, uniforms);
     if (lunar === 'mars') shader.defines = { ...shader.defines, MOON_MARS: '' };
+    else if (lunar === 'titan') shader.defines = { ...shader.defines, MOON_TITAN: '' };
     else if (lunar) shader.defines = { ...shader.defines, MOON_LUNAR: '' };
     let fragment = shader.fragmentShader;
     if (ground) {
@@ -219,6 +285,16 @@ export function patchMoonLighting(
         .replace('#include <common>', `#include <common>\n${GROUND_PARS}`)
         .replace('#include <color_fragment>', `#include <color_fragment>\n${GROUND_COLOR}`)
         .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${GROUND_NORMAL}`);
+    }
+    if (lunar === 'titan') {
+      Object.assign(shader.uniforms, titanRippleUniforms); // titan-fx: ground
+      Object.assign(shader.uniforms, titanCloudUniforms); // titan-fx: clouds
+      Object.assign(shader.uniforms, titanWetUniforms); // titan-fx: rain
+      // Before the ground's fine bumps, which then tilt the exaggerated normal as usual.
+      fragment = fragment
+        .replace('#include <common>', `#include <common>\n${TITAN_PARS}`)
+        .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${TITAN_NORMAL}`)
+        .replace('#include <fog_fragment>', TITAN_FOG);
     }
     shader.vertexShader = shader.vertexShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vMoonWorld;')
@@ -238,7 +314,7 @@ export function patchMoonLighting(
         ),
       );
   };
-  const mode = lunar === 'mars' ? 'mars' : lunar ? 'lunar' : 'lambert';
+  const mode = lunar === 'mars' || lunar === 'titan' ? lunar : lunar ? 'lunar' : 'lambert';
   material.customProgramCacheKey = () => (ground ? `moon-ground-${mode}` : `moon-${mode}`);
   return material;
 }

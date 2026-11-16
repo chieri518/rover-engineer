@@ -2,6 +2,7 @@
 // rover, calls the rules (rules/mission.ts) and applies what they allow; each frame it draws the HUD
 // and minimap. The mission ends at its length or on one of the deaths, then goes to the debrief.
 // Mars adds the sol clock, the real Sun, night (lights on or sleep) and the dust storm (ui/marsMission.ts).
+// Titan adds the one-day clock, the sleep fast-forward, the always-on cold and the methane rain (ui/titanMission.ts).
 import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
 import { buildZones, MilestoneTracker, PHOTO_ZONE_IDS, type MilestoneUpdate, type Point3, type SunPhoto, type Zone } from '../rules/milestones';
@@ -19,14 +20,14 @@ import {
 import { roverParams } from '../rules/drive';
 import { earthLitShare, gameDaysElapsed, skyDirection, sunAt } from '../rules/sun';
 import { scheduleEvents, seededRng } from '../rules/events';
-import { softnessAt } from '../rules/ground';
 import { noLightsLookaheadM } from '../rules/cold';
 import { createExplored, exploredShare, reveal } from '../rules/explore';
 import { azimuthDeg, areaCenter, buildLeads, buildSites, discover, type Lead, type Site } from '../rules/survey';
 import {
   activeFlareWarning, deployPart, isSwitchInstrument, missionSetup, missionWarnings, partsAboard, setStandby, startInstrumentUse, startMission, stepMission,
-  type InstrumentRefusal, type MarsStatus, type MissionEnd, type MissionSample, type MissionSetup, type MissionState, type UseSite, type WarningId,
+  type InstrumentRefusal, type MarsStatus, type TitanStatus, type MissionEnd, type MissionSample, type MissionSetup, type MissionState, type UseSite, type WarningId,
 } from '../rules/mission';
+import { startTally, stepTally, tallyMeasure, type MissionTally } from '../rules/roundStats';
 import { WORLDS } from '../worlds';
 import type { MoonDriveLimits, MoonScene, MoonStepSample } from '../world/moonScene';
 import type { Terrain } from '../world/terrainData';
@@ -34,13 +35,14 @@ import type { TerrainMasks } from '../world/terrainMasks';
 import { flareWarningText, noticeText } from '../events';
 import { el, fill } from './dom';
 import { Hud } from './hud';
-import { MARS_RELIEF, Minimap } from './minimap';
+import { MARS_RELIEF, Minimap, TITAN_RELIEF } from './minimap';
 import { hudLeadLine } from './surveyText';
 import { causeText, milestoneCard, missedText } from './milestoneText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
 import { tutorialPages } from './tutorialText';
 import { MarsMission } from './marsMission';
+import { TitanMission } from './titanMission';
 
 const DEG = 180 / Math.PI;
 const SUN_SAMPLE_STEPS = 12; // recompute sunlight at the rover every 12 physics steps (0.2 s)
@@ -69,12 +71,18 @@ export const missionScreen: Screen = (game, root) => {
   // it gains the site and the dust storm once the terrain (and its latitude) has loaded.
   let setup: MissionSetup = missionSetup(parts, tuning, scheduleEvents(data.events, rng));
   let state: MissionState = startMission(setup);
+  // The round stats tally (lowest battery, peak cold, energy used, nights): stepped with the state, read only at the end.
+  let tally: MissionTally = startTally(state);
   let ended: MissionEnd | null = null;
   let explored = createExplored(8000, tuning.explore); // resized to the terrain once it loads
   const earthInSky = WORLDS[game.world].earthInSky;
   let mars: MarsMission | null = null; // Mars only, once the terrain has loaded
   let marsNow: MarsStatus | null = null; // the Mars conditions after the last step
   let sunInView = false; // Mars: the Sun is in frame and above the terrain horizon
+  let titan: TitanMission | null = null; // Titan only, once the terrain has loaded
+  let titanNow: TitanStatus | null = null; // the Titan conditions after the last step
+  /** Mars or Titan: the day, night and storm conditions both worlds share (null on the Moon). */
+  const dayNow = (): MarsStatus | TitanStatus | null => marsNow ?? titanNow;
   const mt = tuning.milestones;
   // The payload bay, in bay order: instrument i is used with number key i + 1 or its HUD button. The
   // keys and buttons stay fixed to the launch bay order; a deployed station's button is disabled.
@@ -242,9 +250,10 @@ export const missionScreen: Screen = (game, root) => {
     for (const m of u.missed) hud.notify(missedText(m, text));
     if (u.partialCrossings.length) hud.notify(fill(ti.partialCrossingHint, { angle: mt.boulderCrossMinAngleDeg }));
   };
-  const dayText = () => (marsNow ? String(marsNow.clock.sol) : gameDaysElapsed(state.seconds, tuning.mission).toFixed(1));
+  const dayText = () => (dayNow() ? String(dayNow()!.clock.sol) : gameDaysElapsed(state.seconds, tuning.mission).toFixed(1));
   const sunNow = () => {
     if (mars) return mars.sunAt(sceneSeconds);
+    if (titan) return titan.sunAt(sceneSeconds);
     const se = ctx?.terrain.info.sunAndEarth;
     return sunAt(sceneSeconds, tuning.sun, tuning.mission, { latitudeDeg: se?.siteLatitude_deg ?? 0, longitudeDeg: se?.siteLongitude_deg ?? 0 });
   };
@@ -342,6 +351,7 @@ export const missionScreen: Screen = (game, root) => {
     const earth = earthInSky && scene.inView(earthDir, mt.photoFrameMargin);
     const lit = earthInSky ? earthLit() : 0;
     const sun = sunPhoto();
+    const rained = titan && tracker.photosBlocked() ? titan.photoBlocked : null; // Titan: the rain blocks photo milestones
     const u = tracker.photo(roverPos, earth, lit, sun);
     const places = tracker.zones
       .filter((z) => PHOTO_ZONE_IDS.includes(z.id) && tracker!.currentZones().includes(z))
@@ -351,7 +361,8 @@ export const missionScreen: Screen = (game, root) => {
     if (sunset === null && ti.captionSunset) places.push(ti.captionSunset);
     const caption = fill(ti.captionDay, { place: places.length ? places.join(', ') : ti.captionSurface, day: dayText() });
     album.push({ src: scene.capture(PHOTO_WIDTH_PX), caption });
-    hud.notify(places.length ? fill(ti.photoTaken, { caption }) : ti.photoNoZone, 'good');
+    if (rained) hud.notify(rained);
+    else hud.notify(places.length ? fill(ti.photoTaken, { caption }) : ti.photoNoZone, 'good');
     const blocker = earth ? earthBlocker(roverPos, lit) : sun ? sunsetBlockerText(roverPos, sunset) : null;
     if (blocker) hud.notify(blocker);
     announce(u);
@@ -489,6 +500,7 @@ export const missionScreen: Screen = (game, root) => {
       secondsLasted: end.seconds,
       earned: tracker?.result() ?? [],
       relationships: met, // for the debrief and the engineering notebook (added at mission end)
+      measure: tallyMeasure(tally, state, setup.stats.batteryCapacity, album.length, !!(setup.mars ?? setup.titan)),
     };
     hud.showEnd(lines, () => game.endMission(result, album, log), () => openNotes());
   };
@@ -517,7 +529,7 @@ export const missionScreen: Screen = (game, root) => {
     }
     const inColdZone = masks.inColdZone(p.x, p.z);
     const throttle = s.input.throttle;
-    const canDrive = !ended && (mars ? mars.status(state, setup).canDrive : !state.poweredDown);
+    const canDrive = !ended && (mars ? mars.status(state, setup).canDrive : titan ? titan.status(state, setup).canDrive : !state.poweredDown);
     const sample: MissionSample = {
       dt: s.dt,
       distanceM: distance,
@@ -526,11 +538,13 @@ export const missionScreen: Screen = (game, root) => {
       slopeDeg: masks.slopeAt(p.x, p.z),
       sunlight,
       inColdZone,
-      softness: softnessAt(p.x, p.z, masks.softAreas, tuning.ground),
+      softness: masks.softnessAt(p.x, p.z, tuning.ground),
       throttling: canDrive && ((throttle > 0 && limits.allowForward) || (throttle < 0 && limits.allowReverse)),
       impactMps: s.deltaV,
       upY: s.upY,
     };
+    const before = state.seconds;
+    const prevState = state;
     const step = stepMission(state, sample, setup, tuning, data.events);
     state = step.state;
     lastSample = sample;
@@ -552,6 +566,20 @@ export const missionScreen: Screen = (game, root) => {
         hud.notify(msg.message, msg.tone);
       }
     }
+    if (titan) {
+      titanNow = titan.status(state, setup, Math.abs(s.speed) > tuning.ground.movingSpeedMps);
+      const soon = titan.sunsetSoon(before, state.seconds);
+      if (soon) hud.notify(soon.message, soon.tone);
+      for (const n of step.marsNotices) {
+        const msg = titan.noticeText(n, setup.hasLights);
+        hud.notify(msg.message, msg.tone);
+      }
+    }
+    if (!ended) {
+      const day = dayNow();
+      const drilled = step.notices.some((n) => n.kind === 'instrument-done' && n.instrument === 'drill');
+      tally = stepTally(tally, prevState, state, day ? { night: day.clock.isNight, lightsOn: day.lightsOn } : null, drilled);
+    }
     if (!ended && tracker) {
       roverPos = { x: p.x, y: terrain.heightAt(p.x, p.z), z: p.z };
       announce(tracker.step({
@@ -559,7 +587,8 @@ export const missionScreen: Screen = (game, root) => {
         distanceM: state.distanceM,
         exploredShare: exploredShare(explored),
         flareSurvived: step.notices.some((n) => n.kind === 'flare-hit' && n.protected),
-        ...(marsNow ? { night: marsNow.clock.isNight, stormActive: marsNow.stormPhase === 'active' } : {}),
+        ...(dayNow() ? { night: dayNow()!.clock.isNight, stormActive: dayNow()!.stormPhase === 'active' } : {}),
+        ...(titanNow ? { photosBlocked: titanNow.photosBlocked } : {}),
       }));
       for (const n of step.notices) if (n.kind === 'instrument-done') finishUse(n.instrument, n.site);
     }
@@ -572,11 +601,12 @@ export const missionScreen: Screen = (game, root) => {
     if (state.end && !ended) finish(state.end);
 
     // What the rover may do next step.
-    // Mars: no driving at night without lights (marsNow.canDrive also covers sleep).
+    // Mars and Titan: no driving at night without lights (canDrive also covers sleep).
     const holding = state.using !== null;
-    if (ended || state.poweredDown || holding || (marsNow && !marsNow.canDrive)) {
+    if (ended || state.poweredDown || holding || (dayNow() && !dayNow()!.canDrive)) {
       blockedByShadow = false;
-      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: holding });
+      // Titan: a sleeping rover, or one that cannot drive, brakes to a stop instead of coasting on.
+      return (limits = { allowForward: false, allowReverse: false, speedFactor: 1, hardStop: holding, ...(titan && !ended ? { brake: true } : {}) });
     }
     // Without lights the rover stops at the edge of permanent shadow.
     let allowForward = true;
@@ -600,6 +630,7 @@ export const missionScreen: Screen = (game, root) => {
     if (id === 'steepSlope') return fill(w.steepSlope, { slope: Math.round(lastSample?.slopeDeg ?? 0), max: tuning.ground.maxSlopeDegrees });
     if (id === 'slip') return fill(w.slip, { slip: Math.round(lastSlip * 100) });
     if (id === 'poweredDown' && marsNow?.clock.isNight) return text.night?.sleeping ?? w.poweredDown;
+    if (id === 'cold' && titan && titanNow) return titan.coldWarning(titanNow, state.poweredDown);
     return w[id];
   };
 
@@ -615,9 +646,11 @@ export const missionScreen: Screen = (game, root) => {
         const sun = sunPhoto();
         if (sun && tracker?.sunsetBlocker(roverPos, { ...sun, inFrame: true }) === null) return fill(ti.sunsetHint, { key });
       }
-      if (earthInView) {
+      // Earth is in view from the landing at the start: near the lander there is no standing hint (the photo
+      // would not count, and the notice saying why comes only when the player takes one).
+      if (earthInView && roverPos && !tracker?.earthPhotoTooClose(roverPos)) {
         const lit = earthLit();
-        return (roverPos && earthBlocker(roverPos, lit)) ?? fill(ti.earthHint, { key });
+        return earthBlocker(roverPos, lit) ?? fill(ti.earthHint, { key });
       }
     }
     // The exact ice spot is never revealed: inside the dark crater the hint only invites a test drill.
@@ -643,13 +676,19 @@ export const missionScreen: Screen = (game, root) => {
       freeze: state.freeze / tuning.cold.freezeMax,
       sunlight,
       poweredDown: state.poweredDown,
+      ...(titan && titanNow ? { panelText: titan.panelLine(titanNow) } : {}),
     });
     if (mars && marsNow) {
       hud.setSol(mars.solLine(marsNow), ended ? null : mars.nightLine(marsNow, state.poweredDown));
       scene?.setStorm(marsNow.stormIntensity);
     }
-    // On Mars the lights are on whenever the rover is awake at night (the rules drain the battery for it).
-    scene?.setFloodlights(!ended && (marsNow ? marsNow.lightsOn : !state.poweredDown && sunlight < 0.5));
+    if (titan && titanNow) {
+      hud.setSol(titan.dayLine(titanNow), ended ? null : titan.nightLine(titanNow, state.poweredDown));
+      hud.setBanner(ended ? null : titan.sleepBanner(titanNow, state.poweredDown));
+      scene?.setStorm(titanNow.stormIntensity);
+    }
+    // On Mars and Titan the lights are on whenever the rover is awake at night (the rules drain the battery for it).
+    scene?.setFloodlights(!ended && (dayNow() ? dayNow()!.lightsOn : !state.poweredDown && sunlight < 0.5));
     // Instrument readouts: the hydrogen meter only while the spectrometer is on and the rover powered up.
     // It samples at once when it turns on (no stale or zero reading), then every HYDROGEN_EVERY_FRAMES.
     const meterOn = !ended && !state.poweredDown && state.standbyOn.includes('neutron');
@@ -673,9 +712,15 @@ export const missionScreen: Screen = (game, root) => {
     }
     if (ended) return;
     const flare = activeFlareWarning(state, setup);
-    hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / (data.events.flare?.warningSeconds ?? 1) : 0);
-    const ids = lastSample ? missionWarnings(state, lastSample, lastSlip, blockedByShadow, setup, tuning) : [];
-    const noLights = mars && marsNow ? mars.noLightsWarning(marsNow, state.poweredDown, setup.hasLights) : null;
+    // Titan has no flares: the same bar counts down the methane rain forecast.
+    const rain = titan && titanNow ? titan.forecast(titanNow, setup, state.seconds) : null;
+    if (rain) hud.setFlareWarning(rain.message, rain.remaining);
+    else hud.setFlareWarning(flare ? flareWarningText(flare.flare, text) : null, flare ? (flare.at - state.seconds) / (data.events.flare?.warningSeconds ?? 1) : 0);
+    const ids = (lastSample ? missionWarnings(state, lastSample, lastSlip, blockedByShadow, setup, tuning) : [])
+      // Titan: the sleep banner says it; the cold warning waits until the meter shows at least 1%.
+      .filter((id) => !(titan && (id === 'poweredDown' || (id === 'cold' && Math.round((state.freeze / tuning.cold.freezeMax) * 100) < 1))));
+    const noLights = mars && marsNow ? mars.noLightsWarning(marsNow, state.poweredDown, setup.hasLights)
+      : titan && titanNow ? titan.noLightsWarning(titanNow, state.poweredDown, setup.hasLights) : null;
     hud.setWarnings([...(nearBoundary ? [text.mission.boundary] : []), ...(noLights ? [noLights] : []), ...ids.map(warningText)]);
     if (carries('camera') && scene && frame % EARTH_CHECK_EVERY_FRAMES === 0) {
       if (earthInSky) earthInView = scene.inView(earthDir, mt.photoFrameMargin);
@@ -715,7 +760,14 @@ export const missionScreen: Screen = (game, root) => {
         setup = missionSetup(parts, tuning, setup.events, mars.setup(rng));
         marsNow = mars.status(state, setup);
       }
-      minimap = new Minimap(terrain.fine, masks, terrain.fine.extent - tuning.area.boundaryInsetM, text, tuning.minimap, mars ? MARS_RELIEF : undefined);
+      if (WORLDS[game.world].sky === 'titan') {
+        const se = terrain.info.sunAndEarth;
+        titan = new TitanMission(data, { latitudeDeg: se.siteLatitude_deg, longitudeDeg: se.siteLongitude_deg });
+        setup = missionSetup(parts, tuning, setup.events, undefined, titan.setup(rng));
+        titanNow = titan.status(state, setup);
+      }
+      const relief = mars ? MARS_RELIEF : titan ? TITAN_RELIEF : undefined;
+      minimap = new Minimap(terrain.fine, masks, terrain.fine.extent - tuning.area.boundaryInsetM, text, tuning.minimap, relief);
       sites = buildSites(masks.info.features, mt, text.survey.shadowedCraterName);
       leads = buildLeads(sites, tuning.survey);
       hud.root.append(minimap.root);
@@ -728,6 +780,8 @@ export const missionScreen: Screen = (game, root) => {
         boulderAreas: masks.boulderAreas,
         lightRangeM: parts.reduce((m, p) => Math.max(m, p.effects.lightRange ?? 0), 0),
         ...(mars ? { sunAt: mars.sunAt } : {}),
+        // Titan: the real Sun, and asleep at night the mission clock runs 4x (physics stays on wall time).
+        ...(titan ? { sunAt: titan.sunAt, missionDelta: (dt: number, at: number) => titan!.missionDelta(dt, at, state.poweredDown && !ended) } : {}),
         onStep,
         onFrame: (s) => onFrame({ position: s.position, nearBoundary: s.nearBoundary, forward: s.forward }),
       });
@@ -745,6 +799,9 @@ export const missionScreen: Screen = (game, root) => {
         deltaFront: f.deltaFront,
         seitah: f.seitah,
         viewpoints: f.viewpoints,
+        duneCrests: f.duneCrests,
+        interdunes: f.interdunes,
+        samplePatch: f.samplePatch,
       }, mt);
       tracker = new MilestoneTracker(data.milestones.milestones, parts, zones, mt);
       announce(tracker.land());
@@ -761,6 +818,8 @@ export const missionScreen: Screen = (game, root) => {
         return setup;
       },
       state: () => state,
+      /** The round stats tally so far (lowest battery, peak cold, energy used, nights). */
+      tally: () => tally,
       /** Mars: the sol clock, Sun, storm and night conditions now (null on the Moon). */
       mars: () => marsNow,
       /** Mars: move the dust storm so its forecast starts now (arrives a sol later). */
@@ -775,6 +834,21 @@ export const missionScreen: Screen = (game, root) => {
       relationships: () => met,
       notebook: () => ({ open: notebook !== null, unread, atLaunch: notebookAtLaunch }),
       openNotebook: openNotes,
+      /** Titan: the day clock, Sun, rain, cold and night conditions now (null elsewhere). */
+      titan: () => titanNow,
+      /** Titan: move the methane rain so its forecast starts now (the rain follows a minute later). */
+      rainSoon() {
+        const ti = setup.titan;
+        if (!ti?.storm) return;
+        const lead = ti.storm.startAt - ti.storm.forecastAt;
+        const length = ti.storm.endAt - ti.storm.startAt;
+        ti.storm = { forecastAt: state.seconds + 0.1, startAt: state.seconds + 0.1 + lead, endAt: state.seconds + 0.1 + lead + length };
+      },
+      /** Jump mission time (the rules and the scene's Sun) to `seconds`; edges inside the jump are skipped. */
+      jumpTo(seconds: number) {
+        state = { ...state, seconds };
+        (window as unknown as { __moon?: { setTime(s: number): void } }).__moon?.setTime(seconds);
+      },
       sample: () => ({ sample: lastSample, slip: lastSlip, sunlight, blockedByShadow, explored: exploredShare(explored), maxImpact }),
       survey: () => ({ discovered: sites.filter((s) => s.discovered).map((s) => s.name), openLeads: leads.filter((l) => !l.site.discovered).map((l) => l.id) }),
       milestones: () => ({
