@@ -11,10 +11,11 @@ import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
 import { azimuthDeg, buildLeads, buildSites, compassPoint } from '../rules/survey';
-import { nextMission, type MissionLogEntry } from '../rules/campaign';
+import { isPlayable, nextMission } from '../rules/campaign';
 import { briefingLines, kmText } from './surveyText';
 import { missionVars } from './tutorialText';
 import { creditsScreen } from './creditsScreen';
+import { renderDashboard } from './dashboard';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
 import { ticketScreen } from './ticketScreen';
@@ -221,9 +222,14 @@ const debrief: Screen = (game, root) => {
   const history = game.settings.missionHistory;
   // Titan replaces the per-outcome rover history with the Dragonfly comparison (always shown).
   const roverHistory = history && !text.titanCampaign;
-  // The pass mark: the minimum budget of the mission after the one just played.
+  // The pass mark: the minimum budget of the mission after the one just played. The last mission
+  // (Titan) passes on survival instead: a lost rover shows when and how, and offers a retry or the end.
   const next = nextMission(game.world);
-  const minimum = { minimum: money(next ? data.tuning.budget.minimumBudget[next] : 0, text) };
+  const last = !next || !isPlayable(next);
+  const minimum = { ...missionVars(data), minimum: next && isPlayable(next) ? money(data.tuning.budget.minimumBudget[next], text) : '' };
+  const lostAt = last && !result.survived && t.lostAt
+    ? fill(t.lostAt, { time: clockText(result.secondsLasted), total: clockText(data.tuning.mission.lengthSeconds), cause: causeText(result, text) })
+    : null;
   const historyKey: HistoryKey = result.survived ? 'survived' : result.detail === 'rollover' ? 'rollover' : (result.cause ?? 'energy');
   const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
 
@@ -251,7 +257,7 @@ const debrief: Screen = (game, root) => {
     el('section', { class: 'panel debrief' },
       el('h2', {}, t.heading),
       el('p', { class: `outcome${result.survived ? '' : ' failed'}` },
-        result.survived ? t.survived : fill(t.cause, { cause: causeText(result, text) })),
+        lostAt ?? (result.survived ? (last && t.survivedTitan ? fill(t.survivedTitan, minimum) : t.survived) : fill(t.cause, { cause: causeText(result, text) }))),
       el('p', { class: 'muted' }, fill(text.hud.lasted, { days, total: data.tuning.mission.gameDays })),
 
       el('h3', {}, t.milestonesHeading),
@@ -292,6 +298,7 @@ const debrief: Screen = (game, root) => {
         failed
           ? el('button', { class: 'primary', onclick: () => game.restartRound() }, t.restart)
           : el('button', { class: 'primary', onclick: () => game.continueCampaign() }, t.continue),
+        failed && last && t.endCampaign && el('button', { onclick: () => game.endCampaign() }, t.endCampaign),
       ),
     ),
   );
@@ -327,73 +334,14 @@ function dragonflyView(t: TitanCampaignText, build: Build | null, data: GameData
   );
 }
 
-/** The outcome of a logged mission, in that mission's own words ("Froze during the night" on Mars). */
-function outcomeText(entry: MissionLogEntry, data: GameData): string {
-  const { text } = data;
-  if (entry.outcome === 'survived') return text.comingSoon.completed;
-  return entry.outcome === 'rollover' ? text.debrief.rollover : text.causes[entry.outcome];
+/** Mission time as m:ss (Titan: when the rover was lost, out of the mission length). */
+export function clockText(seconds: number): string {
+  const s = Math.max(0, Math.round(seconds));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/**
- * Campaign complete (the 'complete' end marker, after a passed Titan round): banked RP, the final
- * balance, records held, one row per mission and a total, and what each world asked of the rover.
- */
-const complete: Screen = (game, root) => {
-  const { data } = game;
-  const { text } = data;
-  const t = text.comingSoon;
-  const end = text.titanCampaign?.complete;
-  const { state } = game;
-  const log = state.log ?? [];
-  const cell = (tag: 'th' | 'td', value: string, attrs: Record<string, string> = {}) => el(tag, attrs, value);
-  const total = log.reduce((sum, e) => ({ money: sum.money + e.money, rp: sum.rp + e.rp, milestones: sum.milestones + e.milestones }),
-    { money: 0, rp: 0, milestones: 0 });
-  root.append(
-    panel(
-      end && el('p', { class: 'title-kicker' }, end.kicker),
-      el('h2', {}, t.heading),
-      el('p', {}, t.body),
-      el('div', { class: 'readout' },
-        el('div', { class: 'big' }, fill(t.rpBanked, { rp: state.rp })),
-        el('div', {}, fill(t.balance, { balance: money(state.balance, text) })),
-        el('div', {}, fill(t.records, { n: state.records.length })),
-      ),
-      end && el('p', { class: 'muted' },
-        fill(end.startEnd, { start: money(data.tuning.budget.startingBudget, text), balance: money(state.balance, text) })),
-      el('h3', {}, t.summaryHeading),
-      log.length
-        ? el('table', { class: 'tiers campaign-log' },
-          el('thead', {}, el('tr', {},
-            ...[t.colMission, t.colOutcome, t.colNet, t.colRp, t.colMilestones].map((h) => cell('th', h, { scope: 'col' })))),
-          el('tbody', {}, ...log.map((e) => {
-            const own = game.dataOf(e.mission);
-            return el('tr', {},
-              cell('th', own.text.worlds[e.mission], { scope: 'row' }),
-              cell('td', outcomeText(e, own)),
-              cell('td', money(e.money, text)),
-              cell('td', String(e.rp)),
-              cell('td', String(e.milestones)),
-            );
-          })),
-          end && log.length > 1 && el('tfoot', {}, el('tr', { class: 'total' },
-            cell('th', end.totalRow, { scope: 'row' }),
-            cell('td', ''),
-            cell('td', money(total.money, text)),
-            cell('td', String(total.rp)),
-            cell('td', String(total.milestones)),
-          )))
-        : el('p', { class: 'muted' }, t.noLog),
-      end && el('h3', {}, end.lessonsHeading),
-      end && el('ul', { class: 'new-on-world' }, ...end.lessons.map((line) => el('li', {}, line))),
-      el('p', { class: 'note' }, text.moneyNote),
-      el('div', { class: 'actions' },
-        el('button', { onclick: () => game.go('title') }, t.backToTitle),
-        el('button', { onclick: () => game.go('credits') }, text.credits.open),
-        el('button', { class: 'primary', onclick: () => game.newCampaign() }, text.title.newCampaign),
-      ),
-    ),
-  );
-};
+/** Campaign complete (the 'complete' end marker): the campaign dashboard (dashboard.ts). */
+const complete: Screen = (game, root) => renderDashboard(game, root);
 
 export const screens: Record<ScreenId, Screen> = {
   title,

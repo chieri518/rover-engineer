@@ -27,6 +27,7 @@ import {
   activeFlareWarning, deployPart, isSwitchInstrument, missionSetup, missionWarnings, partsAboard, setStandby, startInstrumentUse, startMission, stepMission,
   type InstrumentRefusal, type MarsStatus, type TitanStatus, type MissionEnd, type MissionSample, type MissionSetup, type MissionState, type UseSite, type WarningId,
 } from '../rules/mission';
+import { startTally, stepTally, tallyMeasure, type MissionTally } from '../rules/roundStats';
 import { WORLDS } from '../worlds';
 import type { MoonDriveLimits, MoonScene, MoonStepSample } from '../world/moonScene';
 import type { Terrain } from '../world/terrainData';
@@ -70,6 +71,8 @@ export const missionScreen: Screen = (game, root) => {
   // it gains the site and the dust storm once the terrain (and its latitude) has loaded.
   let setup: MissionSetup = missionSetup(parts, tuning, scheduleEvents(data.events, rng));
   let state: MissionState = startMission(setup);
+  // The round stats tally (lowest battery, peak cold, energy used, nights): stepped with the state, read only at the end.
+  let tally: MissionTally = startTally(state);
   let ended: MissionEnd | null = null;
   let explored = createExplored(8000, tuning.explore); // resized to the terrain once it loads
   const earthInSky = WORLDS[game.world].earthInSky;
@@ -497,6 +500,7 @@ export const missionScreen: Screen = (game, root) => {
       secondsLasted: end.seconds,
       earned: tracker?.result() ?? [],
       relationships: met, // for the debrief and the engineering notebook (added at mission end)
+      measure: tallyMeasure(tally, state, setup.stats.batteryCapacity, album.length, !!(setup.mars ?? setup.titan)),
     };
     hud.showEnd(lines, () => game.endMission(result, album, log), () => openNotes());
   };
@@ -540,6 +544,7 @@ export const missionScreen: Screen = (game, root) => {
       upY: s.upY,
     };
     const before = state.seconds;
+    const prevState = state;
     const step = stepMission(state, sample, setup, tuning, data.events);
     state = step.state;
     lastSample = sample;
@@ -569,6 +574,11 @@ export const missionScreen: Screen = (game, root) => {
         const msg = titan.noticeText(n, setup.hasLights);
         hud.notify(msg.message, msg.tone);
       }
+    }
+    if (!ended) {
+      const day = dayNow();
+      const drilled = step.notices.some((n) => n.kind === 'instrument-done' && n.instrument === 'drill');
+      tally = stepTally(tally, prevState, state, day ? { night: day.clock.isNight, lightsOn: day.lightsOn } : null, drilled);
     }
     if (!ended && tracker) {
       roverPos = { x: p.x, y: terrain.heightAt(p.x, p.z), z: p.z };
@@ -806,6 +816,8 @@ export const missionScreen: Screen = (game, root) => {
         return setup;
       },
       state: () => state,
+      /** The round stats tally so far (lowest battery, peak cold, energy used, nights). */
+      tally: () => tally,
       /** Mars: the sol clock, Sun, storm and night conditions now (null on the Moon). */
       mars: () => marsNow,
       /** Mars: move the dust storm so its forecast starts now (arrives a sol later). */

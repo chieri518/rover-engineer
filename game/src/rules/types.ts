@@ -115,7 +115,7 @@ export interface Tuning {
     budget: {
     startingBudget: number;
     /** A step's minimum is the pass mark of the mission before it (titan: the Mars pass mark; complete: the Titan final mark). */
-    minimumBudget: Record<CampaignStep, number>;
+    minimumBudget: Record<MissionId, number>; // the balance needed to start each mission (the last mission passes on survival)
   };
   payout: {
     survivalPayout: number;
@@ -327,6 +327,72 @@ export interface EventsFile {
   rainstorm?: RainstormSpec; // Titan
 }
 
+/** text.json → dashboard: the Campaign complete dashboard. {placeholders} are filled by src/ui/dashboard.ts. */
+export interface DashboardText {
+  kicker: string;
+  heading: string;
+  body: string;
+  tileFinal: string; // headline: did the last mission's rover survive
+  yes: string;
+  no: string;
+  notRecorded: string;
+  tileDistance: string;
+  tileMilestones: string;
+  tileBalance: string;
+  tileRp: string;
+  tileSumNote: string;
+  meters: string; // {m}
+  kilometers: string; // {km}
+  ofTotal: string; // {n} of {total}
+  percent: string; // {pct}
+  missionsHeading: string;
+  missionNumber: string; // {n}
+  passed: string;
+  notPassed: string;
+  survivedToEnd: string;
+  lostAt: string; // {cause} at {time}
+  notRecordedBody: string;
+  labelOutcome: string;
+  labelTime: string;
+  labelDistance: string;
+  labelMilestones: string;
+  labelEarned: string;
+  labelPenalty: string;
+  labelSpentRover: string;
+  labelSpentTicket: string;
+  labelBalanceAfter: string;
+  labelRp: string;
+  labelEnergy: string;
+  labelBattery: string;
+  labelLowestBattery: string;
+  labelCold: string;
+  labelSamples: string;
+  labelPhotos: string;
+  labelBuild: string;
+  labelParts: string;
+  labelPayload: string;
+  noPayload: string;
+  labelNights: string;
+  nightsSurvived: string;
+  nightsAsleep: string;
+  nightsLights: string;
+  nightsDark: string;
+  chartsHeading: string;
+  balanceChartTitle: string;
+  balanceChartDesc: string; // {points}
+  balanceStart: string;
+  milestonesChartTitle: string;
+  milestonesChartDesc: string; // {points}
+  legendAvailable: string;
+  legendEarned: string;
+  chartNoData: string;
+  worldShort: Record<MissionId, string>;
+  recordsHeading: string;
+  recordsCount: string; // {n}
+  recordName: string; // {world} {name}
+  noRecords: string;
+}
+
 export interface SharedTextFile {
   moneyPrefix: string;
   moneySuffix: string;
@@ -378,7 +444,11 @@ export interface SharedTextFile {
     | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
     | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource', // "What the rover taught us": the relationships met
     string
-  >;
+  > & Partial<Record<
+    // The last mission (Titan overlay): lostAt {time} {total} {cause} when the rover was lost, survivedTitan {minutes}, endCampaign button
+    'lostAt' | 'survivedTitan' | 'endCampaign',
+    string
+  >>;
   causes: Record<DeathCause, string>;
   history: Record<HistoryKey, string>;
   historySources: Record<HistoryKey, string>;
@@ -390,6 +460,8 @@ export interface SharedTextFile {
     | 'colNet' | 'colRp' | 'colMilestones' | 'completed' | 'records' | 'noLog',
     string
   >;
+  /** The Campaign complete dashboard (game-design.md, "Titan goal and the campaign dashboard"). */
+  dashboard: DashboardText;
   milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
   instruments: Record<
     | 'buttonsLabel' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull'

@@ -1,6 +1,7 @@
 import type { Build, CampaignStep, GameData, HistoryKey, MissionId, Tuning } from './types';
 import { missionPayout, type MissionResult, type Payout } from './payout';
 import { addToNotebook, metIds } from './relationships';
+import { buildRoundStats, type RoundStats } from './roundStats';
 
 /** What a restart restores: balance, RP, and records, as they were at the start of the round. */
 export interface CampaignSnapshot {
@@ -24,6 +25,11 @@ export interface CampaignState {
    * snapshot, so a restart keeps it: what a failed run taught carries over (game-design.md, section 3).
    */
   notebook: string[];
+  /**
+   * Round stats for the campaign dashboard: one per mission, the latest round played (a retry replaces
+   * it). Optional: older saves have none, and the dashboard then shows those missions as not recorded.
+   */
+  stats?: RoundStats[];
 }
 
 /** How a passed mission went, kept for the campaign summary. */
@@ -81,7 +87,18 @@ export function newCampaign(tuning: Tuning): CampaignState {
 
 /** A player below the mission's minimum budget cannot start it. */
 export function canStartMission(state: CampaignState, tuning: Tuning): boolean {
-  return state.balance >= tuning.budget.minimumBudget[state.mission];
+  return isPlayable(state.mission) && state.balance >= tuning.budget.minimumBudget[state.mission];
+}
+
+/**
+ * Whether a round passes. Moon and Mars: the balance meets the next mission's minimum budget. The last
+ * mission (Titan) passes on survival: the rover still running at the end of the mission (asleep counts);
+ * the balance does not decide it.
+ */
+export function roundPasses(mission: MissionId, survived: boolean, balance: number, tuning: Tuning): boolean {
+  const next = nextMission(mission);
+  if (next === null || !isPlayable(next)) return survived;
+  return balance >= tuning.budget.minimumBudget[next];
 }
 
 /** Start a round: take the restart snapshot. */
@@ -105,20 +122,26 @@ export function buyRover(state: CampaignState, build: Build, totalCost: number):
 export interface RoundOutcome {
   state: CampaignState;
   payout: Payout;
-  /** The balance is below the next mission's minimum: the player must restart the round. */
+  /** The round did not pass (Moon, Mars: below the next mission's minimum; Titan: the rover was lost): restart it, or on Titan end the campaign. */
   failed: boolean;
 }
 
 /**
  * Apply a mission result. The balance carries over even if negative; the relationships met enter the
  * notebook. A passed round completes the mission and moves the campaign to the next one, with that
- * round's restart snapshot taken here.
+ * round's restart snapshot taken here. With the result's measure, the round's stats are recorded,
+ * passed or not (they replace that mission's earlier stats).
  */
 export function finishMission(state: CampaignState, result: MissionResult, data: GameData): RoundOutcome {
   const payout = missionPayout(result, data.milestones.milestones, data.tuning, state.records);
   const balance = state.balance + payout.money;
   const next = nextMission(state.mission);
-  const failed = next !== null && balance < data.tuning.budget.minimumBudget[next];
+  const mission = state.mission as MissionId;
+  const failed = !roundPasses(mission, result.survived, balance, data.tuning);
+  const stats = result.measure
+    ? [...(state.stats ?? []).filter((r) => r.mission !== mission),
+      buildRoundStats({ mission, passed: !failed, result, payout, measure: result.measure, build: state.lastBuild, balanceAfter: balance, data })]
+    : state.stats;
   const newState: CampaignState = {
     ...state,
     balance,
@@ -126,6 +149,7 @@ export function finishMission(state: CampaignState, result: MissionResult, data:
     records: [...state.records, ...payout.newRecords],
     completed: failed ? state.completed : [...state.completed, state.mission],
     notebook: addToNotebook(state.notebook, metIds(result.relationships ?? [])),
+    ...(stats ? { stats } : {}),
   };
   if (failed) return { state: newState, payout, failed };
   const entry: MissionLogEntry = {
@@ -139,6 +163,18 @@ export function finishMission(state: CampaignState, result: MissionResult, data:
   newState.log = [...(state.log ?? []).filter((e) => e.mission !== entry.mission), entry];
   if (next === null) return { state: newState, payout, failed };
   return { state: startRound({ ...newState, mission: next }), payout, failed };
+}
+
+/**
+ * End the campaign after a failed last round (Titan lost): the round's result stands (balance, RP,
+ * records and stats as the round left them), the mission is not completed, and the campaign moves to
+ * the end marker. Only the last mission can end the campaign this way.
+ */
+export function endCampaign(state: CampaignState): CampaignState {
+  if (!isPlayable(state.mission)) return state;
+  const next = nextMission(state.mission);
+  if (next === null || isPlayable(next)) return state;
+  return { ...state, mission: next, snapshot: null };
 }
 
 /**

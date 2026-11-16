@@ -2,7 +2,7 @@
 // the specification sheet.
 // All numbers come from rules/ (quoteBuild); this file only lays them out.
 import type { Screen } from '../flow/flow';
-import { canStartMission, nextMission } from '../rules/campaign';
+import { canStartMission, isPlayable, nextMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
@@ -383,13 +383,15 @@ export const designScreen: Screen = (game, root) => {
   }, text.tutorial.help);
 
   // After the Moon (Mars, Titan): which mission this is, the balance carried over, the next pass mark
-  // (on Titan the final mark), and that parts and tickets are the Moon's for now. Titan adds a plain
+  // (on Titan the survival goal: it passes if the rover is still running at the end), and that parts and
+  // tickets are the Moon's for now. Titan adds a plain
   // warning that solar panels give almost no power there.
   const mars = text.campaign;
   const nextStep = nextMission(game.state.mission);
   const transition = mars && el('p', { class: 'world-transition' },
     fill(mars.carryOver, { balance: money(game.state.balance, text) }), ' ',
-    nextStep ? fill(mars.passMark, { minimum: money(data.tuning.budget.minimumBudget[nextStep], text) }) : '', ' ',
+    nextStep && isPlayable(nextStep) ? fill(mars.passMark, { minimum: money(data.tuning.budget.minimumBudget[nextStep], text) })
+      : nextStep ? fill(mars.passMark, missionVars(data)) : '', ' ',
     mars.sameParts,
   );
 

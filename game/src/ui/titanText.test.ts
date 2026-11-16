@@ -34,7 +34,7 @@ describe('Titan tutorial, briefing and campaign text', () => {
     expect(drive).toContain(`about ${rain.durationSeconds} s`);
     const design = all(tutorialPages('design', titan, { mission: 'titan', instruments: [], balance: 900 }));
     expect(design).toContain('$900k');
-    expect(design).toContain(`($${titan.tuning.budget.minimumBudget.complete}k)`); // the final mark
+    expect(design).toContain(`end of the ${titan.tuning.mission.lengthSeconds / 60} minutes`); // the goal: survive
   });
 
   it('the design, landing, debrief and Campaign complete text is complete', () => {

@@ -52,7 +52,7 @@
   "campaign": {
     "kicker": "Mission 3 · Titan, Shangri-La dunes",
     "carryOver": "Balance carried over from Mars: {balance}.",
-    "passMark": "This is the last mission: after it, the balance must stay at or above the final mark, {minimum}.",
+    "passMark": "This is the last mission. Its goal is to survive: the rover must still be running at the end of the {minutes} minutes (asleep counts). The balance does not decide it.",
     "sameParts": "Parts and launch ticket tiers are the same as on the Moon in this version.",
     "ticketNote": "The launch ticket tiers are the same as for the Moon in this version.",
     "perseverance": "",
@@ -82,8 +82,12 @@
     "cold": "The rover is freezing in the Titan cold."
   },
   "debrief": {
-    "passedRound": "The Titan mission is complete. It was the last mission of the campaign.",
-    "failedRound": "The balance is below the final mark ({minimum}). The Titan round must be restarted. Balance, research points and records return to their values at the start of the Titan round.",
+    "passedRound": "The Titan mission is complete: the rover survived. It was the last mission of the campaign.",
+    "failedRound": "The rover did not survive the {minutes} minutes on Titan. Try Titan again from the start of the Titan round (balance, research points and records return to their values then), or end the campaign here with Titan marked not survived.",
+    "lostAt": "Rover lost at {time} of {total} mission time: {cause}.",
+    "survivedTitan": "The rover was still running at the end of the {minutes} minutes: Titan survived.",
+    "restart": "Try Titan again",
+    "endCampaign": "End the campaign",
     "continue": "Finish the campaign"
   },
   "comingSoon": {
@@ -91,6 +95,11 @@
     "heading": "Campaign complete",
     "body": "All three missions are done: the Moon, Mars and Titan. Research points and the final balance are banked.",
     "balance": "Final balance: {balance}"
+  },
+  "dashboard": {
+    "tileFinal": "Titan rover survived",
+    "body": "The Moon, Mars and Titan are done. These are the numbers each rover recorded.",
+    "survivedToEnd": "Still running at the end of the Titan day"
   },
   "tutorial": {
     "designHeading": "Rover design for Titan",
@@ -101,7 +110,7 @@
         "body": [
           "The campaign ends on Titan, Saturn's largest moon, in the Shangri-La dune field. The balance carried over from Mars is {balance}.",
           "Parts and launch ticket tiers are the same as on the Moon in this version: {tiers}.",
-          "This is the last mission. After it, the balance must stay at or above the final mark ({nextMinimum}), or the Titan round is restarted. A restart returns the balance, research points and records to their values at the start of the Titan round."
+          "This is the last mission, and its goal is to survive: the rover must still be running at the end of the {minutes} minutes. A sleeping rover counts as running. The balance does not decide it. If the rover is lost, Titan can be tried again from the start of the Titan round, or the campaign can end there."
         ]
       },
       {

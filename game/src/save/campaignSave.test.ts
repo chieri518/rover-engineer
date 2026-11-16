@@ -28,6 +28,24 @@ describe('campaign save', () => {
     expect(loadCampaign(store)).toBeNull();
   });
 
+  it('round-trips round stats, and keeps older saves without them working', () => {
+    const store = memoryStore();
+    const stats = {
+      mission: 'titan' as const, passed: false, outcome: 'energy' as const, secondsLasted: 612, missionSeconds: 900, distanceM: 2100,
+      milestones: [{ category: 'capability' as const, earned: 2, available: 5 }], moneyEarned: 120, penalty: 40, net: 80,
+      spentRover: 400, spentTicket: 160, balanceAfter: 950, rp: 12, batteryCapacity: 300, energyUsed: 300, lowestBattery: 0,
+      peakCold: 0.42, samples: 1, photos: 3, build: { parts: ['steel'], payload: ['camera'] }, nights: { survived: 0, asleep: 0, lights: 0, dark: 0 },
+    };
+    const state = { ...startRound(newCampaign(testTuning)), stats: [stats] };
+    saveCampaign(state, store);
+    expect(loadCampaign(store)).toEqual(state);
+    store.setItem('rover-engineer.campaign.v1', JSON.stringify({ ...state, stats: [stats, { mission: 'moon' }, 3] }));
+    expect(loadCampaign(store)!.stats).toEqual([stats]); // damaged entries are dropped
+    const { stats: _drop, ...old } = state;
+    store.setItem('rover-engineer.campaign.v1', JSON.stringify(old));
+    expect(loadCampaign(store)!.stats).toBeUndefined(); // the dashboard shows these missions as not recorded
+  });
+
   it('works without storage', () => {
     expect(saveCampaign(newCampaign(testTuning), null)).toBe(false);
     expect(loadCampaign(null)).toBeNull();

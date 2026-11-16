@@ -3,7 +3,7 @@
 // last world the end screen ('complete': Campaign complete, with the campaign summary).
 import type { DraftBuild, GameData, MissionId } from '../rules/types';
 import {
-  buyRover, finishMission, isPlayable, MISSION_ORDER, newCampaign, normalizeCampaign, recordLessons, restartRound, startRound,
+  buyRover, endCampaign, finishMission, isPlayable, MISSION_ORDER, newCampaign, normalizeCampaign, recordLessons, restartRound, startRound,
   type CampaignState, type RoundOutcome,
 } from '../rules/campaign';
 import { worldOfStep, type WorldId } from '../worlds';
@@ -174,6 +174,25 @@ export class Game {
     this.outcome = finishMission(this.state, result, this.data);
     this.setCampaign(this.outcome.state);
     this.go('debrief');
+  }
+
+  /** After a lost Titan round: end the campaign with Titan not survived, on to Campaign complete. */
+  endCampaign(): void {
+    this.setCampaign(endCampaign(this.state));
+    this.world = worldOfStep(this.state.mission);
+    this.outcome = null;
+    this.go('complete');
+  }
+
+  /**
+   * Debug start (?dashboard=demo): show Campaign complete for a given finished campaign (not saved).
+   */
+  debugComplete(state: CampaignState): void {
+    this.persist = false;
+    this.campaign = state;
+    this.world = worldOfStep(state.mission);
+    this.outcome = null;
+    this.go('complete');
   }
 
   restartRound(): void {

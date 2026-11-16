@@ -8,7 +8,7 @@
     "gravity": 1.35
   },
   "payout": {
-    "_interface": "survivalPayout: Titan survival payout, Owner A sets it (placeholder: the Moon value). The Titan final mark is budget.minimumBudget.complete in data/tuning.json (placeholder 0: a Titan round fails only if the balance goes negative; T4 and Owner A decide the final mark).",
+    "_interface": "survivalPayout: Titan survival payout, Owner A sets it (placeholder: the Moon value). A Titan round passes on survival (the rover still running at the end of the mission), not on the balance (decided November 15 by Owner B); there is no final mark.",
     "survivalPayout": 50
   },
   "rover": {
