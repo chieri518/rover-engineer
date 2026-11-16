@@ -13,6 +13,7 @@ import * as THREE from 'three';
 import type { HeightGrid } from './terrainData';
 import { TITAN_RIPPLE_COLOR, TITAN_RIPPLE_PARS, titanRippleUniforms } from './titanRipples'; // titan-fx: ground
 import { TITAN_CLOUD_PARS, TITAN_CLOUD_SHADOW, titanCloudUniforms } from './titanClouds'; // titan-fx: clouds
+import { TITAN_WET_GROUND, TITAN_WET_PARS, titanWetUniforms } from './titanWet'; // titan-fx: rain
 
 /** Shared uniforms: every patched material reads the same objects, so one update reaches all. */
 export interface MoonLightUniforms {
@@ -179,6 +180,7 @@ ${OCTAVES.map(([w, h, a], i) => `  {
     diffuseColor.rgb *= pow( max( tone, 0.05 ), moonTitanFarTone * smoothstep( moonTitanRelief.z, moonTitanRelief.w, length( vViewPosition ) ) );
     ${TITAN_RIPPLE_COLOR} // titan-fx: ground
     ${TITAN_CLOUD_SHADOW} // titan-fx: clouds
+    ${TITAN_WET_GROUND} // titan-fx: rain
   #endif
 }
 `;
@@ -202,6 +204,7 @@ uniform float moonTitanFarTone;
 float moonSkyOcc = 1.0;
 ${TITAN_RIPPLE_PARS} // titan-fx: ground
 ${TITAN_CLOUD_PARS} // titan-fx: clouds
+${TITAN_WET_PARS} // titan-fx: rain
 `;
 
 const TITAN_NORMAL = /* glsl */ `
@@ -286,6 +289,7 @@ export function patchMoonLighting(
     if (lunar === 'titan') {
       Object.assign(shader.uniforms, titanRippleUniforms); // titan-fx: ground
       Object.assign(shader.uniforms, titanCloudUniforms); // titan-fx: clouds
+      Object.assign(shader.uniforms, titanWetUniforms); // titan-fx: rain
       // Before the ground's fine bumps, which then tilt the exaggerated normal as usual.
       fragment = fragment
         .replace('#include <common>', `#include <common>\n${TITAN_PARS}`)

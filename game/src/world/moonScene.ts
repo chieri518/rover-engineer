@@ -22,6 +22,8 @@ import { titanLook, type TitanLook } from './titanLook';
 import { TitanBeams } from './titanBeams'; // titan-fx: beams
 import { startTitanGround } from './titanGround'; // titan-fx: ground
 import { updateTitanClouds } from './titanClouds'; // titan-fx: clouds
+import { TitanRaindrops } from './titanRain'; // titan-fx: rain
+import { TitanWet } from './titanWet'; // titan-fx: rain
 import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
@@ -226,10 +228,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   scene.add(sunLight, sunLight.target, skyLight);
   const fog = hazy ? new THREE.FogExp2(0x000000, 0) : null;
   scene.fog = fog;
-  const rain = titanTuning
+  const rain = titanTuning?.rainDrops ? new TitanRaindrops(titanTuning.rainDrops) : titanTuning // titan-fx: rain
     ? new TitanRain({ count: titanTuning.rain.streakCount, boxM: titanTuning.rain.streakBoxM, fallMps: titanTuning.rain.fallMps, lengthM: titanTuning.rain.streakLengthM })
     : null;
   if (rain) scene.add(rain.object);
+  const wet = titanTuning?.wet ? new TitanWet(titanTuning.wet) : null; // titan-fx: rain
   let storm = 0;
   let stormTarget = 0;
   let look: MarsLook | TitanLook | null = null;
@@ -482,7 +485,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     sky.update(camera, sun);
     titanGround?.update(pos); // titan-fx: ground
     if (titanTuning && look && 'rainStreaks' in look) updateTitanClouds(paused ? 0 : dt, sun, storm, look, camera, titanTuning); // titan-fx: clouds
-    if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, look.rainStreaks, look.rainColor);
+    wet?.update(seconds, storm, sunLight, look, lamp); // titan-fx: rain
+    if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, rain instanceof TitanRaindrops ? storm : look.rainStreaks, look.rainColor); // titan-fx: rain
     beams?.update(paused ? 0 : dt, sun.elevationDeg, storm, look?.fogDensity ?? 0); // titan-fx: beams
     draw();
 
@@ -665,6 +669,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       boulders.dispose();
       titanGround?.dispose(); // titan-fx: ground
       rain?.dispose();
+      wet?.dispose(); // titan-fx: rain
       beams?.dispose(); // titan-fx: beams
       rover.dispose();
       lander.dispose();

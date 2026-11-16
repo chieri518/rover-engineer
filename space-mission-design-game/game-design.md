@@ -846,7 +846,7 @@ The demo builds Touchdown, Odometer, Mapper, Night drive, Storm survivor, Delta 
 
 Five additions to make Titan read as Titan on video. None of them changes the rules: traction, visibility for milestones, energy and cold stay as they are.
 
-- **Methane raindrops:** large drops falling slowly. Titan raindrops can be about twice the size of Earth's and fall several times slower in the thick air and low gravity (to fact-check against Lorenz 1993).
+- **Methane raindrops:** large drops falling slowly. In Titan's thick air and low gravity, raindrops can grow to about 9.5 mm across (Earth's largest are about 6.5 mm) and fall at about 1.6 m/s, about 6 times slower than Earth's (9.2 m/s) (Lorenz 1993, *Planetary and Space Science* 41:647). The game draws them larger than life so they read on screen.
 - **Wet ground:** during the rain the ground darkens and takes a faint sheen, then dries over a few minutes. Cassini saw a large area darken after the 2010 equatorial storm, most likely from rain.
 - **Methane clouds:** a faint, slow-drifting streaky cloud layer, with soft cloud shadows moving over the dunes. Cassini and Huygens observed methane clouds; their exact look here is a game rendering.
 - **Ice pebbles and sand ripples:** rounded water-ice pebbles (about 5 to 15 cm) scattered on the firm interdune ground, densest near the landing, as Huygens photographed in 2005; fine ripples on the dune flanks.
