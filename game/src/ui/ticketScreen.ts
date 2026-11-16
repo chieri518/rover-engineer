@@ -6,6 +6,7 @@ import { isCompleteBuild } from '../rules/rover';
 import type { TierFit } from '../rules/tiers';
 import { el, money } from './dom';
 import { tierWhyText } from './tierText';
+import { missingSupportWarnings } from './supportText';
 
 export const ticketScreen: Screen = (game, root) => {
   const { data } = game;
@@ -50,6 +51,14 @@ export const ticketScreen: Screen = (game, root) => {
     );
   });
 
+  const warnings: string[] = [
+    ...(!q.tier ? [text.design.overTopTier] : []),
+    ...(q.payloadProblems.some((p) => p.kind !== 'needs') ? [text.design.bayOverCapacity] : []),
+    ...missingSupportWarnings(q.payloadProblems, data),
+    ...(q.canLaunch && !q.canAfford ? [text.design.overBudget] : []),
+    ...(q.overloaded ? [text.design.chassisOverloaded] : []),
+  ];
+
   const row = (label: string, value: string, cls = '') =>
     el('div', { class: `row ${cls}` }, el('span', { class: 'label' }, label), el('span', { class: 'value' }, value));
 
@@ -86,10 +95,7 @@ export const ticketScreen: Screen = (game, root) => {
         row('Balance now', money(game.state.balance, text)),
         row('Balance after purchase', money(q.remaining, text), q.remaining < 0 ? 'bad' : ''),
       ),
-      !q.tier && el('ul', { class: 'warnings' }, el('li', {}, text.design.overTopTier)),
-      q.payloadProblems.length > 0 && el('ul', { class: 'warnings' }, el('li', {}, text.design.bayOverCapacity)),
-      q.canLaunch && !q.canAfford && el('ul', { class: 'warnings' }, el('li', {}, text.design.overBudget)),
-      q.overloaded && el('ul', { class: 'warnings' }, el('li', {}, text.design.chassisOverloaded)),
+      warnings.length > 0 && el('ul', { class: 'warnings' }, ...warnings.map((w) => el('li', {}, w))),
       reviewSection,
       el('div', { class: 'actions' },
         el('button', { onclick: () => game.go('design') }, 'Back to design'),

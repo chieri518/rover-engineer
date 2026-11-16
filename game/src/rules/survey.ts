@@ -3,10 +3,11 @@
 // from terrain.json features (passed in as plain data); sizes and leads from tuning.survey and
 // tuning.minimap. Mars adds the delta front (a scarp line), Séítah (an outline), its viewpoints and
 // Perseverance's landing site. Titan adds its dune crests (lines), interdune corridors (outlines), the
-// sample patch and Selk crater (a landmark far off the map: its lead is a bearing only). The Moon's
-// sites.json sites (young craters, cold traps, the rolled boulder, the hidden hydrogen) are appended after
-// those; a hidden site is never found by the reveal circle, only by revealSite when its milestone is earned.
-// Pure: no rendering, no DOM.
+// sample patch and Selk crater (a landmark far off the map: its lead is a bearing only). The sites.json
+// sites (the Moon's young craters, cold traps, rolled boulder and hidden hydrogen; Mars's young craters,
+// knobs, Séítah edge, delta foot, flood boulder and hydrated ground) are appended after those; a hidden
+// site (the hidden hydrogen, Mars's hydrated ground) is never found by the reveal circle, only by
+// revealSite / revealHidden when its milestone is earned. Pure: no rendering, no DOM.
 import type { ResolvedSite } from './sites';
 import type { MilestoneTuning, SurveyTuning, Tuning } from './types';
 
@@ -15,7 +16,8 @@ export interface Point { x: number; z: number }
 /** delta-front: Mars's scarp line; region: Séítah; landmark: Perseverance's landing site, Selk. Titan: dune-crest, corridor, sample-patch. */
 export type SiteKind = 'viewpoint' | 'rocky-area' | 'crater-wall' | 'shadowed-crater' | 'delta-front' | 'region' | 'landmark'
   | 'dune-crest' | 'corridor' | 'sample-patch'
-  | 'young-crater' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen';
+  | 'young-crater' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen'
+  | 'knob' | 'seitah-edge' | 'delta-foot' | 'flood-boulder'; // Mars sites.json kinds (Mars step 5c)
 
 export type SiteArea =
   | { kind: 'circle'; x: number; z: number; r: number }
@@ -56,9 +58,14 @@ export interface SurveyFeatures {
 
 /**
  * Sites sized like the milestone zones: viewpoint and wall zones, the boulder spread, the shadow outline.
- * `sites` (the resolved sites.json sites, [] on Mars) is required so no caller silently drops the Moon's new sites.
+ * `sites` (the world's resolved sites.json sites) is required so no caller silently drops them.
  */
-export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCraterName: string, sites: readonly ResolvedSite[]): Site[] {
+export function buildSites(
+  f: SurveyFeatures,
+  m: MilestoneTuning & { deltaFootRadiusM?: number },
+  shadowedCraterName: string,
+  sites: readonly ResolvedSite[],
+): Site[] {
   const circle = (x: number, z: number, r: number): SiteArea => ({ kind: 'circle', x, z, r });
   const { craterDescent: wall, shadowedCrater: dark } = f;
   return [
@@ -85,8 +92,14 @@ export function buildSites(f: SurveyFeatures, m: MilestoneTuning, shadowedCrater
   ];
 }
 
-/** A sites.json site as a survey site; rocky areas, the dark crater and sites with no extent add none. */
-const siteFromSpec = (m: MilestoneTuning) => (s: ResolvedSite): Site[] => {
+/**
+ * A sites.json site as a survey site; rocky areas, the dark crater and sites with no extent add none.
+ * Mars (step 5c): a knob or the Séítah edge is a circle where its boulders lie (its radius times the
+ * boulder-cross factor, as a young crater); the delta foot its foot line within the delta-foot zone
+ * (tuning.milestones.deltaFootRadiusM, else the pipeline's zone); the flood boulder a point, found like
+ * the rolled boulder; the hydrated ground (kind hidden-hydrogen) hidden, as the Moon's hidden hydrogen.
+ */
+const siteFromSpec = (m: MilestoneTuning & { deltaFootRadiusM?: number }) => (s: ResolvedSite): Site[] => {
   const base = { key: s.name, alias: s.id, siteId: s.id, name: s.name, discovered: false };
   const circle = (r: number): SiteArea => ({ kind: 'circle', x: s.center.x, z: s.center.z, r });
   switch (s.kind) {
@@ -101,6 +114,17 @@ const siteFromSpec = (m: MilestoneTuning) => (s: ResolvedSite): Site[] => {
       return [{ ...base, kind: 'rolled-boulder', area: circle(0), ...(s.track ? { track: { from: { ...s.track.from }, to: { ...s.track.to } } } : {}) }];
     case 'hidden-hydrogen':
       return [{ ...base, kind: 'hidden-hydrogen', area: circle(m.hydrogenZoneRadiusM), hidden: true }];
+    case 'knob':
+    case 'seitah-edge':
+      return s.radiusM === undefined ? [] : [{ ...base, kind: s.kind, area: circle(s.radiusM * m.boulderCrossRadiusFactor) }];
+    case 'delta-foot': {
+      const r = m.deltaFootRadiusM ?? s.radiusM;
+      if (r === undefined) return [];
+      const area: SiteArea = s.line && s.line.length >= 2 ? { kind: 'path', points: s.line, r } : circle(r);
+      return [{ ...base, kind: 'delta-foot', area }];
+    }
+    case 'flood-boulder':
+      return [{ ...base, kind: 'flood-boulder', area: circle(0) }];
     default:
       return [];
   }
@@ -182,6 +206,23 @@ export function revealSite(sites: Site[], siteId: string): Site | null {
   if (!s || s.discovered) return null;
   s.discovered = true;
   return s;
+}
+
+/**
+ * Mark every hidden site discovered (the hidden hydrogen, Mars's hydrated ground). The mission calls it
+ * when the milestone that finds them is earned (a transect in the hydrogen-anomaly zone: Hydrogen-rich
+ * ground on the Moon, Hydrated ground on Mars), never from the reveal circle or the meter alone. Returns
+ * the newly discovered ones.
+ */
+export function revealHidden(sites: Site[]): Site[] {
+  const found: Site[] = [];
+  for (const s of sites) {
+    if (s.hidden && !s.discovered) {
+      s.discovered = true;
+      found.push(s);
+    }
+  }
+  return found;
 }
 
 /** Azimuth in degrees (0 = local −z, grid north; 90 = +x), as in terrain.json. */

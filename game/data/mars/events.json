@@ -16,5 +16,17 @@
     "solarFactor": 0.33,
     "freezeFactor": 0.5,
     "source": "2018 Mars global dust storm: Opportunity's solar power fell from about 645 Wh per sol (early June) to 22 Wh on June 10 (The Planetary Society, planetary.org/articles/06-mer-update-opportunity-dust-storm-sleep); the dust also absorbs heat and narrows the rover's temperature swings (NASA JPL, jpl.nasa.gov/news/opportunity-hunkers-down-during-dust-storm). Forecasts like MRO's MARCI weekly Mars weather reports (Malin Space Science Systems, msss.com)."
+  },
+  "dustdevil": {
+    "_note": "Dust devils (Mars M8, MS8; Owner B, provisional, for Chieri's review; starting values). Rules: rules/dust.ts scheduleDustDevils, placeDustDevil. One devil in each run of everySols sols, on a random sol of the run, so on average one every 3 sols (3 per mission, a fourth one time in three). By day only: it forms 8 to 24 s after a sunrise (around midday, when real dust devils peak) and stands for lifeSeconds, so it is gone before sunset (45 s). It moves in a straight line at speedMps (about the ambient wind) and passes the rover's position at its forming time, halfway through its life, at a random distance up to maxPassM (MS8: within 300 m of the rover). rampSeconds, radiusM and heightM are for the renderer. Cleaning and sensing distances: tuning.dust.",
+    "everySols": 3,
+    "daySecondsWindow": [8, 24],
+    "lifeSeconds": 20,
+    "speedMps": 4,
+    "maxPassM": 300,
+    "rampSeconds": 3,
+    "radiusM": 6,
+    "heightM": 150,
+    "source": "Perseverance's MEDA weather sensors counted about four whirlwinds per sol at Jezero, over a quarter of them dusty (Newman et al. 2022, Science Advances); dust devils form in the daytime heat, most often around midday (timing to check before it reaches text). A cleaning event around sol 420 (March 2005) sharply raised Spirit's solar output (NASA Photojournal, Solar Panel Dust Accumulation and Cleanings)."
   }
 }

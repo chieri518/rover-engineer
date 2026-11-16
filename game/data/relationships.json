@@ -88,6 +88,78 @@
       ],
       "fact": "NASA's VIPER rover was designed to explore dark craters where the Sun never reaches, and it was designed with headlights, a first for a NASA rover. VIPER has not flown yet.",
       "source": "NASA Science, VIPER rover and instruments (science.nasa.gov/mission/viper/rover-and-instruments)"
+    },
+    {
+      "id": "rtg-neutron",
+      "world": "mars",
+      "kind": "conflicts",
+      "name": "The RTG adds noise to the neutron spectrometer",
+      "parts": ["power-rtg", "instrument-neutron"],
+      "review": "yellow",
+      "notice": "The hydrogen meter is noisy: the RTG gives off neutrons of its own, so the meter reads higher than the ground and jitters. A faint rise toward hydrated ground is hard to follow on this rover.",
+      "reviewText": "Conflicts: the RTG gives off neutrons of its own, which raise the neutron spectrometer's reading and make it jitter, so faint hydrogen is hard to follow. Use solar power with the neutron spectrometer, or leave the neutron spectrometer home.",
+      "reviewSolved": "Solved: on solar power, the neutron spectrometer reads the ground without the RTG's neutrons.",
+      "debrief": "An RTG makes power from decaying plutonium, and it also gives off neutrons. The neutron spectrometer counted them on top of the neutrons coming up from the ground, so its reading sat higher and wobbled, hiding the small rise near hydrated ground.",
+      "answers": [
+        "Power the rover with solar panels when it carries the neutron spectrometer.",
+        "Leave the neutron spectrometer home on an RTG rover."
+      ],
+      "fact": "Jun et al. (2013) estimated that about 60% of the thermal neutrons counted by DAN, the neutron instrument on NASA's Curiosity rover, at the Rocknest site came from the rover's own nuclear generator (its MMRTG), and about 40% from cosmic rays.",
+      "source": "Jun et al. (2013), Journal of Geophysical Research: Planets 118:2400, doi:10.1002/2013JE004510"
+    },
+    {
+      "id": "dust-panels",
+      "world": "mars",
+      "kind": "conditions",
+      "name": "Dust on the panels",
+      "parts": ["power-fixed-panel", "power-solar-mast", "power-arrays"],
+      "review": "yellow",
+      "notice": "Dust has settled on the solar panels and cut their income by {loss}%. It keeps settling every sol, so later sols bring less energy. A dust devil passing close can blow the panels clean.",
+      "reviewText": "Conditions: dust settles on solar panels every sol, so solar income falls as the mission goes on. Plan for less power late in the mission. An RTG needs no panels; the vertical solar mast stands higher, where less dust settles; a dust devil passing close blows the panels clean.",
+      "reviewSolved": "Solved: the RTG makes its power without panels, so dust cannot dim it.",
+      "debrief": "Dust from the air settles on solar panels a little every sol and blocks some of the sunlight, so the panels made less energy as the mission went on. Wind can blow it off: a dust devil that passes close to the rover cleans the panels.",
+      "answers": [
+        "Fit an RTG: its power does not come from panels.",
+        "Fit the vertical solar mast: it stands higher, where less dust settles.",
+        "Drive past dust devils: one that passes close blows the panels clean."
+      ],
+      "fact": "In March 2005 the solar power of NASA's Spirit rover jumped sharply in a single sol, as dust on its panels decreased. Dust devils were seen near the rover the next sol, and the team wondered whether one had passed over Spirit and lifted dust off its panels.",
+      "source": "Spaceflight Now, Spirit and a dust devil, March 2005 (spaceflightnow.com/mars/mera/050314dustdevil.html)"
+    },
+    {
+      "id": "arm-slope",
+      "world": "mars",
+      "kind": "conditions",
+      "name": "The arm cannot reach on a slope",
+      "parts": ["arm-robotic", "instrument-xray", "instrument-organics"],
+      "review": "yellow",
+      "notice": "Contact instruments ride on the arm, which must set them right against the rock. With the rover tilted on steep ground, the arm cannot place them, so the reading is refused. Park on gentler ground beside the rock, or read rocks on steep ground from a distance.",
+      "reviewText": "Conditions: the arm sets contact instruments against a rock only when the rover stands on gentle ground; on a steep slope the reading is refused. Park on level ground beside the target, or read rocks on steep ground from a distance with the laser spectrometer.",
+      "debrief": "The X-ray and organics spectrometers ride on the arm and must sit right against the rock. With the rover tilted on steep ground, the arm could not place them, so the reading was refused. On gentler ground beside the same rock, the reading works.",
+      "answers": [
+        "Park on level ground beside the target before reading it.",
+        "Carry the laser spectrometer on the mast: it reads rocks from a few meters away, without the arm."
+      ],
+      "fact": "NASA's Perseverance rover carries its PIXL and SHERLOC instruments on the turret at the end of its robotic arm. PIXL is placed close to its target rock only after the team judges the placement safe.",
+      "source": "NASA Science, Perseverance science instruments (science.nasa.gov/mission/mars-2020-perseverance/science-instruments)"
+    },
+    {
+      "id": "no-lights-night",
+      "world": "mars",
+      "kind": "needs",
+      "name": "No lights, no driving at night",
+      "parts": ["lights-none"],
+      "review": "red",
+      "hardBlock": true,
+      "notice": "Night: without lights the rover cannot see the ground, so it cannot drive until dawn. Lights would let it keep driving; without them, power down and sleep through the night.",
+      "reviewText": "No lights: the rover cannot drive at night. Fit lights to keep driving after sunset, or plan to sleep through each night.",
+      "debrief": "At night a rover without lights cannot see where it is going, so it had to stop until dawn. Lights let the rover see the ground in the dark, at a cost in battery.",
+      "answers": [
+        "Fit lights to keep driving at night.",
+        "Sleep through the night: power down at sunset and drive again at dawn."
+      ],
+      "fact": "NASA's Curiosity rover ends its day's work with a nap to recharge its batteries. NASA's VIPER, a Moon rover designed to explore dark craters, was designed with headlights, a first for a NASA rover. VIPER has not flown yet.",
+      "source": "JPL, Marking 13 years on Mars, NASA's Curiosity picks up new skills (jpl.nasa.gov/news/marking-13-years-on-mars-nasas-curiosity-picks-up-new-skills); NASA Science, VIPER rover and instruments (science.nasa.gov/mission/viper/rover-and-instruments)"
     }
   ]
 }

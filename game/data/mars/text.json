@@ -1,15 +1,27 @@
 {
   "_about": "Mars overlay, deep-merged over data/text.json (arrays replace). Owners: campaign and screens (M4) everything here except survey, instruments and drill (milestones and survey, M5). Integration (M6) wires the sol, night and storm strings into the HUD; they may use the {placeholders} of missionVars() in src/ui/tutorialText.ts. Every real fact cites its source (historySources, campaign.sources).",
   "partText": {
-    "_about": "Mars wording for the shared parts (data/parts.json), by part id; numbers stay the Moon's. Matches the Mars rules: no driving at night without lights, map-wide night cold, solar income by day only and less in a dust storm, soft ground only in Seitah's sand ripples.",
+    "_about": "Mars wording for the shared parts (data/parts.json), by part id; numbers stay the Moon's. Mars-only parts carry their wording in data/parts.json itself. Matches the Mars rules: no driving at night without lights, map-wide night cold, solar income by day only and less in a dust storm, soft ground only in Seitah's sand ripples.",
     "wheels-solid": { "description": "Cheap and heavy. Lower grip in sand ripples." },
     "power-fixed-panel": { "description": "A flat panel. Solar income by day, most with the Sun high. Nothing at night, less in a dust storm." },
     "power-solar-mast": { "description": "Twice the fixed panel's solar income. Nothing at night, less in a dust storm. Light, expensive and bulky." },
     "lights-none": { "description": "" },
     "lights-led": { "description": "Lets the rover keep driving at night, at a high battery cost." },
-    "heater-none": { "description": "" },
+    "heater-none": { "description": "Saves cost, mass, and space. Without another source of heat the rover freezes in its first night." },
     "heater-rhu": { "description": "Steady heat from decaying isotopes. Lets the rover survive the night cold." },
     "instrument-drill": { "name": "Rock drill", "description": "Drills rock cores. Heavier and bulkier than the camera." }
+  },
+  "slots": {
+    "_note": "Names of the support slots Mars offers (data/mars/parts.json supportSlots), merged into the shared slot names.",
+    "arm": "Arm",
+    "mast": "Mast"
+  },
+  "support": {
+    "_note": "Support hardware on the desk (Mars M5): an instrument whose support part is missing is refused with a reason. {support}: the support part's name below; {part}: the instrument.",
+    "needs": "Needs the {support}.",
+    "missing": "{part} needs the {support}. Choose it, or take the instrument out of the bay.",
+    "arm": "robotic arm",
+    "mast": "remote sensing mast"
   },
   "landing": {
     "heading": "Landing: Jezero crater",
@@ -18,7 +30,28 @@
   "ticket": {
     "briefing": "REL secures a spot for the rover on the next commercial launch to Mars. The lander will set it down on the floor of Jezero crater."
   },
+  "nightBudget": {
+    "_note": "The spec sheet's night budget line (Mars M15): one night's energy for this build, asleep and parked awake with the lights on, the electric heater's share of each, and an RTG's income over the night. Numbers from data (rules/energy.ts nightBudget). Shown once power, lights and heater are chosen.",
+    "label": "Night energy ({seconds} s)",
+    "asleep": "{energy} asleep",
+    "lights": "{energy} with lights",
+    "heater": "heater {energy} of each",
+    "steady": "RTG +{energy}",
+    "separator": " · "
+  },
   "design": {
+    "notOffered": "Not offered on Mars: {parts}.",
+    "instrumentWhere": {
+      "camera": "Where: the delta front, young crater rims, and the sky at sunset.",
+      "drill": "Where: rock away from the lander. Séítah and the foot of the delta hold rock of their own.",
+      "xray": "Where: boulders at the boulder fields, young craters, knobs, Séítah and the foot of the delta. Each site has its own rocks.",
+      "neutron": "Where: switched on while driving through Séítah and along the delta front. Watch the meter for ground that reads higher.",
+      "weather": "Where: anywhere away from the lander, switched on through the dust storm and through the night.",
+      "radar": "Where: switched on for long drives away from the lander, past young craters, Séítah and the delta front.",
+      "laser": "Where: boulders at different sites, and the delta cliff from the foot of the delta.",
+      "organics": "Where: boulders away from the lander, at different sites. The foot of the delta holds rock from the old lake."
+    },
+    "overTopTier": "Exceeds the Heavy ticket limits. The rover cannot launch.",
     "speedInfo": [
       "The mission compresses {sols} sols on Mars into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
       "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
@@ -36,8 +69,8 @@
   "campaign": {
     "carryOver": "Balance carried over from the Moon: {balance}.",
     "passMark": "After this mission the balance must stay at or above {minimum}, the pass mark for Titan.",
-    "sameParts": "Parts and launch ticket tiers are the same as on the Moon in this version.",
-    "ticketNote": "The launch ticket tiers are the same as for the Moon in this version.",
+    "sameParts": "Mars has its own parts: the Moon's, without the two instruments that have no work on this mission, plus new power sources, a larger battery, an electric heater, grouser wheels, an arm, a mast and four Mars instruments. Launches to Mars have their own ticket tiers, with a Heavy tier.",
+    "ticketNote": "Launches to Mars have their own ticket tiers: the Moon's three, and a Heavy tier for rovers up to 100 kg.",
     "perseverance": "NASA's Perseverance rover landed in Jezero crater on February 18, 2021. Its landing site, Octavia E. Butler Landing, is about {distance} km {direction} of the lander.",
     "newHeading": "New on Mars",
     "newOnMars": [
@@ -57,7 +90,25 @@
   },
   "hud": {
     "endedSurvived": "The rover completed ten sols at Jezero crater.",
-    "lasted": "The rover operated for {days} of {total} sols."
+    "lasted": "The rover operated for {days} of {total} sols.",
+    "legendHydrogen": "Hydrated ground"
+  },
+  "hudMars": {
+    "_owner": "Mars step 6c (ui/hudText.ts; types rules/marsTypes.ts MarsHudText). The power line replaces the Moon's sunlight line on Mars, so a rover with no panels never reads 'Solar panel in sunlight'. dust is the dust lesson's own designed signal (game-design.md: the energy income line shows the dust factor), shown once dust has cut solar income by 1% or more; no other line names dust. recording: the weather mast's timed records (Storm log, Night weather), {event} {seconds} {total}.",
+    "solarSun": "Solar panel in sunlight",
+    "solarLowSun": "Solar panel: low Sun",
+    "solarShadow": "Solar panel in shadow",
+    "solarStorm": "Solar panel: storm dims the Sun",
+    "solarNight": "Solar panel: night, no income",
+    "dust": "dust −{loss}%",
+    "steady": "Steady power, day and night",
+    "steadyToo": "steady power",
+    "none": "No power income",
+    "join": " · ",
+    "recording": "Weather mast recording {event}: {seconds} of {total} s",
+    "recordingPaused": "Weather mast recording {event}: {seconds} of {total} s, paused near the lander",
+    "recordEvents": { "duststorm": "the storm", "night": "the night" },
+    "craterWallHint": "Crater rim: photograph the far inner wall ({key})"
   },
   "warnings": {
     "lowEnergy": "Battery low. Recharge in sunlight, or power down with P.",
@@ -70,6 +121,7 @@
   "night": {
     "sunset": "Sunset. Lights on to keep driving, or sleep until dawn.",
     "dawn": "Dawn. The solar panel is charging again.",
+    "dawnNoSolar": "Dawn. Daylight is back on the crater floor.",
     "sleeping": "Asleep until dawn. The rover wakes by itself.",
     "noLights": "No lights: the rover cannot drive at night. Power down with P to sleep until dawn.",
     "lightsOn": "Lights on. The battery is draining."
@@ -78,6 +130,9 @@
     "forecast": "Orbital weather report: a regional dust storm reaches the site in about {stormLeadSols} sol. Solar income will fall to about {stormSolarPercent}%.",
     "started": "Dust storm. Solar income is down to about {stormSolarPercent}%.",
     "cleared": "The dust storm has cleared. Full solar income has returned.",
+    "forecastNoSolar": "Orbital weather report: a regional dust storm reaches the site in about {stormLeadSols} sol. It will dim the sky, but this rover's power does not depend on sunlight.",
+    "startedNoSolar": "Dust storm. The sky is dim, but this rover's power does not depend on sunlight.",
+    "clearedNoSolar": "The dust storm has cleared.",
     "credit": "The weather report is modeled on the daily global weather maps from the MARCI camera on NASA's Mars Reconnaissance Orbiter. Source: NASA Science, Mars Color Imager (MARCI) for Mars Reconnaissance Orbiter (science.nasa.gov/resource/mars-color-imager-marci-for-mars-reconnaissance-orbiter)."
   },
   "debrief": {
@@ -111,7 +166,7 @@
         "title": "Mission 2: Mars",
         "body": [
           "The campaign continues on Mars, on the floor of Jezero crater. The balance carried over from the Moon is {balance}.",
-          "Parts and launch ticket tiers are the same as on the Moon in this version: {tiers}.",
+          "Mars has its own parts. The Moon's carry over, without the laser retroreflector and the seismometer station, which have no work to do on this mission. New are a radioisotope generator and deployable solar arrays, a larger battery, an electric heater, grouser wheels, a robotic arm and a mast for instruments that need them, and four Mars instruments. Launches to Mars have their own ticket tiers: {tiers}.",
           "After the mission, the balance must stay at or above the pass mark for Titan ({nextMinimum}), or the Mars round is restarted. A restart returns the balance, research points and records to their values at the start of the Mars round."
         ]
       },
@@ -124,10 +179,24 @@
         ]
       },
       {
+        "title": "Power through the night",
+        "body": [
+          "The specification sheet has a Night energy line under the battery: what one {nightSeconds} s night costs this rover asleep, and parked awake with its lights on. Choose a battery that holds more than that, with some left for the morning drive.",
+          "Solar power or steady power. The fixed panel and the solar mast earn by day only. The deployable solar arrays earn the most in sunlight, but they are bulky. A radioisotope generator (RTG) earns a steady trickle day and night, through the dust storm too, and its waste heat keeps the rover warm. It is expensive and heavy, and it earns no more in a sol than a fixed panel does on a clear sol.",
+          "Two heaters. Radioisotope heater units keep the rover warm and draw no energy. The electric heater is cheaper and lighter, but it draws on the battery every night, even while the rover sleeps; the Night energy line includes its share. A rover with an RTG needs no other heater."
+        ]
+      },
+      {
         "title": "Dust storm",
         "body": [
           "One regional dust storm reaches the site during the mission. For about {stormSols} sols, solar income falls to about {stormSolarPercent}%.",
           "A larger battery, or a rover that can sleep through the storm, keeps the mission going."
+        ]
+      },
+      {
+        "title": "Arm and mast",
+        "body": [
+          "Mars adds two support slots, Arm and Mast. Support hardware takes no mounting point in the payload bay. The X-ray and organics spectrometers need the robotic arm; the laser spectrometer needs the remote sensing mast, which also widens the camera's viewpoint photo zones. Choose No arm or No mast when no instrument needs them."
         ]
       }
     ],
@@ -164,15 +233,27 @@
         ]
       },
       {
-        "title": "Instruments and map",
+        "title": "Instruments",
         "instrument": {
-          "camera": "Camera: {key} (or its button) takes a photograph. Photographs count toward milestones at the delta-front viewpoint, and away from the lander with the setting Sun low in the frame: face west as the Sun goes down.",
-          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a core sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other."
+          "camera": "Camera: {key} (or its button) takes a photograph. Photographs count toward milestones at the delta-front viewpoint, from a crater's rim facing its far inner wall, of a passing dust devil, and away from the lander with the setting Sun low in the frame: face west as the Sun goes down.",
+          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a core sample. Samples count at several sites, each at least {stationMinDistance} m from the lander and {sampleSpacing} m from each other. Séítah and the foot of the delta hold rock of their own.",
+          "neutron": "Neutron spectrometer: {key} switches it on or off. While it is on, the hydrogen meter reads the ground under the rover. Drive it through Séítah or along the delta front, and watch for ground where the meter reads higher than anywhere else.",
+          "xray": "X-ray spectrometer: stop beside a boulder, then press {key} to read its rock with the arm. Each site has its own rocks; the readout says when a type is new.",
+          "weather": "Weather mast: {key} switches it on or off. Left on more than {stationMinDistance} m from the lander, it records the dust storm, part of a night while the rover is awake, and dust devils passing nearby. It can also forecast the storm before the orbital report.",
+          "radar": "Radar: {key} switches it on or off. Keep it on for long drives more than {stationMinDistance} m from the lander, and drive past young craters, Séítah or the delta front to image their buried layers.",
+          "laser": "Laser spectrometer: when the HUD shows a laser target ahead, a boulder or the delta cliff, stop and press {key} to read it from a distance.",
+          "organics": "Organics spectrometer: stop beside a boulder, then press {key}. The reading is long and uses a lot of energy, and the rover holds still until it ends."
         },
         "body": [
           "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
-          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it.",
-          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing."
+          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it."
+        ]
+      },
+      {
+        "title": "Where to go first",
+        "body": [
+          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing, each with its distance: the nearest lead is drawn larger and listed first under the map.",
+          "Start with the sites near the lander. Rocky area 2, an old crater with boulders on its rim, is about half a kilometer west-northwest. Small young craters lie about 0.6 km to the south, west-southwest and southwest, and Rocky area 1, a boulder field, about 0.7 km south. Séítah, East crater and the delta front are farther out, 1 to 1.5 km."
         ]
       }
     ]
@@ -182,12 +263,53 @@
     "terrainFallback": [
       "Terrain: USGS Mars 2020 Terrain Relative Navigation HiRISE and CTX elevation models of Jezero crater."
     ],
-    "imageryFallback": "USGS Mars 2020 Terrain Relative Navigation HiRISE orthomosaic of Jezero crater."
+    "imageryFallback": "USGS Mars 2020 Terrain Relative Navigation HiRISE orthomosaic of Jezero crater.",
+    "_parts": "Mars step 8: the real basis of the Mars parts, from the sources game-design.md (Mars rover design) and the Mars engineering plan (Real anchors) cite, via research/rover-engineering/02. Labels are the part names. No entry names a lesson: nothing about neutrons on the RTG, nothing about dust on the arrays, nothing about slopes on the arm. The remote sensing mast has no checked source, so it has none.",
+    "partsLabel": "Mars parts",
+    "partEntries": [
+      {
+        "label": "Radioisotope generator (RTG)",
+        "text": "NASA's Curiosity and Perseverance rovers run on a Multi-Mission Radioisotope Thermoelectric Generator, which gives steady power day and night; its waste heat helps keep the rover warm.",
+        "citation": "NASA, Multi-Mission Radioisotope Thermoelectric Generator fact sheet; U.S. Department of Energy, Powering Curiosity: Multi-Mission Radioisotope Thermoelectric Generators",
+        "url": "https://science.nasa.gov/wp-content/uploads/2024/02/mmrtg-factsheet-updated-5-18-20-1.pdf"
+      },
+      {
+        "label": "Deployable solar arrays",
+        "text": "The solar panels of NASA's Spirit and Opportunity rovers folded up for landing and opened out to about 1.3 square meters.",
+        "citation": "NASA JPL, Mars Exploration Rover launch press kit (2003)",
+        "url": "https://www.jpl.nasa.gov/news/press_kits/merlaunch.pdf"
+      },
+      {
+        "label": "Electric heater",
+        "text": "Spirit's and Opportunity's warm electronics box was kept warm by electric heaters, radioisotope heater units and the heat of the electronics themselves.",
+        "citation": "NASA JPL, Mars Exploration Rover launch press kit (2003)",
+        "url": "https://www.jpl.nasa.gov/news/press_kits/merlaunch.pdf"
+      },
+      {
+        "label": "Larger battery pack",
+        "text": "Perseverance carries two lithium-ion batteries of about 43 ampere-hours each.",
+        "citation": "NASA JPL, Mars 2020 Perseverance landing press kit",
+        "url": "https://www.jpl.nasa.gov/news/press_kits/mars_2020/download/mars_2020_landing_press_kit.pdf"
+      },
+      {
+        "label": "Grouser wheels",
+        "text": "Perseverance's aluminum wheels carry 48 grousers, with a skin about twice as thick as Curiosity's.",
+        "citation": "NASA JPL, Mars 2020 Perseverance landing press kit",
+        "url": "https://www.jpl.nasa.gov/news/press_kits/mars_2020/download/mars_2020_landing_press_kit.pdf"
+      },
+      {
+        "label": "Robotic arm",
+        "text": "Perseverance's arm is about 2.1 m long; its turret holds the coring drill, PIXL, SHERLOC and the WATSON camera.",
+        "citation": "NASA JPL, Mars 2020 Perseverance landing press kit",
+        "url": "https://www.jpl.nasa.gov/news/press_kits/mars_2020/download/mars_2020_landing_press_kit.pdf"
+      }
+    ],
+    "generated": "The boulders and the dust devils are generated by the game's own rules, not taken from a data set. The flood boulder, the hydrated ground, the olivine rock at Rocky area 2 and each site's rock types are placed by design, inspired by the findings credited under the milestone facts; they were not observed at these spots. The young craters, Séítah's sand ripples and the delta front are found in the HiRISE terrain and imagery credited above."
   },
   "survey": {
     "_owner": "M5. Lead ids match data/mars/tuning.json survey.leads. Directions and distances are computed, so the text names none.",
-    "_sources": "Delta: Fassett and Head, GRL 32 (2005), doi.org/10.1029/2005GL023456. Seitah: NASA JPL, \"NASA's Perseverance Rover Begins Its First Science Campaign on Mars\" (jpl.nasa.gov/news/nasas-perseverance-rover-begins-its-first-science-campaign-on-mars/). HiRISE scale: uahirise.org/TRA_000823_1720; usgs.gov/news/mars-2020-mission-be-guided-usgs-astrogeology-maps.",
-    "intro": "Orbital data from Mars Reconnaissance Orbiter show three areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
+    "_sources": "Delta: Fassett and Head, GRL 32 (2005), doi.org/10.1029/2005GL023456. Seitah: NASA JPL, \"NASA's Perseverance Rover Begins Its First Science Campaign on Mars\" (jpl.nasa.gov/news/nasas-perseverance-rover-begins-its-first-science-campaign-on-mars/). HiRISE scale: uahirise.org/TRA_000823_1720; usgs.gov/news/mars-2020-mission-be-guided-usgs-astrogeology-maps. Young crater lead: the pipeline's freshness test on the 25 cm HiRISE mosaic (game/tools/mars_sites.py; terrain.json youngCraters young-crater-ene).",
+    "intro": "Orbital data from Mars Reconnaissance Orbiter show four areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
     "leads": {
       "delta": {
         "name": "Delta front",
@@ -200,23 +322,200 @@
       "rocks": {
         "name": "Boulder field",
         "source": "HiRISE images, at about 25 cm per pixel, show a rough patch of boulders on the crater floor."
+      },
+      "youngCrater": {
+        "name": "Young crater",
+        "source": "HiRISE images show a deep crater with a sharp, round rim strewn with blocks: a young crater, not yet worn down like the older craters around it."
       }
     },
     "legendRocky": "Boulder field",
     "legendDelta": "Delta front",
     "legendRegion": "Séítah",
+    "_legend6c": "Mars step 6c: legend entries for the new site kinds (each shows once such a site is on the map) and the distance under a lead arrow's number.",
+    "legendKnob": "Knob",
+    "legendSeitahEdge": "Séítah edge",
+    "legendDeltaFoot": "Delta foot",
+    "legendFloodBoulder": "Flood boulder",
+    "leadDistance": "{distance} km",
     "_siteNames": "Display names for the terrain.json site names, which the pipeline keeps ASCII (shown in the Located notice).",
-    "siteNames": { "Seitah": "Séítah" }
+    "siteNames": { "Seitah": "Séítah" },
+    "_sites": "Mars step 4b: notes and instrument lines for the data/mars/sites.json sites (rules/types.ts TextFile survey; ui/surveyText.ts foundNotice). They replace the Moon's by key (deep merge), so the Moon's fresh rocky area does not reach Mars; its cold-trap and rolled-boulder lines stay merged but Mars has no such sites. Lesson-blind: no line names slope, level, flat, steep, dust, noise, generator or lights (Mars sites plan, Spoiler guard). Notes for the knobs, the Seitah edge, the delta foot and the flood boulder are ready for the survey sites Mars step 5c adds.",
+    "siteNotes": {
+      "rocky-area-1": "a field of blocks thrown out around a small crater.",
+      "rocky-area-2": "an old crater with blocks scattered on its rim.",
+      "east-crater": "a young crater with a sharp rim and fresh blocks."
+    },
+    "siteKindNotes": {
+      "rocky-area": "a field of blocks thrown out by an impact.",
+      "young-crater": "a small crater with blocks around its rim.",
+      "hidden-hydrogen": "ground where the neutron spectrometer reads more hydrogen than anywhere else nearby.",
+      "knob": "a small rocky hill rising from the crater floor.",
+      "seitah-edge": "the edge of Séítah, with rocks on firm ground beside the sand ripples.",
+      "delta-foot": "blocks fallen from the delta lie at its foot.",
+      "flood-boulder": "a large boulder fallen from the delta, unlike the rocks around it."
+    },
+    "siteLines": {
+      "rocky-area": {
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder from a distance.",
+        "radar": "Radar: switch it on and drive past it.",
+        "drill": "Drill: sample the rock around it."
+      },
+      "young-crater": {
+        "camera": "Camera: photograph its far inner wall from the rim.",
+        "drill": "Drill: sample the rock around it.",
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder from a distance.",
+        "radar": "Radar: switch it on and drive past it."
+      },
+      "knob": {
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder from a distance."
+      },
+      "seitah-edge": {
+        "drill": "Drill: sample Séítah.",
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder from a distance.",
+        "radar": "Radar: switch it on and drive past it.",
+        "neutron": "Neutron spectrometer: switch it on and drive near or through it."
+      },
+      "delta-foot": {
+        "drill": "Drill: sample the delta foot.",
+        "xray": "X-ray spectrometer: read the rocks of its boulders.",
+        "organics": "Organics spectrometer: read a boulder.",
+        "laser": "Laser spectrometer: read a boulder, or the delta cliff.",
+        "radar": "Radar: switch it on and drive past it.",
+        "neutron": "Neutron spectrometer: switch it on and drive near or through it."
+      },
+      "flood-boulder": {
+        "xray": "X-ray spectrometer: read its rock.",
+        "camera": "Camera: photograph it after reading it, from within {documentedRange} m."
+      }
+    },
+    "_siteLinesById": "Mars step 6c: a site's own lines, before its kind's. Rocky area 2 is a crater with a rim (pipeline), so Crater wall counts there; Rocky area 1 is a block field and has no camera line.",
+    "siteLinesById": {
+      "rocky-area-2": {
+        "camera": "Camera: photograph its far inner wall from the rim."
+      }
+    },
+    "_features": "Mars step 6c: notes and instrument lines for the terrain features with no sites.json id, by survey site key (rules/survey.ts buildSites: deltaFront, seitah, perseveranceLanding, viewpoints by name). Lesson-blind, like the site lines. Perseverance landed on 18 February 2021; NASA named the site Octavia E. Butler Landing (NASA, March 2021).",
+    "featureNotes": {
+      "seitah": "ridged rock with ripples of sand between the ridges.",
+      "deltaFront": "the front of an ancient river delta, its layers exposed in the cliff.",
+      "Delta viewpoint": "a view across the delta's layers.",
+      "West viewpoint": "a wide view west across the crater.",
+      "perseveranceLanding": "where NASA's Perseverance rover touched down in February 2021."
+    },
+    "featureLines": {
+      "seitah": {
+        "drill": "Drill: sample Séítah's rock.",
+        "radar": "Radar: switch it on and drive across it.",
+        "neutron": "Neutron spectrometer: switch it on and drive through it."
+      },
+      "deltaFront": {
+        "camera": "Camera: photograph its layers from the Delta viewpoint.",
+        "laser": "Laser spectrometer: read the delta cliff from its foot.",
+        "radar": "Radar: switch it on and drive along it.",
+        "neutron": "Neutron spectrometer: switch it on and drive along it."
+      },
+      "Delta viewpoint": {
+        "camera": "Camera: photograph the delta's layers from here."
+      }
+    }
+  },
+  "instrumentText": {
+    "_note": "Mars's own instruments (Mars M4, behavior built in Mars step 4a) and the X-ray's slope refusal. Real facts use the safe wording of the Mars engineering plan's Real anchors (ranges, \"signals consistent with\"); each cites its source. Placeholders: rules/types.ts InstrumentText.",
+    "xray": {
+      "slope": "{name}: the ground here is too steep for the arm ({slope}°). The arm reads on ground up to {max}°.",
+      "fact": "Perseverance's X-ray spectrometer, PIXL, sits on the rover's arm and maps the elements in small patches of rock. In Séítah it found a rock made of packed olivine crystals that settled out of a thick body of cooling magma.",
+      "source": "Liu et al. (2022), An olivine cumulate outcrop on the floor of Jezero crater, Mars, Science 377:1513-1519, doi:10.1126/science.abo2756"
+    },
+    "weather": {
+      "button": "Weather",
+      "controls": "{key} to switch the weather mast on or off ({standby} energy/s while on). It reads pressure and dust in the air.",
+      "notCarried": "This rover carries no weather mast.",
+      "forecast": "Weather mast: the pressure and dust readings point to a regional dust storm reaching the site in about {sols} sols, before the orbital report. Solar income will fall to about {stormSolarPercent}%.",
+      "forecastNoSolar": "Weather mast: the pressure and dust readings point to a regional dust storm reaching the site in about {sols} sols, before the orbital report.",
+      "readout": "Air: {pressure} Pa {pressureTrend} · dust {tau} {dustTrend}",
+      "trend": { "rising": "↑", "falling": "↓", "steady": "→" },
+      "log": "Weather mast: recorded pressure and dust for {seconds} s.",
+      "logStorm": "It forecast the dust storm before the orbital report.",
+      "logNone": "Weather mast: never switched on.",
+      "fact": "NASA's Perseverance rover carries MEDA, a set of weather sensors that measures pressure, temperature, wind, humidity and dust in the air at Jezero crater.",
+      "source": "Rodriguez-Manfredi et al. (2021), The Mars Environmental Dynamics Analyzer, MEDA, Space Science Reviews 217:48, doi:10.1007/s11214-021-00816-9"
+    },
+    "radar": {
+      "button": "Radar",
+      "controls": "{key} to switch the ground-penetrating radar on or off ({standby} energy/s while on). It images the buried layers along the drive.",
+      "notCarried": "This rover carries no ground-penetrating radar.",
+      "strip": "Radar profile: {meters} m",
+      "layers": {
+        "floor": "crater floor",
+        "seitah": "Séítah",
+        "delta": "delta front",
+        "ejecta": "boulder field"
+      },
+      "log": "Ground-penetrating radar: longest unbroken profile {meters} m. Ground profiled: {layers}.",
+      "logNone": "Ground-penetrating radar: never switched on.",
+      "fact": "NASA's Perseverance rover carries RIMFAX, a ground-penetrating radar. Along the rover's drives it imaged rock layers beneath the floor of Jezero crater, some of them inclined rather than flat.",
+      "source": "Hamran et al. (2022), Science Advances, doi:10.1126/sciadv.abp8564; UCLA news release, August 25, 2022 (www.college.ucla.edu/2022/08/25/mars-underground-images-from-perseverance-rover)"
+    },
+    "laser": {
+      "button": "Laser",
+      "controls": "{key} for a laser reading of a boulder or cliff ahead (stop first; {energy} energy each).",
+      "notCarried": "This rover carries no laser spectrometer.",
+      "holding": "Laser reading. The rover holds still.",
+      "noTarget": "{name}: nothing to read ahead. Face a boulder or the delta cliff within {reach} m.",
+      "target": "Laser target: {target}, {distance} m. Press {key} to read it.",
+      "targetBoulder": "boulder",
+      "targetCliff": "delta cliff",
+      "result": "Laser reading: {rock}. {elements}.",
+      "resultCliff": "Laser reading of the delta cliff: fine layers of sedimentary rock.",
+      "logNone": "Laser spectrometer: no readings.",
+      "fact": "The laser of SuperCam, on NASA's Perseverance rover, analyzes rocks up to about 7 m away.",
+      "source": "CNES, SuperCam (supercam.cnes.fr)"
+    },
+    "organics": {
+      "button": "Organics",
+      "controls": "{key} for an organics reading beside a boulder (stop first; {energy} energy over a long reading).",
+      "notCarried": "This rover carries no organics spectrometer.",
+      "holding": "Organics reading. The rover holds still.",
+      "target": "Boulder within reach. Stop and press {key} for an organics reading.",
+      "result": "Organics reading complete. The rock's spectrum is stored for scientists on Earth.",
+      "stopped": "{name}: reading stopped. The battery could not pay for the rest of it.",
+      "log": "Organics spectrometer: finished readings: {count}. Spectra stored.",
+      "logNone": "Organics spectrometer: no readings.",
+      "fact": "SHERLOC, on NASA's Perseverance rover, detected signals consistent with organic molecules in rocks on the floor of Jezero crater. It identified no specific compounds, and sources other than life are not ruled out.",
+      "source": "Sharma et al. (2023), Diverse organic-mineral associations in Jezero crater, Mars, Nature 619:724-732, doi:10.1038/s41586-023-06143-z"
+    }
   },
   "instruments": {
     "_owner": "M5: Mars overrides of the shared instrument notices, plus the sunset notices (rules/marsTypes.ts MarsInstrumentText).",
-    "photoNoZone": "Photograph added to the album. Milestones count only at viewpoints, or with the setting Sun low in view.",
+    "photoNoZone": "Photograph added to the album. Milestones count at viewpoints, from a crater rim toward its far wall, with a dust devil or the setting Sun low in view, or close to a boulder already read.",
     "drillDone": "Rock core collected.",
     "captionDay": "{place}, sol {day}",
     "captionSurface": "Jezero crater floor",
     "captionSunset": "Sunset over Jezero crater",
+    "captionCraterWall": "Inner wall of {name}",
+    "captionDustDevil": "Dust devil crossing the crater floor",
     "sunsetHint": "The setting Sun is low in view. Press {key} to take a photograph.",
     "sunsetTooHigh": "The Sun is in view but still high. The sunset photo counts once it is within {max}° of the horizon.",
     "sunsetTooClose": "The setting Sun is in view, but the rover is only {distance} m from the lander. The sunset photo counts at least {min} m away."
+  },
+  "_rocks": "Mars rock types (Mars step 4b; game-design.md, Mars rock types; ids in rules/marsTypes.ts MARS_ROCK_IDS). Merged with the Moon's names by id; Mars suites name only these. Readouts are plain words, as the X-ray and laser results show them. Sources: Farley et al. 2022 (Maaz, Seitah); Liu et al. 2022 (olivine cumulate); Tice et al. 2022 (carbonate in Seitah's olivine); Scheller et al. 2022 (salts from brines); Mangold et al. 2021 (delta lake layers, flood boulders). Flood conglomerate is placed by design.",
+  "rocks": {
+    "maaz-basalt": { "name": "Máaz basalt", "elements": "Iron-rich lava rock: pyroxene and feldspar" },
+    "salt-veined-basalt": { "name": "Salt-veined basalt", "elements": "Lava rock with salts in its pores, left by water" },
+    "olivine-cumulate": { "name": "Olivine cumulate", "elements": "Packed green olivine crystals, rich in magnesium" },
+    "carbonate-olivine-rock": { "name": "Carbonate-bearing olivine rock", "elements": "Olivine partly changed to carbonate by water" },
+    "lake-mudstone": { "name": "Lake mudstone", "elements": "Fine layers of mud laid down in still water" },
+    "flood-conglomerate": {
+      "name": "Flood conglomerate",
+      "elements": "Rounded pebbles and cobbles cemented together, carried by a flood"
+    }
   }
 }

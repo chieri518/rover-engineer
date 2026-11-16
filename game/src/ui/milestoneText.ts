@@ -1,9 +1,11 @@
 // Wording for milestone pop-ups and the debrief, from text.json and milestones.json.
 import type { Missed, Reached } from '../rules/milestones';
+import { instrumentMilestones, unmetSupport } from '../rules/milestoneLists';
 import type { MissionResult } from '../rules/payout';
-import type { BusSlot, GameData, Milestone, MilestoneCategory, TextFile } from '../rules/types';
+import type { BusSlot, GameData, Instrument, Milestone, MilestoneCategory, Part, TextFile } from '../rules/types';
 import { fill, money } from './dom';
 import type { MilestoneCard } from './hud';
+import { needsText } from './supportText';
 import { missionVars } from './tutorialText';
 
 export function categoryLabel(c: MilestoneCategory, text: TextFile): string {
@@ -35,8 +37,9 @@ function listText(items: (string | number)[], text: TextFile): string {
  * The how-to-earn line with its numbers filled from the trigger and the tuning, so it cannot drift from
  * the rules: {distances} (Odometer), {share} (Mapper), {depth} (Crater descent), {days}, {minDistance}
  * (the near-lander zone: drill samples and stations), {sampleSpacing}, {earthMinDistance}, {sites},
- * {meters} (a transect), {rocks} (Rock collection), {range} (boulder photos), {percent} (the ice signal)
- * and {withinM} (Science station). Undefined for a milestone with no how-to line (Mars).
+ * {meters} (a transect), {rocks} (Rock collection), {range} (boulder photos), {percent} (the ice signal),
+ * {withinM} (Science station), and {sunsetMinDistance} and {sunsetMaxElevation} (Mars's Blue sunset).
+ * Undefined for a milestone with no how-to line (every milestone on both worlds has one since Mars step 8).
  */
 export function milestoneHowTo(m: Milestone, data: GameData): string | undefined {
   if (!m.howTo) return undefined;
@@ -56,6 +59,10 @@ export function milestoneHowTo(m: Milestone, data: GameData): string | undefined
   if (tr.type === 'photo' && tr.target === 'rolled-boulder') vars.range = mt.boulderTrackPhotoRangeM;
   if (tr.type === 'photo' && tr.target === 'read-boulder') vars.range = mt.documentedSampleRangeM;
   if (tr.type === 'deploy' && tr.near) vars.withinM = tr.near.withinM;
+  if (tr.type === 'photo' && tr.target === 'sunset') {
+    vars.sunsetMinDistance = mt.sunsetPhotoMinDistanceM ?? 0;
+    vars.sunsetMaxElevation = mt.sunsetMaxElevationDeg ?? 0;
+  }
   return fill(m.howTo, vars);
 }
 
@@ -90,4 +97,27 @@ export function missedText(missed: Missed, text: TextFile): string {
 export function causeText(result: Pick<MissionResult, 'cause' | 'detail'>, text: TextFile): string {
   if (result.detail === 'rollover') return text.debrief.rollover;
   return result.cause ? text.causes[result.cause] : '';
+}
+
+/**
+ * A desk card's milestone notes (game-design.md M14, Mars step 6d): "Can earn: ..." with the names of the
+ * milestones the instrument can earn in this world (combos on each of their cards), then, where the world's
+ * text has one, a short line on where the instrument is used (design.instrumentWhere; Mars only, so a
+ * first-timer knows roughly where to go; it names places, never a lesson). No rewards, no how-to. An
+ * instrument that earns nothing gets no "Can earn" line (none does today on either world).
+ */
+export function deskCardNotes(instrument: Instrument, data: GameData): string[] {
+  const t = data.text.design;
+  const names = instrumentMilestones(instrument, data.milestones.milestones).map((m) => m.name);
+  const where = t.instrumentWhere?.[instrument];
+  return [
+    ...(names.length ? [fill(t.instrumentMilestones, { names: names.join(t.instrumentMilestonesJoin) })] : []),
+    ...(where ? [where] : []),
+  ];
+}
+
+/** A "Not reached" line: the name, and the support part the rover lacked for it when there is one ("Rock collection · Needs the robotic arm."; Mars M18). */
+export function notReachedLine(m: Milestone, launchParts: readonly Part[], data: GameData): string {
+  const needs = needsText(unmetSupport(m, launchParts), data);
+  return needs ? fill(data.text.debrief.notReachedNeeds, { name: m.name, needs }) : m.name;
 }

@@ -1,7 +1,7 @@
 // Unit tests for the Mars day-and-night rules: night energy, no driving at night without lights,
 // map-wide night cold, and how stepMission applies them (fixed test numbers, not data/mars).
 import { describe, expect, it } from 'vitest';
-import { canDriveMars, lowSunFactor, nightDrainPerSecond } from './energy';
+import { canDriveMars, lowSunFactor, nightDraw } from './energy';
 import { marsFreezeRate, marsSecondsToFreeze } from './cold';
 import { testParts, testTuning, testEvents } from './testData';
 import { selectedParts } from './rover';
@@ -10,7 +10,6 @@ import type { NightTuning, SolTuning } from './marsTypes';
 import type { Build, Part, Tuning } from './types';
 
 const night: NightTuning = {
-  lightsDrainPerSecond: 4,
   awakeDrainPerSecond: 1,
   sleepDrainPerSecond: 0.2,
   driveWithoutLights: false,
@@ -32,11 +31,21 @@ describe('Mars night energy', () => {
     expect(lowSunFactor(5, { ...night, fullSunElevationDeg: 0 })).toBe(1);
   });
 
-  it('drains fast with lights on, slowly asleep, and not at all by day', () => {
-    expect(nightDrainPerSecond(false, false, true, night)).toBe(0);
-    expect(nightDrainPerSecond(true, false, true, night)).toBe(4);
-    expect(nightDrainPerSecond(true, false, false, night)).toBe(1);
-    expect(nightDrainPerSecond(true, true, true, night)).toBe(0.2);
+  it('drains fast with lights on, slowly asleep, and not at all by day (the LED owns the lights draw)', () => {
+    const led = { lightsDraw: 3, heaterDraw: 0 };
+    const at = (isNight: boolean, poweredDown: boolean, hasLights: boolean) => nightDraw(led, { isNight, poweredDown, hasLights }, night);
+    expect(at(false, false, true)).toBe(0);
+    expect(at(true, false, true)).toBe(4);
+    expect(at(true, false, false)).toBe(1);
+    expect(at(true, true, true)).toBe(0.2);
+  });
+
+  it('adds an electric heater draw every second of night, asleep too, and nothing by day', () => {
+    const heated = { lightsDraw: 3, heaterDraw: 1.2 };
+    expect(nightDraw(heated, { isNight: true, poweredDown: true, hasLights: true }, night)).toBeCloseTo(1.4, 9);
+    expect(nightDraw(heated, { isNight: true, poweredDown: false, hasLights: true }, night)).toBeCloseTo(5.2, 9);
+    expect(nightDraw(heated, { isNight: true, poweredDown: false, hasLights: false }, night)).toBeCloseTo(2.2, 9);
+    expect(nightDraw(heated, { isNight: false, poweredDown: false, hasLights: true }, night)).toBe(0);
   });
 
   it('forbids driving at night without lights, and while asleep', () => {
@@ -72,6 +81,7 @@ function partsWith(changes: Partial<Record<Part['slot'], Part['effects']>>): Par
       wheels: { baseSpeed: 3, grip: 0.8, energyPerMeter: 0.2 },
       power: { energyIncome: 1 },
       battery: { batteryCapacity: 400 },
+      lights: { lightRange: 20, lightsDraw: 3 },
       heater: { heat: 2 },
     };
     const e = changes[p.slot] ?? base[p.slot];
