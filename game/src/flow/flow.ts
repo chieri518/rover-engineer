@@ -1,6 +1,6 @@
 // Screen flow: title → design → ticket → landing → mission → debrief, then restart the round (back to
 // design, snapshot restored) or continue to the next world's design screen (Moon → Mars → Titan), and after the
-// last world the end screen (comingSoon, with the campaign summary; T4 turns it into "Campaign complete").
+// last world the end screen ('complete': Campaign complete, with the campaign summary).
 import type { DraftBuild, GameData, MissionId } from '../rules/types';
 import {
   buyRover, finishMission, isPlayable, MISSION_ORDER, newCampaign, normalizeCampaign, restartRound, startRound,
@@ -20,7 +20,7 @@ export interface AlbumPhoto {
   caption: string;
 }
 
-export type ScreenId = 'title' | 'settings' | 'credits' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'comingSoon';
+export type ScreenId = 'title' | 'settings' | 'credits' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'complete';
 
 /** A screen renders into root and may return a cleanup function. */
 export type Screen = (game: Game, root: HTMLElement) => void | (() => void);
@@ -108,12 +108,12 @@ export class Game {
     this.go('design');
   }
 
-  /** From the title or the debrief: on to the campaign's current mission, or the coming-soon screen at the end. */
+  /** From the title or the debrief: on to the campaign's current mission, or Campaign complete at the end. */
   continueCampaign(): void {
     const mission = this.state.mission;
     this.world = worldOfStep(mission);
     this.outcome = null;
-    if (!isPlayable(mission)) return this.go('comingSoon');
+    if (!isPlayable(mission)) return this.go('complete');
     // Any round in progress is rolled back to its snapshot, as on a restart.
     this.setCampaign(startRound(restartRound(this.state)));
     this.go('design');

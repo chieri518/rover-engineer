@@ -233,9 +233,29 @@ export interface TitanTextSections {
 }
 
 export interface TitanCampaignText {
-  newHeading: string; // landing: "New on Titan"
-  newOnTitan: string[]; // landing: one line per new constraint
-  solarNote: string; // design and ticket: "Solar panels: almost no power at Titan"
-  dragonfly: string; // debrief: the real mission flies
-  dragonflySource: string;
+  // The "New on Titan" list is campaign.newOnMars (the shared MarsCampaignText shape the landing screen renders).
+  solarNote: string; // design and ticket: solar panels give almost no power at Titan
+  solarIncome: string; // design: {income} a power part's solar income at Titan (Moon rate x titanPower.solarFactor)
+  factsHeading: string; // landing: "Titan in a few facts"
+  facts: string[]; // landing: one short fact per line
+  selk: string; // landing: {distance} km {direction} from the lander to Selk's center (terrain.json features.selk)
+  dragonflyHeading: string; // debrief: "The real mission flies"
+  dragonfly: string[]; // debrief: paragraphs comparing the rover with Dragonfly
+  compareHeading: string; // debrief: the comparison table
+  colRover: string;
+  colDragonfly: string;
+  /** One row per topic; rover may use {wheels}, {battery}, {capacity}, {heater}, {lights} from the rover flown. */
+  compare: { label: string; rover: string; dragonfly: string }[];
+  lesson: string; // debrief: the right vehicle depends on the world
+  dragonflySource: string; // debrief note and credits
+  complete: TitanCompleteText;
+}
+
+/** The Campaign complete screen's own strings (the rest is the comingSoon section). */
+export interface TitanCompleteText {
+  kicker: string;
+  startEnd: string; // {start} starting budget, {balance} final balance
+  totalRow: string; // campaign table: the total row
+  lessonsHeading: string;
+  lessons: string[]; // one line per world
 }

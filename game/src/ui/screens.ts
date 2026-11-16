@@ -1,8 +1,9 @@
-// Screens: title, settings, landing, debrief and "coming soon" (after the last playable mission:
-// "Titan: coming soon" with the campaign summary). The design, ticket and mission screens have their own files.
+// Screens: title, settings, landing, debrief and Campaign complete (after the last mission, with the
+// campaign summary). The design, ticket and mission screens have their own files.
 import { milestoneStages } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
-import type { HistoryKey } from '../rules/types';
+import type { Build, HistoryKey, Slot } from '../rules/types';
+import type { TitanCampaignText } from '../rules/titanTypes';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
@@ -54,7 +55,8 @@ const landing: Screen = (game, root) => {
   const { data } = game;
   const t = data.text.landing;
   const s = data.text.survey;
-  const mars = data.text.campaign; // Mars only: Perseverance's site, what is new on Mars
+  const mars = data.text.campaign; // after the Moon (Mars, Titan): which mission, what is new on this world
+  const titan = data.text.titanCampaign; // Titan only: a few facts, the distance to Selk
   const vars = missionVars(data);
   // Orbital survey leads: a rough bearing and distance from the lander to each area of interest. The
   // terrain features load here (and stay cached for the mission).
@@ -80,6 +82,17 @@ const landing: Screen = (game, root) => {
         });
         landmark.hidden = false;
       }
+      // Titan: how far Selk crater's center is from the lander (a landmark beyond the haze).
+      const selk = (masks.info.features as { selk?: { centerLocal: { x: number; z: number } } }).selk;
+      if (titan && selk) {
+        const from = masks.info.landing.local;
+        const km = Math.hypot(selk.centerLocal.x - from.x, selk.centerLocal.z - from.z) / 1000;
+        landmark.textContent = fill(titan.selk, {
+          distance: Math.round(km),
+          direction: s.compass[compassPoint(azimuthDeg(from, selk.centerLocal))] ?? '',
+        });
+        landmark.hidden = false;
+      }
     })
     .catch(() => leads.remove());
   root.append(
@@ -87,6 +100,8 @@ const landing: Screen = (game, root) => {
       mars && el('p', { class: 'title-kicker' }, mars.kicker),
       el('h2', {}, t.heading),
       el('p', {}, t.briefing),
+      titan && el('h3', {}, titan.factsHeading),
+      titan && el('ul', { class: 'new-on-world' }, ...titan.facts.map((line) => el('li', {}, line))),
       landmark,
       mars && el('h3', {}, mars.newHeading),
       mars && el('ul', { class: 'new-on-world' }, ...mars.newOnMars.map((line) => el('li', {}, fill(line, vars)))),
@@ -198,6 +213,8 @@ const debrief: Screen = (game, root) => {
       el('h3', {}, t.albumHeading),
       game.album.length ? albumView(game.album) : el('p', { class: 'muted' }, t.noPhotos),
 
+      text.titanCampaign && dragonflyView(text.titanCampaign, game.state.lastBuild, data),
+
       history && el('h3', {}, t.historyHeading),
       history && el('div', { class: 'history' },
         el('p', {}, text.history[historyKey]),
@@ -214,6 +231,36 @@ const debrief: Screen = (game, root) => {
   );
 };
 
+/**
+ * Titan: the real mission flies. Dragonfly compared with the rover just flown, and the lesson that the
+ * right vehicle depends on the world. Shown whatever the mission history setting: it is the Titan lesson.
+ */
+function dragonflyView(t: TitanCampaignText, build: Build | null, data: GameData): HTMLElement {
+  const part = (slot: Slot) => data.parts.parts.find((p) => p.id === build?.[slot]);
+  const vars = {
+    wheels: part('wheels')?.name ?? '',
+    battery: part('battery')?.name ?? '',
+    capacity: part('battery')?.effects.batteryCapacity ?? 0,
+    heater: part('heater')?.name ?? '',
+    lights: part('lights')?.name ?? '',
+  };
+  return el('section', { class: 'dragonfly' },
+    el('h3', {}, t.dragonflyHeading),
+    ...t.dragonfly.map((p) => el('p', {}, p)),
+    el('table', { class: 'tiers dragonfly-compare' },
+      el('thead', {}, el('tr', {},
+        el('td', {}),
+        el('th', { scope: 'col' }, t.colRover),
+        el('th', { scope: 'col' }, t.colDragonfly))),
+      el('tbody', {}, ...t.compare.map((r) => el('tr', {},
+        el('th', { scope: 'row' }, r.label),
+        el('td', {}, fill(r.rover, vars)),
+        el('td', {}, r.dragonfly))))),
+    el('p', { class: 'outcome' }, t.lesson),
+    el('p', { class: 'note' }, t.dragonflySource),
+  );
+}
+
 /** The outcome of a logged mission, in that mission's own words ("Froze during the night" on Mars). */
 function outcomeText(entry: MissionLogEntry, data: GameData): string {
   const { text } = data;
@@ -221,15 +268,23 @@ function outcomeText(entry: MissionLogEntry, data: GameData): string {
   return entry.outcome === 'rollover' ? text.debrief.rollover : text.causes[entry.outcome];
 }
 
-const comingSoon: Screen = (game, root) => {
+/**
+ * Campaign complete (the 'complete' end marker, after a passed Titan round): banked RP, the final
+ * balance, records held, one row per mission and a total, and what each world asked of the rover.
+ */
+const complete: Screen = (game, root) => {
   const { data } = game;
   const { text } = data;
   const t = text.comingSoon;
+  const end = text.titanCampaign?.complete;
   const { state } = game;
   const log = state.log ?? [];
   const cell = (tag: 'th' | 'td', value: string, attrs: Record<string, string> = {}) => el(tag, attrs, value);
+  const total = log.reduce((sum, e) => ({ money: sum.money + e.money, rp: sum.rp + e.rp, milestones: sum.milestones + e.milestones }),
+    { money: 0, rp: 0, milestones: 0 });
   root.append(
     panel(
+      end && el('p', { class: 'title-kicker' }, end.kicker),
       el('h2', {}, t.heading),
       el('p', {}, t.body),
       el('div', { class: 'readout' },
@@ -237,6 +292,8 @@ const comingSoon: Screen = (game, root) => {
         el('div', {}, fill(t.balance, { balance: money(state.balance, text) })),
         el('div', {}, fill(t.records, { n: state.records.length })),
       ),
+      end && el('p', { class: 'muted' },
+        fill(end.startEnd, { start: money(data.tuning.budget.startingBudget, text), balance: money(state.balance, text) })),
       el('h3', {}, t.summaryHeading),
       log.length
         ? el('table', { class: 'tiers campaign-log' },
@@ -251,11 +308,21 @@ const comingSoon: Screen = (game, root) => {
               cell('td', String(e.rp)),
               cell('td', String(e.milestones)),
             );
-          })))
+          })),
+          end && log.length > 1 && el('tfoot', {}, el('tr', { class: 'total' },
+            cell('th', end.totalRow, { scope: 'row' }),
+            cell('td', ''),
+            cell('td', money(total.money, text)),
+            cell('td', String(total.rp)),
+            cell('td', String(total.milestones)),
+          )))
         : el('p', { class: 'muted' }, t.noLog),
+      end && el('h3', {}, end.lessonsHeading),
+      end && el('ul', { class: 'new-on-world' }, ...end.lessons.map((line) => el('li', {}, line))),
       el('p', { class: 'note' }, text.moneyNote),
       el('div', { class: 'actions' },
         el('button', { onclick: () => game.go('title') }, t.backToTitle),
+        el('button', { onclick: () => game.go('credits') }, text.credits.open),
         el('button', { class: 'primary', onclick: () => game.newCampaign() }, text.title.newCampaign),
       ),
     ),
@@ -271,5 +338,5 @@ export const screens: Record<ScreenId, Screen> = {
   landing,
   mission: missionScreen,
   debrief,
-  comingSoon,
+  complete,
 };
