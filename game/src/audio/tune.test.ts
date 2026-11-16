@@ -55,7 +55,7 @@ describe('sound helpers', () => {
   });
 
   it('the motor is silent asleep, idles when still and rises with speed', () => {
-    const base = { speedMps: 0, topSpeedMps: 4, throttle: 0, wheelsOnGround: 4, awake: true, moon: false };
+    const base = { speedMps: 0, topSpeedMps: 4, throttle: 0, wheelsOnGround: 4, awake: true, thinAir: false };
     const idle = motorTone(base, MOTOR);
     const fast = motorTone({ ...base, speedMps: 4, throttle: 1 }, MOTOR);
     expect(motorTone({ ...base, awake: false }, MOTOR).gain).toBe(0);
@@ -69,12 +69,12 @@ describe('sound helpers', () => {
     expect(motorTone({ ...base, speedMps: 40 }, MOTOR).hz).toBe(MOTOR.topHz);
   });
 
-  it('on the Moon the hum is muffled and quieter', () => {
-    const base = { speedMps: 3, topSpeedMps: 4, throttle: 1, wheelsOnGround: 4, awake: true, moon: false };
+  it("in Mars's thin air the hum is duller and quieter", () => {
+    const base = { speedMps: 3, topSpeedMps: 4, throttle: 1, wheelsOnGround: 4, awake: true, thinAir: false };
     const air = motorTone(base, MOTOR);
-    const moon = motorTone({ ...base, moon: true }, MOTOR);
-    expect(moon.cutoffHz).toBeLessThan(air.cutoffHz);
-    expect(moon.gain).toBeLessThan(air.gain);
+    const mars = motorTone({ ...base, thinAir: true }, MOTOR);
+    expect(mars.cutoffHz).toBeLessThan(air.cutoffHz);
+    expect(mars.gain).toBeLessThan(air.gain);
   });
 
   it('warnings sound on their rising edge, once per cooldown', () => {

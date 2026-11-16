@@ -52,18 +52,23 @@ export class MissionSound {
     return performance.now() / 1000;
   }
 
-  /** Each physics step: the motor hum and soft bumps. */
+  /**
+   * Each physics step: the motor hum and soft bumps. The Moon has no air to carry sound, so the rover
+   * is silent there; Mars's thin air makes it quieter and duller (Perseverance's microphones heard its
+   * wheels); Titan's thick air carries it clearly. Damaging impacts still sound, as a warning.
+   */
   drive(d: DriveSound): void {
-    if (this.disposed) return;
+    if (this.disposed || this.world === 'moon') return;
     if (d.awake && d.deltaV > this.impactMinMps * BUMP_SHARE && d.deltaV < this.impactMinMps && this.bump.ready(this.now())) sound.cue('bump');
     if (++this.steps % HUM_EVERY_STEPS !== 0) return;
-    this.hum ??= sound.roverHum(this.world === 'moon');
-    this.hum?.set(motorTone({ ...d, topSpeedMps: this.topSpeedMps, moon: this.world === 'moon' }, MOTOR));
+    const thinAir = this.world === 'mars';
+    this.hum ??= sound.roverHum(thinAir);
+    this.hum?.set(motorTone({ ...d, topSpeedMps: this.topSpeedMps, thinAir }, MOTOR));
   }
 
   /** The hum stops while the mission is paused or over. */
   silence(): void {
-    this.hum?.set(motorTone({ speedMps: 0, topSpeedMps: 1, throttle: 0, wheelsOnGround: 0, awake: false, moon: false }, MOTOR));
+    this.hum?.set(motorTone({ speedMps: 0, topSpeedMps: 1, throttle: 0, wheelsOnGround: 0, awake: false, thinAir: false }, MOTOR));
   }
 
   /** The step's one-off events. */

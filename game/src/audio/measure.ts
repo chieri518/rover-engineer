@@ -25,8 +25,8 @@ export async function measureMix(settings: Pick<Settings, 'musicVolume' | 'effec
     music[id] = await render(seconds, settings, (b) => new MoodVoice(b, id, MOODS[id], 0, 0.5).tick(seconds));
   }
   const loops = {
-    roverTopSpeed: await render(4, settings, (b) => new RoverHum(b, false).set(motorTone({ speedMps: 4, topSpeedMps: 4, throttle: 1, wheelsOnGround: 4, awake: true, moon: false }, MOTOR))),
-    roverMoonTopSpeed: await render(4, settings, (b) => new RoverHum(b, true).set(motorTone({ speedMps: 4, topSpeedMps: 4, throttle: 1, wheelsOnGround: 4, awake: true, moon: true }, MOTOR))),
+    roverTopSpeed: await render(4, settings, (b) => new RoverHum(b, false).set(motorTone({ speedMps: 4, topSpeedMps: 4, throttle: 1, wheelsOnGround: 4, awake: true, thinAir: false }, MOTOR))),
+    roverMarsTopSpeed: await render(4, settings, (b) => new RoverHum(b, true).set(motorTone({ speedMps: 4, topSpeedMps: 4, throttle: 1, wheelsOnGround: 4, awake: true, thinAir: true }, MOTOR))),
     fullStormWind: await render(6, settings, (b) => new Weather(b).set(1, 0)),
     fullRain: await render(6, settings, (b) => new Weather(b).set(0, 1)),
   };

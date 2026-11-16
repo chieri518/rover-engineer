@@ -50,7 +50,7 @@ export interface MotorInput {
   throttle: number; // -1..1
   wheelsOnGround: number; // 0..4
   awake: boolean; // powered up and the mission running (not paused, not ended)
-  moon: boolean;
+  thinAir: boolean;
 }
 
 export interface MotorTone {
@@ -69,8 +69,8 @@ export interface MotorMix {
   speedGain: number;
   effortGain: number;
   cutoffHz: [number, number];
-  moonCutoffHz: [number, number];
-  moonGain: number;
+  thinAirCutoffHz: [number, number];
+  thinAirGain: number;
   crunchGain: number;
   crunchGrainHz: [number, number];
 }
@@ -79,9 +79,9 @@ export interface MotorMix {
 export function motorTone(m: MotorInput, mix: MotorMix): MotorTone {
   const s = m.topSpeedMps > 0 ? Math.min(1, Math.max(0, m.speedMps / m.topSpeedMps)) : 0;
   const effort = m.awake ? Math.min(1, Math.abs(m.throttle)) : 0;
-  const cut = m.moon ? mix.moonCutoffHz : mix.cutoffHz;
+  const cut = m.thinAir ? mix.thinAirCutoffHz : mix.cutoffHz;
   const ground = Math.min(1, Math.max(0, m.wheelsOnGround / 4));
-  const loud = m.moon ? mix.moonGain : 1;
+  const loud = m.thinAir ? mix.thinAirGain : 1;
   return {
     hz: mix.idleHz + (mix.topHz - mix.idleHz) * s + mix.effortHz * effort,
     gain: m.awake ? (mix.idleGain + mix.speedGain * s + mix.effortGain * effort) * loud : 0,

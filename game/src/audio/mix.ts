@@ -107,12 +107,12 @@ export const MOTOR = {
   speedGain: 0.08,
   effortGain: 0.025,
   cutoffHz: [500, 1500] as [number, number], // lowpass at idle and at top speed
-  moonCutoffHz: [220, 420] as [number, number], // no air on the Moon: muffled, felt through the chassis
-  moonGain: 0.75,
+  thinAirCutoffHz: [220, 420] as [number, number], // Mars's thin air: quieter and duller (the Moon has no air, so no rover sound at all)
+  thinAirGain: 0.75,
   whineGain: 0.12, // a faint gear whine at 3x the motor pitch, relative to the hum
   crunchGain: 0.06,
   crunchHz: 1800,
-  moonCrunchHz: 700,
+  thinAirCrunchHz: 700,
   crunchGrainHz: [3, 14] as [number, number], // grit rate at a crawl and at top speed
   smoothing: 0.08, // seconds: how fast the hum follows the speed
 };

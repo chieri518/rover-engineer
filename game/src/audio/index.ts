@@ -132,8 +132,8 @@ export class Sound {
   }
 
   /** The rover's motor hum for a mission, or null without audio yet. */
-  roverHum(moon: boolean): RoverHum | null {
-    return this.buses ? new RoverHum(this.buses, moon) : null;
+  roverHum(thinAir: boolean): RoverHum | null {
+    return this.buses ? new RoverHum(this.buses, thinAir) : null;
   }
 
   /** Weather ambience for a mission, or null without audio yet. */

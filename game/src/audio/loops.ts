@@ -15,7 +15,7 @@ export class RoverHum {
   private readonly noise: AudioBufferSourceNode;
   private readonly out: GainNode;
 
-  constructor(private readonly b: Buses, moon: boolean) {
+  constructor(private readonly b: Buses, thinAir: boolean) {
     const ac = b.ac;
     const t = ac.currentTime;
     this.out = ac.createGain();
@@ -32,7 +32,7 @@ export class RoverHum {
     this.filter = ac.createBiquadFilter();
     this.filter.type = 'lowpass';
     this.filter.Q.value = 1.5;
-    this.filter.frequency.value = (moon ? MOTOR.moonCutoffHz : MOTOR.cutoffHz)[0];
+    this.filter.frequency.value = (thinAir ? MOTOR.thinAirCutoffHz : MOTOR.cutoffHz)[0];
     this.gain = ac.createGain();
     this.gain.gain.value = 0;
     this.osc.connect(this.filter);
@@ -44,8 +44,8 @@ export class RoverHum {
     this.noise.buffer = b.white;
     this.noise.loop = true;
     const nf = ac.createBiquadFilter();
-    nf.type = moon ? 'lowpass' : 'bandpass';
-    nf.frequency.value = moon ? MOTOR.moonCrunchHz : MOTOR.crunchHz;
+    nf.type = thinAir ? 'lowpass' : 'bandpass';
+    nf.frequency.value = thinAir ? MOTOR.thinAirCrunchHz : MOTOR.crunchHz;
     nf.Q.value = 0.9;
     const chop = ac.createGain();
     chop.gain.value = 0.5;
