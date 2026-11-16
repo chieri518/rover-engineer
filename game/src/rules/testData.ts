@@ -57,13 +57,14 @@ export const testTuning: Tuning = {
     slopeSlipFreeDeg: 10, slipPerUphillDeg: 0.01, softRadiusFactor: 1, softFadeFactor: 1.5, movingSpeedMps: 0.5,
   },
   explore: { cellM: 20, revealRadiusM: 250 },
+  boulderTrack: { widthM: 2.8, tileLengthM: 14, stepAlongM: 1, pointsAcross: 7, liftM: 0.04, stopShortM: 2.5, brighten: 1.25, glow: 0.14 },
   minimap: { startSpanM: 700, marginM: 100, maxSpanM: 8000 },
   survey: {
     leads: [{ id: 'boulders', site: 'Rocky area 1' }, { id: 'shadow', site: 'shadowedCrater' }],
     roundKmBelow1: 0.1,
     roundKmAbove1: 0.5,
   },
-  boulders: { perRockyArea: 10, spreadRadiusFactor: 1, minDiameterM: 0.4, maxDiameterM: 2, buriedShare: 0.3, seed: 1 },
+  boulders: { perRockyArea: 10, perYoungCrater: 5, rolledBoulderDiameterM: 3.5, spreadRadiusFactor: 1, minDiameterM: 0.4, maxDiameterM: 2, buriedShare: 0.3, seed: 1 },
   sun: { startAzimuthDeg: 20, degreesPerEarthDay: 12, subsolarLatitudeDeg: -1 },
   earth: { azimuthDeg: 0, elevationDeg: 0.6 },
   rover: {
@@ -91,13 +92,23 @@ export const testTuning: Tuning = {
     photoZoneRadiusM: 60, iceSpotRadiusM: 50, boulderCrossRadiusFactor: 1.1, boulderCrossMinAngleDeg: 90, partialCrossingHint: true,
     craterDescentDepthM: 150, craterDescentExitDepthM: 100, albumMax: 12, photoFrameMargin: 0.85,
     sampleMinDistanceM: 200, sampleSpacingM: 200, earthPhotoMinLit: 0.25, earthPhotoMinDistanceM: 300,
+    coldTrapEdgeM: 25, youngCraterEjectaFactor: 1.5, boulderTrackPhotoRangeM: 80, documentedSampleRangeM: 15, hydrogenZoneRadiusM: 60,
+    photoLosStepM: 2, photoLosClearanceM: 0.3, photoLosTailM: 3,
   },
   instruments: {
     coldSlowdown: 2,
     shadowSunlight: 0.5,
     stationOffsetM: 1.6,
-    neutron: { iceRangeM: 300, coldBackground: 0.2, noiseFloor: 0.05, jitter: 0.03 },
-    xray: { reachM: 3, rocks: [{ id: 'common', weight: 3 }, { id: 'rare', weight: 1 }] },
+    stationConfirmSeconds: 5,
+    neutron: {
+      iceRangeM: 300, coldBackground: 0.2, noiseFloor: 0.05, jitter: 0.03,
+      edgeRampM: 25, anomalyPeak: 0.5, anomalyEdge: 0.4, anomalyRangeM: 150, iceSignalShare: 0.7,
+    },
+    xray: {
+      reachM: 3,
+      rocks: [{ id: 'common', weight: 3 }, { id: 'rare', weight: 1 }],
+      suites: [{ id: 'plain', rocks: [{ id: 'common', weight: 1 }] }, { id: 'mixed', rocks: [{ id: 'common', weight: 1 }, { id: 'rare', weight: 1 }] }],
+    },
     seismometer: { recordWindowSeconds: 20, quietDistanceM: 150 },
   },
 };

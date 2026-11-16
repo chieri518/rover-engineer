@@ -227,7 +227,7 @@ describe('Drilling on Titan', () => {
 });
 
 describe('Titan survey', () => {
-  const sites = buildSites(f as unknown as SurveyFeatures, t, data.text.survey.shadowedCraterName);
+  const sites = buildSites(f as unknown as SurveyFeatures, t, data.text.survey.shadowedCraterName, []);
   const leads = buildLeads(sites, data.tuning.survey);
 
   it('builds all four leads with text', () => {
@@ -240,7 +240,7 @@ describe('Titan survey', () => {
 
   it('Selk is a bearing only: never discovered anywhere on the map, pointing the way terrain.json says', () => {
     const selk = leads.find((l) => l.id === 'selk')!;
-    const fresh = buildSites(f as unknown as SurveyFeatures, t, '');
+    const fresh = buildSites(f as unknown as SurveyFeatures, t, '', []);
     for (const [x, z] of [[-4000, -4000], [4000, -4000], [0, 0], [-4000, 4000], [4000, 4000]] as const) discover(fresh, { x, z }, 250);
     expect(fresh.find((s) => s.key === 'selk')!.discovered).toBe(false);
     const b = leadBearing(selk, { x: L.x, z: L.z }, data.tuning.survey);
@@ -249,7 +249,7 @@ describe('Titan survey', () => {
   });
 
   it('the landing corridor is found at the start; crests and the ejecta field only nearby', () => {
-    const fresh = buildSites(f as unknown as SurveyFeatures, t, '');
+    const fresh = buildSites(f as unknown as SurveyFeatures, t, '', []);
     const found = discover(fresh, { x: L.x, z: L.z }, data.tuning.explore.revealRadiusM).map((s) => s.kind);
     expect(found).toContain('corridor');
     expect(found).not.toContain('dune-crest');

@@ -169,6 +169,7 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
   const historyKeys = HISTORY_KEYS.filter((k) => world === 'moon' || text.historySources[k] !== shared.text.historySources[k]);
   const milestones = data.milestones.milestones.filter((m) => isReal(m.source));
   const landing = text.campaign;
+  const story = text.story.sources.filter(isReal); // the design desk's site context
 
   void fetchJson<TerrainSources>(world, 'terrain.json')
     .then((info) => terrainList(info, c))
@@ -191,6 +192,8 @@ function worldCredits(world: WorldId, data: GameData, shared: GameData, disposed
       el('ul', { class: 'credit-list' }, entry(null, isReal(storm.source) && storm.source, isReal(text.storm?.credit) && text.storm!.credit))),
     rain && (isReal(rain.source) || isReal(text.rain?.credit)) && section(c.spaceWeather,
       el('ul', { class: 'credit-list' }, entry(null, isReal(rain.source) && rain.source, isReal(text.rain?.credit) && text.rain!.credit))),
+    story.length > 0 && section(text.story.sourcesLabel,
+      el('ul', { class: 'credit-list' }, ...story.map((s) => entry(null, s)))),
     landing && isReal(landing.sources) && section(landing.sourcesLabel,
       el('ul', { class: 'credit-list' }, entry(null, landing.sources))),
     (milestones.length > 0 || world === 'moon') && section(c.milestones,

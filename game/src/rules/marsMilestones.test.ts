@@ -220,7 +220,7 @@ describe('Mars survey', () => {
   const sf: SurveyFeatures = {
     rockyAreas: f.rockyAreas, deltaFront: f.deltaFront, seitah: f.seitah, viewpoints: f.viewpoints, perseveranceLanding: f.perseveranceLanding,
   };
-  const sites = buildSites(sf, t, 'unused');
+  const sites = buildSites(sf, t, 'unused', []);
   const leads = buildLeads(sites, data.tuning.survey);
   const landing = { x: L.x, z: L.z };
 
@@ -237,7 +237,7 @@ describe('Mars survey', () => {
   });
 
   it('no lead area is discovered at the landing; all are inside the play area', () => {
-    const fresh = buildSites(sf, t, 'unused');
+    const fresh = buildSites(sf, t, 'unused', []);
     discover(fresh, landing, data.tuning.explore.revealRadiusM);
     const leadKeys = new Set(leads.map((l) => l.site.key));
     expect(fresh.filter((s) => s.discovered && leadKeys.has(s.key))).toEqual([]);
@@ -257,7 +257,7 @@ describe('Mars survey', () => {
   });
 
   it('Perseverance\'s landing site is a landmark, found once the reveal circle reaches it', () => {
-    const fresh = buildSites(sf, t, 'unused');
+    const fresh = buildSites(sf, t, 'unused', []);
     const p = f.perseveranceLanding.local;
     const r = data.tuning.explore.revealRadiusM;
     expect(discover(fresh, { x: p.x + r + 5, z: p.z }, r).map((s) => s.kind)).not.toContain('landmark');

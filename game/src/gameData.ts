@@ -11,11 +11,12 @@ import marsEvents from '../data/mars/events.json';
 import marsMilestones from '../data/mars/milestones.json';
 import marsText from '../data/mars/text.json';
 import relationships from '../data/relationships.json';
+import sites from '../data/sites.json';
 import titanTuning from '../data/titan/tuning.json';
 import titanEvents from '../data/titan/events.json';
 import titanMilestones from '../data/titan/milestones.json';
 import titanText from '../data/titan/text.json';
-import type { GameData, PartsFile, TiersFile, MilestonesFile, Tuning, EventsFile, TextFile, RelationshipsFile } from './rules/types';
+import type { GameData, PartsFile, TiersFile, MilestonesFile, Tuning, EventsFile, TextFile, RelationshipsFile, SitesFile } from './rules/types';
 import { validateGameData } from './rules/validate';
 import { deepMerge, withPartText } from './rules/merge';
 import type { WorldId } from './worlds';
@@ -28,13 +29,17 @@ const shared: GameData = {
   events: events as unknown as EventsFile,
   text: text as TextFile,
   relationships: relationships as RelationshipsFile,
+  sites: sites as SitesFile,
 };
 
-/** Per-world overlays. Parts, ticket tiers and relationships are shared (the demo reuses the Moon's); text.partText rewords parts per world. */
+/**
+ * Per-world overlays. Parts, ticket tiers and relationships are shared (the demo reuses the Moon's); text.partText rewords parts per world.
+ * sites.json is the Moon's: Mars and Titan have none of its sites.
+ */
 const overlays: Record<WorldId, Partial<Record<keyof GameData, unknown>>> = {
   moon: {},
-  mars: { tuning: marsTuning, events: marsEvents, milestones: marsMilestones, text: marsText },
-  titan: { tuning: titanTuning, events: titanEvents, milestones: titanMilestones, text: titanText },
+  mars: { tuning: marsTuning, events: marsEvents, milestones: marsMilestones, text: marsText, sites: { sites: [] } },
+  titan: { tuning: titanTuning, events: titanEvents, milestones: titanMilestones, text: titanText, sites: { sites: [] } },
 };
 
 /** The world's data: shared data with the world's overlay merged over it. */
@@ -49,6 +54,7 @@ export function worldGameData(world: WorldId): GameData {
     events: deepMerge(shared.events, o.events),
     text,
     relationships: shared.relationships,
+    sites: (o.sites as SitesFile | undefined) ?? shared.sites, // replaced whole: the Moon's _about note does not reach Mars
   };
 }
 

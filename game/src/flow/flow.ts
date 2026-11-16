@@ -1,4 +1,4 @@
-// Screen flow: title → design → ticket → landing → mission → debrief, then restart the round (back to
+// Screen flow: title → (new campaign: the Welcome to REL intro) → design → ticket → landing → mission → debrief, then restart the round (back to
 // design, snapshot restored) or continue to the next world's design screen (Moon → Mars → Titan), and after the
 // last world the end screen ('complete': Campaign complete, with the campaign summary).
 import type { DraftBuild, GameData, MissionId } from '../rules/types';
@@ -22,7 +22,7 @@ export interface AlbumPhoto {
   caption: string;
 }
 
-export type ScreenId = 'title' | 'settings' | 'credits' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'complete';
+export type ScreenId = 'title' | 'settings' | 'credits' | 'intro' | 'design' | 'ticket' | 'landing' | 'mission' | 'debrief' | 'complete';
 
 /** A screen renders into root and may return a cleanup function. */
 export type Screen = (game: Game, root: HTMLElement) => void | (() => void);
@@ -126,7 +126,7 @@ export class Game {
     this.setCampaign(startRound(newCampaign(this.data.tuning)));
     this.build = {};
     this.outcome = null;
-    this.go('design');
+    this.go('intro'); // the Welcome to REL intro, then the design desk (Continue and restarts skip it)
   }
 
   /** From the title or the debrief: on to the campaign's current mission, or Campaign complete at the end. */

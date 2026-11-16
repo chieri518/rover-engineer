@@ -10,6 +10,7 @@ Usage (from game/tools/, inside the venv):
     python build_terrain.py                      # download if needed, build
     python build_terrain.py --preview out.png    # also render a preview image
     python build_terrain.py --center -41000 17000  # force the window center (polar-stereo m)
+    python build_terrain.py --site-features-only # only refresh the Moon sites lists in terrain.json
 
 Everything is offline; the game never calls these URLs.
 """
@@ -34,6 +35,9 @@ from rasterio.warp import Resampling, reproject
 from rasterio.windows import from_bounds
 from scipy import ndimage
 from skimage.graph import MCP_Geometric
+
+import moon_sites
+from measure_legs import Grid, Terrain as HeightTerrain
 
 HERE = Path(__file__).resolve().parent
 RAW = HERE / "raw"
@@ -198,6 +202,9 @@ def main():
                     help="force window center (polar-stereographic meters)")
     ap.add_argument("--preview", type=Path, help="write a preview PNG here (needs matplotlib)")
     ap.add_argument("--out", type=Path, default=OUT)
+    ap.add_argument("--site-features-only", action="store_true",
+                    help="compute everything, but only write the Moon sites feature lists (moon_sites.py) into "
+                         "the existing terrain.json in --out; no other file or value changes")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
@@ -568,6 +575,79 @@ def main():
             if math.hypot(X - lx_, Y - ly_) < 40000:
                 far_peaks[-1]["likelyName"] = nm
 
+    # ---- 4b. Moon sites features (moon_sites.py; added for review by the pipeline owner) --------------
+    def point5(x, z, name, **extra):
+        r, c = int(round(z / PLAY_RES)) + half_px, int(round(x / PLAY_RES)) + half_px
+        x, z = (c - half_px) * PLAY_RES, (r - half_px) * PLAY_RES
+        X, Y = xz_to_ps(x, z)
+        f = {"name": name, "local": {"x": x, "z": z, "y": round(float(ht_w[r, c]), 2)},
+             "polarStereo": {"X": round(X, 1), "Y": round(Y, 1)},
+             "latLon": [round(v, 5) if i == 0 else round(v, 4) for i, v in enumerate(ps_to_latlon(X, Y))],
+             "elevation_m": round(float(z_w[r, c]), 1),
+             "distanceFromLanding_m": round(math.hypot(x - land_x, z - land_z)),
+             "slope_deg": round(float(sl_w[r, c]), 1),
+             "avgIllumination": None if np.isnan(ill_w[r, c]) else round(float(ill_w[r, c]), 3),
+             "earthVisibility": None if np.isnan(ear_w[r, c]) else round(float(ear_w[r, c]), 3)}
+        f.update(extra)
+        return f
+
+    def drive_near(x, z, radius, mask=None):
+        """Drive length from the landing (20 m routes) to a reachable cell within radius of (x, z): the
+        cheapest one inside mask (5 m grid) if given, else the nearest. Returns (length_m, (x, z))."""
+        cx, cz = (xx20 * k + k // 2 - half_px) * PLAY_RES, (yy20 * k + k // 2 - half_px) * PLAY_RES
+        cand = reach & (np.hypot(cx - x, cz - z) <= radius)
+        if mask is not None:
+            cand &= mask[: n20 * k, : n20 * k].reshape(n20, k, n20, k).any(axis=(1, 3))
+        if not cand.any():
+            return None, None
+        key = cum if mask is not None else np.hypot(cx - x, cz - z)
+        i = np.unravel_index(np.argmin(np.where(cand, key, np.inf)), cand.shape)
+        dl, _ = drive(i[0] * k + k // 2, i[1] * k + k // 2)
+        return dl, (int(cx[i]), int(cz[i]))
+
+    with rasterio.open(p["psr"]) as d:
+        b = (X0 - PLAY_HALF, Y0 - PLAY_HALF, X0 + PLAY_HALF, Y0 + PLAY_HALF)
+        pw = from_bounds(*b, transform=d.transform).round_offsets().round_lengths()
+        psr_nat = d.read(1, window=pw).astype(np.float64) * d.scales[0] + d.offsets[0]
+        pwt = d.window_transform(pw)
+    pr_, pc_ = np.nonzero(psr_nat >= 0.5)
+    nat_x = pwt.c + (pc_ + 0.5) * pwt.a - X0
+    nat_z = Y0 - (pwt.f + (pr_ + 0.5) * pwt.e)
+
+    def psr_native(mask):
+        """Native 60 m PSR pixels (fraction >= 0.5) whose centers fall inside a 5 m mask."""
+        ci = np.round(nat_x / PLAY_RES).astype(int) + half_px
+        ri = np.round(nat_z / PLAY_RES).astype(int) + half_px
+        ok = (ci >= 0) & (ci < N) & (ri >= 0) & (ri < N)
+        return int(mask[ri[ok], ci[ok]].sum())
+
+    albedo_path = args.out / "albedo.jpg"
+    albedo = (np.array(Image.open(albedo_path).convert("L")).astype(np.float64)
+              if albedo_path.exists() else None)
+    if albedo is not None and albedo.shape != ht_w.shape:
+        albedo = None
+    heights = HeightTerrain(Grid(ht_w, PLAY_RES), Grid(near_t, NEAR_RES), Grid(far_t, FAR_RES), psr_w)
+    # NaN (no data in a LOLA map) stays NaN: moon_sites skips it instead of reading it as dark or unshadowed.
+    win = moon_sites.Window(ht_w, sl_w, psr_w, ill_w, ear_w, albedo,
+                            (land_x, land_z), point5, drive_near, heights, ps_to_latlon(X0, Y0),
+                            {"rockyAreas": rocky, "shadowedCrater": shadow})
+    site_feats, site_notes = moon_sites.site_features(win, psr_native)
+    log("Moon sites: " + ", ".join(f"{len(v)} {k}" for k, v in site_feats.items())
+        + ("" if albedo is not None else " (no albedo.jpg yet: ejecta brightness skipped)"))
+
+    if args.site_features_only:
+        path = args.out / "terrain.json"
+        meta = json.loads(path.read_text())
+        meta["features"].update(site_feats)
+        meta["features"]["notes"] = [n for n in meta["features"]["notes"] if "moon_sites.py" not in n
+                                     and not n.startswith(("coldTraps:", "youngCraters:", "boulderTrackCandidates:",
+                                                           "lowLightPatches:"))] + site_notes
+        with open(path, "w") as f:
+            json.dump(meta, f, indent=2, default=lambda v: v.item() if hasattr(v, "item") else str(v))
+            f.write("\n")
+        log(f"updated the Moon sites lists in {path}; nothing else written")
+        return
+
     # ---- 5. Write images ------------------------------------------------------
     o = args.out
     hlo, hhi = write_png16(o / "heightmap.png", ht_w)
@@ -674,6 +754,7 @@ def main():
             "shadowedCrater": shadow,
             "craterDescent": descent,
             "deGerlacheFloorPSR": dg_psr,
+            **site_feats,
             "notes": [
                 "Drive distances are least-cost routes on a 20 m grid avoiding slopes over "
                 f"{DRIVE_MAX_SLOPE:.0f} deg; straight-line distances are also given.",
@@ -688,6 +769,7 @@ def main():
                 f"The de Gerlache crater floor PSR is NOT inside the play area: its nearest point is "
                 f"{dg_psr['distanceFromLanding_m'] / 1000:.1f} km from the landing point. The shadowed crater used "
                 "here is a smaller real PSR on the rim's outer flank.",
+                *site_notes,
             ],
         },
         "horizonFromLanding": {

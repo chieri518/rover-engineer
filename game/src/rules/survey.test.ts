@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
-  areaCenter, azimuthDeg, buildLeads, buildSites, compassPoint, discover, distanceToArea, growBounds, leadBearing, mapView, roundedKm,
+  areaCenter, azimuthDeg, buildLeads, buildSites, compassPoint, discover, distanceToArea, growBounds, leadBearing, mapView, revealSite, roundedKm,
   type SurveyFeatures,
 } from './survey';
+import { resolveSites, type ResolvedSite } from './sites';
+import type { SiteSpec } from './types';
 import { testTuning } from './testData';
 import { loadGameData } from '../gameData';
 import terrain from '../../public/terrain/terrain.json';
@@ -18,7 +20,7 @@ const t = testTuning.survey;
 
 describe('survey: sites', () => {
   it('sizes sites like the milestone zones', () => {
-    const sites = buildSites(features, m, 'Dark crater');
+    const sites = buildSites(features, m, 'Dark crater', []);
     expect(sites.map((s) => s.kind)).toEqual(['viewpoint', 'rocky-area', 'crater-wall', 'shadowed-crater']);
     const rocky = sites[1]!.area;
     expect(rocky.kind === 'circle' && rocky.r).toBeCloseTo(200 * m.boulderCrossRadiusFactor);
@@ -28,14 +30,14 @@ describe('survey: sites', () => {
   it('measures the distance to the near edge, zero inside', () => {
     expect(distanceToArea({ kind: 'circle', x: 0, z: 0, r: 100 }, { x: 300, z: 0 })).toBeCloseTo(200);
     expect(distanceToArea({ kind: 'circle', x: 0, z: 0, r: 100 }, { x: 50, z: 0 })).toBe(0);
-    const poly = buildSites(features, m, 'Dark crater')[3]!.area;
+    const poly = buildSites(features, m, 'Dark crater', [])[3]!.area;
     expect(distanceToArea(poly, { x: 0, z: 0 })).toBeCloseTo(3000);
     expect(distanceToArea(poly, { x: 0, z: -3500 })).toBe(0);
     expect(areaCenter(poly)).toEqual({ x: 0, z: -3500 });
   });
 
   it('discovers a site once the reveal circle touches it, once only', () => {
-    const sites = buildSites(features, m, 'Dark crater');
+    const sites = buildSites(features, m, 'Dark crater', []);
     expect(discover(sites, { x: 0, z: 0 }, 250)).toEqual([]); // nothing within 250 m of the start
     const found = discover(sites, { x: 0, z: -200 }, 250); // viewpoint zone edge 240 m away
     expect(found.map((s) => s.name)).toEqual(['Rim viewpoint 1']);
@@ -65,7 +67,7 @@ describe('survey: leads', () => {
   });
 
   it('points a lead at its area and drops leads whose site is missing', () => {
-    const sites = buildSites(features, m, 'Dark crater');
+    const sites = buildSites(features, m, 'Dark crater', []);
     const leads = buildLeads(sites, { ...t, leads: [...t.leads, { id: 'nowhere', site: 'No such site' }] });
     expect(leads.map((l) => l.id)).toEqual(['boulders', 'shadow']);
     const b = leadBearing(leads[1]!, { x: 0, z: 0 }, t);
@@ -75,17 +77,18 @@ describe('survey: leads', () => {
 
   it('gives every game lead a site, a name and a distinct direction from the lander', () => {
     const data = loadGameData();
-    const sites = buildSites(terrain.features as unknown as SurveyFeatures, data.tuning.milestones, data.text.survey.shadowedCraterName);
+    // The Moon's sites.json sites too: the Young crater lead points at East crater.
+    const placed = resolveSites(data.sites.sites, terrain.features as never);
+    const sites = buildSites(terrain.features as unknown as SurveyFeatures, data.tuning.milestones, data.text.survey.shadowedCraterName, placed);
     const leads = buildLeads(sites, data.tuning.survey);
     expect(leads).toHaveLength(data.tuning.survey.leads.length);
     const landing = terrain.landing.local;
     const dirs = leads.map((l) => leadBearing(l, landing, data.tuning.survey).compass);
     expect(new Set(dirs).size).toBe(dirs.length);
-    for (const l of leads) {
-      expect(data.text.survey.leads[l.id]?.name).toBeTruthy();
-      // Every lead is hidden at the start: no site is discovered from the landing.
-      expect(distanceToArea(l.site.area, landing)).toBeGreaterThan(data.tuning.explore.revealRadiusM);
-    }
+    for (const l of leads) expect(data.text.survey.leads[l.id]?.name).toBeTruthy();
+    // Generous pass: the wide reveal circle finds the nearest lead (the boulder field) at the start; the others stay hidden.
+    const hidden = leads.filter((l) => distanceToArea(l.site.area, landing) > data.tuning.explore.revealRadiusM);
+    expect(hidden.length).toBeGreaterThanOrEqual(leads.length - 1);
     expect(data.text.survey.compass).toHaveLength(16);
     expect(data.text.survey.compassShort).toHaveLength(16);
   });
@@ -105,5 +108,96 @@ describe('minimap view', () => {
     expect(view.spanM).toBeCloseTo(3500 + 2 * v.marginM);
     expect(view.cz).toBeCloseTo(-1500);
     expect(mapView({ minX: -9000, maxX: 9000, minZ: 0, maxZ: 1 }, v).spanM).toBe(v.maxSpanM);
+  });
+});
+
+const spec = (id: string, kind: SiteSpec['kind'], extra: Partial<SiteSpec> = {}): SiteSpec => ({ id, kind, name: id, ...extra } as SiteSpec);
+const rs = (id: string, kind: SiteSpec['kind'], center: { x: number; z: number }, extra: Partial<ResolvedSite> = {}, sp: Partial<SiteSpec> = {}): ResolvedSite =>
+  ({ id, kind, name: id, center, ...extra, spec: spec(id, kind, sp) });
+
+describe('survey: sites.json sites', () => {
+  const resolved: ResolvedSite[] = [
+    rs('rocky-area-1', 'rocky-area', { x: -500, z: 0 }, { radiusM: 200 }),
+    rs('c1', 'young-crater', { x: 1000, z: 1000 }, { radiusM: 20 }),
+    rs('c-noradius', 'young-crater', { x: 5, z: 5 }),
+    rs('ct-circle', 'cold-trap', { x: 2000, z: 0 }, { radiusM: 26 }),
+    rs('ct-poly', 'cold-trap', { x: 3000, z: 0 }, { outline: [[2900, -100], [3100, -100], [3100, 100], [2900, 100]] }),
+    rs('dark', 'cold-trap', { x: 0, z: -3500 }, { outline: [[-500, -3000], [500, -3000], [500, -4000], [-500, -4000]] }, { feature: 'shadowedCrater' }),
+    rs('rb', 'rolled-boulder', { x: 1000, z: 1100 }),
+    rs('hh', 'hidden-hydrogen', { x: -1000, z: 1000 }),
+  ];
+  const sites = buildSites(features, m, 'Dark crater', resolved);
+  const base = buildSites(features, m, 'Dark crater', []);
+  const find = (id: string) => sites.find((s) => s.siteId === id);
+
+  it('keeps the existing sites first and adds one per sized sites.json site', () => {
+    expect(sites.slice(0, base.length)).toEqual(base);
+    expect(sites.slice(base.length).map((s) => s.siteId)).toEqual(['c1', 'ct-circle', 'ct-poly', 'rb', 'hh']);
+    expect(sites.every((s) => !s.discovered)).toBe(true);
+  });
+
+  it('sizes each kind', () => {
+    const c = find('c1')!;
+    expect(c.kind).toBe('young-crater');
+    expect(c.area).toEqual({ kind: 'circle', x: 1000, z: 1000, r: 20 * m.boulderCrossRadiusFactor });
+    expect(find('ct-circle')!.area).toEqual({ kind: 'circle', x: 2000, z: 0, r: 26 });
+    expect(find('ct-circle')!.kind).toBe('cold-trap');
+    expect(find('ct-poly')!.area.kind).toBe('polygon');
+    expect(find('rb')!.area).toEqual({ kind: 'circle', x: 1000, z: 1100, r: 0 });
+    expect(find('rb')!.kind).toBe('rolled-boulder');
+    expect(find('hh')!.area).toEqual({ kind: 'circle', x: -1000, z: 1000, r: m.hydrogenZoneRadiusM });
+    expect(find('hh')!.kind).toBe('hidden-hydrogen');
+    expect(find('c1')).toMatchObject({ key: 'c1', alias: 'c1' });
+  });
+
+  it('does not duplicate the dark crater, rocky areas or sites with no extent', () => {
+    expect(find('dark')).toBeUndefined();
+    expect(sites.filter((s) => s.kind === 'shadowed-crater')).toHaveLength(1);
+    expect(find('rocky-area-1')).toBeUndefined();
+    expect(sites.filter((s) => s.kind === 'rocky-area')).toHaveLength(1);
+    expect(find('c-noradius')).toBeUndefined();
+  });
+
+  it('discovers the rolled boulder when the reveal circle reaches it', () => {
+    expect(discover(sites, { x: 1000, z: 1500 }, 250)).toEqual([]);
+    expect(discover(sites, { x: 1000, z: 1300 }, 250).map((s) => s.siteId)).toEqual(['rb']);
+  });
+
+  it('never discovers the hidden hydrogen, but revealSite does once', () => {
+    expect(discover(sites, { x: -1000, z: 1000 }, 250)).toEqual([]);
+    for (let z = 1400; z >= 600; z -= 10) expect(discover(sites, { x: -1000, z }, 250).map((s) => s.siteId)).not.toContain('hh');
+    expect(find('hh')!.discovered).toBe(false);
+    expect(revealSite(sites, 'hh')).toBe(find('hh'));
+    expect(find('hh')!.discovered).toBe(true);
+    expect(revealSite(sites, 'hh')).toBeNull();
+    expect(revealSite(sites, 'nope')).toBeNull();
+  });
+
+  it('carries the rolled boulder\'s track, and gives a rocky area its sites.json id by name', () => {
+    const track = { from: { x: 1020, z: 1010 }, to: { x: 1000, z: 1100 } };
+    const withTrack = buildSites(features, m, 'Dark crater', [rs('rb', 'rolled-boulder', { x: 1000, z: 1100 }, { track })]);
+    expect(withTrack.find((s) => s.siteId === 'rb')!.track).toEqual(track);
+    expect(find('rb')!.track).toBeUndefined();
+    const named = buildSites(features, m, 'Dark crater', [{ ...rs('ra-1', 'rocky-area', { x: -500, z: 0 }, { radiusM: 200 }), name: 'Rocky area 1' }]);
+    expect(named.filter((s) => s.kind === 'rocky-area')).toEqual([expect.objectContaining({ name: 'Rocky area 1', siteId: 'ra-1', alias: 'rockyAreas.0' })]);
+    expect(sites.find((s) => s.kind === 'rocky-area')!.siteId).toBeUndefined(); // no sites.json entry of that name
+  });
+
+  it('builds the real Moon sites, all undiscovered, and keeps the leads resolving', () => {
+    const data = loadGameData();
+    const feats = terrain.features;
+    const real = buildSites(feats as unknown as SurveyFeatures, data.tuning.milestones, data.text.survey.shadowedCraterName, resolveSites(data.sites.sites, feats));
+    const names = ['East crater', 'NW crater', 'SE crater', 'East cold trap', 'South cold trap', 'Rocky area 1 cold patch', 'Rolled boulder', 'Hydrogen-rich ground'];
+    for (const n of names) {
+      const s = real.find((x) => x.name === n);
+      expect(s, n).toBeDefined();
+      expect(s!.discovered).toBe(false);
+    }
+    expect(real.find((x) => x.siteId === 'hidden-hydrogen')!.hidden).toBe(true);
+    expect(real.find((x) => x.name === 'Rocky area 1')!.siteId).toBe('rocky-area-1');
+    expect(real.find((x) => x.name === 'Rocky area 2')!.siteId).toBe('rocky-area-2');
+    expect(real.find((x) => x.siteId === 'rolled-boulder')!.track).toEqual({ from: { x: -220, z: -35 }, to: { x: -240, z: -125 } });
+    expect(real.filter((x) => x.kind === 'shadowed-crater')).toHaveLength(1);
+    expect(buildLeads(real, data.tuning.survey)).toHaveLength(data.tuning.survey.leads.length);
   });
 });

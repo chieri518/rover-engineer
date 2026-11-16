@@ -1,19 +1,24 @@
 // Screens: title, settings, landing, debrief and Campaign complete (after the last mission, with the
 // campaign summary). The design, ticket and mission screens have their own files.
-import { milestoneStages } from '../rules/payout';
+import { milestoneStages, type EarnedMilestone } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
-import type { Build, BusSlot, GameData, HistoryKey, Instrument, TextFile } from '../rules/types';
+import type { Build, BusSlot, GameData, HistoryKey, Instrument, Milestone } from '../rules/types';
 import type { TitanCampaignText } from '../rules/titanTypes';
+import { earnedWith, groupMilestones, notReached, rockTypeTally, stagesEarned, type MilestoneGroupKey } from '../rules/milestoneLists';
+import { instrumentsOf } from '../rules/payload';
+import { isCompleteBuild, selectedParts } from '../rules/rover';
 import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
 import type { InstrumentLog } from '../rules/instruments';
 import { categoryLabel, causeText, milestoneSummary } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
 import { azimuthDeg, buildLeads, buildSites, compassPoint } from '../rules/survey';
+import { resolveSites, type SiteFeatures } from '../rules/sites';
 import { isPlayable, nextMission } from '../rules/campaign';
 import { briefingLines, kmText } from './surveyText';
 import { missionVars } from './tutorialText';
 import { creditsScreen } from './creditsScreen';
+import { introScreen } from './introScreen';
 import { renderDashboard } from './dashboard';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
@@ -58,7 +63,7 @@ const landing: Screen = (game, root) => {
   const { data } = game;
   const t = data.text.landing;
   const s = data.text.survey;
-  const mars = data.text.campaign; // after the Moon (Mars, Titan): which mission, what is new on this world
+  const mars = data.text.campaign; // after the Moon (Mars, Titan): what is new on this world
   const titan = data.text.titanCampaign; // Titan only: a few facts, the distance to Selk
   const vars = missionVars(data);
   // Orbital survey leads: a rough bearing and distance from the lander to each area of interest. The
@@ -69,8 +74,9 @@ const landing: Screen = (game, root) => {
   const landmark = el('p', { hidden: true });
   void import('../world/terrainMasks')
     .then(async ({ loadTerrainMasks }) => {
-      const masks = await loadTerrainMasks(data.tuning, game.world);
-      const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName);
+      const masks = await loadTerrainMasks(data.tuning, game.world, data.sites.sites);
+      const placed = resolveSites(data.sites.sites, masks.info.features as SiteFeatures); // the Moon's sites.json sites (none on Mars)
+      const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName, placed);
       const lines = briefingLines(buildLeads(sites, data.tuning.survey), masks.info.landing.local, data);
       leads.replaceChildren(...lines.map((l) => el('li', {}, l)));
       if (lines.length === 0) for (const n of [leadsHeading, leadsIntro, leads]) n.remove(); // no leads for this world yet
@@ -100,9 +106,10 @@ const landing: Screen = (game, root) => {
     .catch(() => leads.remove());
   root.append(
     panel(
-      mars && el('p', { class: 'title-kicker' }, mars.kicker),
+      el('p', { class: 'title-kicker' }, data.text.story.kicker),
       el('h2', {}, t.heading),
       el('p', {}, t.briefing),
+      el('p', {}, fill(data.text.mission.briefing, vars)),
       titan && el('h3', {}, titan.factsHeading),
       titan && el('ul', { class: 'new-on-world' }, ...titan.facts.map((line) => el('li', {}, line))),
       landmark,
@@ -190,28 +197,50 @@ function albumView(photos: AlbumPhoto[]): HTMLElement {
   );
 }
 
-/** The debrief's instrument log: one line per carried new instrument (an X-ray line per rock read), with plain wording when unused. */
-function instrumentLogLines(log: InstrumentLog | null, text: TextFile): string[] {
+/**
+ * The debrief's instrument log: one line per carried new instrument (an X-ray line per rock read), with
+ * plain wording when unused. The X-ray adds the rock types read out of all the suites' types (when the
+ * world has a rock-collection milestone and a rock was read), and each instrument's last line names the
+ * milestones earned that need it ("Earned: ...").
+ */
+function instrumentLogLines(log: InstrumentLog | null, data: GameData, earned: readonly EarnedMilestone[]): string[] {
   if (!log) return [];
+  const { text } = data;
   const t = text.debrief;
   const has = (i: Instrument) => log.carried.includes(i);
   const lines: string[] = [];
-  // One line per carried new instrument; nothing for instruments not carried.
+  // One group of lines per carried new instrument; nothing for instruments not carried.
+  const add = (inst: Instrument, own: string[]) => {
+    const names = earnedWith(inst, data.milestones.milestones, earned).map((m) => m.name);
+    if (names.length > 0 && own.length > 0) own[own.length - 1] += ` ${fill(t.logEarned, { names: names.join(t.logEarnedJoin) })}`;
+    lines.push(...own);
+  };
   if (has('neutron')) {
-    lines.push(log.hydrogenPeak === null ? t.logHydrogenNone : fill(t.logHydrogen, { percent: Math.round(log.hydrogenPeak * 100) }));
+    add('neutron', [log.hydrogenPeak === null ? t.logHydrogenNone : fill(t.logHydrogen, { percent: Math.round(log.hydrogenPeak * 100) })]);
   }
   if (has('xray')) {
-    if (log.rocks.length === 0) lines.push(t.logNoRocks);
-    for (const r of log.rocks) {
+    const own = log.rocks.length === 0 ? [t.logNoRocks] : log.rocks.map((r) => {
       const rock = text.rocks[r.rock];
-      lines.push(fill(t.logRock, { rock: rock?.name ?? r.rock, elements: rock?.elements ?? '' }));
-    }
+      return fill(t.logRock, { rock: rock?.name ?? r.rock, elements: rock?.elements ?? '' });
+    });
+    const tally = rockTypeTally(log.rocks, data.tuning.instruments.xray);
+    const collection = data.milestones.milestones.some((m) => m.trigger.type === 'reading' && m.trigger.rocks);
+    if (collection && tally.count > 0 && tally.total > 0) own.push(fill(t.logRockTypes, tally));
+    add('xray', own);
   }
   if (has('seismometer')) {
-    lines.push(!log.stationPlaced ? t.logStationNone : log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone);
+    add('seismometer', [!log.stationPlaced ? t.logStationNone : log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone]);
   }
-  if (has('reflector')) lines.push(log.reflectorPlaced ? t.logReflector : t.logReflectorNone);
+  if (has('reflector')) add('reflector', [log.reflectorPlaced ? t.logReflector : t.logReflectorNone]);
   return lines;
+}
+
+/** A debrief group's heading: "The rover", the instrument's part name, or "Instruments together". */
+function groupHeading(key: MilestoneGroupKey, data: GameData): string {
+  const t = data.text.debrief;
+  if (key.kind === 'rover') return t.groupRover;
+  if (key.kind === 'combo') return t.groupCombo;
+  return data.parts.parts.find((p) => p.slot === 'instrument' && p.effects.instrument === key.instrument)?.name ?? key.instrument;
 }
 
 /**
@@ -253,25 +282,36 @@ const debrief: Screen = (game, root) => {
   const historyKey: HistoryKey = result.survived ? 'survived' : result.detail === 'rollover' ? 'rollover' : (result.cause ?? 'energy');
   const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
 
-  const logLines = instrumentLogLines(game.instrumentLog, text);
+  const logLines = instrumentLogLines(game.instrumentLog, data, result.earned);
   const taught = taughtItems(result.relationships, data, history);
 
-  // Milestones in catalog order; records already held this campaign are listed without a reward.
-  const items = data.milestones.milestones.flatMap((m) => {
-    const earned = result.earned.find((e) => e.id === m.id);
-    if (!earned) return [];
+  // The rover as launched (the mission flies game.build) and the records held before this mission.
+  const launchParts = isCompleteBuild(game.build, data.parts) ? selectedParts(game.build, data.parts) : [];
+  const bay = launchParts.length ? instrumentsOf(launchParts) : (game.instrumentLog?.carried ?? []);
+  const recordsHeldAtLaunch = state.records.filter((id) => !payout.newRecords.includes(id));
+
+  // Milestones grouped by instrument (rules: groupMilestones), catalog order within a group; a staged
+  // milestone is one line with its count; records already held this campaign are listed without a reward.
+  const item = (m: Milestone) => {
     const paid = payout.milestones.find((p) => p.milestone.id === m.id);
-    const stages = earned.stages ?? 1;
     const maxStages = milestoneStages(m);
-    return [el('li', {},
-      el('span', {}, el('strong', {}, maxStages > 1 ? `${m.name} ×${stages}` : m.name), ` · ${categoryLabel(m.category, text)}`),
+    const stages = Math.min(stagesEarned(result.earned, m.id), maxStages);
+    return el('li', {},
+      el('span', {}, el('strong', {}, maxStages > 1 ? fill(t.stagedCount, { name: m.name, stages, max: maxStages }) : m.name), ` · ${categoryLabel(m.category, text)}`),
       paid
         ? el('span', { class: 'reward' }, fill(text.milestone.reward, { money: money(paid.money, text), rp: paid.rp }))
         : el('span', { class: 'reward none' }, t.recordHeld),
       el('span', { class: 'sub' }, milestoneSummary(m, stages)),
       history && el('span', { class: 'sub fact' }, m.fact),
-    )];
-  });
+    );
+  };
+  const earnedList = data.milestones.milestones.filter((m) => stagesEarned(result.earned, m.id) > 0);
+  const groups = groupMilestones(earnedList, bay).flatMap((g) => [
+    el('h4', { class: 'debrief-group' }, groupHeading(g.key, data)),
+    el('ul', { class: 'debrief-milestones' }, ...g.milestones.map(item)),
+  ]);
+  // "Not reached": names only (game-design.md M11).
+  const missed = notReached(data.milestones.milestones, launchParts, result.earned, recordsHeldAtLaunch, bay);
 
   root.append(
     el('section', { class: 'panel debrief' },
@@ -281,7 +321,11 @@ const debrief: Screen = (game, root) => {
       el('p', { class: 'muted' }, fill(text.hud.lasted, { days, total: data.tuning.mission.gameDays })),
 
       el('h3', {}, t.milestonesHeading),
-      items.length ? el('ul', { class: 'debrief-milestones' }, ...items) : el('p', { class: 'muted' }, t.noMilestones),
+      groups.length ? el('div', { class: 'debrief-groups' }, ...groups) : el('p', { class: 'muted' }, t.noMilestones),
+
+      missed.length > 0 && el('h3', {}, t.notReachedHeading),
+      missed.length > 0 && el('p', { class: 'muted' }, t.notReachedNote),
+      missed.length > 0 && el('ul', { class: 'debrief-not-reached' }, ...missed.map((m) => el('li', {}, m.name))),
 
       el('h3', {}, t.payoutHeading),
       el('div', { class: 'ledger' },
@@ -313,6 +357,7 @@ const debrief: Screen = (game, root) => {
       ),
 
       el('p', { class: failed ? 'outcome failed' : 'outcome' }, fill(failed ? t.failedRound : t.passedRound, minimum)),
+      (failed ? t.storyFailed : t.storyPassed) && el('p', { class: 'story-beat' }, failed ? t.storyFailed : t.storyPassed),
       el('div', { class: 'actions' },
         failed
           ? el('button', { class: 'primary', onclick: () => game.restartRound() }, t.restart)
@@ -366,6 +411,7 @@ export const screens: Record<ScreenId, Screen> = {
   title,
   settings,
   credits: creditsScreen,
+  intro: introScreen,
   design: designScreen,
   ticket: ticketScreen,
   landing,

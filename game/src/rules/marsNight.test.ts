@@ -1,4 +1,4 @@
-// The Mars night-energy check (stands in for a Mars winPaths): real data/mars numbers with the Moon parts.
+// The Mars night-energy check (a Mars balance model was never built): real data/mars numbers with the Moon parts.
 // A simple driver plays all 10 sols through stepMission: it drives by day while the battery is above a
 // reserve, then at night either sleeps or keeps driving with the lights on. No terrain: the Sun is
 // visible whenever it is up. The storm is drawn per seed as in the game.

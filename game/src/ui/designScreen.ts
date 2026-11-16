@@ -6,9 +6,10 @@ import { canStartMission, isPlayable, nextMission } from '../rules/campaign';
 import { gameSpeed } from '../rules/drive';
 import { flatRangeM } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
-import { earnsMilestones, fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
+import { fitPayload, instrumentCosts, instrumentKeys, togglePayload, type InstrumentCosts } from '../rules/payload';
+import { instrumentMilestones } from '../rules/milestoneLists';
 import { chosenParts } from '../rules/rover';
-import type { DraftBuild, GameData, Part, Tier } from '../rules/types';
+import type { DraftBuild, GameData, Instrument, Part, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { el, fill, money } from './dom';
 import { sound } from '../audio';
@@ -107,6 +108,12 @@ export const designScreen: Screen = (game, root) => {
     update();
   };
 
+  // What an instrument can earn in this world, by milestone name only (no rewards, no hints at how;
+  // game-design.md M14); an instrument that earns none says so (the Mars cards of the new instruments).
+  const earnsText = (instrument: Instrument): string => {
+    const names = instrumentMilestones(instrument, data.milestones.milestones).map((m) => m.name);
+    return names.length ? fill(t.instrumentMilestones, { names: names.join(t.instrumentMilestonesJoin) }) : t.instrumentNoMilestones;
+  };
   const cards = new Map<string, HTMLElement>();
   const fieldsets = new Map<string, HTMLElement>();
   const card = (part: Part, input: HTMLInputElement, ...extra: (Node | null)[]) => {
@@ -121,8 +128,7 @@ export const designScreen: Screen = (game, root) => {
         el('span', {}, `size ${part.size}`),
       ),
       effect && el('span', { class: 'option-effect' }, effect),
-      part.effects.instrument && !earnsMilestones(part.effects.instrument, data.milestones)
-        ? el('span', { class: 'option-note' }, t.instrumentNoMilestones) : null,
+      part.effects.instrument ? el('span', { class: 'option-note' }, earnsText(part.effects.instrument)) : null,
       ...extra,
     );
     cards.set(part.id, node);
@@ -387,7 +393,7 @@ export const designScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
 
-  // After the Moon (Mars, Titan): which mission this is, the balance carried over, the next pass mark
+  // After the Moon (Mars, Titan): the balance carried over, the next pass mark
   // (on Titan the survival goal: it passes if the rover is still running at the end), and that parts and
   // tickets are the Moon's for now. Titan adds a plain
   // warning that solar panels give almost no power there.
@@ -416,7 +422,7 @@ export const designScreen: Screen = (game, root) => {
     // The top bar stays in view while the desk scrolls: title, help, notebook and balance. The longer notes sit below it.
     el('header', { class: 'desk-head' },
       el('div', {},
-        mars && el('p', { class: 'title-kicker' }, mars.kicker),
+        el('p', { class: 'title-kicker' }, text.story.kicker),
         el('h2', {}, t.heading),
       ),
       el('div', { class: 'desk-head-side' },
@@ -426,6 +432,7 @@ export const designScreen: Screen = (game, root) => {
       ),
     ),
     el('div', { class: 'desk-notes' },
+      el('p', { class: 'story-site' }, text.story.site), // why REL is going to this site
       el('p', { class: 'muted' }, t.tutorial),
       transition,
       text.titanCampaign && el('p', { class: 'world-transition world-warning' }, text.titanCampaign.solarNote),

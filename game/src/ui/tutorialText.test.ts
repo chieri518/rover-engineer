@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import type { Instrument } from '../rules/types';
-import { missionVars, tutorialPages } from './tutorialText';
+import { introPages, missionVars, tutorialPages } from './tutorialText';
 import { fill } from './dom';
 
 const data = loadGameData();
@@ -58,16 +58,53 @@ describe('tutorial text', () => {
     }
   });
 
+  it('the drive tutorial gives the stations\' lander distance from the data, with no placeholder left', () => {
+    const lines = tutorialPages('drive', data, { mission: 'moon', instruments: ['seismometer', 'reflector'] }).flatMap((p) => p.paragraphs);
+    const distance = data.tuning.milestones.sampleMinDistanceM;
+    for (const name of ['Seismometer station', 'Laser retroreflector']) {
+      const line = lines.find((l) => l.startsWith(`${name}: `));
+      expect(line, name).toBeDefined();
+      expect(line).toContain(`more than ${distance} m from the lander`);
+      expect(line).not.toMatch(/[{}]/);
+    }
+    const changed = { ...data, tuning: { ...data.tuning, milestones: { ...data.tuning.milestones, sampleMinDistanceM: 250 } } };
+    const moved = tutorialPages('drive', changed, { mission: 'moon', instruments: ['seismometer'] }).flatMap((p) => p.paragraphs).join('\n');
+    expect(moved).toContain('more than 250 m from the lander');
+  });
+
   it('the drive tutorial leaves out the number-key line for an empty bay', () => {
     const lines = (instruments: Instrument[]) => tutorialPages('drive', data, { mission: 'moon', instruments }).flatMap((p) => p.paragraphs).join('\n');
     expect(lines([])).not.toMatch(/number key/);
     expect(lines(['camera'])).toMatch(/number key/);
   });
 
-  it('the design tutorial says some instruments earn no milestones yet', () => {
+  it('the design tutorial says each instrument card lists its milestones (every Moon instrument earns some)', () => {
     const design = tutorialPages('design', data, { mission: 'moon', instruments: [] }).flatMap((p) => p.paragraphs).join('\n');
-    expect(design).toMatch(/earn no milestones yet/);
+    expect(design).toMatch(/lists the milestones it can earn/);
+    expect(design).not.toMatch(/earn no milestones yet/);
     expect(design).not.toMatch(/a few problems/);
+  });
+});
+
+describe('Welcome to REL intro and briefing lines', () => {
+  it('has three intro pages with the Moon budget and pass mark filled from the data', () => {
+    const pages = introPages(data);
+    expect(pages.length).toBe(3);
+    for (const p of pages) for (const s of [p.title, ...p.paragraphs]) expect(s).not.toMatch(/\{\w+\}/);
+    const all = pages.flatMap((p) => p.paragraphs).join('\n');
+    expect(all).toContain(`the budget is $${data.tuning.budget.startingBudget}k`);
+    expect(all).toContain(`the pass mark is $${data.tuning.budget.minimumBudget.mars}k`);
+    expect(all).not.toMatch(/research point|\bRP\b/);
+  });
+
+  it('fills the mission briefing on every world', () => {
+    for (const world of ['moon', 'mars', 'titan'] as const) {
+      const d = loadGameData(world);
+      expect(fill(d.text.mission.briefing, missionVars(d))).not.toMatch(/\{\w+\}/);
+    }
+    expect(fill(data.text.mission.briefing, missionVars(data))).toContain(`${data.tuning.mission.gameDays} days`);
+    const mars = loadGameData('mars');
+    expect(fill(mars.text.mission.briefing, missionVars(mars))).toContain(`${mars.tuning.sol!.sols} sols`);
   });
 });
 
@@ -103,7 +140,7 @@ describe('Mars tutorial and briefing text', () => {
     const c = mars.text.campaign!;
     const vars = missionVars(mars);
     for (const line of c.newOnMars) expect(fill(line, vars)).not.toMatch(unfilled);
-    for (const s of [c.kicker, c.sameParts, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
+    for (const s of [mars.text.story.kicker, c.sameParts, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
       expect(s).not.toMatch(unfilled);
     }
     expect(mars.text.comingSoon.heading).toBe('Titan: coming soon');
