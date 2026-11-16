@@ -24,12 +24,12 @@
   },
   "mass": {
     "referenceMass": 60,
-    "speedLossPerKg": 0.01,
+    "speedLossPerKg": 0.006,
     "energyGainPerKg": 0.01,
     "minSpeedFactor": 0.4
   },
   "speed": {
-    "compression": 4
+    "compression": 6
   },
   "energy": {
     "slopeEnergyFactor": 0.05,
@@ -85,7 +85,7 @@
   },
   "explore": {
     "cellM": 20,
-    "revealRadiusM": 250
+    "revealRadiusM": 400
   },
   "boulderTrack": {
     "widthM": 2.8,
@@ -98,7 +98,7 @@
     "glow": 0.14
   },
   "minimap": {
-    "startSpanM": 700,
+    "startSpanM": 1000,
     "marginM": 100,
     "maxSpanM": 8000
   },
@@ -139,15 +139,15 @@
       "compression": 1.6,
       "relaxation": 3.5
     },
-    "accelerationMps2": 2.5,
-    "brakeDecelMps2": 4,
+    "accelerationMps2": 3.5,
+    "brakeDecelMps2": 6,
     "reverseSpeedFactor": 0.5,
     "gripToFrictionSlip": 1.2,
     "sideFrictionStiffness": 1.0,
     "maxSteerDeg": 28,
     "maxLateralAccelMps2": 3,
     "gravityScale": 4,
-    "airGravityScale": 16,
+    "airGravityScale": 36,
     "steerRateDegPerSecond": 90,
     "angularDamping": 1.0
   },
@@ -156,19 +156,19 @@
     "warningDistanceM": 60
   },
   "milestones": {
-    "photoZoneRadiusM": 60,
-    "iceSpotRadiusM": 50,
+    "photoZoneRadiusM": 90,
+    "iceSpotRadiusM": 70,
     "boulderCrossRadiusFactor": 1.1,
     "boulderCrossMinAngleDeg": 90,
     "partialCrossingHint": true,
-    "craterDescentDepthM": 150,
-    "craterDescentExitDepthM": 100,
+    "craterDescentDepthM": 120,
+    "craterDescentExitDepthM": 80,
     "albumMax": 12,
     "photoFrameMargin": 0.85,
-    "sampleMinDistanceM": 200,
-    "sampleSpacingM": 200,
+    "sampleMinDistanceM": 120,
+    "sampleSpacingM": 150,
     "earthPhotoMinLit": 0.25,
-    "earthPhotoMinDistanceM": 300,
+    "earthPhotoMinDistanceM": 150,
     "coldTrapEdgeM": 25,
     "youngCraterEjectaFactor": 1.5,
     "boulderTrackPhotoRangeM": 80,
