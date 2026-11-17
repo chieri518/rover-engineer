@@ -100,6 +100,11 @@ export interface PaletteOptions {
 
 export interface Palette {
   element: HTMLElement;
+  /**
+   * The hover card. It is fixed-positioned, so it goes outside the palette (whose blurred, see-through
+   * background would otherwise be its containing block and clip it): the caller appends it beside the palette.
+   */
+  card: HTMLElement;
   /** Every part on the palette, in palette order (for the thumbnails). */
   parts: Part[];
   /** Redraw every tile's and tab's state from the build; `notice` is the bay's last notice (instruments dropped). */
@@ -241,7 +246,7 @@ export function mountPalette(opts: PaletteOptions): Palette {
 
   const tablist = el('div', { class: 'palette-tabs', role: 'tablist', 'aria-label': t.paletteLabel, 'aria-orientation': 'horizontal' },
     ...categories.map((c) => tabs.get(c)!.button));
-  const element = el('div', { class: 'palette' }, tablist, ...categories.map((c) => panels.get(c)!), notice, card.element);
+  const element = el('div', { class: 'palette' }, tablist, ...categories.map((c) => panels.get(c)!), notice);
 
   // Keyboard: left and right move between tabs (and open them); in a panel, arrows move between tiles (up and
   // down by row), Home and End jump; Enter and Space fit (the button's own). Escape (anywhere) hides the card.
@@ -421,6 +426,7 @@ export function mountPalette(opts: PaletteOptions): Palette {
 
   return {
     element,
+    card: card.element,
     parts: [...categories.flatMap((c) => (byCategory.get(c) ?? []).map((x) => x.part))],
     update,
     open,

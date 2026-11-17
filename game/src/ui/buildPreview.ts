@@ -1,5 +1,7 @@
 // Design screen build preview: the rover being assembled in 3D, live, in a dark assembly bay. The
 // rover stands on a lit turntable over a faint cyan grid floor, under studio lights (key, fill, rim).
+// On wide screens the canvas is the desk's whole background and the turntable is framed in the part
+// the desk's cards leave clear (setFrameArea: a camera view offset, so picking still uses the full canvas).
 // Only chosen parts show; a new or changed part drops into place with a brief cyan flash. The
 // turntable turns slowly by itself and can be dragged (mouse or touch); a click or tap on a part
 // (not a drag) picks it, and the pointer shows over a pickable part. Reduced motion: no turning
@@ -9,12 +11,16 @@ import type { Part, RoverHandling } from '../rules/types';
 import { buildRoverModel, roverLook, type ModelGroup, type RoverModel } from '../rover/roverModel';
 
 // Look and motion. Presentation settings, not game rules.
-const MAX_PIXEL_RATIO = 2;
-const MAX_PIXELS = 2_500_000; // drawing-buffer budget for the viewport
+const MAX_PIXEL_RATIO = 1.5; // the canvas can fill the window: a sharp-enough image at a bounded cost
+const MAX_PIXELS = 4_000_000; // drawing-buffer budget for the viewport
 const TURNTABLE_RADIUS_M = 1.6;
 const TURNTABLE_HEIGHT_M = 0.12;
-const FLOOR_SIZE_M = 16;
+const FLOOR_SIZE_M = 32; // wide enough that the grid fades out before its edge in a full-window view
+const FLOOR_TEXTURE_PX = 2048;
 const GRID_STEP_M = 0.5;
+const GRID_FADE_M = 8; // the grid fades out to nothing this far from the turntable center
+const LIGHT_POOL_M = 5; // radius of the soft pool of light on the floor
+const MIN_FRAME_PX = 120; // a frame area smaller than this (either way) frames in the whole canvas instead
 const CAMERA_FOV_DEG = 30;
 const CAMERA_ELEVATION_DEG = 17;
 const FRAME_CENTER_Y_M = 1.15; // the camera looks at this height over the turntable center...
@@ -44,21 +50,30 @@ export interface BuildPreview {
   /** Stop and free every GPU resource. */
   dispose(): void;
   /**
+   * Frame the turntable in this part of the canvas (CSS pixels from its top left corner), such as the part
+   * the desk's cards leave clear; null frames it in the whole canvas. The rest of the canvas still shows the bay.
+   */
+  setFrameArea(area: FrameArea | null): void;
+  /**
    * Call `handler` with the model group (bus or support slot, or instrument) under the pointer when the
    * player clicks the rover (a click, not a turntable drag). One handler; a later call replaces it.
    */
   onPick(handler: ((group: ModelGroup) => void) | null): void;
 }
 
-const noPreview: BuildPreview = { show: () => {}, dispose: () => {}, onPick: () => {} };
+/** A rectangle of the preview's canvas, in CSS pixels from its top left corner. */
+export interface FrameArea { x: number; y: number; width: number; height: number }
+
+const noPreview: BuildPreview = { show: () => {}, dispose: () => {}, onPick: () => {}, setFrameArea: () => {} };
 
 /** Grid floor: thin cyan lines fading out from the center, over a soft pool of light. */
 function floorTexture(): THREE.CanvasTexture {
-  const size = 1024;
+  const size = FLOOR_TEXTURE_PX;
   const canvas = document.createElement('canvas');
   canvas.width = canvas.height = size;
   const g = canvas.getContext('2d')!;
   const cells = FLOOR_SIZE_M / GRID_STEP_M;
+  const px = size / FLOOR_SIZE_M; // texture pixels per meter
   const step = size / cells;
   for (let i = 0; i <= cells; i++) {
     const major = i % 4 === 0;
@@ -73,10 +88,10 @@ function floorTexture(): THREE.CanvasTexture {
     g.stroke();
   }
   const c = size / 2;
-  const ttR = (TURNTABLE_RADIUS_M / FLOOR_SIZE_M) * size;
-  // Fade the grid out toward the edge.
+  const ttR = TURNTABLE_RADIUS_M * px;
+  // Fade the grid out well before the edge.
   g.globalCompositeOperation = 'destination-in';
-  const fade = g.createRadialGradient(c, c, ttR * 0.9, c, c, c);
+  const fade = g.createRadialGradient(c, c, ttR * 0.9, c, c, GRID_FADE_M * px);
   fade.addColorStop(0, 'rgba(0, 0, 0, 1)');
   fade.addColorStop(0.45, 'rgba(0, 0, 0, 0.55)');
   fade.addColorStop(1, 'rgba(0, 0, 0, 0)');
@@ -84,7 +99,7 @@ function floorTexture(): THREE.CanvasTexture {
   g.fillRect(0, 0, size, size);
   // A soft pool of light under the turntable, and a cyan glow around its rim.
   g.globalCompositeOperation = 'destination-over';
-  const pool = g.createRadialGradient(c, c, 0, c, c, c * 0.62);
+  const pool = g.createRadialGradient(c, c, 0, c, c, LIGHT_POOL_M * px);
   pool.addColorStop(0, 'rgba(120, 165, 225, 0.22)');
   pool.addColorStop(0.5, 'rgba(70, 110, 170, 0.1)');
   pool.addColorStop(1, 'rgba(40, 70, 120, 0)');
@@ -233,9 +248,11 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
     scene.add(key, fill, rim);
 
     // Bay floor: the grid, the light pool and the rim glow (unlit).
+    const floorMap = floorTexture();
+    floorMap.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
     const floor = new THREE.Mesh(
       new THREE.PlaneGeometry(FLOOR_SIZE_M, FLOOR_SIZE_M),
-      new THREE.MeshBasicMaterial({ map: floorTexture(), transparent: true, depthWrite: false, toneMapped: false }),
+      new THREE.MeshBasicMaterial({ map: floorMap, transparent: true, depthWrite: false, toneMapped: false }),
     );
     floor.rotation.x = -Math.PI / 2;
     floor.renderOrder = -1;
@@ -393,8 +410,9 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
     camera.lookAt(target);
     camera.updateMatrixWorld();
   }
-  /** The closest camera distance (binary search) that keeps every framed point in view. */
+  /** The closest camera distance (binary search) that keeps every framed point in view (of a view this shape). */
   function frameCamera(aspect: number): void {
+    camera.clearViewOffset();
     camera.aspect = aspect;
     camera.updateProjectionMatrix();
     const fits = () => framed.every((p) => {
@@ -412,12 +430,34 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
     placeCamera(far);
   }
 
+  // The part of the canvas the turntable is framed in (null: all of it).
+  let frameArea: FrameArea | null = null;
+  /**
+   * Frame the turntable in the frame area of a w by h canvas: the camera is framed for a view the frame area's
+   * shape, then that view is placed at the area's spot in the larger canvas with a view offset (the same scale,
+   * the canvas showing more of the bay around it). The projection covers the whole canvas, so a raycast from
+   * any point of the canvas lines up with what is drawn there.
+   */
+  function frameIn(w: number, h: number): void {
+    const a = frameArea;
+    const x = a ? THREE.MathUtils.clamp(a.x, 0, w) : 0;
+    const y = a ? THREE.MathUtils.clamp(a.y, 0, h) : 0;
+    const fw = a ? Math.min(a.width, w - x) : w;
+    const fh = a ? Math.min(a.height, h - y) : h;
+    if (!a || fw < MIN_FRAME_PX || fh < MIN_FRAME_PX || (x === 0 && y === 0 && fw === w && fh === h)) {
+      frameCamera(w / h);
+      return;
+    }
+    frameCamera(fw / fh);
+    camera.setViewOffset(fw, fh, -x, -y, w, h);
+  }
+
   const onResize = () => {
     const w = Math.max(1, container.clientWidth);
     const h = Math.max(1, container.clientHeight);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, MAX_PIXEL_RATIO, Math.sqrt(MAX_PIXELS / (w * h))));
     renderer.setSize(w, h, false);
-    frameCamera(w / h);
+    frameIn(w, h);
     render();
   };
 
@@ -645,6 +685,17 @@ export function mountBuildPreview(container: HTMLElement, handling: RoverHandlin
 
   return {
     show,
+    setFrameArea: (area) => {
+      if (stopped) return;
+      const same = area && frameArea
+        ? area.x === frameArea.x && area.y === frameArea.y && area.width === frameArea.width && area.height === frameArea.height
+        : area === frameArea;
+      if (same) return;
+      frameArea = area ? { ...area } : null;
+      frameIn(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight));
+      render();
+      queueHover(); // the parts moved under a resting pointer
+    },
     onPick: (handler) => {
       pickHandler = handler;
       if (handler) queueHover();

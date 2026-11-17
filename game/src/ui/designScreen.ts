@@ -1,7 +1,8 @@
 // The design screen ("the engineer's desk", game-design.md "The engineer's desk as a parts editor"): the
 // parts palette on the left (deskPalette.ts: one part per required bus slot, and the payload bay's
 // instruments and systems), the live 3D rover in the middle (buildPreview.ts), and the specification
-// sheet on the right with the launch-ticket button.
+// sheet on the right with the launch-ticket button. On wide screens the 3D view is the desk's whole
+// background, the palette and the sheet float over it, and the rover is framed in the clear middle.
 // All numbers come from rules/ (quoteBuild); this file only lays them out.
 import type { Screen } from '../flow/flow';
 import { canStartMission, isPlayable, nextMission } from '../rules/campaign';
@@ -26,6 +27,8 @@ const KMH = 3.6;
 const MIN_GRID_PX = 520;
 /** #app's padding above and below the desk (style.css). */
 const APP_PADDING_PX = 16;
+/** From this width up the preview is the desk's background (style.css); below it, a block between the columns. */
+const PREVIEW_BACKGROUND_MEDIA = '(min-width: 1000px)';
 
 /** State colour for a value against a limit: ok, near it (from `warnShare` of it) or over it. */
 function limitState(value: number, limit: number, warnShare: number): 'ok' | 'near' | 'over' {
@@ -216,6 +219,7 @@ export const designScreen: Screen = (game, root) => {
       preview = mountBuildPreview(viewport, data.tuning.rover, hidePreview);
       preview.show(chosenParts(game.build, data.parts));
       preview.onPick((group) => palette.open(categoryOfGroup(group), partForGroup(group, game.build, data.parts)));
+      frameRover();
     })
     .catch((err) => {
       console.warn('Build preview unavailable:', err);
@@ -426,17 +430,14 @@ export const designScreen: Screen = (game, root) => {
     ),
   );
   // Palette | rover | specification. The sheet scrolls inside itself so the launch button stays in view.
-  const grid = el('div', { class: 'desk-grid' },
-    palette.element,
-    viewport,
-    el('aside', { class: 'sheet', 'aria-label': t.sheetHeading },
-      el('div', { class: 'sheet-scroll' },
-        el('div', { class: 'spec-title' }, el('h2', {}, t.sheetHeading), remaining),
-        sheet,
-      ),
-      el('div', { class: 'actions sheet-actions' }, warnings, next),
+  const sheetPanel = el('aside', { class: 'sheet', 'aria-label': t.sheetHeading },
+    el('div', { class: 'sheet-scroll' },
+      el('div', { class: 'spec-title' }, el('h2', {}, t.sheetHeading), remaining),
+      sheet,
     ),
+    el('div', { class: 'actions sheet-actions' }, warnings, next),
   );
+  const grid = el('div', { class: 'desk-grid' }, palette.element, viewport, sheetPanel);
 
   // The notes: compact, so the desk fits one screen. The story and the carry-over show two lines each until
   // "More" (the full text is always in the page, so screen readers read all of it); the not-offered notice
@@ -471,6 +472,7 @@ export const designScreen: Screen = (game, root) => {
     head,
     notes,
     grid,
+    palette.card, // fixed beside its tile, over everything
   );
   root.append(desk);
   // Fit the desk to one screen: the columns take the height left under the header and the notes. On a short
@@ -486,11 +488,47 @@ export const designScreen: Screen = (game, root) => {
     const left = window.innerHeight - 2 * APP_PADDING_PX - gridTop;
     const height = left >= MIN_GRID_PX ? left : Math.max(MIN_GRID_PX - 80, window.innerHeight - top - APP_PADDING_PX);
     desk.style.setProperty('--desk-col-h', `${Math.floor(height)}px`);
+    queueFrame();
   };
+  // On wide screens the preview fills the window behind the desk: frame the rover in the part the cards leave
+  // clear (between the palette and the sheet, under the notes, to the window's bottom), and put the bay's glow
+  // and the pick hint there too (style.css reads --clear-*). Below the breakpoint the preview is its own block
+  // and frames the rover in all of it.
+  const backgroundMedia = typeof window.matchMedia === 'function' ? window.matchMedia(PREVIEW_BACKGROUND_MEDIA) : null;
+  function frameRover(): void {
+    if (!preview || viewport.hidden) return;
+    if (!backgroundMedia?.matches) {
+      preview.setFrameArea(null);
+      return;
+    }
+    const box = viewport.getBoundingClientRect();
+    const from = palette.element.getBoundingClientRect().right;
+    const to = sheetPanel.getBoundingClientRect().left;
+    const top = Math.max(grid.getBoundingClientRect().top, head.getBoundingClientRect().bottom); // the notes scroll away on a short screen
+    const area = { x: Math.round(from - box.left), y: Math.round(top - box.top), width: Math.round(to - from), height: Math.round(box.bottom - top) };
+    viewport.style.setProperty('--clear-x', `${area.x}px`);
+    viewport.style.setProperty('--clear-y', `${area.y}px`);
+    viewport.style.setProperty('--clear-w', `${Math.max(0, area.width)}px`);
+    viewport.style.setProperty('--clear-h', `${Math.max(0, area.height)}px`);
+    preview.setFrameArea(area);
+  }
+  let frameQueued = 0;
+  function queueFrame(): void {
+    if (!frameQueued) frameQueued = requestAnimationFrame(() => {
+      frameQueued = 0;
+      if (!left) frameRover();
+    });
+  }
   const deskSize = new ResizeObserver(fit);
   deskSize.observe(head);
   deskSize.observe(notes);
+  // The cards' widths (and the sheet's height) move the clear area; framing changes no layout, so no fit().
+  const panelSize = new ResizeObserver(queueFrame);
+  panelSize.observe(palette.element);
+  panelSize.observe(sheetPanel);
   window.addEventListener('resize', fit);
+  window.addEventListener('scroll', queueFrame, { passive: true });
+  backgroundMedia?.addEventListener?.('change', queueFrame);
   update();
   fit(); // at once, not a frame later (the observers then follow font loads and the More toggle)
   if (!game.tutorialSeen.design) openHelp();
@@ -498,7 +536,11 @@ export const designScreen: Screen = (game, root) => {
     left = true;
     thumbs.abort();
     deskSize.disconnect();
+    panelSize.disconnect();
+    if (frameQueued) cancelAnimationFrame(frameQueued);
     window.removeEventListener('resize', fit);
+    window.removeEventListener('scroll', queueFrame);
+    backgroundMedia?.removeEventListener?.('change', queueFrame);
     palette.dispose();
     preview?.dispose();
     preview = null;

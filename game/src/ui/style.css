@@ -208,8 +208,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 /* Layout (game-design.md, "The engineer's desk as a parts editor"): palette | 3D rover | specification.
    Wide screens fit the three columns to the viewport under the sticky header (--desk-top, set from the
    header's height in designScreen.ts); the palette and the sheet scroll inside themselves, and the
-   launch button stays at the bottom of the sheet. Below 1000 px they stack: palette, rover, sheet.
-   Without WebGL the preview is hidden (.no-preview) and the desk is palette | sheet. */
+   launch button stays at the bottom of the sheet. There the 3D view is the desk's background and the
+   middle column is left clear (see "The rover preview as the desk's background" below). Below 1000 px
+   they stack: palette, rover, sheet. Without WebGL the preview is hidden (.no-preview) and the desk is
+   palette | sheet. */
 .desk { --desk-top: 96px; --desk-col-h: max(440px, calc(100vh - var(--desk-top) - 16px)); }
 .desk:not(.no-preview) { width: min(1680px, 100%); }
 .desk-grid {
@@ -470,6 +472,50 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .badge { margin-left: 8px; font-size: 0.7rem; padding: 1px 6px; border-radius: 4px; background: var(--accent); color: var(--on-accent); font-weight: 600; }
 .ticket .sheet-body { margin-top: 12px; max-width: 360px; }
 
+/* The rover preview as the desk's background (wide screens; game-design.md, "the rover preview is the desk's
+   background"): the 3D view fills the window behind the whole desk, the header and the notes are translucent
+   strips, and the palette and the sheet float over it as see-through cards. The middle column stays empty, so
+   a click there reaches the canvas (the grid box is not positioned: it paints, and is hit-tested, under the
+   fixed preview). designScreen.ts frames the rover in the clear middle and sets --clear-x, -y, -w and -h (that
+   area, in px from the window's top left) for the bay's glow and the hints. */
+@media (min-width: 1000px) {
+  .desk:not(.no-preview) .preview {
+    position: fixed; inset: 0; z-index: 0; height: auto; max-height: none; border: 0; border-radius: 0; box-shadow: none;
+    --clear-cx: calc(var(--clear-x, 0px) + var(--clear-w, 100vw) / 2);
+    --clear-cy: calc(var(--clear-y, 0px) + var(--clear-h, 100vh) * 0.42);
+    background:
+      radial-gradient(ellipse max(620px, 46vw) max(460px, 52vh) at var(--clear-cx) var(--clear-cy), rgba(40, 72, 112, 0.42) 0%, rgba(16, 28, 46, 0.2) 55%, rgba(7, 11, 20, 0) 100%),
+      linear-gradient(180deg, #0b1322 0%, #090f1b 58%, #070b14 100%);
+  }
+  .desk:not(.no-preview) .preview::before { display: none; }
+  .desk:not(.no-preview) .preview-canvas { border-radius: 0; }
+  .desk:not(.no-preview) .preview-hint { left: var(--clear-x, 0px); right: auto; width: var(--clear-w, 100%); top: calc(var(--clear-y, 0px) + var(--clear-h, 100vh) * 0.1); }
+  .desk:not(.no-preview) .preview-pick-hint {
+    left: var(--clear-x, 0px); right: auto; width: var(--clear-w, 100%); bottom: 14px; padding: 0 12px;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  }
+  /* The preview is out of the flow: the empty middle column keeps the desk a full screen tall (#app would centre a shorter one). */
+  .desk:not(.no-preview) .desk-grid { min-height: var(--desk-col-h); }
+  /* Over the preview (z-index 0): the notes and the two cards. The header (sticky, z-index 8) already is. */
+  .desk:not(.no-preview) .desk-notes, .desk:not(.no-preview) .palette, .desk:not(.no-preview) .sheet { position: relative; z-index: 1; }
+  /* The header and the notes join into one strip across the top (the notes' padding costs the columns no height). */
+  .desk:not(.no-preview) .desk-head { margin-bottom: 0; border-radius: 4px 4px 0 0; }
+  .desk:not(.no-preview) .desk-notes {
+    margin-bottom: 12px; padding: 5px 16px 6px; background: var(--panel); border: 1px solid var(--edge); border-top: 0; border-radius: 0 0 4px 4px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  }
+  .desk:not(.no-preview) .palette, .desk:not(.no-preview) .sheet { box-shadow: 0 0 28px rgba(94, 200, 255, 0.06), 0 18px 48px rgba(0, 0, 0, 0.6); }
+  .desk:not(.no-preview) .sheet .sheet-actions { background: rgba(7, 11, 20, 0.35); }
+  /* See-through where the browser can blur what is behind; solid panels (above) where it cannot. A blurred card
+     is the containing block of fixed descendants, which is why the hover card lives outside the palette. */
+  @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .desk:not(.no-preview) .palette, .desk:not(.no-preview) .sheet {
+      background: rgba(13, 20, 33, 0.74); -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15);
+    }
+    .desk:not(.no-preview) .desk-head { background: rgba(15, 22, 36, 0.8); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+    .desk:not(.no-preview) .desk-notes { background: rgba(10, 16, 27, 0.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+  }
+}
 @media (max-width: 999px) {
   .desk-notes { grid-template-columns: minmax(0, 1fr); }
   .desk-grid, .desk.no-preview .desk-grid { grid-template-columns: minmax(0, 1fr); grid-template-areas: 'palette' 'preview' 'sheet'; }
