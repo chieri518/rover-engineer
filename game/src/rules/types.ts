@@ -1,6 +1,6 @@
 // Types for the JSON files in game/data/. These are the data contract.
 import type { DamageCause } from './damage';
-import type { DustStormSpec, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
+import type { DustDevilSpec, DustStormSpec, DustTuning, MarsMilestoneTrigger, MarsMilestoneTuning, MarsTextSections, NightTuning, SolTuning } from './marsTypes';
 import type {
   RainstormSpec, TitanColdTuning, TitanLookTuning, TitanMilestoneTrigger, TitanMilestoneTuning, TitanPowerTuning, TitanSleepTuning,
   TitanTextSections,
@@ -8,9 +8,16 @@ import type {
 
 /** The rover's bus: one part per slot. */
 export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
-/** A part's catalog category: a bus slot, or 'instrument' for the payload bay (which holds a list). */
-export type Slot = BusSlot | 'instrument';
-export type Instrument = 'camera' | 'drill' | 'neutron' | 'xray' | 'seismometer' | 'reflector';
+/**
+ * Support hardware (Mars M5): optional slots a world may offer (PartsFile.supportSlots), one part each,
+ * "No arm" / "No mast" included. Instruments that need one say so (PartEffects.needs). They take no
+ * mounting point.
+ */
+export type SupportSlot = 'arm' | 'mast';
+/** A part's catalog category: a bus slot, a support slot, or 'instrument' for the payload bay (which holds a list). */
+export type Slot = BusSlot | SupportSlot | 'instrument';
+/** The instruments. weather, radar, laser and organics are Mars's (their behavior arrives in Mars step 4a). */
+export type Instrument = 'camera' | 'drill' | 'neutron' | 'xray' | 'seismometer' | 'reflector' | 'weather' | 'radar' | 'laser' | 'organics';
 
 export interface PartEffects {
   maxLoad?: number; // chassis: kg of total rover mass it can carry
@@ -32,6 +39,17 @@ export interface PartEffects {
   coldTolerant?: boolean; // instrument: exempt from the cold slowdown (its sensor head sits outside the warm body)
   needsEarth?: boolean; // instrument: usable only where Earth is above the terrain horizon from the rover
   needsBoulder?: boolean; // instrument: usable only with a boulder within tuning.instruments.xray.reachM
+  // Power the parts own (Mars M1). The draws and steadyIncome apply only on a world whose tuning has a
+  // `night` section (Mars): the Moon has no idle drain, so its panels' energyIncome is net of it.
+  lightsDraw?: number; // lights: energy per second while the floodlights are on (awake at night)
+  heaterDraw?: number; // heater: energy per second every second of night, awake and asleep; its heat counts only while the draw is paid
+  steadyIncome?: number; // power: energy per second, day and night, never scaled by sunlight, the low Sun, the storm, shadow or dust
+  dustRate?: number; // power: how fast dust settles on this part (x tuning.dust.perSol); every part with energyIncome needs one on a world with dust
+  neutronNoise?: boolean; // power: the part raises the neutron spectrometer's floor (an RTG; the rule is Mars step 5b). Never shown on the desk
+  // Support hardware (Mars M5, M6).
+  arm?: boolean; // arm slot: the part is a robotic arm (contact instruments need it)
+  mast?: boolean; // mast slot: the part is a remote sensing mast (the laser spectrometer needs it)
+  needs?: SupportSlot[]; // instrument: the support hardware it cannot work without; the desk refuses it until the build has it
 }
 
 export interface Part {
@@ -43,11 +61,24 @@ export interface Part {
   mass: number; // kg
   size: number; // size units
   effects: PartEffects;
+  /** The worlds whose desk offers this part (absent: every world). Mission ids are the world ids (src/worlds.ts WorldId). */
+  worlds?: MissionId[];
 }
 
 export interface PartsFile {
   slots: BusSlot[]; // the bus slots; instrument parts go in the payload bay instead
+  /** The support slots this world offers (absent: none, as on the Moon). Set per world by its parts overlay (data/mars/parts.json). */
+  supportSlots?: SupportSlot[];
   parts: Part[];
+}
+
+/**
+ * A world's parts overlay (data/mars/parts.json): the support slots it offers, and effects merged into
+ * shared parts by part id (the Mars X-ray's `needs`). Applied to the whole catalog (rules/merge.ts withPartsOverlay).
+ */
+export interface PartsOverlay {
+  supportSlots?: SupportSlot[];
+  effects?: Record<string, Partial<PartEffects>>;
 }
 
 export interface Tier {
@@ -67,13 +98,19 @@ export type MilestoneCategory = 'capability' | 'scientific' | 'record' | 'pictur
 /**
  * What a photo milestone wants in frame: Earth (Moon), the setting Sun (Mars), the rolled boulder within
  * tuning.milestones.boulderTrackPhotoRangeM, or a boulder the X-ray spectrometer read this mission within
- * documentedSampleRangeM (Moon). Without a target, a photo counts inside its zone.
+ * documentedSampleRangeM (both worlds). Mars extensions: `crater-wall`, a young crater's center in frame
+ * with the rover inside tuning.milestones.craterWallRimBand times its radius (Crater wall), and
+ * `dustdevil`, a dust devil in frame (Dust devil). Without a target, a photo counts inside its zone.
  */
-export type PhotoTarget = 'earth' | 'sunset' | 'rolled-boulder' | 'read-boulder';
+export type PhotoTarget = 'earth' | 'sunset' | 'rolled-boulder' | 'read-boulder' | 'crater-wall' | 'dustdevil';
 /** What a `reading` trigger may need the reading to be on: any boulder, or the Mars delta cliff (Mars plan, laser spectrometer). */
 export type ReadingTarget = 'boulder' | 'cliff';
-/** Events a `record` trigger waits for: the moonquake (Moon), the dust storm (Mars). */
-export type RecordEvent = 'quake' | 'duststorm';
+/**
+ * Events a `record` trigger waits for: the moonquake (Moon), the dust storm (Mars). Mars extensions:
+ * `night` (while it is night, rules/sol.ts solClock().isNight) and `dustdevil` (a dust devil passing within
+ * tuning.dust.dustDevilSenseM of the rover).
+ */
+export type RecordEvent = 'quake' | 'duststorm' | 'night' | 'dustdevil';
 /** The seismometer station's record of the moonquake (rules/instruments.ts SeismometerRecord). */
 export type RecordQuality = 'clean' | 'noisy';
 
@@ -96,20 +133,27 @@ export type MilestoneTrigger =
   /**
    * The instrument was switched on for an unbroken drive of at least `meters` that touches the zone.
    * sites: staged, one stage per distinct zone instance, up to this many (Cold trap survey).
+   * Mars extensions: `zones` instead of `zone` lists several zone ids, any of which counts (Buried layers:
+   * a young crater, Séítah or the delta front); with neither, the drive counts anywhere outside the
+   * near-lander zone (Long profile). Moon transects all name one `zone`.
    */
-  | { type: 'transect'; instrument: Instrument; zone: string; meters: number; sites?: number }
+  | { type: 'transect'; instrument: Instrument; zone?: string; zones?: string[]; meters: number; sites?: number }
   /**
    * A use of the instrument finishes, inside the zone or on the target kind if given. sites: staged as the
-   * drill (one stage per reading site, each at least sampleSpacingM from the others). rocks: staged by
-   * distinct rock types read this mission, one stage per count (Rock collection [2, 3, 4]). rock: the
-   * reading must find this rock type (an id in tuning.instruments.xray.suites).
+   * drill (one stage per reading site, each at least sampleSpacingM from the others, none inside the
+   * near-lander zone). rocks: staged by distinct rock types this instrument read this mission, one stage
+   * per count (Rock collection [2, 3, 4]). rock: the reading must find this rock type (an id in
+   * tuning.instruments.xray.suites). Rock types and read boulders count per instrument (Mars step 5a).
    */
   | { type: 'reading'; instrument: Instrument; zone?: string; target?: ReadingTarget; sites?: number; rocks?: number[]; rock?: string }
   /**
    * The instrument was deployed (or, for one aboard, switched on) when the event came. On the Moon the
    * station must have been set down outside the near-lander zone. quality: the record must be this good.
+   * Mars extension (M16) `seconds`: an instrument aboard was switched on, the rover powered up and outside
+   * the near-lander zone, for at least this many seconds while the event was active (a power-down pauses
+   * the count; 0: at the moment the event comes). Stations keep the Moon rule.
    */
-  | { type: 'record'; instrument: Instrument; event: RecordEvent; quality?: RecordQuality }
+  | { type: 'record'; instrument: Instrument; event: RecordEvent; quality?: RecordQuality; seconds?: number }
   /**
    * The station is set down outside the near-lander zone; needs 'earth': with Earth in view; near: within
    * withinM of the other station on the ground. A pair fires when the second of the two goes down, either order.
@@ -234,6 +278,12 @@ export interface Tuning {
     perRockyArea: number;
     perYoungCrater: number; // boulders around each young crater in sites.json (no soft ground there)
     rolledBoulderDiameterM: number; // the one rolled boulder (sites.json kind rolled-boulder)
+    // Mars sites (data/mars/tuning.json; rules in Mars step 5c). Absent on the Moon.
+    perSiteKind?: Partial<Record<SiteKind, number>>; // boulders at each site of these kinds (knobs, the Séítah edge, the delta foot)
+    perSite?: Record<string, number>; // by sites.json id: replaces its kind's count (East crater: 60)
+    floodBoulderDiameterM?: number; // the one flood boulder (sites.json kind flood-boulder)
+    slopeTargetShare?: number; // share of each young crater's and knob's boulders put on terrain.json slopeTargets cells (10 to 18°, level ground beside)
+    maxSlopeDeg?: number; // no site boulder on ground steeper than this (the world's slope; Mars step 5c)
     spreadRadiusFactor: number; // scattered out to rockyArea.radius × this
     minDiameterM: number;
     maxDiameterM: number;
@@ -251,6 +301,7 @@ export interface Tuning {
   /** Mars and Titan (data/<world>/tuning.json): the sol clock (Titan: one sol of 900 s) and the night. See rules/marsTypes.ts. */
   sol?: SolTuning;
   night?: NightTuning;
+  dust?: DustTuning; // dust on the panels (rules/dust.ts)
   instruments: InstrumentTuning;
   /** Titan only (data/titan/tuning.json). See rules/titanTypes.ts. */
   sleep?: TitanSleepTuning;
@@ -275,6 +326,10 @@ export interface InstrumentTuning {
     anomalyEdge: number; // ...at its zone edge (tuning.milestones.hydrogenZoneRadiusM), in a straight line...
     anomalyRangeM: number; // ...then down to noiseFloor at this distance from the center
     iceSignalShare: number; // Ice deposit located: the dark crater's ice signal (0..1) reaches at least this (within (1 - share) x iceRangeM of the spot)
+    // Mars (data/mars/tuning.json; rules in Mars step 5b). Absent on the Moon.
+    unitReadings?: Record<string, number>; // by zone id: the reading inside that zone, where it is above noiseFloor (Séítah, the delta foot; a game simplification)
+    rtgFloorRise?: number; // on a rover whose power part has neutronNoise (an RTG): the noise floor rises by this...
+    rtgJitter?: number; // ...and the reading wobbles by up to this (instead of jitter)
   };
   xray: {
     reachM: number; // a boulder counts when its surface is this close to the rover's center
@@ -285,6 +340,62 @@ export interface InstrumentTuning {
     recordWindowSeconds: number; // the station records the ground for this long before the moonquake
     quietDistanceM: number; // the rover driving closer than this during the window makes the trace noisy
   };
+  // Mars instruments (Mars step 4a; data/mars/tuning.json). Absent on the Moon, so none of their rules apply there.
+  arm?: ArmTuning;
+  mast?: MastTuning;
+  weather?: WeatherTuning;
+  radar?: RadarTuning;
+  laser?: LaserTuning;
+  /** Held uses charged as they run (energyPerUse / useSeconds per second of the hold) instead of up front: the organics spectrometer. */
+  chargedWhileHeld?: Instrument[];
+}
+
+/** The robotic arm (Mars MS2, Owner B item B13): contact instruments (whose `needs` include the arm) refuse to read on steeper ground. */
+export interface ArmTuning {
+  slopeLimitDeg: number; // the ground under the rover must be at most this steep (slope.png)
+}
+
+/** The remote sensing mast (Mars M5): the camera's photo zones (tuning.milestones.photoZoneRadiusM) grow by this on a rover with a mast. */
+export interface MastTuning {
+  photoRangeFactor: number;
+}
+
+/**
+ * The weather mast (Mars M4, Owner B item B9, provisional, for Chieri's review): the storm forecast comes
+ * earlier once the mast has been switched on, with the rover powered up, for a while; the HUD shows a
+ * pressure and dust readout with trends.
+ */
+export interface WeatherTuning {
+  stormEarlyWarningSeconds: number; // the forecast comes this much earlier than the orbital report's
+  warmupSeconds: number; // ...once the mast has been on (and the rover powered up) without a break for this long
+  pressurePa: number; // the readout's mean surface pressure
+  pressureDailySwing: number; // share of pressurePa the daily cycle adds and takes away
+  pressurePeakHour: number; // local solar hour of the daily pressure peak
+  clearTau: number; // dust opacity on a clear sol
+  stormTau: number; // dust opacity at full storm strength
+  forecastHazeTau: number; // dust opacity the air gains over the early-warning lead before the storm (what the mast's trend shows)
+  trendSeconds: number; // the trend arrows compare the readout now with this long ago
+  pressureTrendPa: number; // a pressure change smaller than this reads as steady
+  dustTrendTau: number; // a dust change smaller than this reads as steady
+}
+
+/**
+ * The ground-penetrating radar (Mars M4): a profile of columns along the drive, one per columnM driven,
+ * broken by a sharp turn or a stop. Layer kinds come from the zone under the rover.
+ */
+export interface RadarTuning {
+  columnM: number; // meters of driving per profile column
+  turnBreakDeg: number; // a heading change above this within one column breaks the profile
+  stopBreakSeconds: number; // standing still this long breaks the profile
+  columns: number; // columns kept for the HUD strip
+  layers: { zone: string; kind: string }[]; // the zone under the rover → layer kind, first match wins
+  defaultLayer: string; // the layer kind anywhere else
+}
+
+/** The laser spectrometer (Mars M4): its target is the nearest boulder or point of the delta cliff in a cone ahead. */
+export interface LaserTuning {
+  reachM: number; // a boulder's surface or a cliff point within this distance of the rover's center
+  coneDeg: number; // half-angle of the cone ahead of the rover
 }
 
 /** A rock type (an id in text.json rocks) and its weight in a suite: each boulder reads one, picked by weight and seeded by its position. */
@@ -403,6 +514,7 @@ export interface EventsFile {
   flare?: FlareSpec;
   quake?: QuakeSpec;
   duststorm?: DustStormSpec;
+  dustdevil?: DustDevilSpec; // Mars (rules/dust.ts)
   rainstorm?: RainstormSpec; // Titan
 }
 
@@ -482,24 +594,29 @@ export interface SharedTextFile {
   intro: { heading: string; skip: string; done: string; pages: TutorialPage[] };
   /** Why REL goes to this world: the design desk kicker and site context, and the context's sources (credits). Each world sets its own. */
   story: { kicker: string; site: string; sourcesLabel: string; sources: string[] };
-  slots: Record<Slot, string>;
+  slots: Record<BusSlot | 'instrument', string> & Partial<Record<SupportSlot, string>>; // support slot names come with the world that offers them
   design: Record<
     | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
     | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
-    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentNoMilestones' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
+    | 'notOffered' // parts a carried build lost because this world does not offer them ({parts}; reworded per world)
+    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
     string
-  > & { speedInfo: string[] }; // speedInfo: the optional real-speed pop-up, one paragraph per entry
+  > & {
+    speedInfo: string[]; // the optional real-speed pop-up, one paragraph per entry
+    /** By instrument: a desk card's short line on where the instrument is used (Mars step 6d; none on the Moon). Names places, never a lesson. */
+    instrumentWhere?: Partial<Record<Instrument, string>>;
+  };
   ticket: Record<
     'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
     string
   >;
   review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'blocked' | 'hardBlock', string>; // the pre-launch review on the ticket screen
   notebook: Record<
-    | 'open' | 'openTitle' | 'openMission' | 'unread' | 'heading' | 'count' | 'intro' | 'empty' | 'answers' | 'source' | 'newBadge' | 'close' | 'closeHint',
+    | 'open' | 'openTitle' | 'openMission' | 'unread' | 'heading' | 'count' | 'intro' | 'empty' | 'worldEmpty' | 'answers' | 'source' | 'newBadge' | 'close' | 'closeHint',
     string
-  >; // the engineering notebook
+  > & { worlds: Record<MissionId, string> }; // the engineering notebook; worlds: each world's section heading
   landing: Record<'heading' | 'briefing', string>;
   survey: Record<
     | 'heading' | 'intro' | 'lead' | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName' | 'loading'
@@ -533,6 +650,7 @@ export interface SharedTextFile {
     | 'recordHeld' | 'payoutHeading' | 'survivalPayout' | 'milestoneMoney' | 'penalty' | 'net' | 'rpEarned' | 'balance'
     | 'albumHeading' | 'noPhotos' | 'historyHeading' | 'restart' | 'continue'
     | 'logRockTypes' | 'logEarned' | 'logEarnedJoin' | 'stagedCount' | 'groupRover' | 'groupCombo' | 'notReachedHeading' | 'notReachedNote' // Moon sites plan, Phase 5
+    | 'notReachedNeeds' // a "Not reached" line naming the support part the rover lacked: {name}, {needs} (Mars M18)
     | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
     | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource' // "What the rover taught us": the relationships met
     | 'storyPassed' | 'storyFailed', // the story line after the passed or failed round line (empty: not shown)
@@ -585,7 +703,13 @@ export interface SharedTextFile {
     | 'loading' | 'loadFailed' | 'imageryFallback' | 'provider' | 'imageCredit' | 'license' | 'productPage'
     | 'flaresUsed' | 'speedLabel' | 'instrumentsLabel' | 'relationshipsLabel' | 'survivedLabel' | 'back',
     string
-  > & { terrainFallback: string[]; soilEntries: CreditEntry[] };
+  > & {
+    terrainFallback: string[];
+    soilEntries: CreditEntry[];
+    /** A world's own parts with a real basis (Mars step 8): a label, then hand-written entries named after the parts. */
+    partsLabel?: string;
+    partEntries?: CreditEntry[];
+  };
 }
 
 /** text.json, with the Mars-only and Titan-only sections that data/mars/text.json and data/titan/text.json add. */
@@ -599,6 +723,24 @@ export interface InstrumentText {
   holding?: string; // the hint while the rover holds still for it (default: instruments.holding)
   fact?: string; // one real-history sentence, shown on first use when Mission history is on
   source?: string; // where the fact comes from (credits)
+  // Mars instruments (Mars step 4a). Placeholders as noted; absent where the instrument has no such notice.
+  slope?: string; // a contact reading refused on ground steeper than the arm's limit: {name} {slope} {max}
+  noTarget?: string; // the laser: no target in the cone ahead: {reach}
+  target?: string; // the laser's target readout: {target} {distance} {key}
+  targetBoulder?: string; // the laser target's name: a boulder
+  targetCliff?: string; // ...the delta cliff
+  result?: string; // a finished reading: the laser on a boulder {rock} {elements}; the organics spectrometer
+  resultCliff?: string; // the laser on the delta cliff
+  stopped?: string; // a reading charged as it runs, stopped because the battery could not pay for the rest: {name}
+  forecast?: string; // the weather mast: the earlier storm forecast, crediting the mast: {sols} and the mission vars
+  forecastNoSolar?: string; // the same for a rover without solar income (an RTG)
+  readout?: string; // the weather mast's HUD line: {pressure} {pressureTrend} {tau} {dustTrend}
+  trend?: Record<'rising' | 'falling' | 'steady', string>; // the weather readout's trend arrows
+  strip?: string; // the radar strip's label: {meters} of unbroken profile
+  layers?: Record<string, string>; // the radar's layer kinds (tuning.instruments.radar), for the strip and the log
+  log?: string; // the debrief's instrument log line (placeholders per instrument, see ui/screens.ts)
+  logNone?: string; // ...when it was carried but recorded nothing
+  logStorm?: string; // the weather mast: added to its log line when it forecast the dust storm early
 }
 
 /** One page of a tutorial. {name} placeholders are filled from the game data. */
@@ -617,7 +759,12 @@ export interface CreditEntry {
 }
 
 export interface GameData {
+  /** The world this data is for: its overlay is merged in, and parts and relationships are filtered to it. */
+  world: MissionId;
+  /** The parts this world offers (Part.worlds), with the world's wording. */
   parts: PartsFile;
+  /** Every world's parts, with this world's wording: to name the parts a carried build loses, and to check references. */
+  allParts: PartsFile;
   tiers: TiersFile;
   milestones: MilestonesFile;
   tuning: Tuning;
@@ -627,8 +774,13 @@ export interface GameData {
   sites: SitesFile;
 }
 
-/** Kinds of site in sites.json (Moon sites and milestones plan, section 2). */
-export type SiteKind = 'young-crater' | 'rocky-area' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen';
+/**
+ * Kinds of site in sites.json (Moon sites and milestones plan, section 2). Mars (data/mars/sites.json, Mars
+ * sites plan section 2) reuses young-crater, rocky-area and hidden-hydrogen (the hydrated ground), and adds
+ * knob (slope targets), seitah-edge (firm ground at Séítah's edge), delta-foot and flood-boulder.
+ */
+export type SiteKind = 'young-crater' | 'rocky-area' | 'cold-trap' | 'rolled-boulder' | 'hidden-hydrogen'
+  | 'knob' | 'seitah-edge' | 'delta-foot' | 'flood-boulder';
 /** The terrain.json feature lists the pipeline adds for the Moon sites (plan, Phase 1, P1 to P4). */
 export type PipelineFeatureList = 'coldTraps' | 'youngCraters' | 'boulderTrackCandidates' | 'lowLightPatches';
 
@@ -644,6 +796,13 @@ export interface SiteSpec {
   name: string; // display name; tuning.cold.zones names cold traps by it
   feature?: string; // an existing terrain.json feature: key (shadowedCrater) or name (Rocky area 1)
   pipeline?: { list: PipelineFeatureList; id: string }; // a feature the pipeline produced, by its id
+  /**
+   * Mars: the terrain.json feature this site's `local` is copied from, as a dotted path from `features`
+   * (deltaFront.floodBoulder, seitah.entryPoint); in a list, the item's id is the next segment
+   * (slopeTargets.slope-targets-knob-wnw). The data test checks the path exists and, where the feature has
+   * a `local`, that it matches. rules/sites.ts reads `local` until it resolves the path itself.
+   */
+  terrain?: string;
   provisional?: boolean; // true: `local` (and `radiusM`) are candidates from the plan, not yet confirmed by the pipeline
   local?: { x: number; z: number }; // the site's center in the local frame
   radiusM?: number; // young crater and cold trap radius (a provisional cold trap is a circle until the pipeline gives its outline)
@@ -652,7 +811,7 @@ export interface SiteSpec {
   note?: string; // where the values come from
 }
 
-/** data/sites.json */
+/** data/sites.json (the Moon's) and data/mars/sites.json (Mars's, which replaces it whole). */
 export interface SitesFile {
   sites: SiteSpec[];
 }
@@ -727,7 +886,7 @@ export interface RelationshipLesson {
  */
 export interface Relationship extends Partial<RelationshipLesson> {
   id: string;
-  world: 'moon';
+  world: MissionId; // the mission, the review and the notebook show only the current world's
   kind: RelationshipKind;
   name: string; // a short title, for the debrief, the notebook and the review
   parts: string[]; // part ids involved (the cause at the desk)
@@ -744,10 +903,14 @@ export interface RelationshipsFile {
   relationships: Relationship[];
 }
 
-/** A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order). */
-export type Build = Record<BusSlot, string> & { payload: string[] };
+/**
+ * A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order), and
+ * one part id per support slot on a world that offers them (absent on the Moon, so every Moon build and
+ * save stays valid as it is).
+ */
+export type Build = Record<BusSlot, string> & { payload: string[]; support?: Partial<Record<SupportSlot, string>> };
 /**
  * A build on the design screen: a new campaign starts with every slot empty. `payload` undefined: the
  * player has not confirmed the bay yet; `[]`: a confirmed empty bay.
  */
-export type DraftBuild = Partial<Record<BusSlot, string>> & { payload?: string[] };
+export type DraftBuild = Partial<Record<BusSlot, string>> & { payload?: string[]; support?: Partial<Record<SupportSlot, string>> };

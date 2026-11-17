@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData, worldGameData } from './gameData';
+import { fill } from './ui/dom';
 import { isWorldId, MARS_TERRAIN_BASE, TITAN_TERRAIN_BASE, worldFromQuery, worldOfStep, WORLDS } from './worlds';
 import type { MarsTerrainFeatures } from './rules/marsTypes';
 import type { TitanTerrainFeatures } from './rules/titanTypes';
@@ -7,8 +8,11 @@ import moonTuning from '../data/tuning.json';
 import moonEvents from '../data/events.json';
 import moonMilestones from '../data/milestones.json';
 import moonText from '../data/text.json';
+import moonParts from '../data/parts.json';
 import marsTuning from '../data/mars/tuning.json';
 import marsText from '../data/mars/text.json';
+import marsPartsOverlay from '../data/mars/parts.json';
+import moonTiers from '../data/tiers.json';
 import jezero from '../public/terrain/mars/terrain.json';
 import titanTuning from '../data/titan/tuning.json';
 import titanText from '../data/titan/text.json';
@@ -70,13 +74,59 @@ describe('world data', () => {
     expect(mars.events.flare).toBeUndefined();
     expect(mars.events.quake).toBeUndefined();
     expect(mars.events.duststorm).toBeDefined();
-    // The demo reuses the Moon parts (same ids and numbers, Mars wording) and tiers.
+    // Mars offers the shared Moon parts (same ids and numbers, Mars wording; the X-ray also needs the arm,
+    // Mars M6) without the Moon-only ones, then its own parts; its tiers are the Moon's three plus Heavy.
     const moonParts = loadGameData('moon').parts;
-    expect(mars.parts.parts.map(({ name: _n, description: _d, ...rest }) => rest)).toEqual(moonParts.parts.map(({ name: _n, description: _d, ...rest }) => rest));
-    expect(mars.tiers).toBe(loadGameData('moon').tiers);
+    const shared = mars.parts.parts.filter((p) => !p.worlds);
+    const withoutWords = <P extends { name: string; description: string }>({ name: _n, description: _d, ...rest }: P) => rest;
+    expect(shared.map(withoutWords)).toEqual(moonParts.parts.filter((p) => !p.worlds).map((p) => withoutWords(
+      p.id === 'instrument-xray' ? { ...p, effects: { ...p.effects, needs: ['arm'] } } : p)));
+    expect(mars.parts.parts.filter((p) => p.worlds).every((p) => p.worlds!.includes('mars'))).toBe(true);
+    expect(mars.tiers.tiers.slice(0, 3)).toEqual(loadGameData('moon').tiers.tiers);
+    // Heavy takes what the steel chassis can carry (the numbers come from the data files).
+    const heavy = mars.tiers.tiers[3]!;
+    expect(heavy.id).toBe('heavy');
+    expect(heavy.massLimit).toBe(mars.parts.parts.find((p) => p.id === 'chassis-steel')!.effects.maxLoad);
     const moonIds = new Set(moonMilestones.milestones.map((m) => m.id));
     expect(mars.milestones.milestones.length).toBeGreaterThan(0);
     for (const m of mars.milestones.milestones) expect(moonIds.has(m.id)).toBe(false);
+  });
+
+  it('each world has its own catalog: Mars offers eight instruments, without the reflector and the seismometer station', () => {
+    const mars = loadGameData('mars');
+    const instruments = (parts: { slot: string; id: string }[]) => parts.filter((p) => p.slot === 'instrument').map((p) => p.id);
+    expect(mars.world).toBe('mars');
+    expect(instruments(mars.parts.parts)).toEqual([
+      'instrument-camera', 'instrument-drill', 'instrument-neutron', 'instrument-xray',
+      'instrument-weather', 'instrument-radar', 'instrument-laser', 'instrument-organics',
+    ]);
+    expect(mars.parts.parts.find((p) => p.id === 'instrument-reflector' || p.id === 'instrument-seismometer')).toBeUndefined();
+    // Every world's parts stay at hand, in the world's wording, for the dropped-part notice.
+    expect(mars.allParts.parts.map((p) => p.id)).toEqual(moonParts.parts.map((p) => p.id));
+    expect(mars.allParts.parts.find((p) => p.id === 'instrument-reflector')!.name).toBe('Laser retroreflector');
+    expect(fill(mars.text.design.notOffered, { parts: 'Laser retroreflector' })).toBe('Not offered on Mars: Laser retroreflector.');
+  });
+
+  it('the Moon catalog is unchanged: every part in parts.json that the Moon offers, in order, with its numbers and words', () => {
+    const moon = loadGameData('moon');
+    expect(moon.world).toBe('moon');
+    expect(moon.parts).toEqual({ ...moonParts, parts: moonParts.parts.filter((p) => !p.worlds || p.worlds.includes('moon')) });
+    expect(moon.parts.parts.map((p) => p.id)).toEqual([
+      'chassis-steel', 'chassis-titanium', 'wheels-solid', 'wheels-mesh', 'power-fixed-panel', 'power-solar-mast',
+      'battery-nih2', 'battery-li-ion', 'lights-none', 'lights-led', 'heater-none', 'heater-rhu',
+      'instrument-camera', 'instrument-drill', 'instrument-neutron', 'instrument-xray', 'instrument-seismometer', 'instrument-reflector',
+    ]);
+    expect(moon.parts.supportSlots).toBeUndefined();
+    expect(moon.allParts).toEqual(moonParts);
+    expect(moon.parts.parts.filter((p) => p.slot === 'instrument')).toHaveLength(6);
+    expect(moon.parts.parts.find((p) => p.id === 'instrument-xray')!.effects.needs).toBeUndefined();
+    expect(moon.tiers).toEqual(moonTiers);
+  });
+
+  it('the Mars parts overlay names only real parts, and gives Mars the arm and mast slots', () => {
+    const ids = new Set(moonParts.parts.map((p) => p.id));
+    for (const id of Object.keys(marsPartsOverlay.effects).filter((k) => !k.startsWith('_'))) expect(ids.has(id), id).toBe(true);
+    expect(worldGameData('mars').parts.supportSlots).toEqual(['arm', 'mast']);
   });
 
   it('Mars parts have Mars wording; the Moon keeps its own', () => {

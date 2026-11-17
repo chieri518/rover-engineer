@@ -1,9 +1,12 @@
 // The Mars parts of the mission screen: the sol clock and the real Jezero Sun, the night (lights on or
-// sleep), the dust storm, and their HUD words. The rules decide (rules/mission.ts marsStatus and
-// MissionStep.marsNotices); this module only words them. The Moon never creates one.
-import type { GameData } from '../rules/types';
+// sleep), the dust storm, the weather mast's readout and early forecast, and their HUD words. The rules
+// decide (rules/mission.ts marsStatus and MissionStep.marsNotices); this module only words them. The Moon
+// never creates one.
+import type { GameData, Part } from '../rules/types';
+import { nightBudget, partPower } from '../rules/energy';
 import type { Rng } from '../rules/events';
-import { marsSetup, marsStatus, type MarsNotice, type MarsSetup, type MarsStatus, type MissionSetup, type MissionState } from '../rules/mission';
+import { marsSetup, marsStatus, marsWeatherSky, type MarsNotice, type MarsSetup, type MarsStatus, type MissionSetup, type MissionState } from '../rules/mission';
+import { weatherReadout } from '../rules/instruments';
 import { marsSunAt } from '../rules/marsSun';
 import type { SkyDirection } from '../rules/sun';
 import type { MarsTextSections } from '../rules/marsTypes';
@@ -34,20 +37,44 @@ export class MarsMission {
     this.sunAt = (seconds) => marsSunAt(seconds, solTuning, site);
   }
 
-  /** The Mars half of the mission setup (the site and this mission's dust storm). */
+  /** The Mars half of the mission setup (the site, this mission's dust storm and its dust devils). */
   setup(rng: Rng): MarsSetup {
-    return marsSetup(this.site, this.data.events, rng);
+    return marsSetup(this.site, this.data.events, rng, this.data.tuning);
   }
 
   status(state: MissionState, setup: MissionSetup): MarsStatus {
     return marsStatus(state, setup, this.data.tuning)!;
   }
 
-  /** Words for a sunset, dawn or storm notice. A rover without lights hears it cannot drive at night. */
-  noticeText(n: MarsNotice, hasLights: boolean): MarsNoticeText {
+  /**
+   * Words for a sunset, dawn or storm notice. A rover without lights hears it cannot drive at night. A
+   * forecast the weather mast gave early credits the mast, with the storm's lead (`leadSeconds`) in sols.
+   * A rover without solar income (`solar` false: an RTG) is not told at dawn that its panel charges, nor that
+   * the storm cuts its solar income.
+   */
+  noticeText(n: MarsNotice, hasLights: boolean, leadSeconds = 0, solar = true): MarsNoticeText {
     if (n.kind === 'dusk') return { message: hasLights ? this.night.sunset : this.night.noLights, tone: 'warn' };
-    if (n.kind === 'dawn') return { message: this.night.dawn, tone: 'good' };
-    return { message: fill(this.storm[n.edge], this.vars), tone: n.edge === 'cleared' ? 'good' : 'warn' };
+    if (n.kind === 'dawn') return { message: solar ? this.night.dawn : this.night.dawnNoSolar ?? this.night.dawn, tone: 'good' };
+    const wt = this.data.text.instrumentText.weather;
+    const mast = (!solar && wt?.forecastNoSolar) || wt?.forecast;
+    if (n.edge === 'forecast' && n.byMast && mast) {
+      const sols = Math.max(0, leadSeconds) / this.data.tuning.sol!.secondsPerSol;
+      return { message: fill(mast, { ...this.vars, sols: sols.toFixed(1) }), tone: 'warn' };
+    }
+    const words = (!solar && this.storm[`${n.edge}NoSolar` as const]) || this.storm[n.edge];
+    return { message: fill(words, this.vars), tone: n.edge === 'cleared' ? 'good' : 'warn' };
+  }
+
+  /** The weather mast's HUD line now: pressure, dust opacity and their trends. Null without the mast's tuning or text. */
+  weatherLine(seconds: number, setup: MissionSetup): string | null {
+    const t = this.data.tuning.instruments.weather;
+    const it = this.data.text.instrumentText.weather;
+    const now = marsWeatherSky(seconds, setup, this.data.tuning);
+    const before = t ? marsWeatherSky(seconds - t.trendSeconds, setup, this.data.tuning) : null;
+    if (!t || !it?.readout || !now || !before) return null;
+    const r = weatherReadout(now, before, t);
+    const arrow = (x: keyof NonNullable<typeof it.trend>) => it.trend?.[x] ?? '';
+    return fill(it.readout, { pressure: Math.round(r.pressurePa), pressureTrend: arrow(r.pressureTrend), tau: r.tau.toFixed(2), dustTrend: arrow(r.dustTrend) });
   }
 
   /** "Sol 3 of 10". */
@@ -65,4 +92,27 @@ export class MarsMission {
   noLightsWarning(m: MarsStatus, poweredDown: boolean, hasLights: boolean): string | null {
     return m.clock.isNight && !poweredDown && !hasLights ? this.night.noLights : null;
   }
+}
+
+/**
+ * The desk's night budget line (Mars M15): what one night costs this build asleep and parked awake with the
+ * lights on (with the electric heater's share of each), and an RTG's income over the night. Null where
+ * there is no night (the Moon); a dash until the power, lights and heater are chosen.
+ */
+export function nightBudgetLine(data: GameData, parts: Part[]): { label: string; value: string } | null {
+  const { night, sol } = data.tuning;
+  const t = data.text.nightBudget;
+  if (!night || !sol || !t) return null;
+  const label = fill(t.label, { seconds: sol.nightSeconds });
+  if (!(['power', 'lights', 'heater'] as const).every((slot) => parts.some((p) => p.slot === slot))) return { label, value: '—' };
+  const hasLights = parts.some((p) => (p.effects.lightRange ?? 0) > 0); // as rules/mission.ts missionSetup
+  const b = nightBudget(partPower(parts), hasLights, night, sol.nightSeconds);
+  const energy = (x: number) => String(Number(x.toFixed(1)));
+  const items = [
+    fill(t.asleep, { energy: energy(b.asleep) }),
+    b.withLights !== null && fill(t.lights, { energy: energy(b.withLights) }),
+    b.heater > 0 && fill(t.heater, { energy: energy(b.heater) }),
+    b.steady > 0 && fill(t.steady, { energy: energy(b.steady) }),
+  ].filter((x): x is string => Boolean(x));
+  return { label, value: items.join(t.separator) };
 }

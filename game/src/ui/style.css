@@ -115,6 +115,20 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .quake-trace svg { display: block; width: 100%; height: 34px; margin-top: 2px; }
 .quake-trace polyline { fill: none; stroke: var(--info); stroke-width: 1.2; }
 .quake-trace.noisy polyline { stroke: var(--warn); }
+.weather-readout { font-family: var(--font-mono); font-size: 0.8rem; color: var(--info); }
+.weather-recording { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); }
+.weather-recording[hidden] { display: none; }
+.radar-strip { font-size: 0.75rem; color: var(--muted); }
+.radar-strip canvas { display: block; width: 100%; height: 34px; margin-top: 2px; image-rendering: pixelated; border: 1px solid var(--line); }
+.laser-target { font-size: 0.8rem; color: var(--accent); }
+.weather-readout[hidden], .radar-strip[hidden], .laser-target[hidden], .laser-reticle[hidden], .hold-progress[hidden] { display: none; }
+.laser-reticle { position: absolute; left: 50%; top: 50%; width: 34px; height: 34px; margin: -17px 0 0 -17px; border: 2px solid var(--accent); border-radius: 50%; pointer-events: none; box-shadow: 0 0 6px rgba(0, 0, 0, 0.6); }
+.laser-reticle::before, .laser-reticle::after { content: ''; position: absolute; background: var(--accent); }
+.laser-reticle::before { left: 50%; top: -8px; bottom: -8px; width: 2px; margin-left: -1px; }
+.laser-reticle::after { top: 50%; left: -8px; right: -8px; height: 2px; margin-top: -1px; }
+.hold-progress { display: grid; gap: 4px; background: rgba(8, 26, 40, 0.88); color: #d4f0ff; border: 1px solid var(--info); padding: 6px 14px; border-radius: 6px; font-size: 0.85rem; min-width: 240px; }
+.hold-progress-track { height: 6px; background: rgba(255, 255, 255, 0.15); border-radius: 3px; overflow: hidden; }
+.hold-progress-fill { height: 100%; width: 0; background: var(--info); }
 .instrument-key { font-family: var(--font-mono); font-size: 0.75rem; color: var(--accent); border: 1px solid var(--line-strong); border-radius: 3px; padding: 0 4px; }
 /* Between the HUD panel (left, 260 px) and the minimap (right, up to 216 px), so long notices never cover them. */
 .hud-center { position: absolute; top: 14%; left: 50%; transform: translateX(-50%); width: clamp(200px, calc(100% - 600px), 560px); display: grid; gap: 8px; justify-items: center; }
@@ -154,9 +168,15 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .lg.coldtrap::before { border: 1.5px dashed #8cc8ff; background: rgba(90, 150, 255, 0.2); width: 6px; height: 6px; }
 .lg.rolled::before { background: #c9b79c; border: 1px solid #1a1612; border-radius: 50%; width: 6px; height: 6px; }
 .lg.hydrogen::before { border: 2px dotted #c3a6ff; border-radius: 50%; width: 5px; height: 5px; }
+/* The Mars sites (Mars step 6c; minimap.ts draws them in the same colors). */
+.lg.knob::before { border: 1.5px solid #e6b98a; border-radius: 50%; width: 6px; height: 6px; }
+.lg.seitahedge::before { border: 1.5px dashed #9fd29a; border-radius: 50%; width: 6px; height: 6px; }
+.lg.deltafoot::before { background: #ffd2a6; width: 10px; height: 5px; }
+.lg.flood::before { background: #d9825a; border: 1px solid #1a1612; border-radius: 50%; width: 7px; height: 7px; }
 .lg.done::before { content: '\2713'; width: auto; height: auto; color: #8fe388; font-weight: 700; font-size: 0.8rem; line-height: 1; vertical-align: 0; }
 .minimap-leads { list-style: none; margin: 6px 0 0; padding: 6px 0 0; border-top: 1px solid var(--edge); display: grid; gap: 2px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--info); }
 .minimap-leads[hidden] { display: none; }
+.minimap-leads li.nearest { color: var(--text); font-weight: 600; }
 .survey-leads { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 6px; }
 @media (max-width: 640px) {
   .hud { width: calc(60% - 24px); }
@@ -460,7 +480,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 /* minmax(0, 1fr): a long source URL wraps instead of widening the column past the dialog. */
 .notebook-entries { list-style: none; padding: 0; margin: 8px 0 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; }
 .notebook-entries > li { min-width: 0; padding: 8px 0; border-bottom: 1px solid var(--line); }
-.notebook-entries h3 { font-size: 1rem; margin: 0 0 4px; color: var(--accent); }
+.notebook-world { margin-top: 12px; }
+.notebook-world-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--edge); }
+.notebook-world-head h3 { margin: 4px 0; font-size: 1.05rem; color: var(--info); }
+.notebook-entries h4 { font-size: 1rem; margin: 0 0 4px; color: var(--accent); }
 .notebook-entries p { margin: 4px 0; font-size: 0.92rem; }
 .notebook-entries .sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 0; }
 .notebook-entries .answers { margin: 2px 0 4px; padding-left: 1.2em; font-size: 0.92rem; }
