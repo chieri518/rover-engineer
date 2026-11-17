@@ -5,7 +5,7 @@
 // and its four instruments: the weather mast, the radar, the laser and the organics spectrometer (step 4a).
 // Titan adds the one-day clock, the sleep fast-forward, the always-on cold and the methane rain (ui/titanMission.ts).
 import type { AlbumPhoto, Screen } from '../flow/flow';
-import type { MissionResult } from '../rules/payout';
+import { earnedLines, type MissionResult } from '../rules/payout';
 import { buildZones, MilestoneTracker, PHOTO_ZONE_IDS, type FramedBoulder, type MilestoneUpdate, type PhotoView, type Point3, type SunPhoto, type Zone } from '../rules/milestones';
 import { completeBuild, selectedParts } from '../rules/rover';
 import { instrumentForKey, instrumentKeys, instrumentsOf } from '../rules/payload';
@@ -44,11 +44,11 @@ import type { Terrain } from '../world/terrainData';
 import type { TerrainMasks } from '../world/terrainMasks';
 import { flareWarningText, noticeText } from '../events';
 import { el, fill } from './dom';
-import { Hud } from './hud';
+import { Hud, MILESTONE_LOG_KEY } from './hud';
 import { MARS_RELIEF, Minimap, TITAN_RELIEF } from './minimap';
 import { foundNotice, hudLeadLine, leadView } from './surveyText';
 import { craterWallHint, powerLine, readingNotice, weatherRecordingLine, weatherRecords } from './hudText';
-import { causeText, milestoneCard, missedText } from './milestoneText';
+import { causeText, milestoneCard, milestoneLog, missedText } from './milestoneText';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
 import { tutorialPages } from './tutorialText';
@@ -292,8 +292,21 @@ export const missionScreen: Screen = (game, root) => {
   hud.setMuted(game.settings.muted);
   const stopListening = game.listen({ settings: (st) => hud.setMuted(st.muted) }); // the M key mutes too
 
+  // The HUD's milestone list: the ids reached, the latest first (a staged milestone moves up at each stage).
+  const milestoneOrder: string[] = [];
+  const refreshMilestoneLog = () => {
+    if (!tracker) return;
+    const lines = earnedLines(tracker.result(), data.milestones.milestones, tuning, recordsHeld, setup.groundDown);
+    hud.setMilestoneLog(milestoneLog(lines, milestoneOrder, text));
+  };
   const announce = (u: MilestoneUpdate) => {
     if (u.reached.length) audio.milestone();
+    for (const r of u.reached) {
+      const at = milestoneOrder.indexOf(r.milestone.id);
+      if (at !== -1) milestoneOrder.splice(at, 1);
+      milestoneOrder.unshift(r.milestone.id);
+    }
+    if (u.reached.length) refreshMilestoneLog();
     for (const r of u.reached) {
       hud.milestone(milestoneCard(r, data, game.settings.missionHistory, recordsHeld, setup.groundDown));
       // Hidden hydrogen: the only way its site appears on the map.
@@ -698,6 +711,7 @@ export const missionScreen: Screen = (game, root) => {
     if (e.repeat || tutorial || notebook) return;
     if (e.code === NOTEBOOK_KEY) return openNotes();
     if (e.code === 'KeyP') togglePower();
+    if (e.code === MILESTONE_LOG_KEY) hud.toggleMilestoneLog();
     const inst = instrumentForKey(e.code, parts);
     if (inst) useInstrument(inst);
   };

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
-import { deskCardNotes, milestoneCard, milestoneHowTo, notReachedLine, rewardText } from './milestoneText';
+import { deskCardNotes, milestoneCard, milestoneHowTo, milestoneLog, notReachedLine, rewardText } from './milestoneText';
+import { earnedLines } from '../rules/payout';
 import { armNotes } from './supportText';
 import type { GameData, Instrument } from '../rules/types';
 
@@ -136,5 +137,31 @@ describe('the robotic arm as the X-ray\'s upgrade: card and reward words', () =>
     const reached = { milestone: rock, stage: 1, stages: 3 };
     expect(milestoneCard(reached, mars, false, [], true).reward).toBe(rewardText({ money: 158, rp: 15, factor: 1.5 }, mars));
     expect(milestoneCard(reached, mars, false, []).reward).toBe(rewardText({ money: 105, rp: 10 }, mars));
+  });
+});
+
+describe('the HUD milestone list', () => {
+  const t = data.text;
+  const lines = earnedLines([{ id: 'touchdown' }, { id: 'odometer', stages: 2 }, { id: 'boulder-field' }], data.milestones.milestones, data.tuning, ['touchdown'], false);
+
+  it('newest first, staged milestones with their stage, a held record with no reward', () => {
+    const view = milestoneLog(lines, ['boulder-field', 'odometer', 'touchdown'], t);
+    expect(view.rows.map((r) => r.id)).toEqual(['boulder-field', 'odometer', 'touchdown']);
+    expect(view.rows[1]!.title).toBe('Odometer 2 of 3');
+    expect(view.rows[1]!.reward).toBe(`+$${byId('odometer').money * 2}k, +${byId('odometer').rp * 2} RP`);
+    expect(view.rows[2]).toMatchObject({ title: 'Touchdown', reward: t.milestone.logHeldReward, held: true });
+  });
+
+  it('the total is the milestone money and RP so far; a record held adds nothing', () => {
+    const view = milestoneLog(lines, [], t);
+    const money = byId('odometer').money * 2 + byId('boulder-field').money;
+    const rp = byId('odometer').rp * 2 + byId('boulder-field').rp;
+    expect(view.count).toBe(3);
+    expect(view.total).toBe(`+$${money}k, +${rp} RP`);
+    expect(view.rows.map((r) => r.id)).toEqual(['touchdown', 'odometer', 'boulder-field']); // none in the order: their own order
+  });
+
+  it('none yet: no rows, the empty line', () => {
+    expect(milestoneLog([], [], t)).toMatchObject({ count: 0, rows: [], empty: t.milestone.logEmpty });
   });
 });
