@@ -801,6 +801,15 @@
         "url": "https://ntrs.nasa.gov/api/citations/19730008090/downloads/19730008090.pdf"
       }
     ],
+    "titleLabel": "Title screen",
+    "titleEntries": [
+      {
+        "label": "Earth",
+        "text": "Earth on the title screen is NASA's Blue Marble: the Blue Marble Next Generation surface (September, with topography and bathymetry) and the Blue Marble cloud composite. It is drawn south up, as Earth appears from the Moon's south pole.",
+        "citation": "NASA Earth Observatory (Reto Stöckli); clouds: NASA Goddard Space Flight Center (Reto Stöckli, Robert Simmon)",
+        "url": "https://earthobservatory.nasa.gov/features/BlueMarble"
+      }
+    ],
     "speedLabel": "Real drive speeds (design screen)",
     "instrumentsLabel": "Instrument facts",
     "relationshipsLabel": "Engineering lessons (how parts affect each other)",

@@ -155,6 +155,9 @@ export const creditsScreen: Screen = (game, root) => {
           el('ul', { class: 'credit-list' },
             ...c.soilEntries.map(handEntry),
             entry(c.speedLabel, shared.text.design.speedInfoSources))),
+        c.titleLabel && c.titleEntries?.length
+          ? section(c.titleLabel, el('ul', { class: 'credit-list' }, ...c.titleEntries.map(handEntry)))
+          : null,
         section(c.generatedHeading, el('p', {}, c.generated)),
       ),
 
