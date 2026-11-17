@@ -799,7 +799,7 @@
       {
         "title": "Map and notebook",
         "body": [
-          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing.",
+          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads.",
           "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it."
         ]
       }

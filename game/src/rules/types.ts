@@ -457,7 +457,7 @@ export interface MilestoneTuning {
   photoLosTailM: number;
 }
 
-/** Orbital survey leads: rough bearings to areas of interest, given at the landing briefing. */
+/** Orbital survey leads: rough bearings to areas of interest, shown by the minimap. */
 export interface SurveyTuning {
   /** site: a terrain.json feature key (craterDescent, shadowedCrater) or feature name (Rocky area 1). */
   leads: { id: string; site: string }[];

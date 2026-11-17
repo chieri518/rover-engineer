@@ -322,7 +322,7 @@
       {
         "title": "Where to go first",
         "body": [
-          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing, each with its distance: the nearest lead is drawn larger and listed first under the map.",
+          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been, and sites appear once the rover finds them. Arrows at the edge of the map point toward the orbital survey leads, each with its distance: the nearest lead is drawn larger and listed first under the map.",
           "Start with the sites near the lander. Rocky area 2, an old crater with boulders on its rim, is about half a kilometer west-northwest. Small young craters lie about 0.6 km to the south, west-southwest and southwest, and Rocky area 1, a boulder field, about 0.7 km south. Séítah, East crater and the delta front are farther out, 1 to 1.5 km.",
           "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it."
         ]
