@@ -58,11 +58,29 @@ export interface RoverModel {
    * Empty without `bySlot`.
    */
   slots: Partial<Record<ModelGroup, THREE.Group>>;
+  /** Only with `rig`: the moving parts' pivots. */
+  rig?: RoverRig;
 }
+
+/** The parts a cinematic rig moves (the intro video in cinematic/; never used in the game). */
+export type RigPart = 'solarPanel' | 'cameraMast' | 'cameraPan' | 'cameraTilt';
+
+/**
+ * Pivots for the rig's moving parts, under `body`, each at its joint (chassis frame) and at rest (no
+ * rotation, no offset): the solar mast's panel column hinges at the top of its pole (rotate about z to
+ * fold it back); the camera mast's upper section slides along y in its lower sleeve; the camera head
+ * pans about y and tilts about z. Only the parts the build has.
+ */
+export type RoverRig = Partial<Record<RigPart, THREE.Object3D>>;
 
 export interface RoverModelOptions {
   /** Keep each slot's (and instrument's) static parts in a separate group (a few more draw calls). Default: one mesh per material. */
   bySlot?: boolean;
+  /**
+   * Cinematic rig (the intro video; off in the game): the moving parts (`RigPart`) as separate pivoted
+   * groups in `rig`, and the camera head's lenses with their own material ('eye'). Same look at rest.
+   */
+  rig?: boolean;
 }
 
 const COLORS = {
@@ -420,6 +438,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     let m = mats.get(key);
     if (!m) {
       m = new THREE.MeshLambertMaterial(params());
+      m.name = key; // tells the materials apart (the intro video's material upgrade); no effect on the look
       if (noShadow) m.userData.noShadow = true;
       // Callers free `map`; the bump map is freed with the material.
       const material = m;
@@ -432,11 +451,15 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   const textured = (key: string, color: number, map: () => THREE.Texture | null, extra: THREE.MeshLambertMaterialParameters = {}) =>
     mat(key, () => ({ color, map: map(), ...extra }));
   let slot: ModelGroup = 'chassis'; // the group the static parts added next belong to
+  const rigOn = options.rig ?? false;
+  let rigPart: RigPart | null = null; // with `rig`: the moving part the parts added next belong to
+  const rigAnchors: Partial<Record<RigPart, THREE.Vector3>> = {};
   const add = (geometry: THREE.BufferGeometry, material: THREE.Material, x = 0, y = 0, z = 0, parent: THREE.Object3D = body) => {
     const mesh = new THREE.Mesh(geometry, material);
     mesh.position.set(x, y, z);
     mesh.castShadow = true;
     mesh.userData.slot = slot;
+    if (rigPart) mesh.userData.rig = rigPart;
     parent.add(mesh);
     return mesh;
   };
@@ -601,7 +624,13 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     const side = 0.42;
     const panelY = deckTopY + poleH + panelH / 2;
     add(rod(0.07, 0.07, 16), dark, mx, deckTopY + 0.035, 0); // the gimbal that turns it to the Sun
-    add(rod(0.035, poleH + panelH, 10), frame, mx, deckTopY + (poleH + panelH) / 2, 0);
+    if (rigOn) {
+      // The pole in two pieces: the panel column (with its share of the pole) hinges at the pole's top.
+      add(rod(0.035, poleH, 10), frame, mx, deckTopY + poleH / 2, 0);
+      rigPart = 'solarPanel';
+      rigAnchors.solarPanel = new THREE.Vector3(mx, deckTopY + poleH, 0);
+      add(rod(0.035, panelH, 10), frame, mx, deckTopY + poleH + panelH / 2, 0);
+    } else add(rod(0.035, poleH + panelH, 10), frame, mx, deckTopY + (poleH + panelH) / 2, 0);
     const face = mat('mastCells', () => {
       const map = cellTexture([2, 6]);
       return { color: map ? 0xffffff : COLORS.cell, map };
@@ -621,6 +650,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     }
     add(box(side + 0.04, 0.03, side + 0.04), frame, mx, panelY + panelH / 2 + 0.015, 0);
     add(rod(0.05, 0.04, 12), dark, mx, panelY + panelH / 2 + 0.05, 0);
+    rigPart = null;
     // A low radiator plate where the flat panel would be.
     add(box(l * 0.4, 0.02, w * 0.6), radiator, l * 0.12, deckTopY + 0.01, 0);
   }
@@ -709,24 +739,46 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
 
   // Instruments, each in its own place: a tall camera mast with a pan/tilt stereo head near the front
   // corner, and a drill tower at the front (with a short navigation camera when there is no camera mast).
-  const cameraHead = (x: number, height: number, z: number) => {
+  const cameraHead = (x: number, height: number, z: number, rig = false) => {
     const headY = deckTopY + height + 0.1;
     add(rod(0.05, 0.05, 12), dark, x, deckTopY + 0.025, z);
-    add(rod(0.026, height, 10), frame, x, deckTopY + height / 2, z);
-    add(rod(0.007, height - 0.05, 4), dark, x - 0.035, deckTopY + height / 2, z);
-    if (height > 0.6) for (const f of [0.35, 0.7]) add(rod(0.036, 0.025, 10), dark, x, deckTopY + height * f, z);
+    if (rig) {
+      // Telescoping: a lower sleeve, and the upper section (with its cable and a collar) sliding in it.
+      const sleeve = Math.min(0.42, height * 0.45);
+      add(rod(0.032, sleeve, 10), frame, x, deckTopY + sleeve / 2, z);
+      add(rod(0.038, 0.03, 10), dark, x, deckTopY + sleeve, z);
+      rigPart = 'cameraMast';
+      rigAnchors.cameraMast = new THREE.Vector3(x, deckTopY, z);
+      add(rod(0.024, height - sleeve + 0.1, 10), frame, x, deckTopY + (height + sleeve - 0.1) / 2, z);
+      add(rod(0.006, height - sleeve - 0.04, 4), dark, x - 0.033, deckTopY + (height + sleeve) / 2, z);
+      add(rod(0.034, 0.025, 10), dark, x, deckTopY + height * 0.75, z);
+    } else {
+      add(rod(0.026, height, 10), frame, x, deckTopY + height / 2, z);
+      add(rod(0.007, height - 0.05, 4), dark, x - 0.035, deckTopY + height / 2, z);
+      if (height > 0.6) for (const f of [0.35, 0.7]) add(rod(0.036, 0.025, 10), dark, x, deckTopY + height * f, z);
+    }
     // Pan unit, a tilt yoke and the head.
+    if (rig) {
+      rigPart = 'cameraPan';
+      rigAnchors.cameraPan = new THREE.Vector3(x, deckTopY + height, z);
+    }
     add(rod(0.045, 0.06, 12), dark, x, deckTopY + height + 0.03, z);
     for (const s of [-1, 1]) add(box(0.05, 0.1, 0.014), frame, x, headY - 0.02, z + s * 0.19);
     add(box(0.05, 0.014, 0.394), frame, x, headY - 0.07, z);
+    if (rig) {
+      rigPart = 'cameraTilt';
+      rigAnchors.cameraTilt = new THREE.Vector3(x, headY, z);
+    }
+    const eye = rig ? mat('eye', () => ({ color: COLORS.lens, emissive: 0x0b2033 })) : lens;
     add(new RoundedBoxGeometry(0.14, 0.11, 0.36, 1, 0.012).toNonIndexed(), casing, x, headY, z);
     add(box(0.03, 0.012, 0.36), dark, x + 0.06, headY + 0.06, z); // sunshade
     for (const s of [-1, 1]) {
       add(axle(0.03, 0.05, 12, true), dark, x + 0.085, headY, z + s * 0.11);
-      add(axle(0.022, 0.006, 12, true), lens, x + 0.111, headY, z + s * 0.11);
+      add(axle(0.022, 0.006, 12, true), eye, x + 0.111, headY, z + s * 0.11);
     }
     add(axle(0.018, 0.03, 10, true), dark, x + 0.08, headY + 0.01, z);
-    add(axle(0.012, 0.006, 10, true), lens, x + 0.096, headY + 0.01, z);
+    add(axle(0.012, 0.006, 10, true), eye, x + 0.096, headY + 0.01, z);
+    rigPart = null;
   };
   const hasCamera = look.instruments.includes('camera');
   if (look.instruments.includes('drill')) {
@@ -762,7 +814,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   }
   if (hasCamera) {
     slot = 'camera';
-    cameraHead(l * 0.32, 1.0, w * 0.28);
+    cameraHead(l * 0.32, 1.0, w * 0.28, rigOn);
   }
 
   // Low on the body: the neutron spectrometer, a detector block on the front face between the front
@@ -831,7 +883,8 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   // Wheels with their suspension: each wheel is merged into a few meshes per material, for the
   // rolling part (`spin`) and the part that follows suspension and steering (`wheel`).
   const wheels: RoverModel['wheels'] = [];
-  if (!look.wheels) return { ...mergeByMaterial(body, options.bySlot ?? false), wheels };
+  const rig = rigOn ? rigAnchors : undefined;
+  if (!look.wheels) return { ...mergeByMaterial(body, options.bySlot ?? false, rig), wheels };
   slot = 'wheels';
   const mesh = look.wheels === 'mesh';
   const wheelW = 0.22;
@@ -938,7 +991,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     mergeChildren(wheel, spin);
     wheels.push({ wheel, spin });
   }
-  return { ...mergeByMaterial(body, options.bySlot ?? false), wheels };
+  return { ...mergeByMaterial(body, options.bySlot ?? false, rig), wheels };
 }
 
 /** Replace the meshes among `parent`'s children (except `keep`) with one mesh per material. */
@@ -964,14 +1017,26 @@ function mergeChildren(parent: THREE.Object3D, keep?: THREE.Object3D): void {
  * One mesh per material for the static parts: a few draw calls instead of dozens (twice, with the
  * shadow pass). With `bySlot`, one mesh per material within each slot's own group.
  */
-function mergeByMaterial(group: THREE.Group, bySlot: boolean): Pick<RoverModel, 'body' | 'slots'> {
+function mergeByMaterial(
+  group: THREE.Group,
+  bySlot: boolean,
+  rigAnchors?: Partial<Record<RigPart, THREE.Vector3>>,
+): Pick<RoverModel, 'body' | 'slots' | 'rig'> {
   const byKey = new Map<string, { slot: ModelGroup; material: THREE.Material; geometries: THREE.BufferGeometry[] }>();
+  const rigParts = new Map<RigPart, Map<THREE.Material, THREE.BufferGeometry[]>>();
   for (const child of group.children) {
     if (!(child instanceof THREE.Mesh)) continue;
     child.updateMatrix();
     const g = (child.geometry as THREE.BufferGeometry).clone().applyMatrix4(child.matrix);
     child.geometry.dispose();
     const material = child.material as THREE.Material;
+    const part = child.userData.rig as RigPart | undefined;
+    if (rigAnchors && part) {
+      const byMat = rigParts.get(part) ?? new Map<THREE.Material, THREE.BufferGeometry[]>();
+      byMat.set(material, [...(byMat.get(material) ?? []), g]);
+      rigParts.set(part, byMat);
+      continue;
+    }
     const slot = child.userData.slot as ModelGroup;
     const key = bySlot ? `${slot}:${material.uuid}` : material.uuid;
     const entry = byKey.get(key) ?? { slot, material, geometries: [] };
@@ -995,5 +1060,30 @@ function mergeByMaterial(group: THREE.Group, bySlot: boolean): Pick<RoverModel, 
     }
     parent.add(mesh);
   }
-  return { body: merged, slots };
+  if (!rigAnchors) return { body: merged, slots };
+  // Each moving part: a pivot at its joint (relative to its parent's joint), holding its meshes in the chassis frame.
+  const parentOf: Record<RigPart, RigPart | null> = { solarPanel: null, cameraMast: null, cameraPan: 'cameraMast', cameraTilt: 'cameraPan' };
+  const rig: RoverRig = {};
+  for (const part of ['solarPanel', 'cameraMast', 'cameraPan', 'cameraTilt'] as const) {
+    const byMat = rigParts.get(part);
+    const anchor = rigAnchors[part];
+    if (!byMat || !anchor) continue;
+    const up = parentOf[part];
+    const parentPivot = up ? rig[up] : undefined;
+    const pivot = new THREE.Object3D();
+    pivot.name = `rig:${part}`;
+    pivot.position.copy(anchor);
+    if (up && parentPivot) pivot.position.sub(rigAnchors[up]!);
+    const holder = new THREE.Group();
+    holder.position.copy(anchor).negate();
+    for (const [material, geometries] of byMat) {
+      const mesh = new THREE.Mesh(mergeAll(geometries), material);
+      mesh.castShadow = !material.userData.noShadow;
+      holder.add(mesh);
+    }
+    pivot.add(holder);
+    (parentPivot ?? merged).add(pivot);
+    rig[part] = pivot;
+  }
+  return { body: merged, slots, rig };
 }
