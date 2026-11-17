@@ -244,6 +244,7 @@ describe('The night budget (Mars M15)', () => {
     const parts = ['power-fixed-panel', 'lights-led', 'heater-rhu'].map(real);
     expect(nightBudget(partPower(parts), true, n, seconds)).toEqual({
       asleep: expect.closeTo(3, 9), withLights: 60, heater: 0, steady: 0, net: { asleep: expect.closeTo(-3, 9), withLights: -60 },
+      rate: { asleep: expect.closeTo(-0.2, 9), withLights: -4 },
     });
     expect(nightBudget(partPower([real('heater-rhu')]), false, n, seconds).withLights).toBeNull();
   });
@@ -264,6 +265,19 @@ describe('The night budget (Mars M15)', () => {
     expect(rtg.net.asleep).toBeCloseTo(6, 9); // 9 earned, 3 drawn
     expect(rtg.net.withLights!).toBeCloseTo(-51, 9); // 9 earned, 60 drawn
     expect(nightBudget(partPower([fixture('power', RTG)]), false, n, seconds).net.withLights).toBeNull();
+  });
+
+  it('gives the net change as a rate per second of night: the net over the night length', () => {
+    const rtg = nightBudget(partPower([fixture('power', RTG), real('lights-led')]), true, n, seconds);
+    expect(seconds).toBe(15);
+    expect(rtg.rate.asleep).toBeCloseTo(0.4, 9); // +6 over 15 s
+    expect(rtg.rate.withLights!).toBeCloseTo(-3.4, 9); // -51 over 15 s
+    const solar = nightBudget(partPower([real('power-fixed-panel'), real('lights-led'), fixture('heater', ELECTRIC)]), true, n, seconds);
+    expect(solar.rate.asleep).toBeCloseTo(-1.4, 9);
+    expect(solar.rate.withLights!).toBeCloseTo(-5.2, 9);
+    const dark = nightBudget(partPower([fixture('power', RTG)]), false, n, seconds);
+    expect(dark.rate.withLights).toBeNull();
+    expect(nightBudget(partPower([fixture('power', RTG)]), false, n, 0).rate.asleep).toBe(0); // no night: no rate
   });
 
   it('states a night by its net change against the battery: gain, small, large (from largeLossShare), empties', () => {

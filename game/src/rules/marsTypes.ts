@@ -398,15 +398,18 @@ export interface MarsTextSections {
   /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
   campaign: MarsCampaignText;
   /**
-   * The desk's night tile (Mars M15, ui/marsMission.ts nightBudgetTile): the battery's net change over one night
-   * asleep and awake with lights, and one sentence with the draws, the electric heater's share and an RTG's income.
+   * The desk's night tile (Mars M15, ui/marsMission.ts nightBudgetTile): the battery's net rate at night per second
+   * asleep and awake with lights (unit design.spec.perSecond), the night's net change under each, and one sentence
+   * with both scales, the draws, the electric heater's share and an RTG's income.
    */
   nightBudget: Record<
     | 'label' // {seconds}
     | 'asleep' | 'lights' | 'noLights' // the tile's two values' labels, and the second's text on a rover without lights
+    // The line under each value, the night's net change ({net}); an amber or red value adds its battery share ({percent}):
+    | 'perNight' | 'perNightShare'
     // The tooltip and screen-reader sentence ({seconds} {uses} {heater} {steady} {changes}) and its pieces:
     | 'sentence' | 'usesAsleep' | 'usesLights' | 'usesJoin' | 'heaterEach' | 'heaterOne' | 'steady' // {energy}
-    | 'changesAsleep' | 'changesLights' | 'changesJoin' // {net}
+    | 'changesAsleep' | 'changesLights' | 'changesJoin' // {rate} {net} {seconds}
     | 'stateLarge' | 'stateEmpties', // an amber or red value, so the state is not colour alone: {mode} {percent}
     string
   >;

@@ -93,6 +93,8 @@ export interface NightBudget {
   steady: number; // steady income earned over the night (an RTG)
   /** The battery's net change over the night (steady income minus draw): positive when the income covers it. */
   net: { asleep: number; withLights: number | null };
+  /** The same net change as a rate: per second of night (net over the night's length). */
+  rate: { asleep: number; withLights: number | null };
 }
 
 export function nightBudget(power: PartPower, hasLights: boolean, night: NightTuning, nightSeconds: number): NightBudget {
@@ -100,12 +102,15 @@ export function nightBudget(power: PartPower, hasLights: boolean, night: NightTu
   const steady = power.steadyIncome * nightSeconds;
   const asleep = draw(true);
   const withLights = hasLights ? draw(false) : null;
+  const net = { asleep: steady - asleep, withLights: withLights === null ? null : steady - withLights };
+  const perSecond = (x: number) => (nightSeconds > 0 ? x / nightSeconds : 0);
   return {
     asleep,
     withLights,
     heater: power.heaterDraw * nightSeconds,
     steady,
-    net: { asleep: steady - asleep, withLights: withLights === null ? null : steady - withLights },
+    net,
+    rate: { asleep: perSecond(net.asleep), withLights: net.withLights === null ? null : perSecond(net.withLights) },
   };
 }
 

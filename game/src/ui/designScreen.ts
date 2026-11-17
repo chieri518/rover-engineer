@@ -321,14 +321,16 @@ export const designScreen: Screen = (game, root) => {
         : titanIncome !== null
           ? stat(st.charging, st.solarAlmostNone, st.perSecond, titanIncome, { sub: st.chargingSolar, cls: 'warn' }) // Titan: the rate is in the tooltip
           : stat(st.charging, `+${d.energyIncome.toFixed(1)}`, st.perSecond, fill(st.solarSentence, { income: d.energyIncome.toFixed(1) }), { sub: st.chargingSolar });
-    // The night tile: the battery's net change over one night, asleep and awake with lights, coloured by state.
+    // The night tile: the battery's net rate at night, asleep and awake with lights, coloured by state, with the
+    // night's net change underneath (with the battery share for an amber or red value).
     const nightTile = night && el('div', { class: 'stat wide night', title: `${night.label}: ${night.sentence}` },
       el('div', { class: 'stat-head', 'aria-hidden': 'true' }, el('span', { class: 'stat-label' }, night.label)),
       el('div', { class: 'night-items', 'aria-hidden': 'true' },
         ...(night.items.length
           ? night.items.map((x) => el('div', { class: `night-item ${x.key} ${x.state ?? 'none'}` },
             el('span', { class: 'night-label' }, el('span', { class: 'night-icon' }), x.label),
-            el('span', { class: 'night-value' }, x.value)))
+            el('span', { class: 'night-value' }, x.unit ? num(x.value, x.unit) : x.value),
+            x.sub ? el('span', { class: 'stat-sub night-sub' }, x.sub) : null))
           : [el('div', { class: 'stat-value' }, dash)])),
       el('span', { class: 'visually-hidden' }, `${night.label}: ${night.sentence}`),
     );

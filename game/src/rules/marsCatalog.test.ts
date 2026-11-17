@@ -267,11 +267,15 @@ describe('The night budget line with the Mars parts', () => {
   });
 
   it('an RTG rover gains overnight asleep (green); a solar rover with lights and an electric heater loses a large share of a small battery (amber)', () => {
-    const tile = (b: Build) => nightBudgetTile(mars, selectedParts(b, mars.parts))!.items.map((x) => [x.value, x.state]);
-    expect(tile({ ...lit, power: 'power-rtg', heater: 'heater-none' })).toEqual([['+6', 'gain'], ['\u221251', 'large']]); // 51 of 400
-    expect(tile({ ...lit, power: 'power-rtg', heater: 'heater-none', battery: 'battery-nih2' })).toEqual([['+6', 'gain'], ['\u221251', 'small']]);
-    expect(tile({ ...lit, heater: 'heater-electric' })).toEqual([['\u221221', 'small'], ['\u221278', 'large']]);
-    expect(tile({ ...lit, heater: 'heater-electric', battery: 'battery-large' })).toEqual([['\u221221', 'small'], ['\u221278', 'small']]);
+    const tile = (b: Build) => nightBudgetTile(mars, selectedParts(b, mars.parts))!.items.map((x) => [x.value, x.sub, x.state]);
+    expect(tile({ ...lit, power: 'power-rtg', heater: 'heater-none' })).toEqual([
+      ['+0.4', '+6 per night', 'gain'], ['\u22123.4', '\u221251 per night · 13%', 'large']]); // 51 of 400
+    expect(tile({ ...lit, power: 'power-rtg', heater: 'heater-none', battery: 'battery-nih2' })).toEqual([
+      ['+0.4', '+6 per night', 'gain'], ['\u22123.4', '\u221251 per night', 'small']]);
+    expect(tile({ ...lit, heater: 'heater-electric' })).toEqual([
+      ['\u22121.4', '\u221221 per night', 'small'], ['\u22125.2', '\u221278 per night · 20%', 'large']]);
+    expect(tile({ ...lit, heater: 'heater-electric', battery: 'battery-large' })).toEqual([
+      ['\u22121.4', '\u221221 per night', 'small'], ['\u22125.2', '\u221278 per night', 'small']]);
   });
 });
 

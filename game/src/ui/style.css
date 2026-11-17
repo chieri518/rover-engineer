@@ -416,8 +416,8 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .soft-rating.poor { color: var(--warn); }
 .soft-seg.lit { background: currentColor; }
 /* The night tile: asleep and awake with lights side by side, each a small label with an icon above a signed
-   net value: green with "+" when steady income covers the night, neutral for a small loss, amber for a large
-   share of the battery, red when a night would empty it. */
+   net rate per second, and the night's net change underneath: green with "+" when steady income covers the
+   night, neutral for a small loss, amber for a large share of the battery, red when a night would empty it. */
 .night-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .night-item { display: flex; flex-direction: column; min-width: 0; white-space: nowrap; }
 .night-item + .night-item { padding-left: 8px; border-left: 1px solid var(--line); }
