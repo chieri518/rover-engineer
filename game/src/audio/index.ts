@@ -28,7 +28,7 @@ export class Sound {
   private sfx: Sfx | null = null;
   private levels: SoundSettings = { musicVolume: 0.25, effectsVolume: 0.6, muted: false };
   private hidden = false;
-  private mood: MoodId = 'calm';
+  private mood: MoodId | null = 'calm';
   private suspendTimer: ReturnType<typeof setTimeout> | null = null;
   private failed = false;
 
@@ -87,7 +87,8 @@ export class Sound {
     this.run();
   }
 
-  setMood(id: MoodId): void {
+  /** The music mood, or null for silence (the intro film). */
+  setMood(id: MoodId | null): void {
     this.mood = id;
     this.music?.setMood(id);
   }

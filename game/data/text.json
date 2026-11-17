@@ -12,6 +12,8 @@
     "heading": "Welcome to REL",
     "skip": "Skip intro",
     "done": "Go to the design desk",
+    "filmSkip": "Skip",
+    "filmLabel": "Intro film: a rover's journey from launch on Earth to the Moon, Mars and Titan",
     "pages": [
       {
         "title": "Welcome to REL",

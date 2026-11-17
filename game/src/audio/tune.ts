@@ -13,9 +13,23 @@ export function midiToHz(midi: number): number {
   return 440 * 2 ** ((midi - 69) / 12);
 }
 
-/** Which music mood plays: the world's own mood during a mission, the calm theme everywhere else. */
-export function moodFor(screen: ScreenId, world: WorldId): MoodId {
+/**
+ * Which music mood plays: the world's own mood during a mission, none during the intro film (it has its
+ * own score), the calm theme everywhere else.
+ */
+export function moodFor(screen: ScreenId, world: WorldId): MoodId | null {
+  if (screen === 'film') return null;
   return screen === 'mission' ? world : 'calm';
+}
+
+/**
+ * The intro film's volume (an HTML video's 0..1): silent when muted, `FILM.volume` at the reference Effects
+ * slider, and scaled from there by the slider's squared curve, capped at full volume.
+ */
+export function filmVolume(s: { effectsVolume: number; muted: boolean }, film: { volume: number; referenceSlider: number }): number {
+  if (s.muted) return 0;
+  const ref = volumeGain(film.referenceSlider, 1);
+  return ref > 0 ? Math.min(1, (film.volume * volumeGain(s.effectsVolume, 1)) / ref) : 0;
 }
 
 /**

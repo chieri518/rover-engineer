@@ -666,7 +666,7 @@ export interface SharedTextFile {
   moneySuffix: string;
   title: Record<'heading' | 'subtitle' | 'kicker' | 'newCampaign' | 'continueCampaign', string>;
   /** The Welcome to REL intro, after Start new campaign (base only). Pages are filled by introPages(); **text** is bold. */
-  intro: { heading: string; skip: string; done: string; pages: TutorialPage[] };
+  intro: { heading: string; skip: string; done: string; filmSkip: string; filmLabel: string; pages: TutorialPage[] };
   /** Why REL goes to this world: the design desk kicker and site context, and the context's sources (credits). Each world sets its own. */
   story: { kicker: string; site: string; sourcesLabel: string; sources: string[] };
   slots: Record<BusSlot | 'instrument', string> & Partial<Record<SupportSlot, string>>; // support slot names come with the world that offers them

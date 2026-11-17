@@ -117,6 +117,38 @@ export interface MoonSceneOptions {
   lightRangeM?: number; // floodlights on the rover (0 or undefined: none)
   onFrame?: (state: MoonFrameState) => void;
   onStep?: (sample: MoonStepSample) => MoonDriveLimits | void;
+  /**
+   * Offline rendering (the intro video in cinematic/, not the game): draw with this renderer at this size, run
+   * no frame loop of its own, and let the caller step and draw through MoonScene.offline. Unset in the game.
+   */
+  offline?: { renderer: THREE.WebGLRenderer; width: number; height: number };
+}
+
+/** Handles for offline rendering (MoonSceneOptions.offline): the caller steps physics and the view, and draws. */
+export interface MoonOfflineScene {
+  scene: THREE.Scene;
+  camera: THREE.PerspectiveCamera;
+  renderer: THREE.WebGLRenderer;
+  sunLight: THREE.DirectionalLight;
+  skyLight: THREE.Light;
+  lamp: THREE.SpotLight | null;
+  rover: RoverVehicle;
+  lander: Lander;
+  /** Give a model's Lambert materials this world's lighting (as the rover and lander get). */
+  patch(object: THREE.Object3D): void;
+  /** Run fixed physics steps worth `dt` seconds with this drive input. */
+  stepPhysics(dt: number, input: DriveInput): void;
+  /** Advance everything but physics by `dt`: terrain around `focus` (default: the rover), Sun masks, haze, rain, sky. */
+  updateView(dt: number, focus?: { x: number; z: number }): void;
+  /** Draw sky and scene into `target` (null: the canvas). */
+  draw(target: THREE.WebGLRenderTarget | null): void;
+  /** Hold the Sun at a sky direction (deg); null returns it to mission time. */
+  setSun(azimuthDeg: number | null, elevationDeg?: number): void;
+  /** Set and hold the storm haze (Mars) or rain (Titan) at once, 0..1. */
+  holdStorm(k: number): void;
+  /** Floodlight intensity multiplier, 0 (off) to 1 (the game's intensity) and above. */
+  setLamp(k: number): void;
+  teleport(x: number, z: number, headingDeg: number): void;
 }
 
 export interface MoonScene {
@@ -147,6 +179,8 @@ export interface MoonScene {
    * except in the last 3 m before the point (a boulder's own hollow).
    */
   inFrame(p: { x: number; y: number; z: number }, frameMargin: number): boolean;
+  /** Set only with MoonSceneOptions.offline. */
+  offline?: MoonOfflineScene;
   /**
    * Is this ground point (at the terrain height) in front of the camera and inside the frame
    * (|ndc| <= frameMargin)? Terrain does not hide it: from a crater's rim band the near rim can hide the
@@ -192,13 +226,14 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   const site = { latitudeDeg: info.sunAndEarth.siteLatitude_deg, longitudeDeg: info.sunAndEarth.siteLongitude_deg };
 
   // Renderer and cameras
-  const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
+  const offline = opts.offline;
+  const renderer = offline?.renderer ?? new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
+  if (!offline) renderer.setPixelRatio(Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO));
   renderer.autoClear = false;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
-  renderer.shadowMap.type = THREE.PCFShadowMap;
-  container.append(renderer.domElement);
+  if (!offline) renderer.shadowMap.type = THREE.PCFShadowMap;
+  if (!offline) container.append(renderer.domElement);
 
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 400_000);
@@ -388,9 +423,12 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     camera.aspect = w / Math.max(h, 1);
     camera.updateProjectionMatrix();
   };
-  const observer = new ResizeObserver(resize);
-  observer.observe(container);
-  resize();
+  const observer = offline ? null : new ResizeObserver(resize);
+  observer?.observe(container);
+  if (offline) {
+    camera.aspect = offline.width / Math.max(offline.height, 1);
+    camera.updateProjectionMatrix();
+  } else resize();
 
   // Mission time drives the Sun.
   let seconds = 0;
@@ -427,8 +465,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
   masks.updateAll(renderer, sunNow());
   applyMarsLook(sunNow());
 
-  const draw = () => {
-    renderer.setRenderTarget(null);
+  const draw = (target: THREE.WebGLRenderTarget | null = null) => {
+    renderer.setRenderTarget(target);
     renderer.clear();
     renderer.render(sky.scene, sky.camera);
     renderer.clearDepth();
@@ -494,7 +532,25 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     if (frameTimes.length > 120) frameTimes.shift();
     last = now;
 
-    const raw = input.read();
+    stepPhysics(dt, input.read());
+    updateView(dt, true, CHUNK_REBUILDS_PER_FRAME, null);
+    draw();
+
+    const pos = rover.position;
+    const boundaryDistance = limit - Math.max(Math.abs(pos.x), Math.abs(pos.z));
+    opts.onFrame?.({
+      seconds,
+      sun: sunNow(),
+      position: { x: pos.x, y: pos.y, z: pos.z },
+      speed: rover.speed,
+      forward: { x: forward.x, y: forward.y, z: forward.z },
+      boundaryDistance,
+      nearBoundary: boundaryDistance < tuning.area.warningDistanceM,
+    });
+  };
+
+  // One frame's physics: fixed steps for the time that passed, with the driver's input.
+  const stepPhysics = (dt: number, raw: DriveInput) => {
     acc = paused ? 0 : acc + dt * simSpeed;
     let steps = 0;
     while (acc >= PHYSICS_STEP && steps < 5 * simSpeed) {
@@ -534,10 +590,14 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       }
     }
     if (steps === 5) acc = 0;
+  };
+
+  // One frame's view: terrain around the rover (or `focus`), Sun, haze, camera (when it follows the rover), weather, sky.
+  const updateView = (dt: number, followRover: boolean, rebuilds: number, focus: { x: number; z: number } | null) => {
     rover.sync();
     const pos = rover.position;
     colliders.update(pos.x, pos.z);
-    for (const layer of layers) layer.update(pos.x, pos.z, CHUNK_REBUILDS_PER_FRAME);
+    for (const layer of layers) layer.update(focus?.x ?? pos.x, focus?.z ?? pos.z, rebuilds);
 
     const sun = sunNow();
     placeSun(sun);
@@ -552,13 +612,14 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     devils?.update(testDevils.length ? [...missionDevils, ...testDevils] : missionDevils, seconds, (x, z) => terrain.heightAt(x, z), dt);
     laserMarker.update(dt);
 
-    chase.update(dt, pos, rover.forward(forward));
-    if (orbit) {
+    rover.forward(forward);
+    if (followRover) chase.update(dt, pos, forward);
+    if (followRover && orbit) {
       const a = (orbit.azimuthDeg * Math.PI) / 180;
       camera.position.set(pos.x + Math.sin(a) * orbit.distance, pos.y + orbit.height, pos.z - Math.cos(a) * orbit.distance);
       camera.lookAt(pos.x, pos.y + 0.2, pos.z);
     }
-    if (shakeLeft > 0) {
+    if (followRover && shakeLeft > 0) {
       shakeLeft = Math.max(0, shakeLeft - dt);
       const a = SHAKE_AMPLITUDE_M * Math.min(1, shakeLeft);
       camera.position.x += (Math.random() - 0.5) * a;
@@ -571,20 +632,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     wet?.update(seconds, storm, sunLight, look, lamp); // titan-fx: rain
     if (rain && look && 'rainStreaks' in look) rain.update(paused ? 0 : dt, camera, rain instanceof TitanRaindrops ? storm : look.rainStreaks, look.rainColor); // titan-fx: rain
     beams?.update(paused ? 0 : dt, sun.elevationDeg, storm, look?.fogDensity ?? 0); // titan-fx: beams
-    draw();
-
-    const boundaryDistance = limit - Math.max(Math.abs(pos.x), Math.abs(pos.z));
-    opts.onFrame?.({
-      seconds,
-      sun,
-      position: { x: pos.x, y: pos.y, z: pos.z },
-      speed: rover.speed,
-      forward: { x: forward.x, y: forward.y, z: forward.z },
-      boundaryDistance,
-      nearBoundary: boundaryDistance < tuning.area.warningDistanceM,
-    });
   };
-  frame = requestAnimationFrame(loop);
+  if (!offline) frame = requestAnimationFrame(loop);
 
   // Development hooks for screenshots and tuning (not in production builds).
   if (import.meta.env.DEV) {
@@ -717,8 +766,44 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     };
   }
 
+  const offlineScene: MoonOfflineScene | undefined = offline && {
+    scene,
+    camera,
+    renderer,
+    sunLight,
+    skyLight,
+    lamp,
+    rover,
+    lander,
+    patch: patchObject,
+    stepPhysics: (dt, driveInput) => stepPhysics(dt, driveInput),
+    updateView: (dt, focus) => updateView(dt, false, Infinity, focus ?? null),
+    draw: (target) => draw(target),
+    setSun(azimuthDeg, elevationDeg = 0) {
+      sunOverride = azimuthDeg === null ? null : skyDirection(azimuthDeg, elevationDeg);
+      masks.updateAll(renderer, sunNow());
+      applyMarsLook(sunNow());
+    },
+    holdStorm(k) {
+      stormHold = Math.min(1, Math.max(0, k));
+      stormTarget = storm = stormHold;
+      applyMarsLook(sunNow());
+    },
+    setLamp(k) {
+      if (lamp) lamp.intensity = lampIntensity * Math.max(0, k);
+    },
+    teleport(x, z, headingDeg) {
+      colliders.update(x, z);
+      rover.teleport(x, fine.sample(x, z), z, headingDeg);
+      rover.velocity(lastVel);
+      for (const layer of layers) layer.update(x, z, Infinity);
+      chase.reset();
+    },
+  };
+
   const api: MoonScene = {
     terrain,
+    offline: offlineScene,
     stopClock() {
       clockRunning = false;
     },
@@ -799,7 +884,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
         disposeStationMesh(station);
       }
       cancelAnimationFrame(frame);
-      observer.disconnect();
+      observer?.disconnect();
       input.dispose();
       boulders.dispose();
       devils?.dispose();
@@ -819,9 +904,11 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       masks.dispose();
       sky.dispose();
       dust?.dispose();
-      renderer.dispose();
-      renderer.forceContextLoss();
-      renderer.domElement.remove();
+      if (!offline) {
+        renderer.dispose();
+        renderer.forceContextLoss();
+        renderer.domElement.remove();
+      }
       if (import.meta.env.DEV) delete (window as unknown as { __moon?: unknown }).__moon;
     },
   };
