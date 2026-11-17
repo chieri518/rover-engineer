@@ -10,7 +10,9 @@ import { validateGameData } from './validate';
 import { marsSetup, missionSetup, setStandby, startInstrumentUse, startMission, stepMission, type MissionSample } from './mission';
 import { seededRng } from './events';
 import { ticketTier } from './tiers';
-import { nightBudgetLine } from '../ui/marsMission';
+import { nightBudgetLine, nightBudgetTile } from '../ui/marsMission';
+import { driveStats } from './drive';
+import { softGroundRating } from './ground';
 import type { Build, DraftBuild, PartsFile } from './types';
 
 const mars = loadGameData('mars');
@@ -52,9 +54,9 @@ describe('Mars parts (data)', () => {
     expect(part('instrument-organics').effects.needs).toEqual(['arm']);
   });
 
-  it('the X-ray spectrometer needs the arm on Mars only (Mars M6)', () => {
-    expect(part('instrument-xray').effects.needs).toEqual(['arm']);
-    expect(moon.parts.parts.find((p) => p.id === 'instrument-xray')!.effects.needs).toBeUndefined();
+  it('the X-ray spectrometer needs no arm on any world (November 16; Mars M6 replaced): it is the same part as on the Moon', () => {
+    expect(part('instrument-xray').effects.needs).toBeUndefined();
+    expect(part('instrument-xray').effects).toEqual(moon.parts.parts.find((p) => p.id === 'instrument-xray')!.effects);
   });
 
   it('keeps the spoiler guard on the desk: no dust, neutrons, noise or slopes in the new parts\' words', () => {
@@ -66,12 +68,12 @@ describe('Mars parts (data)', () => {
 });
 
 describe('Support hardware in the build', () => {
-  it('Mars asks for the arm and mast slots; the Moon does not', () => {
+  it('the arm and mast are payload you fit or leave off: neither world asks for them (November 16)', () => {
     const { support: _s, ...noSupport } = scout;
-    expect(missingSlots(noSupport, mars.parts)).toEqual(['arm', 'mast']);
-    expect(isCompleteBuild(noSupport, mars.parts)).toBe(false);
+    expect(missingSlots(noSupport, mars.parts)).toEqual([]);
+    expect(isCompleteBuild(noSupport, mars.parts)).toBe(true);
     expect(isCompleteBuild(scout, mars.parts)).toBe(true);
-    expect(missingSlots({ ...noSupport, payload: undefined }, mars.parts)).toEqual(['arm', 'mast', 'instrument']);
+    expect(missingSlots({ ...noSupport, payload: undefined }, mars.parts)).toEqual([]);
     const moonBuild: Build = { ...noSupport, payload: ['instrument-camera'] };
     expect(isCompleteBuild(moonBuild, moon.parts)).toBe(true);
     expect(missingSlots(moonBuild, moon.parts)).toEqual([]);
@@ -94,25 +96,42 @@ describe('Support hardware in the build', () => {
     expect(withSlotPart({}, 'mast', 'mast-remote')).toEqual({ support: { mast: 'mast-remote' } });
   });
 
-  it('support parts take no mounting point: titanium still carries two instruments with the arm and mast', () => {
+  it('the arm and the mast take a mounting point each (November 16): titanium with the heater, both and two instruments is over', () => {
     const b = withMast(withArm({ ...scout, payload: ['instrument-xray', 'instrument-laser'] }));
-    expect(payloadProblems(b, mars.parts)).toEqual([]);
-    expect(quoteBuild(b, mars, 1000).canLaunch).toBe(true);
+    expect(payloadProblems(b, mars.parts)).toEqual([{ kind: 'over-capacity', count: 5, points: 4 }]);
+    expect(quoteBuild(b, mars, 1000).canLaunch).toBe(false);
+    // Steel's five points take them: heater units, arm, mast, X-ray and laser.
+    const steel = { ...b, chassis: 'chassis-steel' };
+    expect(payloadProblems(steel, mars.parts)).toEqual([]);
+    expect(quoteBuild(steel, mars, 1000).canLaunch).toBe(true);
   });
 
   it('refuses an instrument whose support part is missing, with the part it needs', () => {
-    const xray = { ...scout, payload: ['instrument-xray'] };
-    expect(payloadProblems(xray, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-xray', support: 'arm' }]);
-    expect(payloadProblems(withArm(xray), mars.parts)).toEqual([]);
+    const organics = { ...scout, payload: ['instrument-organics'] };
+    expect(payloadProblems(organics, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-organics', support: 'arm' }]);
+    expect(payloadProblems(withArm(organics), mars.parts)).toEqual([]);
     const laser = { ...scout, payload: ['instrument-laser'] };
     expect(payloadProblems(laser, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-laser', support: 'mast' }]);
     expect(payloadProblems(withMast(laser), mars.parts)).toEqual([]);
     // Still refused while the arm slot is empty, and with the arm in the wrong build: the quote cannot launch.
     expect(payloadProblems({ payload: ['instrument-organics'] }, mars.parts)).toEqual([{ kind: 'needs', id: 'instrument-organics', support: 'arm' }]);
-    const q = quoteBuild(xray, mars, 1000);
+    const q = quoteBuild(organics, mars, 1000);
     expect(q.canLaunch).toBe(false);
     expect(q.tier).not.toBeNull();
-    // On the Moon the X-ray needs nothing.
+  });
+
+  it('the X-ray fits and launches without the arm on Mars, as on the Moon; a build or save with the X-ray and the arm stays valid', () => {
+    const xray = { ...scout, payload: ['instrument-xray'] };
+    expect(payloadProblems(xray, mars.parts)).toEqual([]);
+    expect(quoteBuild(xray, mars, 1000).canLaunch).toBe(true);
+    expect(unmetNeeds(part('instrument-xray'), scout, mars.parts)).toEqual([]);
+    // The old Mars X-ray build (arm fitted because it was needed) is still complete and launches.
+    expect(payloadProblems(withArm(xray), mars.parts)).toEqual([]);
+    expect(quoteBuild(withArm(xray), mars, 1000).canLaunch).toBe(true);
+    // A save from before the change, with the arm in the old support slot, still loads and validates.
+    const old = { ...xray, support: { arm: 'arm-robotic', mast: 'mast-none' } };
+    expect(payloadProblems(old, mars.parts)).toEqual([]);
+    expect(quoteBuild(old, mars, 1000).canLaunch).toBe(true);
     const { support: _s, ...moonXray } = xray;
     expect(payloadProblems(moonXray, moon.parts)).toEqual([]);
   });
@@ -136,22 +155,38 @@ describe('Support hardware in the build', () => {
 
   it('the cheapest Mars build has no arm and no mast and can launch', () => {
     const b = cheapestBuild(mars.parts);
-    expect(b.support).toEqual({ arm: 'arm-none', mast: 'mast-none' });
+    expect(b.support).toBeUndefined();
     expect(quoteBuild(b, mars, 1000).canLaunch).toBe(true);
     expect(cheapestBuild(moon.parts).support).toBeUndefined();
   });
 });
 
 describe('Saves with support hardware', () => {
-  it('an old save without support loads on Mars, with the support slots still to choose', () => {
+  it('an old save without support loads on Mars complete, with no arm and no mast fitted', () => {
     const { support: _s, ...old } = scout;
     const draft = upgradeSavedBuild(old, mars.parts);
     expect(draft.support).toBeUndefined();
-    expect(missingSlots(draft, mars.parts)).toEqual(['arm', 'mast']);
+    expect(missingSlots(draft, mars.parts)).toEqual([]);
+  });
+
+  it('a Mars save from before November 16 loads: "No arm", "No mast" and "No lights" read as not fitted', () => {
+    const draft = upgradeSavedBuild(scout, mars.parts);
+    expect(draft).toEqual({
+      chassis: 'chassis-titanium', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion', heater: 'heater-rhu', payload: ['instrument-camera'],
+    });
+    expect(isCompleteBuild(draft, mars.parts)).toBe(true);
+    // A steel rover with lights, heater, arm, mast and three instruments (it fitted before) loads with the over-capacity problem.
+    const heavy = upgradeSavedBuild({
+      chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion', lights: 'lights-led', heater: 'heater-rhu',
+      payload: ['instrument-laser', 'instrument-xray', 'instrument-camera'], support: { arm: 'arm-robotic', mast: 'mast-remote' },
+    }, mars.parts);
+    expect(heavy.payload).toHaveLength(3);
+    expect(heavy.support).toEqual({ arm: 'arm-robotic', mast: 'mast-remote' });
+    expect(payloadProblems(heavy, mars.parts)).toEqual([{ kind: 'over-capacity', count: 7, points: 5 }]);
   });
 
   it('keeps support ids the catalog has in that slot and drops the rest', () => {
-    expect(upgradeSavedBuild(withArm(scout), mars.parts).support).toEqual({ arm: 'arm-robotic', mast: 'mast-none' });
+    expect(upgradeSavedBuild(withArm(scout), mars.parts).support).toEqual({ arm: 'arm-robotic' });
     expect(upgradeSavedBuild({ ...scout, support: { arm: 'arm-gone', mast: 'arm-robotic' } }, mars.parts).support).toBeUndefined();
     expect(upgradeSavedBuild({ ...scout, support: 'arm-robotic' }, mars.parts).support).toBeUndefined();
     // The Moon offers no support slots: they are dropped silently.
@@ -160,9 +195,10 @@ describe('Saves with support hardware', () => {
 
   it('carries a Mars build on Mars unchanged, and names the Mars parts it loses on the Moon', () => {
     const b = withArm({ ...scout, power: 'power-rtg', payload: ['instrument-xray'] });
-    expect(carryBuild(b, mars.allParts, 'mars')).toEqual({ build: b, dropped: [] });
+    const { lights: _l, ...fitted } = b; // "No lights" and "No mast" read as not fitted
+    expect(carryBuild(b, mars.allParts, 'mars')).toEqual({ build: { ...fitted, support: { arm: 'arm-robotic' } }, dropped: [] });
     const toMoon = carryBuild(b, mars.allParts, 'moon');
-    expect(toMoon.dropped.map((p) => p.id)).toEqual(['power-rtg', 'arm-robotic', 'mast-none']);
+    expect(toMoon.dropped.map((p) => p.id)).toEqual(['power-rtg', 'arm-robotic']); // a "None" part is not lost
     expect(toMoon.build.power).toBeUndefined();
   });
 });
@@ -199,10 +235,10 @@ describe('Mars ticket tiers (Mars M12)', () => {
     expect(ticketTier(95, 20, moon.tiers.tiers)).toBeNull();
   });
 
-  it('a steel rover with arm, mast and three instruments launches Heavy on Mars', () => {
+  it('a steel rover with heater, arm, mast and two instruments (a full bay) launches Heavy on Mars', () => {
     const b: Build = {
-      chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
-      lights: 'lights-led', heater: 'heater-rhu', payload: ['instrument-laser', 'instrument-xray', 'instrument-camera'],
+      chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-large',
+      heater: 'heater-rhu', payload: ['instrument-laser', 'instrument-xray'],
       support: { arm: 'arm-robotic', mast: 'mast-remote' },
     };
     const q = quoteBuild(b, mars, 1000);
@@ -215,19 +251,53 @@ describe('The night budget line with the Mars parts', () => {
   const line = (b: Build) => nightBudgetLine(mars, selectedParts(b, mars.parts))?.value;
   const lit = { ...scout, lights: 'lights-led' };
 
-  it('changes with the power source and the heater: each segment shows when it applies', () => {
+  it('changes with the power source and the heater: each piece of the sentence shows when it applies', () => {
     const words = mars.text.nightBudget!;
     const has = (value: string | undefined, template: string) => template.split('{energy}').map((x) => x.trim()).filter(Boolean).every((x) => value!.includes(x));
-    const asleep = line(lit);
-    expect(has(asleep, words.asleep)).toBe(true);
-    expect(has(asleep, words.lights)).toBe(true);
-    expect(has(asleep, words.heater)).toBe(false);
-    expect(has(asleep, words.steady)).toBe(false);
-    expect(has(line({ ...lit, heater: 'heater-electric' }), words.heater)).toBe(true);
+    const plain = line(lit);
+    expect(has(plain, words.usesAsleep)).toBe(true);
+    expect(has(plain, words.usesLights)).toBe(true);
+    expect(has(plain, words.heaterEach)).toBe(false);
+    expect(has(plain, words.steady)).toBe(false);
+    expect(has(line({ ...lit, heater: 'heater-electric' }), words.heaterEach)).toBe(true);
     expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-none' }), words.steady)).toBe(true);
     expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' }), words.steady)).toBe(true);
-    expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' }), words.heater)).toBe(true);
-    expect(line(scout)).not.toContain(words.lights.replace('{energy} ', ''));
+    expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' }), words.heaterEach)).toBe(true);
+    expect(has(line(scout), words.usesLights)).toBe(false);
+  });
+
+  it('an RTG rover gains overnight asleep (green); a solar rover with lights and an electric heater loses a large share of a small battery (amber)', () => {
+    const tile = (b: Build) => nightBudgetTile(mars, selectedParts(b, mars.parts))!.items.map((x) => [x.value, x.sub, x.state]);
+    expect(tile({ ...lit, power: 'power-rtg', heater: 'heater-none' })).toEqual([
+      ['+0.4', '+6 per night', 'gain'], ['\u22123.4', '\u221251 per night · 13%', 'large']]); // 51 of 400
+    expect(tile({ ...lit, power: 'power-rtg', heater: 'heater-none', battery: 'battery-nih2' })).toEqual([
+      ['+0.4', '+6 per night', 'gain'], ['\u22123.4', '\u221251 per night', 'small']]);
+    expect(tile({ ...lit, heater: 'heater-electric' })).toEqual([
+      ['\u22121.4', '\u221221 per night', 'small'], ['\u22125.2', '\u221278 per night · 20%', 'large']]);
+    expect(tile({ ...lit, heater: 'heater-electric', battery: 'battery-large' })).toEqual([
+      ['\u22121.4', '\u221221 per night', 'small'], ['\u22125.2', '\u221278 per night', 'small']]);
+  });
+});
+
+describe('The soft-ground rating with the real parts', () => {
+  const rate = (b: Build, data = mars) => {
+    const parts = selectedParts(b, data.parts);
+    const d = driveStats(parts, data.tuning);
+    return softGroundRating(d.massKg, d.grip, data.tuning).rating;
+  };
+  const bus = { lights: 'lights-none', heater: 'heater-none', payload: [] as string[], support: { arm: 'arm-none', mast: 'mast-none' } };
+
+  it('rates a light grouser rover Good and a heavy steel rover on solid wheels Poor', () => {
+    expect(rate({ ...bus, chassis: 'chassis-titanium', wheels: 'wheels-grouser', power: 'power-solar-mast', battery: 'battery-li-ion' })).toBe('good');
+    expect(rate({ ...scout, wheels: 'wheels-grouser', lights: 'lights-led', payload: ['instrument-camera', 'instrument-xray'] })).toBe('good');
+    expect(rate({ ...bus, chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-rtg', battery: 'battery-nih2' })).toBe('poor');
+    expect(rate({ ...bus, chassis: 'chassis-titanium', wheels: 'wheels-solid', power: 'power-solar-mast', battery: 'battery-li-ion' })).toBe('fair');
+  });
+
+  it('rates the Moon cheapest rover Poor and a light mesh rover Good', () => {
+    const moonBus = { lights: 'lights-none', heater: 'heater-none', payload: [] as string[] };
+    expect(rate({ ...moonBus, chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-nih2' }, moon)).toBe('poor');
+    expect(rate({ ...moonBus, chassis: 'chassis-titanium', wheels: 'wheels-mesh', power: 'power-solar-mast', battery: 'battery-li-ion' }, moon)).toBe('good');
   });
 });
 
@@ -278,7 +348,6 @@ describe('Support and power validation', () => {
     expect(validateGameData({ ...mars, parts: { ...mars.parts, parts } })).toEqual([
       'part heater-rhu has arm but is not in the arm slot',
       'part instrument-camera needs unknown support slot wings',
-      'part instrument-xray needs the arm, but no arm part on mars provides it',
       'part instrument-organics needs the arm, but no arm part on mars provides it',
     ]);
   });

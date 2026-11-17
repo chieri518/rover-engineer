@@ -3,7 +3,7 @@
 // decide (rules/mission.ts marsStatus and MissionStep.marsNotices); this module only words them. The Moon
 // never creates one.
 import type { GameData, Part } from '../rules/types';
-import { nightBudget, partPower } from '../rules/energy';
+import { nightBudget, nightNetState, partPower, type NightNetState } from '../rules/energy';
 import type { Rng } from '../rules/events';
 import { marsSetup, marsStatus, marsWeatherSky, type MarsNotice, type MarsSetup, type MarsStatus, type MissionSetup, type MissionState } from '../rules/mission';
 import { weatherReadout } from '../rules/instruments';
@@ -95,24 +95,94 @@ export class MarsMission {
 }
 
 /**
- * The desk's night budget line (Mars M15): what one night costs this build asleep and parked awake with the
- * lights on (with the electric heater's share of each), and an RTG's income over the night. Null where
- * there is no night (the Moon); a dash until the power, lights and heater are chosen.
+ * The desk's night budget line (Mars M15): the night tile's label and its full sentence (the draws asleep and
+ * awake with lights, the electric heater's share, an RTG's income, and the battery's net change). Null where
+ * there is no night budget (the Moon, Titan); a dash until the power source is chosen.
  */
 export function nightBudgetLine(data: GameData, parts: Part[]): { label: string; value: string } | null {
+  const tile = nightBudgetTile(data, parts);
+  return tile && { label: tile.label, value: tile.sentence };
+}
+
+/**
+ * One value of the night tile: its label, the signed net rate per second ("+0.4", "−3.4") with its unit, or
+ * "No lights"; the night's net change underneath ("+6 per night"), with the battery share for an amber or red
+ * value ("−78 per night · 20%"); its state.
+ */
+export interface NightTileItem {
+  key: 'asleep' | 'lights';
+  label: string;
+  value: string;
+  unit: string; // "/s"; empty for "No lights"
+  sub: string | null; // null: no value (a rover without lights)
+  state: NightNetState | null; // null: no value (a rover without lights)
+}
+
+export interface NightTile {
+  label: string; // "Night energy"
+  items: NightTileItem[]; // asleep, then awake with lights; none until the power source is chosen
+  sentence: string; // the tooltip and screen-reader sentence; a dash until the power source is chosen
+}
+
+/** A signed energy figure: "+6", "+0", "−21" (a true minus sign). */
+export function signedEnergy(x: number): string {
+  const v = Number(x.toFixed(1));
+  return v < 0 ? `\u2212${String(-v)}` : `+${String(v === 0 ? 0 : v)}`;
+}
+
+/**
+ * A signed rate per second: one decimal ("+0.4", "−3.4", "+2.0"), or two when its size is under 0.1 ("−0.05"),
+ * so a small rate never reads "0.0". A true minus sign, never "−0".
+ */
+export function signedRate(x: number): string {
+  const digits = Math.abs(x) < 0.1 ? 2 : 1;
+  const v = Number(x.toFixed(digits));
+  return v < 0 ? `\u2212${(-v).toFixed(digits)}` : `+${Math.abs(v).toFixed(digits)}`;
+}
+
+/**
+ * The night budget as the specification's night tile shows it: the battery's net rate at night per second,
+ * asleep and awake with the lights on, with the whole night's net change underneath (rules/energy.ts
+ * nightBudget, nightNetState: green when steady income covers it, amber from night.largeLossShare of the
+ * battery, red when it would empty the battery), and the whole breakdown as one sentence. Null where there
+ * is no night budget (the Moon, Titan).
+ */
+export function nightBudgetTile(data: GameData, parts: Part[]): NightTile | null {
   const { night, sol } = data.tuning;
   const t = data.text.nightBudget;
   if (!night || !sol || !t) return null;
-  const label = fill(t.label, { seconds: sol.nightSeconds });
-  if (!(['power', 'lights', 'heater'] as const).every((slot) => parts.some((p) => p.slot === slot))) return { label, value: '—' };
+  const seconds = sol.nightSeconds;
+  const label = fill(t.label, { seconds });
+  if (!parts.some((p) => p.slot === 'power')) return { label, items: [], sentence: '\u2014' };
   const hasLights = parts.some((p) => (p.effects.lightRange ?? 0) > 0); // as rules/mission.ts missionSetup
-  const b = nightBudget(partPower(parts), hasLights, night, sol.nightSeconds);
+  const b = nightBudget(partPower(parts), hasLights, night, seconds);
+  const battery = parts.some((p) => p.slot === 'battery') ? parts.reduce((sum, p) => sum + (p.effects.batteryCapacity ?? 0), 0) : null;
   const energy = (x: number) => String(Number(x.toFixed(1)));
-  const items = [
-    fill(t.asleep, { energy: energy(b.asleep) }),
-    b.withLights !== null && fill(t.lights, { energy: energy(b.withLights) }),
-    b.heater > 0 && fill(t.heater, { energy: energy(b.heater) }),
-    b.steady > 0 && fill(t.steady, { energy: energy(b.steady) }),
-  ].filter((x): x is string => Boolean(x));
-  return { label, value: items.join(t.separator) };
+  const percent = (net: number) => (battery ? Math.round((-net / battery) * 100) : 0);
+  const item = (key: NightTileItem['key'], net: number | null, rate: number | null): NightTileItem => {
+    const label = key === 'asleep' ? t.asleep : t.lights;
+    if (net === null || rate === null) return { key, label, value: t.noLights, unit: '', sub: null, state: null };
+    const state = nightNetState(net, battery, night);
+    const sub = fill(state === 'large' || state === 'empties' ? t.perNightShare : t.perNight, { net: signedEnergy(net), percent: percent(net) });
+    return { key, label, value: signedRate(rate), unit: data.text.design.spec.perSecond, sub, state };
+  };
+  const items = [item('asleep', b.net.asleep, b.rate.asleep), item('lights', b.net.withLights, b.rate.withLights)];
+
+  const uses = [fill(t.usesAsleep, { energy: energy(b.asleep) }), b.withLights !== null && fill(t.usesLights, { energy: energy(b.withLights) })]
+    .filter((x): x is string => Boolean(x)).join(t.usesJoin);
+  const heater = b.heater > 0 ? fill(b.withLights !== null ? t.heaterEach : t.heaterOne, { energy: energy(b.heater) }) : '';
+  const steady = b.steady > 0 ? fill(t.steady, { energy: energy(b.steady) }) : '';
+  const changes = [
+    fill(t.changesAsleep, { rate: signedRate(b.rate.asleep), net: signedEnergy(b.net.asleep), seconds }),
+    b.net.withLights !== null && b.rate.withLights !== null && fill(t.changesLights, { rate: signedRate(b.rate.withLights), net: signedEnergy(b.net.withLights), seconds }),
+  ].filter((x): x is string => Boolean(x)).join(t.changesJoin);
+  const states = items.flatMap((x) => {
+    const net = x.key === 'asleep' ? b.net.asleep : b.net.withLights;
+    if (net === null || battery === null || battery <= 0) return [];
+    if (x.state === 'empties') return [fill(t.stateEmpties, { mode: x.label })];
+    if (x.state === 'large') return [fill(t.stateLarge, { mode: x.label, percent: percent(net) })];
+    return [];
+  });
+  const sentence = [fill(t.sentence, { seconds, uses, heater, steady, changes }), ...states].join(' ');
+  return { label, items, sentence };
 }

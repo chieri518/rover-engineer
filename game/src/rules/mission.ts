@@ -48,7 +48,7 @@ export function marsSetup(site: MarsSetup['site'], events: EventsFile, rng: Rng,
   };
 }
 import { instrumentCosts, type InstrumentCosts } from './payload';
-import { stormForecastAt, stormHaze, type WeatherSky } from './instruments';
+import { contactReachM, groundDownReadings, hasArm, stormForecastAt, stormHaze, type WeatherSky } from './instruments';
 
 /** Titan only: what the day, cold and rain rules need beyond the parts. */
 export interface TitanSetup {
@@ -70,7 +70,9 @@ export interface MissionSetup {
   power: PartPower; // the draws and steady income the parts own (rules/energy.ts); applied only where tuning.night exists
   overloadKg: number; // total mass above the chassis maximum load
   instruments: InstrumentCosts[]; // the payload still aboard, in bay order (deployed stations leave it)
-  contact: Instrument[]; // instruments the arm holds against a rock (their `needs` include the arm): a boulder in reach, level enough ground
+  contact: Instrument[]; // instruments the arm holds against a rock (their `needs` include the arm: organics): a boulder in reach, level enough ground
+  reachM: number; // how far a boulder reading reaches (rules/instruments.ts contactReachM): the arm's reach with an arm fitted, else the X-ray's
+  groundDown: boolean; // the X-ray's readings are ground down by a fitted arm (rules/payout.ts pays its reading milestones more)
   remote: Instrument[]; // instruments on the mast that read from a distance (their `needs` include the mast): a target in the cone ahead
   events: MissionEvent[];
   mars?: MarsSetup; // present on Mars: the sol clock, night, map-wide cold and the dust storm apply
@@ -88,6 +90,8 @@ export function missionSetup(parts: Part[], tuning: Tuning, events: MissionEvent
     overloadKg: maxLoad === undefined ? 0 : Math.max(0, mass - maxLoad),
     instruments: instrumentCosts(parts),
     contact: needing(parts, 'arm'),
+    reachM: contactReachM(hasArm(parts), tuning.instruments),
+    groundDown: groundDownReadings(hasArm(parts), tuning.instruments),
     remote: needing(parts, 'mast'),
     events,
     ...(mars ? { mars } : {}),
@@ -524,7 +528,7 @@ export interface UseConditions {
   inColdZone: boolean;
   sunlight: number; // 0..1 at the rover
   earthInView?: boolean; // Earth above the terrain horizon from the rover (needsEarth instruments)
-  boulderInReach?: boolean; // a boulder within tuning.instruments.xray.reachM (needsBoulder instruments)
+  boulderInReach?: boolean; // a boulder within setup.reachM (needsBoulder and contact instruments)
   boulder?: number | null; // which boulder that is (index in the boulder list): a held use keeps it in its site; for a remote reading, the boulder it aims at
   inDarkCrater?: boolean; // inside the dark crater (the shadowed-crater zone)
   slopeDeg?: number; // the ground under the rover (contact readings on a world with tuning.instruments.arm)

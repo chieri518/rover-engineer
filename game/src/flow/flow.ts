@@ -10,7 +10,7 @@ import { worldOfStep, type WorldId } from '../worlds';
 import type { MissionResult } from '../rules/payout';
 import type { InstrumentLog } from '../rules/instruments';
 import { quoteBuild } from '../rules/quote';
-import { isCompleteBuild } from '../rules/rover';
+import { completeBuild } from '../rules/rover';
 import { carryBuild } from '../rules/payload';
 import { clearCampaign, loadCampaign, saveCampaign } from '../save/campaignSave';
 import { loadSettings, saveSettings, type Settings } from '../save/settings';
@@ -177,8 +177,8 @@ export class Game {
   }
 
   buyTicket(): void {
-    const build = this.build;
-    if (!isCompleteBuild(build, this.data.parts)) return;
+    const build = completeBuild(this.build, this.data.parts);
+    if (!build) return;
     const quote = quoteBuild(build, this.data, this.state.balance);
     if (!quote.canLaunch || !quote.canAfford) return;
     this.setCampaign(buyRover(this.state, build, quote.totalCost));

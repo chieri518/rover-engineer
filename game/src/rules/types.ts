@@ -6,14 +6,27 @@ import type {
   TitanTextSections,
 } from './titanTypes';
 
-/** The rover's bus: one part per slot. */
-export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
 /**
- * Support hardware (Mars M5): optional slots a world may offer (PartsFile.supportSlots), one part each,
- * "No arm" / "No mast" included. Instruments that need one say so (PartEffects.needs). They take no
- * mounting point.
+ * The rover's bus slots as the catalog lists them (PartsFile.slots). The first four are required, one
+ * part each; the lights and the heater are payload systems (see SystemSlot).
+ */
+export type BusSlot = 'chassis' | 'wheels' | 'power' | 'battery' | 'lights' | 'heater';
+/** The required bus (November 16): a build is complete once each of these has a part. */
+export type RequiredSlot = 'chassis' | 'wheels' | 'power' | 'battery';
+/** The bus slots that hold payload systems: fitted in the payload bay, or left off. */
+export type SystemBusSlot = Exclude<BusSlot, RequiredSlot>;
+/**
+ * Support hardware (Mars M5): slots a world may offer (PartsFile.supportSlots), one part each.
+ * Instruments that need one say so (PartEffects.needs). Since November 16 a payload system.
  */
 export type SupportSlot = 'arm' | 'mast';
+/**
+ * Payload systems (November 16, "Payload: instruments and systems"): the lights, the heater and, where
+ * the world offers them, the arm and the mast. Each fitted one takes one mounting point, like an
+ * instrument; leaving one off is just not fitting it. A slot with no part, or with a part that provides
+ * nothing (the catalog's "No lights", kept for old saves), is not fitted.
+ */
+export type SystemSlot = SystemBusSlot | SupportSlot;
 /** A part's catalog category: a bus slot, a support slot, or 'instrument' for the payload bay (which holds a list). */
 export type Slot = BusSlot | SupportSlot | 'instrument';
 /** The instruments. weather, radar, laser and organics are Mars's (their behavior arrives in Mars step 4a). */
@@ -21,7 +34,7 @@ export type Instrument = 'camera' | 'drill' | 'neutron' | 'xray' | 'seismometer'
 
 export interface PartEffects {
   maxLoad?: number; // chassis: kg of total rover mass it can carry
-  mountingPoints?: number; // chassis: instruments the payload bay can hold (one point each)
+  mountingPoints?: number; // chassis: payload items the bay can hold, instruments and fitted systems (one point each)
   baseSpeed?: number; // wheels: m/s
   grip?: number; // wheels: 0..1, higher = less slip
   energyPerMeter?: number; // wheels: energy per meter at reference mass
@@ -212,6 +225,7 @@ export interface Tuning {
     referenceMass: number;
     speedLossPerKg: number; // share of base speed lost per kg above the reference mass
     minSpeedFactor: number; // a rover never drops below this share of its base speed
+    loadWarningShare: number; // the desk's chassis-load bar turns amber from this share of the chassis maximum load
     energyGainPerKg: number; // share of energy per meter added per kg above the reference mass
   };
   /** Driving is compressed like time: game speed = real speed × compression. Part base speeds are real m/s. */
@@ -257,6 +271,12 @@ export interface Tuning {
     softRadiusFactor: number; // ground inside rockyArea.radius × this is fully soft (fresh crater rim)
     softFadeFactor: number; // softness fades to zero at rockyArea.radius × this
     movingSpeedMps: number; // above this speed the rover counts as driving
+    /**
+     * The desk's Soft ground rating (rules/ground.ts softGroundRating): the build's sinkage at referenceSoftness
+     * (0..1), Good below fairFromCm, Fair below poorFromCm, Poor from it. Why these numbers: game-design.md, "How the
+     * mission systems work" (Poor starts just under the 20% dig-in slip on flat soft ground).
+     */
+    softGroundRating: { referenceSoftness: number; fairFromCm: number; poorFromCm: number };
   };
   explore: { cellM: number; revealRadiusM: number };
   /** The rolled boulder's track decal (world/boulderTrack.ts): a ribbon draped on the terrain. */
@@ -350,9 +370,14 @@ export interface InstrumentTuning {
   chargedWhileHeld?: Instrument[];
 }
 
-/** The robotic arm (Mars MS2, Owner B item B13): contact instruments (whose `needs` include the arm) refuse to read on steeper ground. */
+/**
+ * The robotic arm (Mars MS2, Owner B item B13): contact instruments (whose `needs` include the arm) refuse to read on
+ * steeper ground. Fitted, it is the X-ray's optional upgrade (game-design.md, The X-ray spectrometer and the robotic arm).
+ */
 export interface ArmTuning {
   slopeLimitDeg: number; // the ground under the rover must be at most this steep (slope.png)
+  reachM: number; // with the arm fitted, every boulder reading reaches this far (surface distance) instead of xray.reachM
+  groundDownFactor: number; // with the arm fitted, the milestones an X-ray reading earns pay this times their money and RP
 }
 
 /** The remote sensing mast (Mars M5): the camera's photo zones (tuning.milestones.photoZoneRadiusM) grow by this on a rover with a mast. */
@@ -586,6 +611,56 @@ export interface DashboardText {
   storyLost: string; // closing line when Titan was not survived
 }
 
+/** The desk's specification panel wording (text.json design.spec). */
+export type SpecText = Record<
+  | 'budgetLabel' | 'continue' | 'cost' | 'remaining' | 'overBudgetLabel' | 'parts' | 'ticket' | 'budget'
+  | 'costSentence' | 'remainingSentence' | 'overSentence' // {budget} {parts} {ticket} {total}; {amount}
+  | 'massSize' | 'tierChip' | 'tierNone' | 'tierSentence' | 'tierNoneSentence' // {tier} {price}
+  | 'mass' | 'size' | 'massUnit' | 'gaugeSentence' | 'gaugeLimit' | 'sizeUnitLong' // {label} {value} {unit} {limits}; {tier} {limit}
+  | 'load' | 'loadSentence' | 'loadOverSentence' | 'loadNone' | 'bay' | 'baySentence' // {mass} {max}; {used} {points}
+  | 'drivingEnergy' | 'speed' | 'speedUnit' | 'speedSentence'
+  | 'softGround' | 'softGroundSentence' // {rating} {mass} {grip} {sinkage}
+  | 'battery' | 'batterySentence' | 'batteryRange' | 'batteryRangeSentence' // {capacity}; {range} {perKm}
+  | 'charging' | 'chargingSolar' | 'chargingSteady' | 'solarSentence' | 'solarAlmostNone' | 'steadySentence' // {income}
+  | 'perSecond' | 'pending'
+  | 'instruments' | 'perUse'
+  // the short warnings by the launch button (the full sentence is in the tooltip): {slots}; {part} {support}; {amount}
+  | 'warnSlotsEmpty' | 'warnBelowMinimum' | 'warnOverTopTier' | 'warnBayOverCapacity' | 'warnSupport' | 'warnOverBudget' | 'warnOverloaded',
+  string
+> & {
+  instrumentNames: Record<Instrument, string>;
+  /** The Soft ground tile's rating words (rules/ground.ts softGroundRating). */
+  softGroundLevels: Record<SoftGroundRating, string>;
+};
+
+/** An icon of the desk's mission brief (drawn by ui/briefIcons.ts). */
+export type BriefIcon =
+  | 'flare' | 'quake' | 'slope' | 'sand' | 'cold' | 'night' | 'storm' | 'rain' | 'haze'
+  | 'layers' | 'rock' | 'hydrogen' | 'radar' | 'sky' | 'earth' | 'view' | 'organics';
+
+/** One line of the mission brief: an icon, a few words, and an optional sentence for its tooltip ({placeholders} from missionVars). */
+export interface BriefItem {
+  icon: BriefIcon;
+  text: string;
+  tip?: string;
+}
+
+/**
+ * The desk's mission brief (game-design.md, "the header reads at a glance"): what to watch out for on this
+ * world and what science it offers, 3 to 5 items each. General only: it names no milestone, gives no how-to
+ * and no reward, and hints at no lesson (ui/spoilerGuard.test.ts checks every string on every world).
+ */
+export interface MissionBrief {
+  label: string; // the brief's accessible name
+  watchHeading: string;
+  scienceHeading: string;
+  watch: BriefItem[];
+  science: BriefItem[];
+}
+
+/** The desk's soft-ground rating of a build (rules/ground.ts softGroundRating). */
+export type SoftGroundRating = 'good' | 'fair' | 'poor';
+
 export interface SharedTextFile {
   moneyPrefix: string;
   moneySuffix: string;
@@ -596,17 +671,36 @@ export interface SharedTextFile {
   story: { kicker: string; site: string; sourcesLabel: string; sources: string[] };
   slots: Record<BusSlot | 'instrument', string> & Partial<Record<SupportSlot, string>>; // support slot names come with the world that offers them
   design: Record<
-    | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum' | 'tierSaving'
-    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty' | 'tierSoFar'
+    | 'heading' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum'
+    | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
-    | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayNone' | 'bayNoneChosen' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay
+    | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay (instruments and systems)
     | 'notOffered' // parts a carried build lost because this world does not offer them ({parts}; reworded per world)
-    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold', // instrument operating costs
+    | 'instrumentEnergy' | 'instrumentEnergyItem' | 'instrumentEnergyNone' | 'instrumentMilestones' | 'instrumentMilestonesJoin' | 'energyPerUse' | 'energyStandby' | 'useHold' // instrument operating costs
+    // The parts palette (game-design.md, "The engineer's desk as a parts editor"): its label, the payload tab's
+    // points ({used}, {points}), the payload groups, the tile badges, the hover card's state lines, the pick hint
+    | 'paletteLabel' | 'tabPoints' | 'groupInstruments' | 'groupSystems' | 'tileFitted' | 'badgeFull' | 'badgeNeeds' | 'badgeOverBudget'
+    | 'cardOverBudget' | 'cardFitted' | 'pickHint' | 'sheetHeading' | 'sheetEnergy' | 'notesMore' | 'notesLess',
     string
   > & {
+    /** The palette's category names: the four required bus slots and the payload. */
+    categories: Record<RequiredSlot | 'payload', string>;
     speedInfo: string[]; // the optional real-speed pop-up, one paragraph per entry
+    /**
+     * The top bar's key numbers (game-design.md, "the header reads at a glance"): the budget's tooltip
+     * (with campaign.carryOver after the Moon), the pass mark ({minimum}, {world}: the next world; its tooltip is
+     * campaign.passMark where the world has one, else passMarkSentence) and, on the last mission, the goal ({minutes}).
+     */
+    header: Record<'budgetSentence' | 'passMarkLabel' | 'passMarkFor' | 'passMarkSentence' | 'goalLabel' | 'goalValue', string>;
+    /** The world's mission brief beside the story (each world sets its own). */
+    brief: MissionBrief;
     /** By instrument: a desk card's short line on where the instrument is used (Mars step 6d; none on the Moon). Names places, never a lesson. */
     instrumentWhere?: Partial<Record<Instrument, string>>;
+    /**
+     * The specification panel (game-design.md, "The engineer's desk as a parts editor"): short labels and units
+     * on screen, and a full sentence per number (the *Sentence keys) for its tooltip and screen-reader name.
+     */
+    spec: SpecText;
   };
   ticket: Record<
     'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
@@ -904,13 +998,17 @@ export interface RelationshipsFile {
 }
 
 /**
- * A rover build: one part id per bus slot, plus the payload bay (instrument part ids, in bay order), and
- * one part id per support slot on a world that offers them (absent on the Moon, so every Moon build and
- * save stays valid as it is).
+ * A rover build: one part id per required bus slot, the payload bay's instruments (part ids, in bay
+ * order), and the payload systems fitted: `lights` and `heater`, and `support` (the arm and the mast) on a
+ * world that offers them. A system slot that is absent is not fitted; one naming a part that provides
+ * nothing ("No lights", from older saves and tests) is not fitted either (rules/payload.ts fittedSystem).
  */
-export type Build = Record<BusSlot, string> & { payload: string[]; support?: Partial<Record<SupportSlot, string>> };
+export type Build = Record<RequiredSlot, string> & Partial<Record<SystemBusSlot, string>> & {
+  payload: string[];
+  support?: Partial<Record<SupportSlot, string>>;
+};
 /**
- * A build on the design screen: a new campaign starts with every slot empty. `payload` undefined: the
- * player has not confirmed the bay yet; `[]`: a confirmed empty bay.
+ * A build on the design screen: a new campaign starts with every slot empty. `payload` undefined reads
+ * as an empty bay (no bay confirmation since November 16; older drafts and saves may still lack it).
  */
 export type DraftBuild = Partial<Record<BusSlot, string>> & { payload?: string[]; support?: Partial<Record<SupportSlot, string>> };

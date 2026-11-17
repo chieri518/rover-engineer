@@ -7,7 +7,7 @@
 import type { AlbumPhoto, Screen } from '../flow/flow';
 import type { MissionResult } from '../rules/payout';
 import { buildZones, MilestoneTracker, PHOTO_ZONE_IDS, type FramedBoulder, type MilestoneUpdate, type PhotoView, type Point3, type SunPhoto, type Zone } from '../rules/milestones';
-import { isCompleteBuild, selectedParts } from '../rules/rover';
+import { completeBuild, selectedParts } from '../rules/rover';
 import { instrumentForKey, instrumentKeys, instrumentsOf } from '../rules/payload';
 import type { Instrument } from '../rules/types';
 import type { Boulder } from '../rules/boulders';
@@ -75,8 +75,9 @@ export const missionScreen: Screen = (game, root) => {
   let scene: MoonScene | null = null;
 
   // Mission state
-  if (!isCompleteBuild(game.build, data.parts)) throw new Error('the mission needs a complete rover');
-  const parts = selectedParts(game.build, data.parts);
+  const build = completeBuild(game.build, data.parts);
+  if (!build) throw new Error('the mission needs a complete rover');
+  const parts = selectedParts(build, data.parts);
   const seed = (Date.now() ^ (Math.random() * 0x7fffffff)) >>> 0;
   const rng = seededRng(seed);
   // The setup changes when a station is set down (lighter rover, fewer instruments aboard), and on Mars
@@ -294,7 +295,7 @@ export const missionScreen: Screen = (game, root) => {
   const announce = (u: MilestoneUpdate) => {
     if (u.reached.length) audio.milestone();
     for (const r of u.reached) {
-      hud.milestone(milestoneCard(r, data, game.settings.missionHistory, recordsHeld));
+      hud.milestone(milestoneCard(r, data, game.settings.missionHistory, recordsHeld, setup.groundDown));
       // Hidden hydrogen: the only way its site appears on the map.
       const tr = r.milestone.trigger;
       if (tr.type === 'transect' && tr.zone === 'hydrogen-anomaly') revealHiddenSites();
@@ -349,7 +350,7 @@ export const missionScreen: Screen = (game, root) => {
       case 'no-earth':
         return fill(ti.useNoEarth, { name });
       case 'no-boulder':
-        return fill(ti.useNoBoulder, { name, reach: tuning.instruments.xray.reachM });
+        return fill(ti.useNoBoulder, { name, reach: setup.reachM });
       case 'low-energy':
         return fill(ti.standbyLowEnergy, { name, share: Math.round(tuning.energy.lowWarningShare * 100) });
       case 'busy':
@@ -421,8 +422,8 @@ export const missionScreen: Screen = (game, root) => {
     });
     return out;
   };
-  /** The boulder within the X-ray spectrometer's reach, if any. */
-  const currentBoulder = () => (roverPos ? xrayTarget(roverPos, boulders, tuning.instruments.xray) : null);
+  /** The boulder within reach of a boulder reading (the X-ray's, or the arm's when one is fitted), if any. */
+  const currentBoulder = () => (roverPos ? xrayTarget(roverPos, boulders, { reachM: setup.reachM }) : null);
   /** Mars: the laser spectrometer's target in the cone ahead (a boulder or the delta cliff), if any. */
   const currentLaserTarget = (): LaserTarget | null => {
     const t = tuning.instruments.laser;
@@ -525,7 +526,12 @@ export const missionScreen: Screen = (game, root) => {
     noteReading(siteProgress, boulder, id);
     const said = again ? fill(ti.xrayAgain, { rock: rock.name }) : fill(ti.xrayResult, { rock: rock.name, elements: rock.elements });
     const count = new Set(log.rocks.map((r) => r.rock)).size;
-    hud.notify(newType && rockTypes > 0 ? [said, fill(ti.xrayNewType, { count, total: rockTypes })] : said, 'good');
+    // A fitted arm grinds the rock first: said once, on the mission's first new boulder (the debrief shows the raised rewards).
+    const ground = setup.groundDown && !again && log.rocks.length === 1 && text.support?.groundDown
+      ? fill(text.support.groundDown, { percent: Math.round(((tuning.instruments.arm?.groundDownFactor ?? 1) - 1) * 100) })
+      : null;
+    const lines = [said, ...(newType && rockTypes > 0 ? [fill(ti.xrayNewType, { count, total: rockTypes })] : []), ...(ground ? [ground] : [])];
+    hud.notify(lines.length === 1 ? said : lines, 'good');
     // Rock collection, Rare rock, and the boulder Documented sample photographs.
     if (tracker && roverPos) announce(tracker.reading('xray', roverPos, { target: 'boulder', rock: id, boulder: index }));
   };
@@ -717,6 +723,7 @@ export const missionScreen: Screen = (game, root) => {
       earned: tracker?.result() ?? [],
       relationships: met, // for the debrief and the engineering notebook (added at mission end)
       measure: tallyMeasure(tally, state, setup.stats.batteryCapacity, album.length, !!(setup.mars ?? setup.titan)),
+      ...(setup.groundDown ? { groundDown: true } : {}), // a fitted arm ground down the X-ray's readings: its reading milestones pay more
     };
     hud.showEnd(lines, () => game.endMission(result, album, log), () => openNotes());
   };

@@ -6,10 +6,10 @@ import type { Build, BusSlot, GameData, HistoryKey, Instrument, Milestone } from
 import type { TitanCampaignText } from '../rules/titanTypes';
 import { earnedWith, groupMilestones, notReached, rockTypeTally, stagesEarned, type MilestoneGroupKey } from '../rules/milestoneLists';
 import { instrumentsOf } from '../rules/payload';
-import { isCompleteBuild, selectedParts } from '../rules/rover';
+import { completeBuild, providesCapability, selectedParts } from '../rules/rover';
 import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
 import type { InstrumentLog } from '../rules/instruments';
-import { categoryLabel, causeText, milestoneSummary, notReachedLine } from './milestoneText';
+import { categoryLabel, causeText, milestoneSummary, notReachedLine, rewardText } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
 import { azimuthDeg, buildLeads, buildSites, compassPoint } from '../rules/survey';
@@ -310,7 +310,8 @@ const debrief: Screen = (game, root) => {
   const taught = taughtItems(result.relationships, data, history);
 
   // The rover as launched (the mission flies game.build) and the records held before this mission.
-  const launchParts = isCompleteBuild(game.build, data.parts) ? selectedParts(game.build, data.parts) : [];
+  const launched = completeBuild(game.build, data.parts);
+  const launchParts = launched ? selectedParts(launched, data.parts) : [];
   const bay = launchParts.length ? instrumentsOf(launchParts) : (game.instrumentLog?.carried ?? []);
   const recordsHeldAtLaunch = state.records.filter((id) => !payout.newRecords.includes(id));
 
@@ -323,7 +324,7 @@ const debrief: Screen = (game, root) => {
     return el('li', {},
       el('span', {}, el('strong', {}, maxStages > 1 ? fill(t.stagedCount, { name: m.name, stages, max: maxStages }) : m.name), ` · ${categoryLabel(m.category, text)}`),
       paid
-        ? el('span', { class: 'reward' }, fill(text.milestone.reward, { money: money(paid.money, text), rp: paid.rp }))
+        ? el('span', { class: 'reward' }, rewardText(paid, data))
         : el('span', { class: 'reward none' }, t.recordHeld),
       el('span', { class: 'sub' }, milestoneSummary(m, stages)),
       history && el('span', { class: 'sub fact' }, m.fact),
@@ -398,12 +399,17 @@ const debrief: Screen = (game, root) => {
  */
 function dragonflyView(t: TitanCampaignText, build: Build | null, data: GameData): HTMLElement {
   const part = (slot: BusSlot) => data.parts.parts.find((p) => p.id === build?.[slot]);
+  const fitted = (slot: BusSlot) => {
+    const p = part(slot);
+    return p && providesCapability(p) ? p : undefined;
+  };
   const vars = {
     wheels: part('wheels')?.name ?? '',
     battery: part('battery')?.name ?? '',
     capacity: part('battery')?.effects.batteryCapacity ?? 0,
-    heater: part('heater')?.name ?? '',
-    lights: part('lights')?.name ?? '',
+    // A system left off (or an old save's "None" part) reads as not fitted.
+    heater: fitted('heater')?.name ?? t.noHeater,
+    lights: fitted('lights')?.name ?? t.noLights,
   };
   return el('section', { class: 'dragonfly' },
     el('h3', {}, t.dragonflyHeading),

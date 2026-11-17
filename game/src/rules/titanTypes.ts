@@ -392,6 +392,8 @@ export interface TitanCampaignText {
   colDragonfly: string;
   /** One row per topic; rover may use {wheels}, {battery}, {capacity}, {heater}, {lights} from the rover flown. */
   compare: { label: string; rover: string; dragonfly: string }[];
+  noHeater: string; // {heater} for a rover flown without a heater fitted
+  noLights: string; // {lights} for a rover flown without lights fitted
   lesson: string; // debrief: the right vehicle depends on the world
   dragonflySource: string; // debrief note and credits
   complete: TitanCompleteText;

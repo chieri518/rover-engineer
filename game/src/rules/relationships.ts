@@ -116,7 +116,7 @@ export function onDust(dustFactor: number, dust: DustTuning | undefined): Relati
   return dustLessonReached(dustFactor, dust) ? [{ id: 'dust-panels' }] : [];
 }
 
-/** A use was refused. The arm cannot reach on a slope: a contact reading refused for the slope under the rover. */
+/** A use was refused. The organics reading needs gentle ground: a contact reading (organics since November 16) refused for the slope under the rover. */
 export function onUseRefused(reason: InstrumentRefusal): RelationshipEvent[] {
   return reason === 'slope' ? [{ id: 'arm-slope' }] : [];
 }
@@ -249,7 +249,7 @@ export interface BuildFacts {
   solar?: boolean; // a part with solar income (energyIncome): dust settles on it (Mars)
   steady?: boolean; // a part with steady income (an RTG): power that dust cannot dim
   neutronNoise?: boolean; // a part that adds neutron noise (the RTG)
-  contact?: boolean; // an instrument that needs the arm (a contact reading: the X-ray or organics spectrometer on Mars)
+  contact?: boolean; // an instrument that needs the arm (a contact reading: the organics spectrometer on Mars; the X-ray needs none since November 16)
 }
 
 export function buildFacts(parts: Part[]): BuildFacts {
@@ -296,7 +296,7 @@ export const BUILD_PREDICATES: Record<RelationshipId, BuildPredicate> = {
   },
   // Dust dims any solar part, the higher solar mast too (more slowly): a risk. Power from an RTG alone is solved.
   'dust-panels': { solvable: true, verdict: (b) => (b.solar ? 'risk' : b.steady ? 'solved' : null) },
-  // Parking level is a plan, not a part, and the laser does not do the contact instruments' work: never solved.
+  // Parking level is a plan, not a part: never solved. Only the organics spectrometer needs the arm, so an X-ray build never gets it.
   'arm-slope': { solvable: false, verdict: (b) => (b.contact ? 'risk' : null) },
   'no-lights-night': { solvable: false, verdict: (b) => (b.lights ? null : 'risk') },
 };

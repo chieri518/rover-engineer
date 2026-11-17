@@ -20,20 +20,20 @@ const meshCount = (obj: THREE.Object3D) => {
 describe('rover look', () => {
   it('shows nothing for an empty build', () => {
     expect(roverLook([])).toEqual({
-      frame: null, wheels: null, power: null, battery: null, lights: false, heater: false, arm: false, mast: false, instruments: [],
+      frame: null, wheels: null, power: null, battery: null, lights: false, heater: false, heaterKind: null, arm: false, mast: false, instruments: [],
     });
   });
 
   it('fills only the chosen slots of a draft build', () => {
     expect(roverLook([part('wheels-mesh'), part('power-solar-mast')])).toEqual({
-      frame: null, wheels: 'mesh', power: 'mast', battery: null, lights: false, heater: false, arm: false, mast: false, instruments: [],
+      frame: null, wheels: 'mesh', power: 'mast', battery: null, lights: false, heater: false, heaterKind: null, arm: false, mast: false, instruments: [],
     });
   });
 
   it('fills every field for a complete build', () => {
     const look = roverLook(['chassis-steel', 'wheels-solid', 'power-fixed-panel', 'battery-nih2', 'lights-led', 'heater-rhu', 'instrument-drill'].map(part));
     expect(look).toEqual({
-      frame: 'steel', wheels: 'solid', power: 'panel', battery: 'cylinders', lights: true, heater: true, arm: false, mast: false, instruments: ['drill'],
+      frame: 'steel', wheels: 'solid', power: 'panel', battery: 'cylinders', lights: true, heater: true, heaterKind: 'rhu', arm: false, mast: false, instruments: ['drill'],
     });
   });
 
@@ -45,6 +45,16 @@ describe('rover look', () => {
     const look = roverLook([part('lights-none'), part('heater-none')]);
     expect(look.lights).toBe(false);
     expect(look.heater).toBe(false);
+    expect(look.heaterKind).toBeNull();
+  });
+
+  it('tells the three batteries apart', () => {
+    expect(['battery-nih2', 'battery-li-ion', 'battery-large'].map((id) => roverLook([part(id)]).battery)).toEqual(['cylinders', 'pack', 'large']);
+  });
+
+  it('tells the two heaters apart', () => {
+    expect(roverLook([part('heater-rhu')])).toMatchObject({ heater: true, heaterKind: 'rhu' });
+    expect(roverLook([part('heater-electric')])).toMatchObject({ heater: true, heaterKind: 'electric' });
   });
 });
 
@@ -115,6 +125,16 @@ describe('Mars parts in the model', () => {
     expect(roverLook([part('power-fixed-panel'), part('heater-none')]).heater).toBe(false);
   });
 
+  it('an RTG rover with no heater part keeps the blanket and draws no heater; with one, it draws that heater too', () => {
+    expect(roverLook([part('power-rtg'), part('heater-none')])).toMatchObject({ heater: true, heaterKind: null });
+    expect(roverLook([part('power-rtg'), part('heater-rhu')])).toMatchObject({ heater: true, heaterKind: 'rhu' });
+    expect(roverLook([part('power-rtg'), part('heater-electric')])).toMatchObject({ heater: true, heaterKind: 'electric' });
+    const heaterMeshes = (ids: string[]) => meshCount(buildRoverModel(handling, connectY, roverLook(ids.map(part)), { bySlot: true }).slots.heater!);
+    const blanket = heaterMeshes(['power-rtg']);
+    expect(heaterMeshes(['power-rtg', 'heater-rhu'])).toBeGreaterThan(blanket);
+    expect(heaterMeshes(['power-rtg', 'heater-electric'])).toBeGreaterThan(blanket);
+  });
+
   it('draws the RTG, the arrays, the arm and the mast, each in its own group', () => {
     const rtg = buildRoverModel(handling, connectY, roverLook([part('power-rtg')]), { bySlot: true });
     expect(Object.keys(rtg.slots).sort()).toEqual<ModelGroup[]>(['heater', 'power']);
@@ -152,5 +172,90 @@ describe('Mars parts in the model', () => {
     const organicsLow = bounds(['instrument-organics'], 'organics');
     expect(organicsOnArm.min.x).toBeGreaterThan(handling.body.lengthM / 2); // out in front, on the turret
     expect(organicsLow.max.y).toBeLessThan(-handling.body.heightM / 2 + 0.04); // hung under the deck plate
+  });
+
+  it('mounts the X-ray head on the arm turret beside the organics head, or at the rear without the arm', () => {
+    const model = (ids: string[]) => buildRoverModel(handling, connectY, roverLook(ids.map(part)), { bySlot: true });
+    const bounds = (obj: THREE.Object3D) => new THREE.Box3().setFromObject(obj);
+    const l = handling.body.lengthM;
+    // Without the arm: at the back, on its own jointed arm.
+    const rear = bounds(model(['instrument-xray']).slots.xray!);
+    expect(rear.max.x).toBeLessThan(-l * 0.3);
+    // With the arm: out in front, on the turret, and the turret's plain contact sensor gives way to it.
+    const all = model(['arm-robotic', 'instrument-xray', 'instrument-organics']);
+    const front = bounds(all.slots.xray!);
+    expect(front.min.x).toBeGreaterThan(l / 2);
+    expect(front.intersectsBox(bounds(all.slots.arm!))).toBe(true);
+    const vertices = (obj: THREE.Object3D) => {
+      let n = 0;
+      obj.traverse((o) => {
+        if (o instanceof THREE.Mesh) n += o.geometry.getAttribute('position').count;
+      });
+      return n;
+    };
+    expect(vertices(model(['arm-robotic', 'instrument-xray']).slots.arm!)).toBeLessThan(vertices(model(['arm-robotic']).slots.arm!));
+    // The two heads (convex gold-blanketed bodies, and the organics context camera) do not overlap:
+    // some direction across the turret keeps them at least 1 cm apart.
+    const FOIL = 0xd2a243; // COLORS in roverModel.ts
+    const CASING = 0xb9bdc3;
+    const points = (group: THREE.Object3D, colors: number[]) => {
+      const out: THREE.Vector3[] = [];
+      group.traverse((o) => {
+        if (!(o instanceof THREE.Mesh) || !colors.includes((o.material as THREE.MeshLambertMaterial).color.getHex())) return;
+        const pos = o.geometry.getAttribute('position');
+        for (let i = 0; i < pos.count; i++) out.push(new THREE.Vector3().fromBufferAttribute(pos, i));
+      });
+      return out;
+    };
+    const separated = (a: THREE.Vector3[], b: THREE.Vector3[]) => {
+      for (let deg = 0; deg < 360; deg++) {
+        const d = new THREE.Vector3(Math.cos((deg * Math.PI) / 180), Math.sin((deg * Math.PI) / 180), 0);
+        const aMax = Math.max(...a.map((p) => p.dot(d)));
+        const bMin = Math.min(...b.map((p) => p.dot(d)));
+        if (bMin - aMax >= 0.01) return true;
+      }
+      return false;
+    };
+    const xrayHead = points(all.slots.xray!, [FOIL, CASING]);
+    expect(xrayHead.length).toBeGreaterThan(0);
+    for (const color of [FOIL, CASING]) {
+      const organics = points(all.slots.organics!, [color]);
+      expect(organics.length).toBeGreaterThan(0);
+      expect(separated(xrayHead, organics)).toBe(true);
+    }
+  });
+});
+
+describe('look-alike parts', () => {
+  const group = (ids: string[], g: ModelGroup) => buildRoverModel(handling, connectY, roverLook(ids.map(part)), { bySlot: true }).slots[g]!;
+  const bounds = (ids: string[], g: ModelGroup) => new THREE.Box3().setFromObject(group(ids, g));
+  /** Each mesh's material color and vertex count: a rough fingerprint of what a group draws. */
+  const fingerprint = (obj: THREE.Object3D) => {
+    const out: string[] = [];
+    obj.traverse((o) => {
+      if (o instanceof THREE.Mesh) out.push(`${(o.material as THREE.MeshLambertMaterial).color.getHexString()}:${o.geometry.getAttribute('position').count}`);
+    });
+    return out.sort().join(',');
+  };
+
+  it('draws the larger battery as two taller modules, apart from the lithium-ion pack', () => {
+    const pack = bounds(['battery-li-ion'], 'battery');
+    const large = bounds(['battery-large'], 'battery');
+    expect(fingerprint(group(['battery-large'], 'battery'))).not.toBe(fingerprint(group(['battery-li-ion'], 'battery')));
+    expect(large.max.y).toBeGreaterThan(pack.max.y + 0.04);
+    expect(large.max.z - large.min.z).toBeGreaterThanOrEqual(pack.max.z - pack.min.z);
+  });
+
+  it('draws the two heaters differently, each within the blanket fins (clear of the frame and the wheels)', () => {
+    const rhu = group(['heater-rhu'], 'heater');
+    const electric = group(['heater-electric'], 'heater');
+    expect(fingerprint(rhu)).not.toBe(fingerprint(electric));
+    const blanket = bounds(['power-rtg'], 'heater'); // the blanket and fins alone
+    for (const id of ['heater-rhu', 'heater-electric']) {
+      const b = bounds([id], 'heater');
+      expect(b.max.z).toBeLessThanOrEqual(blanket.max.z + 1e-6);
+      expect(b.min.z).toBeGreaterThanOrEqual(blanket.min.z - 1e-6);
+      expect(b.max.y).toBeLessThanOrEqual(blanket.max.y + 1e-6);
+    }
   });
 });
