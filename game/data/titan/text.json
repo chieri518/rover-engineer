@@ -160,6 +160,7 @@
           { "caps": [["Space"]], "label": "Brake" },
           { "caps": [["P"]], "label": "Power down (sleep) / up" },
           { "caps": [["N"]], "label": "Notebook" },
+          { "caps": [["L"]], "label": "Milestone list" },
           { "caps": [["M"]], "label": "Mute" },
           { "label": "Instruments", "bay": true }
         ],

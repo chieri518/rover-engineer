@@ -3,6 +3,7 @@ import { loadGameData } from '../gameData';
 import type { Instrument } from '../rules/types';
 import { instrumentLine, missionVars, pageStrings, tutorialPages, type TutorialPageText } from './tutorialText';
 import { fill } from './dom';
+import { MILESTONE_LOG_KEY } from './hud';
 
 const data = loadGameData();
 
@@ -66,11 +67,16 @@ describe('tutorial text', () => {
       expect(first.controls!.heading).toBe(d.text.tutorial.controlsHeading);
       const keys = first.controls!.keys;
       const caps = keys.map((k) => k.caps.flat());
-      for (const want of [['W', 'A', 'S', 'D'], ['Space'], ['P'], ['N'], ['M']]) {
+      for (const want of [['W', 'A', 'S', 'D'], ['Space'], ['P'], ['N'], ['L'], ['M']]) {
         expect(caps.some((c) => want.every((w) => c.includes(w))), `${world} ${want.join(' ')}`).toBe(true);
       }
       expect(keys.find((k) => k.caps.flat().includes('W'))!.caps).toHaveLength(2); // W A S D or the arrows
       if (world !== 'moon') expect(keys.find((k) => k.caps.flat().includes('P'))!.label).toMatch(/sleep/i);
+      // The milestone list's key, the one the HUD listens for (KeyL shows as L).
+      const logKey = keys.find((k) => k.caps.flat().includes(MILESTONE_LOG_KEY.replace(/^Key/, '')));
+      expect(logKey, world).toBeDefined();
+      expect(logKey!.caps).toEqual([[MILESTONE_LOG_KEY.replace(/^Key/, '')]]);
+      expect(logKey!.label).toMatch(/milestone list/i);
       // The bay's keys: 1 to n for the instruments carried, just 1 for one, and none for an empty bay.
       const bay = keys.at(-1)!;
       expect(bay.caps).toEqual([['1'], ['2']]);
