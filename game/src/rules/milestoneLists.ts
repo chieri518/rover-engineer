@@ -3,7 +3,7 @@
 import type { EarnedMilestone } from './payout';
 import { rockTypeTotal } from './instruments';
 import { meetsRequirements, requiredInstruments } from './rover';
-import type { Instrument, InstrumentTuning, Milestone, Part } from './types';
+import type { Instrument, InstrumentTuning, Milestone, Part, SupportSlot } from './types';
 
 /** The milestones an instrument can earn, in catalog order: those that require it, combos included. */
 export function instrumentMilestones(instrument: Instrument, milestones: readonly Milestone[]): Milestone[] {
@@ -83,7 +83,20 @@ export function notReached(
   return groupMilestones(list, bay).flatMap((g) => g.milestones);
 }
 
-/** Rock types read this mission out of all the types the rock suites hold (total 0: no suites, as on Mars). */
+/**
+ * The support hardware a milestone's instruments need that these parts do not provide (Mars M18: the
+ * debrief's "Not reached" line says "Needs the robotic arm"), from each carried instrument's `needs`, in
+ * the order the instruments and their needs list them. Milestones carry no support requirement of their
+ * own. Empty on the Moon (no instrument has needs) and for any rover the desk let launch (the desk
+ * refuses an instrument whose support part is missing), so the line shows only for a build that got
+ * past the desk without it.
+ */
+export function unmetSupport(m: Milestone, parts: readonly Part[]): SupportSlot[] {
+  const needs = requiredInstruments(m).flatMap((inst) => parts.find((p) => p.effects.instrument === inst)?.effects.needs ?? []);
+  return [...new Set(needs)].filter((slot) => !parts.some((p) => p.effects[slot] === true));
+}
+
+/** Rock types read this mission out of all the types the rock suites hold (total 0 when the world has no rock suites). */
 export function rockTypeTally(rocksRead: readonly { rock: string }[], xray: InstrumentTuning['xray']): { count: number; total: number } {
   return { count: new Set(rocksRead.map((r) => r.rock)).size, total: rockTypeTotal(xray) };
 }

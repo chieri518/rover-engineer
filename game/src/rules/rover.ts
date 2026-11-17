@@ -1,4 +1,4 @@
-import type { BusSlot, Build, DraftBuild, Instrument, Milestone, Part, PartsFile, Slot } from './types';
+import type { BusSlot, Build, DraftBuild, Instrument, Milestone, Part, PartsFile, Slot, SupportSlot } from './types';
 
 export interface RoverTotals {
   cost: number;
@@ -6,10 +6,26 @@ export interface RoverTotals {
   size: number;
 }
 
+/** The support slots this catalog offers (none on the Moon). */
+export function supportSlotsOf(catalog: PartsFile): SupportSlot[] {
+  return catalog.supportSlots ?? [];
+}
+
+/** The part id a draft build has in a bus or support slot (undefined: none chosen yet). */
+export function slotPartId(build: DraftBuild, slot: BusSlot | SupportSlot): string | undefined {
+  return slot === 'arm' || slot === 'mast' ? build.support?.[slot] : build[slot];
+}
+
+/** The build with this part in a bus or support slot. Neither input is changed. */
+export function withSlotPart(build: DraftBuild, slot: BusSlot | SupportSlot, id: string): DraftBuild {
+  return slot === 'arm' || slot === 'mast' ? { ...build, support: { ...build.support, [slot]: id } } : { ...build, [slot]: id };
+}
+
 /**
- * The selected part objects for a build: the bus parts in slot order, then the payload bay's
- * instruments in bay order, as one flat list. Throws on an unknown or mismatched part id.
- * Bay capacity and duplicates are not checked here (see payloadProblems in payload.ts).
+ * The selected part objects for a build: the bus parts in slot order, then the support parts in support
+ * slot order (only those the build names; isCompleteBuild checks they are all chosen), then the payload
+ * bay's instruments in bay order, as one flat list. Throws on an unknown or mismatched part id.
+ * Bay capacity, duplicates and support needs are not checked here (see payloadProblems in payload.ts).
  */
 export function selectedParts(build: Build, catalog: PartsFile): Part[] {
   const find = (id: string, slot: Slot): Part => {
@@ -18,16 +34,22 @@ export function selectedParts(build: Build, catalog: PartsFile): Part[] {
     if (part.slot !== slot) throw new Error(`part ${part.id} does not belong in slot ${slot}`);
     return part;
   };
-  return [...catalog.slots.map((slot) => find(build[slot], slot)), ...build.payload.map((id) => find(id, 'instrument'))];
+  const support = supportSlotsOf(catalog).flatMap((slot) => {
+    const id = build.support?.[slot];
+    return id ? [find(id, slot)] : [];
+  });
+  return [...catalog.slots.map((slot) => find(build[slot], slot)), ...support, ...build.payload.map((id) => find(id, 'instrument'))];
 }
 
 /**
- * What a draft build still needs, in slot order: the empty bus slots, then 'instrument' while the
- * payload bay is not confirmed (an empty bay counts once the player has confirmed it).
+ * What a draft build still needs, in slot order: the empty bus slots, the empty support slots (a world
+ * that offers them asks for a choice, "No arm" included), then 'instrument' while the payload bay is not
+ * confirmed (an empty bay counts once the player has confirmed it).
  */
 export function missingSlots(build: DraftBuild, catalog: PartsFile): Slot[] {
   const bus: Slot[] = catalog.slots.filter((slot) => !build[slot]);
-  return build.payload === undefined ? [...bus, 'instrument'] : bus;
+  const support: Slot[] = supportSlotsOf(catalog).filter((slot) => !build.support?.[slot]);
+  return build.payload === undefined ? [...bus, ...support, 'instrument'] : [...bus, ...support];
 }
 
 export function isCompleteBuild(build: DraftBuild, catalog: PartsFile): build is Build {
@@ -37,7 +59,7 @@ export function isCompleteBuild(build: DraftBuild, catalog: PartsFile): build is
 /** The chosen parts of a draft build, as selectedParts orders them, skipping empty slots. */
 export function chosenParts(build: DraftBuild, catalog: PartsFile): Part[] {
   const slots = catalog.slots.filter((s) => build[s]);
-  const chosen = { ...Object.fromEntries(slots.map((s) => [s, build[s]!])), payload: build.payload ?? [] };
+  const chosen = { ...Object.fromEntries(slots.map((s) => [s, build[s]!])), payload: build.payload ?? [], support: build.support };
   return selectedParts(chosen as Build, { ...catalog, slots });
 }
 
@@ -78,18 +100,20 @@ export function requiredInstruments(milestone: Milestone): Instrument[] {
 export function meetsRequirements(parts: Part[], milestone: Milestone): boolean {
   const { slots = [] } = milestone.requires;
   for (const slot of slots) {
+    // Any heat meets a heater requirement (Mars M17): an RTG's waste heat warms a rover with "No heater".
+    if (slot === 'heater' && parts.reduce((sum, p) => sum + (p.effects.heat ?? 0), 0) > 0) continue;
     const part = parts.find((p) => p.slot === slot);
     if (!part || !slotProvidesCapability(part, slot)) return false;
   }
   return requiredInstruments(milestone).every((inst) => parts.some((p) => p.effects.instrument === inst));
 }
 
-/** The cheapest option in each bus slot, with an empty payload bay. */
+/** The cheapest option in each bus slot (and support slot, where the world offers them), with an empty payload bay. */
 export function cheapestBuild(catalog: PartsFile): Build {
   const build = { payload: [] as string[] } as Build;
-  for (const slot of catalog.slots) {
-    const options = catalog.parts.filter((p) => p.slot === slot).sort((a, b) => a.cost - b.cost);
-    build[slot] = options[0]!.id;
-  }
+  const cheapest = (slot: Slot) => catalog.parts.filter((p) => p.slot === slot).sort((a, b) => a.cost - b.cost)[0]!.id;
+  for (const slot of catalog.slots) build[slot] = cheapest(slot);
+  const support = supportSlotsOf(catalog);
+  if (support.length > 0) build.support = Object.fromEntries(support.map((slot) => [slot, cheapest(slot)]));
   return build;
 }

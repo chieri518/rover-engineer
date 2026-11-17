@@ -3,9 +3,11 @@
 // patches (mask >= 128) connected to the places listed in tuning.cold.zones: on the Moon the shadowed
 // crater, the small cold patch in Rocky area 1, and the East and South cold traps (sites.json). Other
 // tiny shadowed spots are ignored.
-// Mars has no cold mask (its night cold is map-wide), so it has no cold zones. Titan's soft ground is the
-// graded soft-ground.png (softness = value / 255), loaded when terrain.json says the mask is authoritative;
-// the Moon and Mars keep the circle rule.
+// Mars has no cold mask (its night cold is map-wide), so it has no cold zones. Mars and Titan have a
+// soft-ground mask (soft-ground.png). On Mars it marks Séítah's sand ripples and keeps site boulders off
+// them (softAt); its driving softness keeps the circle rule. Titan's is graded (softness = value / 255) and
+// authoritative (terrain.json maskIsAuthoritative), so it is the driving softness there (softMask). The
+// Moon has none.
 import { decode } from 'fast-png';
 import type { SiteSpec, Tuning } from '../rules/types';
 import { coldZoneAnchor, type SiteFeatures } from '../rules/sites';
@@ -50,14 +52,16 @@ export class TerrainMasks {
   readonly softAreas: SoftArea[];
   /** Where boulders lie: the rocky areas on every world. */
   readonly boulderAreas: SoftArea[];
+  /** Titan: the graded soft-ground mask (authoritative); null where the circles are the rule (the Moon, Mars). */
+  readonly softMask: GridMask | null;
 
   constructor(
     readonly info: FeatureInfo,
     private readonly slope: Uint8Array,
     /** 1 inside a cold zone. */
     readonly cold: Uint8Array,
-    /** Titan: the graded soft-ground mask (authoritative); null where the circles are the rule. */
-    readonly softMask: GridMask | null = null,
+    /** soft-ground.png (Mars, Titan): 0 firm to 255 softest. Absent: no soft-ground mask (the Moon). */
+    private readonly soft: Uint8Array | null = null,
   ) {
     this.n = info.playArea.samples;
     this.pixel = info.playArea.pixel_m;
@@ -66,6 +70,7 @@ export class TerrainMasks {
     this.boulderAreas = circles(info.features.rockyAreas);
     const sand = info.features.softGround?.areas;
     this.softAreas = sand ? circles(sand) : this.boulderAreas;
+    this.softMask = soft && info.features.softGround?.maskIsAuthoritative ? { data: soft, n: this.n, pixelM: this.pixel } : null;
   }
 
   private index(x: number, z: number): number {
@@ -77,6 +82,16 @@ export class TerrainMasks {
   /** Terrain slope in degrees at (x, z) (nearest 5 m sample). */
   slopeAt(x: number, z: number): number {
     return this.slope[this.index(x, z)]! / 4;
+  }
+
+  /** Whether this world has a soft-ground mask (Mars, Titan). */
+  get hasSoftGround(): boolean {
+    return this.soft !== null;
+  }
+
+  /** Softness at (x, z) from soft-ground.png, 0 (firm) to 1 (sand ripples), nearest 5 m sample; 0 without the mask. */
+  softAt(x: number, z: number): number {
+    return this.soft ? this.soft[this.index(x, z)]! / 255 : 0;
   }
 
   /** Ground softness 0..1 at (x, z): the graded mask where there is one (Titan), else the soft circles. */
@@ -154,18 +169,18 @@ export function loadTerrainMasks(tuning: Tuning, world: WorldId, sites: readonly
     if (!res.ok) throw new Error(`could not load terrain.json: ${res.status}`);
     const info = (await res.json()) as FeatureInfo;
     const coldFile = info.playArea.files.coldMask?.file;
-    const softFile = info.features.softGround?.maskIsAuthoritative ? info.playArea.files.softGround?.file : undefined;
+    const softFile = info.playArea.files.softGround?.file;
     const [slope, psr, soft] = await Promise.all([
       fetchMask(base + info.playArea.files.slope.file),
       coldFile ? fetchMask(base + coldFile) : null,
       softFile ? fetchMask(base + softFile) : null,
     ]);
+    if (soft && soft.n !== slope.n) throw new Error(`${softFile}: expected ${slope.n} samples, got ${soft.n}`);
     const anchors = tuning.cold.zones.map((z) => coldZoneAnchor(z, info.features as SiteFeatures, sites)).filter((p): p is Point => p !== null);
     const cold = psr
       ? coldZones(psr.data, psr.n, info.playArea.pixel_m, anchors, tuning.cold.zoneSearchRadiusM)
       : new Uint8Array(slope.n * slope.n);
-    const softMask = soft ? { data: soft.data, n: soft.n, pixelM: info.playArea.pixel_m } : null;
-    return new TerrainMasks(info, slope.data, cold, softMask);
+    return new TerrainMasks(info, slope.data, cold, soft?.data ?? null);
   })();
   cache.set(key, cached);
   cached.catch(() => cache.delete(key));

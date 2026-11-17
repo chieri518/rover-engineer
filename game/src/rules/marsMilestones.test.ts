@@ -7,6 +7,7 @@ import jezero from '../../public/terrain/mars/terrain.json';
 import { buildZones, distanceToPath, MilestoneTracker, PHOTO_ZONE_IDS, zoneContains, type MilestoneFeatures, type Point3, type SunPhoto } from './milestones';
 import { buildLeads, buildSites, discover, distanceToArea, leadBearing, nearestOnPath, type SurveyFeatures } from './survey';
 import { selectedParts } from './rover';
+import { resolveSites, type SiteFeatures } from './sites';
 import { validateGameData } from './validate';
 import type { MarsTerrainFeatures } from './marsTypes';
 import type { Build } from './types';
@@ -42,8 +43,12 @@ const far = at(L.x + 1000, L.z); // 1 km east of the lander, in no zone
 describe('Mars milestone data', () => {
   it('loads, validates, and replaces the Moon list', () => {
     expect(validateGameData(data)).toEqual([]);
+    // The eight built in M5, then (Mars step 4b) Sand crossing and Clean run with the capabilities, and the eighteen instrument milestones.
     expect(data.milestones.milestones.map((m) => m.id)).toEqual([
-      'mars-touchdown', 'mars-odometer', 'mars-mapper', 'night-drive', 'storm-survivor', 'delta-layers', 'core-sample', 'blue-sunset',
+      'mars-touchdown', 'mars-odometer', 'mars-mapper', 'night-drive', 'storm-survivor', 'sand-crossing', 'mars-clean-run', 'delta-layers', 'core-sample', 'blue-sunset',
+      'crater-wall', 'dust-devil', 'seitah-core', 'ancient-lake', 'mars-rock-collection', 'mars-rare-rock', 'mars-documented-sample',
+      'organic-signals', 'lake-organics', 'remote-reading', 'rock-from-afar', 'buried-layers', 'long-profile', 'hydrated-ground',
+      'hydrogen-traverse', 'storm-log', 'night-weather', 'dust-devil-pass',
     ]);
   });
 
@@ -56,11 +61,13 @@ describe('Mars milestone data', () => {
     }
   });
 
-  it('every zone a trigger names exists on the Mars map; no Moon-only triggers remain', () => {
-    const known = new Set(zones.map((z) => z.id));
+  it('every zone a trigger names exists on the Mars map (with its sites); no Moon-only triggers remain', () => {
+    const withSites = buildZones(features, t, { sites: resolveSites(data.sites.sites, jezero.features as unknown as SiteFeatures) });
+    const known = new Set<string>(withSites.map((z) => z.id));
     for (const m of data.milestones.milestones) {
       const tr = m.trigger;
-      if ((tr.type === 'photo' || tr.type === 'drill' || tr.type === 'zone') && tr.zone) expect(known.has(tr.zone as never), m.id).toBe(true);
+      const named = 'zone' in tr && tr.zone ? [tr.zone] : tr.type === 'transect' ? tr.zones ?? [] : [];
+      for (const z of named) expect(known.has(z), `${m.id} ${z}`).toBe(true);
       if (tr.type === 'photo') expect(tr.target).not.toBe('earth');
       expect(tr.type).not.toBe('event'); // flares and quakes stay on the Moon
     }
@@ -154,7 +161,7 @@ describe('Mars triggers', () => {
   it('Storm survivor is not earned while the storm is still active at the end', () => {
     const tr = tracker(camera);
     tr.step({ position: far, distanceM: 0, exploredShare: 0, stormActive: true });
-    expect(ids(tr.finish(true, {}))).toEqual([]);
+    expect(ids(tr.finish(true, {}))).not.toContain('storm-survivor'); // (Clean run, Mars step 4b, is earned here)
     expect(tr.has('storm-survivor')).toBe(false);
   });
 

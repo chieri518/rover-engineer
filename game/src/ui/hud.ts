@@ -1,12 +1,27 @@
 // Mission HUD: energy, damage and cold meters, sunlight on the panel, the power-down toggle,
 // standing warnings, short event notices, a flare warning bar, and the end-of-mission panel. Instrument
 // readouts: the neutron spectrometer's hydrogen meter, the Earth-in-view light for the laser
-// retroreflector, and the seismometer station's moonquake trace.
+// retroreflector, and the seismometer station's moonquake trace. Mars (step 4a): the weather mast's air
+// readout, the radar's subsurface strip under the meters, the laser's target reticle, and a progress bar
+// for a long hold (the organics spectrometer).
 // No clock: time reads only from the Sun and shadows. On Mars a sol line ("Sol 3 of 10") and the night
-// state (asleep, lights on) sit under the sunlight line. Titan words the panel line itself (almost no
-// solar power), reuses the sol line for day or night, and shows a banner while the rover sleeps.
+// state (asleep, lights on) sit under the sunlight line. Mars step 6c: the power line replaces the
+// sunlight line (truthful for an RTG, with the panels' dust factor), and the weather mast's recording
+// state sits under its air readout. Titan words the panel line itself (almost no solar power), reuses the
+// sol line for day or night, and shows a banner while the rover sleeps.
 import type { TextFile } from '../rules/types';
+import type { RadarColumn } from '../rules/instruments';
 import { el } from './dom';
+
+/** How the radar strip draws each layer kind (presentation only): band count, dip across the strip, colors. */
+const RADAR_LOOK: Record<string, { bands: number; dip: number; jumble?: boolean; colors: [string, string] }> = {
+  floor: { bands: 3, dip: 0.12, colors: ['#6b4a36', '#8a6448'] },
+  seitah: { bands: 4, dip: 0.35, colors: ['#4d5a3c', '#6f7a52'] },
+  delta: { bands: 7, dip: 0.04, colors: ['#8c6c4c', '#b08a62'] },
+  ejecta: { bands: 3, dip: 0, jumble: true, colors: ['#5e4a40', '#7d6656'] },
+};
+const RADAR_COLUMN_PX = 2;
+const RADAR_HEIGHT_PX = 34;
 
 export interface HudMeters {
   energy: number;
@@ -100,6 +115,18 @@ export class Hud {
   private readonly hydrogen;
   private readonly earthLight = el('div', { class: 'earth-light', hidden: true });
   private readonly trace = el('div', { class: 'quake-trace', hidden: true });
+  private readonly weather = el('div', { class: 'weather-readout', hidden: true });
+  private readonly recording = el('div', { class: 'weather-recording', hidden: true });
+  private powerSet = false; // Mars: setPowerLine owns the sunlight line
+  private readonly radar = el('div', { class: 'radar-strip', hidden: true });
+  private readonly radarLabel = el('span', {});
+  private readonly radarCanvas = el('canvas', { width: 160, height: RADAR_HEIGHT_PX, 'aria-hidden': 'true' }) as HTMLCanvasElement;
+  private radarKey = '';
+  private readonly reticle = el('div', { class: 'laser-reticle', hidden: true, 'aria-hidden': 'true' });
+  private readonly target = el('div', { class: 'laser-target', hidden: true });
+  private readonly progress = el('div', { class: 'hold-progress', hidden: true });
+  private readonly progressFill = el('div', { class: 'hold-progress-fill' });
+  private readonly progressText = el('span', {});
   private lastWarnings = '';
 
   constructor(
@@ -119,6 +146,8 @@ export class Hud {
     this.setMuted(false);
     this.flare.append(this.flareText, el('div', { class: 'flare-bar' }, this.flareBar));
     this.sol.append(this.solText, this.nightText);
+    this.radar.append(this.radarLabel, this.radarCanvas);
+    this.progress.append(this.progressText, el('div', { class: 'hold-progress-track' }, this.progressFill));
     this.root = el('div', { class: 'hud-layer' },
       el('div', { class: 'hud' },
         this.energy.root,
@@ -129,10 +158,15 @@ export class Hud {
         this.sol,
         this.earthLight,
         this.trace,
+        this.weather,
+        this.recording,
+        this.radar,
+        this.target,
         el('div', { class: 'hud-power-row' }, this.power, this.mute),
         extra,
       ),
-      el('div', { class: 'hud-center' }, this.banner, this.flare, this.warnings, this.lessons, this.notices, this.hint),
+      el('div', { class: 'hud-center' }, this.banner, this.flare, this.warnings, this.lessons, this.notices, this.hint, this.progress),
+      this.reticle,
       this.cards,
       this.flash,
     );
@@ -143,8 +177,10 @@ export class Hud {
     this.energy.set(m.energy / m.capacity, `${Math.round(m.energy)} / ${m.capacity}`, m.energy / m.capacity < 0.2);
     this.damage.set(m.damage, `${Math.round(m.damage * 100)}%`, m.damage >= 0.6);
     this.cold.set(m.freeze, `${Math.round(m.freeze * 100)}%`, m.freeze >= 0.5);
-    this.sun.textContent = m.panelText ?? (m.sunlight > 0.5 ? h.sunlit : h.shadow);
-    this.sun.classList.toggle('shadow', m.panelText !== undefined || m.sunlight <= 0.5);
+    if (!this.powerSet) {
+      this.sun.textContent = m.panelText ?? (m.sunlight > 0.5 ? h.sunlit : h.shadow);
+      this.sun.classList.toggle('shadow', m.panelText !== undefined || m.sunlight <= 0.5);
+    }
     this.power.textContent = m.poweredDown ? h.powerUp : h.powerDown;
     this.power.classList.toggle('active', m.poweredDown);
   }
@@ -157,6 +193,23 @@ export class Hud {
     this.mute.setAttribute('aria-label', label);
     this.mute.setAttribute('aria-pressed', String(muted));
     this.mute.classList.toggle('active', muted);
+  }
+
+  /**
+   * Mars: the power line in place of the sunlight line (ui/hudText.ts powerLine), dim when nothing comes
+   * in. Once set, update() no longer writes the Moon's sunlight line; null hands it back.
+   */
+  setPowerLine(line: { text: string; dim: boolean } | null): void {
+    this.powerSet = line !== null;
+    if (line === null) return;
+    if (this.sun.textContent !== line.text) this.sun.textContent = line.text;
+    this.sun.classList.toggle('shadow', line.dim);
+  }
+
+  /** Mars: the weather mast's recording state (ui/hudText.ts weatherRecordingLine), or null to hide it. */
+  setRecording(line: string | null): void {
+    this.recording.hidden = line === null;
+    if (line !== null && this.recording.textContent !== line) this.recording.textContent = line;
   }
 
   /** Mars: the sol line and the night state under it (null hides each). */
@@ -210,6 +263,58 @@ export class Hud {
     this.trace.replaceChildren(el('span', {}, this.text.instruments.quakeTrace), svg);
     this.trace.classList.toggle('noisy', quality === 'noisy');
     this.trace.hidden = false;
+  }
+
+  /** Mars: the weather mast's air readout (pressure, dust and their trends), or null to hide it. */
+  setWeather(line: string | null): void {
+    this.weather.hidden = line === null;
+    if (line !== null && this.weather.textContent !== line) this.weather.textContent = line;
+  }
+
+  /**
+   * Mars: the radar's subsurface strip under the meters (the profile's columns, newest on the right, a
+   * gap where a turn or stop broke it), or null to hide it. Redrawn only when the columns change.
+   */
+  setRadar(columns: readonly RadarColumn[] | null, label: string): void {
+    this.radar.hidden = columns === null;
+    if (columns === null) return;
+    if (this.radarLabel.textContent !== label) this.radarLabel.textContent = label;
+    const key = `${columns.length}:${columns.map((c) => (c.startsProfile ? '|' : '') + c.layer).join(',')}`;
+    if (key === this.radarKey) return;
+    this.radarKey = key;
+    const ctx = this.radarCanvas.getContext('2d');
+    if (!ctx) return;
+    const w = this.radarCanvas.width;
+    const h = RADAR_HEIGHT_PX;
+    ctx.fillStyle = '#1d140f';
+    ctx.fillRect(0, 0, w, h);
+    const first = w - columns.length * RADAR_COLUMN_PX;
+    columns.forEach((c, i) => {
+      const x = first + i * RADAR_COLUMN_PX;
+      if (c.startsProfile && i > 0) return; // the break: a dark gap
+      const look = RADAR_LOOK[c.layer] ?? RADAR_LOOK.floor!;
+      for (let y = 0; y < h; y++) {
+        const jitter = look.jumble ? Math.sin(i * 12.9898 + y * 78.233) * 1.5 : 0;
+        const depth = (y + look.dip * i + jitter) / h;
+        ctx.fillStyle = look.colors[Math.floor(depth * look.bands) % 2]!;
+        ctx.fillRect(x, y, RADAR_COLUMN_PX, 1);
+      }
+    });
+  }
+
+  /** Mars: the laser's target (a reticle in the view and a line under the meters), or null when nothing is in reach. */
+  setLaserTarget(line: string | null): void {
+    this.reticle.hidden = line === null;
+    this.target.hidden = line === null;
+    if (line !== null && this.target.textContent !== line) this.target.textContent = line;
+  }
+
+  /** A long hold's progress (0..1) with its label, or null to hide the bar (the organics spectrometer). */
+  setProgress(share: number | null, label = ''): void {
+    this.progress.hidden = share === null;
+    if (share === null) return;
+    if (this.progressText.textContent !== label) this.progressText.textContent = label;
+    this.progressFill.style.width = `${Math.max(0, Math.min(1, share)) * 100}%`;
   }
 
   /** A standing banner at the top of the view (Titan: "Sleeping · time speeds up"), or null to hide it. */
@@ -336,6 +441,8 @@ export class Hud {
     this.setWarnings([]);
     this.setHint(null);
     this.setFlareWarning(null, 0);
+    this.setLaserTarget(null);
+    this.setProgress(null);
     this.setBanner(null);
     this.power.disabled = true;
     button.focus();

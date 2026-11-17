@@ -10,6 +10,7 @@ game/public/terrain/mars/.
 Usage (from game/tools/, inside the venv):
     python build_terrain_mars.py                     # download what is missing, build
     python build_terrain_mars.py --preview out.png   # also render a preview image
+    python build_terrain_mars.py --site-features-only # only refresh the Mars sites lists in terrain.json
 
 Everything is offline; the game never calls these URLs.
 """
@@ -29,6 +30,7 @@ from scipy import ndimage
 from skimage.graph import MCP_Geometric
 from skimage.measure import approximate_polygon, find_contours
 
+import mars_sites
 from mars_common import (MARS_R, ORTHO_CACHE_RES, OUT, RAW, URLS, curvature_drop, fetch, gdal_env, hillshade,
                          latlon_to_local, ortho_cache, ripple_coherence,
                          local_to_latlon, log, read_shapefile, remote_window, slope_deg, to_local_grid,
@@ -104,12 +106,26 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--out", type=Path, default=OUT)
     ap.add_argument("--preview", type=Path)
+    ap.add_argument("--site-features-only", action="store_true",
+                    help="only add the Mars sites lists (mars_sites.py) to the existing terrain.json, from the "
+                         "existing output images; no DTM downloads and no other file is written")
     args = ap.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
 
     lat0, lon0 = (float(v) for v in local_to_latlon(*CENTER_FROM_OEB, *OEB))
     O = (lat0, lon0)
     log(f"play-area origin {lat0:.5f} N {lon0:.5f} E")
+    # Mars sites lists (mars_sites.py; for Chieri's review). They read the output images, so a full build adds
+    # them after writing those, and --site-features-only gives the same lists from the committed images.
+    site_kw = dict(out=args.out, origin=O, drive_res=DRIVE_RES, drive_max_slope=DRIVE_MAX_SLOPE,
+                   edge_margin=EDGE_MARGIN, three_forks=THREE_FORKS, foot_above_floor=DELTA_FOOT_LEVEL_ABOVE_FLOOR,
+                   waypoints_url=WAYPOINTS_URL, brac=SEITAH_SAMPLES)
+    if args.site_features_only:
+        path = args.out / "terrain.json"
+        meta = mars_sites.apply(json.loads(path.read_text()), site_kw)
+        path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
+        log(f"updated the Mars sites lists in {path}; nothing else written")
+        return
 
     # ---- 1. Inputs ------------------------------------------------------------
     pad = 300.0
@@ -643,6 +659,7 @@ def main():
         "sources": SOURCES,
         "credits": CREDITS,
     }
+    mars_sites.apply(meta, site_kw)
     (o / "terrain.json").write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
     log(f"wrote {o}: " + ", ".join(f"{k} {v / 1e6:.2f} MB" for k, v in sizes.items()))
 
