@@ -200,7 +200,7 @@ export class Ground {
             float hx = chevron( vTrack.xy + e.xy );
             float hz = chevron( vTrack.xy + e.yx );
             // Slope in the rut's own axes (x along, y across) → world (rotate by the lander's yaw).
-            vec2 g = vec2( hx - h0, hz - h0 ) / e.x * 0.006 * inRut;
+            vec2 g = vec2( hx - h0, hz - h0 ) / e.x * 0.0028 * inRut;
             float c = cos( uLanderYaw ), s = sin( uLanderYaw );
             vec3 gw = vec3( g.x * c + g.y * s, 0.0, -g.x * s + g.y * c );
             vec3 nw = inverseTransformDirection( normal, viewMatrix );
@@ -242,12 +242,25 @@ export class Ground {
       return berm + rough * Math.exp(-(((r - padR - 0.08) / 0.1) ** 2));
     };
     // The rut profile across the tyre (signed offset from its centre): pressed depth, raised berms beside.
-    const rut = (off: number) => {
+    // The rut profile across the tyre (signed offset from its centre) at distance lx along it: a pressed
+    // floor, soft walls (crumbling, so their edge wanders), and a low berm of pushed-out soil beside.
+    const wander = (lx: number, seed: number) =>
+      Math.sin(lx * 7.3 + seed) * 0.5 + Math.sin(lx * 17.1 + 1.3 + seed * 2) * 0.3 + Math.sin(lx * 43.7 + 2 + seed * 3) * 0.2;
+    const rut = (off: number, lx: number) => {
+      const side = off < 0 ? 0 : 5;
       const a = Math.abs(off) / tracks.halfWidth;
-      if (a < 0.82) return -tracks.depth * (1 - 0.15 * a * a);
-      if (a < 1.05) return THREE.MathUtils.lerp(-tracks.depth * 0.9, tracks.berm, (a - 0.82) / 0.23);
-      if (a < 1.8) return tracks.berm * (1 - (a - 1.05) / 0.75) ** 2;
-      return 0;
+      const depth = tracks.depth * (1 + 0.22 * wander(lx, 11));
+      const edge = 0.72 + 0.1 * wander(lx, side);
+      const wall = 0.45 + 0.12 * wander(lx, side + 3);
+      const berm = tracks.berm * (1 + 0.5 * wander(lx, side + 7));
+      if (a < edge) return -depth * (1 - 0.12 * (a / edge) ** 2);
+      if (a < edge + wall) {
+        const k = (a - edge) / wall;
+        const sm = k * k * (3 - 2 * k);
+        return THREE.MathUtils.lerp(-depth * 0.88, berm, sm);
+      }
+      const b = (a - edge - wall) / 0.7;
+      return b < 1 ? berm * (1 - b) ** 2 : 0;
     };
     const heightAt = (lx: number, lz: number, withRut: boolean) => {
       const wx = frame.origin.x + lx * c + lz * s;
@@ -258,7 +271,7 @@ export class Ground {
       if (withRut) {
         for (const line of tracks.lines) {
           const off = lz - line;
-          if (Math.abs(off) < tracks.halfWidth * 1.8 && lx >= tracks.startX) y += rut(off) * k * Math.min(1, (lx - tracks.startX) / 0.08);
+          if (Math.abs(off) < tracks.halfWidth * 2.2 && lx >= tracks.startX) y += rut(off, lx) * k * Math.min(1, (lx - tracks.startX) / 0.08);
         }
       }
       return { y, wx, wz };
@@ -298,7 +311,7 @@ export class Ground {
             best = lz - line;
             bestLine = line;
           }
-          if (Math.abs(best) < tracks.halfWidth * 1.8) {
+          if (Math.abs(best) < tracks.halfWidth * 2.2) {
             const pressed = heightAt(lx, lz, true);
             trk[v * 4 + 1] = best;
             trk[v * 4 + 2] = pressed.y - base.y;

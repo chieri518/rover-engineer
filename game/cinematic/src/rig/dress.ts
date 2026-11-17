@@ -100,10 +100,11 @@ function upgrade(name: string, src: THREE.MeshLambertMaterial): { params: Params
       return {
         params: {
           ...base,
-          color: new THREE.Color(1.0, 0.68, 0.28),
-          roughness: 0.6,
+          map: null,
+          color: new THREE.Color(0.92, 0.5, 0.11),
+          roughness: 0.5,
           roughnessMap: d.foil.facets,
-          metalness: 0.6,
+          metalness: 0.5,
           normalMap: d.foil.normal,
           normalScale: new THREE.Vector2(0.55, 0.55),
         },
@@ -210,7 +211,7 @@ export function dressRover(model: THREE.Object3D, opts: DressOptions): RoverDres
   const eyeLight = glow ? new THREE.PointLight(EYE_COLOR, 0, 5, 2) : null;
   const tilt = model.getObjectByName('rig:cameraTilt');
   if (eyeLight && tilt) {
-    eyeLight.position.set(0.16, 0, 0);
+    eyeLight.position.set(0.7, 0.05, 0);
     tilt.add(eyeLight);
   }
 

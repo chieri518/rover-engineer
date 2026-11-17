@@ -88,7 +88,7 @@ export class HeroRover {
   setEye(k: number): void {
     this.irisMat.color.setRGB(0.35, 0.85, 1.0).multiplyScalar(3.2 * Math.max(0, k));
     this.dress.setEye(0.12 * k);
-    if (this.dress.lights.eye) this.dress.lights.eye.intensity = 0.35 * Math.max(0, k);
+    if (this.dress.lights.eye) this.dress.lights.eye.intensity = 0.12 * Math.max(0, k);
   }
 
   setPose(p: Partial<HeroPose>): void {

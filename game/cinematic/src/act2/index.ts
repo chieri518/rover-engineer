@@ -117,7 +117,7 @@ export const act2: SequenceDef[] = [
       o.scene.add(lander.object);
       // The ramp's toe, and the first touch.
       const toeX = LANDER.hingeX + Math.sin(lander.openAngle) * (LANDER.doorTopY - LANDER.floorY);
-      tracks.startX = toeX + 0.12;
+      tracks.startX = toeX + 0.02; // the wheel's contact leaves the toe here: wheelTouch
 
       // The hero rover in the bay.
       const rover = new HeroRover(w.data, { offline: o, envMap });
@@ -153,26 +153,26 @@ export const act2: SequenceDef[] = [
 
       // Dust: the touchdown spray still falling, the ramp toe's puff, grains off the wheels, motes in the bay.
       const rand = seeded(2026);
-      const sunCol = new THREE.Color(1, 0.97, 0.92);
+      const sunCol = new THREE.Color(0.8, 0.76, 0.68);
       const shadowCyl = { center: new THREE.Vector2(origin.x, origin.z), radius: LANDER.radius, y0: origin.y + LANDER.bottomY, y1: origin.y + LANDER.deckY + 0.3 };
       const touchdownGrains: Grain[] = [];
-      const fine = final ? 60000 : 20000;
-      for (let i = 0; i < fine + 2500; i++) {
+      const fine = final ? 16000 : 8000;
+      for (let i = 0; i < fine + 900; i++) {
         const coarse = i >= fine;
         const a = rand() * Math.PI * 2;
-        const r0 = 1.2 + rand() * 2.5;
+        const r0 = 2.8 + rand() * 3.5;
         const lx = Math.cos(a) * r0;
         const lz = Math.sin(a) * r0;
         const p = toWorld(lx, 0.02, lz);
         p.y = meshHeight(grid, p.x, p.z) + 0.02;
-        const sp = coarse ? 1.5 + rand() * 5 : 1.0 + Math.pow(rand(), 1.5) * 9;
-        const el = (coarse ? 8 + rand() * 30 : 3 + rand() * 22) * (Math.PI / 180);
+        const sp = coarse ? 1.0 + rand() * 2.6 : 0.6 + Math.pow(rand(), 1.4) * 3.6;
+        const el = (coarse ? 15 + rand() * 35 : 5 + rand() * 30) * (Math.PI / 180);
         const dirW = new THREE.Vector3(Math.cos(a) * cy + Math.sin(a) * sy, 0, -Math.cos(a) * sy + Math.sin(a) * cy);
         const v = dirW.multiplyScalar(sp * Math.cos(el)).setY(sp * Math.sin(el));
-        const t0 = -2.2 + rand() * 1.8; // the engines cut just before the shot opens
-        touchdownGrains.push({ p, v, t0, groundY: p.y - 0.02 + (rand() - 0.5) * 0.05, size: coarse ? 0.006 + rand() * 0.012 : 0.0015 + rand() * 0.002, bright: coarse ? 0.6 + rand() * 0.8 : 0.25 + rand() * 0.4 });
+        const t0 = -1.6 + rand() * 1.45; // the engines cut just before the shot opens: the last of the spray still falling
+        touchdownGrains.push({ p, v, t0, groundY: p.y - 0.02 + (rand() - 0.5) * 0.05, size: coarse ? 0.02 + rand() * 0.02 : 0.012 + rand() * 0.02, bright: coarse ? 0.35 + rand() * 0.4 : 0.1 + rand() * 0.18 });
       }
-      const touchdownDust = new Dust(touchdownGrains, { g: 1.62, sun: sunDir, color: sunCol, intensity: 2.2, shadow: shadowCyl, viewportHeight: ctx.height });
+      const touchdownDust = new Dust(touchdownGrains, { g: 1.62, sun: sunDir, color: sunCol, intensity: 0.9, shadow: shadowCyl, viewportHeight: ctx.height });
       o.scene.add(touchdownDust.points);
 
       const puffGrains: Grain[] = [];
@@ -190,7 +190,7 @@ export const act2: SequenceDef[] = [
       o.scene.add(puff.points);
 
       const wheelGrains: Grain[] = [];
-      for (let i = 0; i < (final ? 9000 : 3000); i++) {
+      for (let i = 0; i < (final ? 3500 : 1500); i++) {
         const t0 = T.wheelTouch - 0.05 + rand() * (SHOT_START.tracks! + 4.6 - T.wheelTouch);
         const fx = frontAt(t0);
         const line = tracks.lines[i % 2]!;
@@ -207,7 +207,7 @@ export const act2: SequenceDef[] = [
         const v = back.multiplyScalar(sp * (0.3 + rand() * 0.7)).addScaledVector(side, (rand() - 0.5) * sp * 0.6).setY(sp * (0.6 + rand() * 0.8));
         wheelGrains.push({ p, v, t0, groundY: p.y - 0.01, size: 0.0012 + rand() * 0.003, bright: 0.5 + rand() * 0.7 });
       }
-      const wheelDust = new Dust(wheelGrains, { g: 1.62, sun: sunDir, color: sunCol, intensity: 2.2, viewportHeight: ctx.height });
+      const wheelDust = new Dust(wheelGrains, { g: 1.62, sun: sunDir, color: sunCol, intensity: 0.8, viewportHeight: ctx.height });
       o.scene.add(wheelDust.points);
 
       const doorCenter = toWorld(LANDER.hingeX - 0.05, (LANDER.floorY + LANDER.doorTopY) / 2, 0);
@@ -306,6 +306,7 @@ export const act2: SequenceDef[] = [
         });
         let angle = open * lander.openAngle;
         if (t > T.rampDown) angle = lander.openAngle - 0.012 * Math.exp(-(t - T.rampDown) * 9) * Math.sin((t - T.rampDown) * 40);
+        lander.setFill(t < tTracks ? 1 : 0);
         lander.setHatch(Math.min(lander.openAngle, angle));
         lander.setGlow(Math.exp(-Math.max(0, t + 0.6) / 1.8));
         lander.setBayLights(t > T.hatchStart - 0.2 ? 1 : 0.6, smoothstep(T.hatchStart + 0.8, T.rampDown + 0.4, t));
@@ -342,7 +343,7 @@ export const act2: SequenceDef[] = [
           pos,
           target: pos.clone().add(dir),
           fov: 9.2,
-          post: { exposure: 0.95, bloomThreshold: 2.5 },
+          post: { exposure: 0.95, bloomThreshold: 4 },
           shadow: { center: L(0, 3.2, 0), half: 7.5, up: 5.5, down: 10, depth: 500, bias: -0.00012, normalBias: 0.03 },
         };
       };
@@ -357,7 +358,7 @@ export const act2: SequenceDef[] = [
           fov: 36,
           focus: pos.distanceTo(L(2.9, 2.2, 0)),
           aperture: 0.004,
-          post: { exposure: 1.0, bloomThreshold: 2.5 },
+          post: { exposure: 1.0, bloomThreshold: 4 },
           shadow: { center: L(2.5, 2.2, 0), half: 5.5, up: 4.5, down: 4.5, depth: 200, bias: -0.00008, normalBias: 0.02 },
         };
       };
@@ -366,7 +367,7 @@ export const act2: SequenceDef[] = [
         // silhouette against the dim work light at the back; the status lights blink on along the deck, the
         // folded solar mast swings up behind, the camera mast starts to rise toward us.
         const e = easeInOutSine(k);
-        const pos = L(lerp(4.35, 3.95, e), lerp(2.38, 2.48, e), lerp(-0.42, -0.3, e));
+        const pos = L(lerp(4.1, 3.8, e), lerp(2.98, 3.05, e), lerp(-0.34, -0.24, e));
         const leds = new THREE.Vector3();
         rover.dress.leds[1]?.mesh.getWorldPosition(leds);
         const panelTop = L(BAY_X - 0.4, 2.55 + 0.9 * smoothstep(0.45, 0.95, k), 0);
@@ -399,26 +400,29 @@ export const act2: SequenceDef[] = [
           shadow: { center: L(1.9, 2.6, 0), half: 3.0, up: 2.4, down: 2.4, depth: 120, bias: -0.00006, normalBias: 0.012 },
         };
       };
-      const tracksView = (k: number, t: number): View => {
+      const tracksView = (t: number): View => {
         // Wheel height, on the sunlit side: the front-right wheel rolls down the ramp's toe and touches the
-        // regolith (shallow focus); then the camera turns to watch the rover drive off along its ruts.
+        // regolith (shallow focus); the camera follows the rover past, then lets it drive out of frame and
+        // settles on the fresh ruts it leaves, its long shadow sweeping off across them.
         const fx = frontAt(t);
-        const e = easeInOutSine(k);
-        const px = tracks.startX + lerp(0.95, 1.25, e);
-        const pz = wheelTrack / 2 + 1.9;
-        const pos = onGround(px, lerp(0.3, 0.34, e), pz);
+        const settle = smoothstep(T.wheelTouch + 1.3, T.wheelTouch + 2.7, t);
+        const px = tracks.startX + lerp(1.0, 0.55, settle);
+        const pz = wheelTrack / 2 + lerp(1.9, 1.6, settle);
+        const pos = onGround(px, lerp(0.26, 0.36, settle), pz);
         const wheel = onGround(fx, 0.26, wheelTrack / 2);
-        const follow = smoothstep(T.wheelTouch + 0.15, T.wheelTouch + 2.0, t);
+        const follow = smoothstep(T.wheelTouch + 0.15, T.wheelTouch + 1.5, t);
         const ahead = onGround(fx - 0.9, 0.45, 0.2);
-        const target = wheel.clone().lerp(ahead, follow);
+        const ruts = onGround(tracks.startX + 2.2, 0.02, 0.1);
+        const target = wheel.clone().lerp(ahead, follow).lerp(ruts, settle);
+        const focusPoint = wheel.clone().lerp(ahead, follow).lerp(onGround(tracks.startX + 1.3, 0, wheelTrack / 2), settle);
         return {
           pos,
           target,
-          fov: lerp(28, 32, follow),
-          focus: pos.distanceTo(wheel.clone().lerp(ahead, follow)),
+          fov: lerp(36, 40, settle),
+          focus: pos.distanceTo(focusPoint),
           aperture: 0.009,
-          post: { exposure: 1.05, bloomThreshold: 2.5, minSubframes: 28 },
-          shadow: { center: L(tracks.startX + 1.2, 0.5, 0.4), half: 4.0, up: 2.4, down: 2.4, depth: 80, bias: -0.00005, normalBias: 0.006 },
+          post: { exposure: 1.05, bloomThreshold: 4, minSubframes: 28 },
+          shadow: { center: L(tracks.startX + 1.6, 0.5, 0.3), half: 4.5, up: 2.6, down: 3.2, depth: 200, bias: -0.00003, normalBias: 0.006 },
         };
       };
 
@@ -471,7 +475,7 @@ export const act2: SequenceDef[] = [
           else if (f.shot === 'doors') v = doorsView(k);
           else if (f.shot === 'wake') v = wakeView(k);
           else if (f.shot === 'gaze') v = gazeView(k);
-          else v = tracksView(k, t);
+          else v = tracksView(t);
           camera.position.copy(v.pos);
           camera.up.set(0, 1, 0);
           camera.lookAt(look.copy(v.target));

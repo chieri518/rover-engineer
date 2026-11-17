@@ -40,6 +40,8 @@ export interface LanderParts {
   openAngle: number;
   /** Set the hatch angle (rad from closed) and the cables that lower it. */
   setHatch(angle: number): void;
+  /** Scale the bay's fill lights (bounce from the ramp, the sunlit wall): 1 in the bay shots, 0 once the rover is out. */
+  setFill(k: number): void;
   /** Engine bells' afterglow, 0..1. */
   setGlow(k: number): void;
   /** Indirect light share for the exterior (1) and the bay interior (dark, ~0.05). */
@@ -167,7 +169,7 @@ export function buildLander(opts: LanderOptions): LanderParts {
     return track(cinePatch(m, { moon: opts.moon, indirect: inside ? indirect.inside : indirect.outside, key: 'lander' }));
   };
   const M = {
-    gold: make({ color: new THREE.Color(1.0, 0.66, 0.26), metalness: 0.55, roughness: 0.6, roughnessMap: foil.facets, normalMap: foil.normal, normalScale: new THREE.Vector2(0.55, 0.55) }),
+    gold: make({ color: new THREE.Color(0.95, 0.56, 0.15), metalness: 0.7, roughness: 0.6, roughnessMap: foil.facets, normalMap: foil.normal, normalScale: new THREE.Vector2(0.55, 0.55) }),
     silver: make({ color: new THREE.Color(0.85, 0.85, 0.87), metalness: 1, roughness: 0.5, roughnessMap: foilFine.facets, normalMap: foilFine.normal, normalScale: new THREE.Vector2(0.5, 0.5) }),
     white: make({ color: new THREE.Color(0.6, 0.6, 0.58), metalness: 0, roughness: 0.52, normalMap: panels.normal, normalScale: new THREE.Vector2(0.9, 0.9), aoMap: panels.grime, aoMapIntensity: 1 }),
     whitePlain: make({ color: new THREE.Color(0.6, 0.59, 0.57), metalness: 0, roughness: 0.5, roughnessMap: grain }),
@@ -281,6 +283,48 @@ export function buildLander(opts: LanderOptions): LanderParts {
     const g = new THREE.PlaneGeometry(1.5, 0.75);
     g.rotateY(Math.PI / 2);
     put(g, M.logo, 0, faceMatrix(k, (L.bandY + L.deckY) / 2 + 0.05, 0.004));
+  }
+  // Side faces: stringers across the white band, radiator slats, a strapped pressurant bottle or an
+  // avionics box on the gold band, and a cable harness down each corner.
+  const facePoint = (k: number, u: number, y: number, out: number) => {
+    const a = (k * Math.PI) / 4;
+    return new THREE.Vector3(Math.cos(a) * (APOTHEM + out) + Math.sin(a) * u, y, -Math.sin(a) * (APOTHEM + out) + Math.cos(a) * u);
+  };
+  for (const k of [1, 2, 6, 7]) {
+    const a = (k * Math.PI) / 4;
+    for (const y of [L.bandY + 0.3, L.deckY - 0.16]) put(box(0.05, 0.05, FACE_W * 0.96), M.alu, 0.5, faceMatrix(k, y, 0.025));
+    const us = k === 7 ? [-0.98, -0.86, 0.86, 0.98] : [-0.95, -0.76, -0.57, -0.38, -0.19, 0, 0.19, 0.38, 0.57, 0.76, 0.95];
+    for (const u of us) {
+      const p = facePoint(k, u, L.bandY + 0.78, 0.05);
+      put(box(0.09, 0.72, 0.016), M.whitePlain, 0.5, at(p.x, p.y, p.z, a));
+    }
+    if (k === 2 || k === 6) {
+      const c = facePoint(k, 0, 1.85, 0.2);
+      const g = cyl(0.17, 0.17, 1.3, 32);
+      g.rotateX(Math.PI / 2);
+      put(g, M.silver, 0.5, at(c.x, c.y, c.z, a));
+      for (const s of [-1, 1]) {
+        const cap = new THREE.SphereGeometry(0.17, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2);
+        cap.rotateX((s * Math.PI) / 2);
+        cap.translate(0, 0, s * 0.65);
+        put(cap, M.silver, 0.5, at(c.x, c.y, c.z, a));
+        const strap = new THREE.TorusGeometry(0.175, 0.012, 6, 32);
+        strap.translate(0, 0, s * 0.38);
+        put(strap, M.graphite, 0, at(c.x, c.y, c.z, a));
+        const foot = facePoint(k, s * 0.38, 1.85, 0.04);
+        put(box(0.12, 0.06, 0.04), M.graphite, 0.5, at(foot.x, foot.y, foot.z, a));
+      }
+    } else {
+      const c = facePoint(k, k === 1 ? 0.45 : -0.45, 1.75, 0.13);
+      put(new RoundedBoxGeometry(0.24, 0.4, 0.55, 2, 0.02), M.whitePlain, 0.5, at(c.x, c.y, c.z, a));
+      const fins = facePoint(k, k === 1 ? 0.45 : -0.45, 1.75, 0.26);
+      for (let i = -3; i <= 3; i++) put(box(0.025, 0.36, 0.008), M.graphite, 0.5, at(fins.x, fins.y, fins.z, a).multiply(at(0, 0, i * 0.07)));
+    }
+    // A harness down the corner toward the next face.
+    const va = ((k + 0.5) * Math.PI) / 4;
+    const cx = Math.cos(va) * (L.radius + 0.06);
+    const cz = -Math.sin(va) * (L.radius + 0.06);
+    put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(cx, L.deckY - 0.1, cz), new THREE.Vector3(cx * 1.005, 2.4, cz * 1.005), new THREE.Vector3(cx, L.bottomY + 0.3, cz)]), 20, 0.028, 8), M.dark, 0);
   }
   // Radiator fins on the back faces and solar cells on the side faces' upper band.
   for (const k of [3, 4, 5]) {
@@ -441,9 +485,9 @@ export function buildLander(opts: LanderOptions): LanderParts {
     const ball = new THREE.Vector3(fx, fy + 0.32, fz);
     const top = new THREE.Vector3(c * (L.radius - 0.05), L.bandY + 0.25, s * (L.radius - 0.05));
     const mid = top.clone().lerp(ball, 0.55);
-    put(rod(top, mid, 0.1, 20), M.graphite, 0.5);
+    put(rod(top, mid, 0.1, 20), M.gold, 0.5);
     put(rod(mid.clone().lerp(top, 0.05), mid.clone().lerp(ball, 0.02), 0.115, 20), M.alu, 0.5);
-    put(rod(mid, ball, 0.068, 20), M.chrome, 0.5);
+    put(rod(mid, ball, 0.068, 20), M.alu, 0.5);
     put(rod(top, top.clone().lerp(mid, 0.12), 0.13, 20), M.alu, 0.5);
     // Secondary struts to a knee.
     const knee = top.clone().lerp(ball, 0.72);
@@ -619,15 +663,16 @@ export function buildLander(opts: LanderOptions): LanderParts {
   // Light into the bay once it opens: the sunlit ramp and regolith outside the door, and the slash of sun on
   // the near wall, bounce a soft fill onto the rover.
   const bounce = new THREE.PointLight(0xfff2e4, 0, 9, 2);
-  bounce.position.set(L.hingeX + 1.0, L.floorY - 0.1, 0.2);
+  bounce.position.set(L.hingeX + 1.25, L.floorY + 1.0, -0.2);
   const slash = new THREE.PointLight(0xffeedd, 0, 4, 2);
   slash.position.set(L.hingeX - 0.4, L.floorY + 1.3, -L.bayHalfW + 0.25);
   object.add(bounce, slash);
   let openK = 0;
+  let fill = 1;
   const setHatch = (angle: number) => {
     openK = Math.min(1, angle / restAngle);
-    bounce.intensity = 2.2 * openK;
-    slash.intensity = 0.4 * Math.max(0, (openK - 0.3) / 0.7);
+    bounce.intensity = 1.0 * openK * fill;
+    slash.intensity = 0.4 * Math.max(0, (openK - 0.3) / 0.7) * fill;
     hatch.rotation.z = -angle;
     hatch.updateMatrix();
     for (const { mesh, s } of cables) {
@@ -665,8 +710,11 @@ export function buildLander(opts: LanderOptions): LanderParts {
     hatch,
     openAngle: restAngle,
     setHatch,
+    setFill(k) {
+      fill = k;
+    },
     setGlow(k) {
-      M.nozzle.emissiveIntensity = 0.7 * k;
+      M.nozzle.emissiveIntensity = 0.3 * k;
     },
     indirect,
     setBayLights(k, work = 0) {
