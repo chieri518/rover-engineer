@@ -42,21 +42,22 @@ describe('build quote', () => {
   it('quotes a draft build: an empty design, and a partial one, report the empty slots', () => {
     const empty = quoteBuild({}, data, 700);
     expect(empty.complete).toBe(false);
-    expect(empty.missing).toEqual([...testParts.slots, 'instrument']);
+    expect(empty.missing).toEqual(['chassis', 'wheels', 'power', 'battery']); // the required bus: systems and the bay are never missing
     expect(empty.cost).toBe(0);
     expect(empty.drive.topSpeed).toBe(0);
     const partial = quoteBuild({ chassis: 'steel', lights: 'no-lights' }, data, 700);
-    expect(partial.missing).toEqual([...testParts.slots.filter((s) => s !== 'chassis' && s !== 'lights'), 'instrument']);
+    expect(partial.missing).toEqual(['wheels', 'power', 'battery']);
     expect(partial.mass).toBe(testParts.parts.find((p) => p.id === 'steel')!.mass);
     expect(quoteBuild(build, data, 700).complete).toBe(true);
   });
 
   it('reports the mounting points and blocks launch when the bay is over capacity', () => {
     const q = quoteBuild({ ...build, payload: ['camera', 'drill'] }, data, 2000);
-    expect(q.mountingPoints).toBe(3);
+    expect(q.mountingPoints).toBe(5);
     expect(q.instruments).toBe(2);
+    expect(q.pointsUsed).toBe(4); // two instruments, the lamp and the heater
     expect(q.canLaunch).toBe(true);
-    // Titanium has 2 points: a third instrument cannot fit (a draft can still hold one, e.g. after a chassis change).
+    // Titanium has 4 points: lamp, heater and two instruments fill it, so a third cannot fit (a draft can still hold one, e.g. after a chassis change).
     const over = quoteBuild({ ...build, chassis: 'titanium', payload: ['camera', 'drill', 'camera'] }, data, 2000);
     expect(over.tier).not.toBeNull();
     expect(over.canLaunch).toBe(false);
@@ -64,10 +65,15 @@ describe('build quote', () => {
     expect(quoteBuild({ payload: ['camera'] }, data, 700).mountingPoints).toBeNull();
   });
 
-  it('an empty, confirmed bay is complete and can launch', () => {
+  it('an empty bay is complete and can launch, also when the bay was never touched', () => {
     const q = quoteBuild({ ...build, payload: [] }, data, 700);
     expect(q.complete).toBe(true);
     expect(q.canLaunch).toBe(true);
     expect(q.instruments).toBe(0);
+    const { payload: _p, lights: _l, heater: _h, ...bus } = build;
+    const bare = quoteBuild(bus, data, 700);
+    expect(bare.complete).toBe(true);
+    expect(bare.canLaunch).toBe(true);
+    expect(bare.pointsUsed).toBe(0);
   });
 });

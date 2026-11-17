@@ -46,7 +46,8 @@ describe('tutorial text', () => {
         .flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
     const design = join('design');
     expect(design).toContain('mounting point');
-    expect(design).toContain('No instruments');
+    expect(design).toContain('An empty bay is allowed');
+    expect(design).not.toMatch(/No instruments|No lights|No heater/); // leaving a part off is not a choice on the desk (November 16)
     expect(design).toContain('pre-launch review');
     expect(design).toMatch(/energy/i);
     const drive = join('drive');
@@ -161,7 +162,7 @@ describe('Mars tutorial and briefing text', () => {
   it('Mars step 8: the design tutorial explains the night budget line, the power choices, the two heaters and the support slots', () => {
     const design = all(tutorialPages('design', mars, { mission: 'mars', instruments: [], balance: 900 }));
     expect(design).toContain(`one ${mars.tuning.sol!.nightSeconds} s night`);
-    expect(design).toContain('Night energy line');
+    expect(design).toContain('Night energy tile');
     for (const part of ['deployable solar arrays', 'radioisotope generator (RTG)', 'Radioisotope heater units', 'electric heater', 'robotic arm', 'remote sensing mast']) {
       expect(design).toContain(part);
     }
@@ -171,7 +172,7 @@ describe('Mars tutorial and briefing text', () => {
     const c = mars.text.campaign!;
     const vars = missionVars(mars);
     for (const line of c.newOnMars) expect(fill(line, vars)).not.toMatch(unfilled);
-    for (const s of [mars.text.story.kicker, c.sameParts, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
+    for (const s of [mars.text.story.kicker, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
       expect(s).not.toMatch(unfilled);
     }
     expect(mars.text.comingSoon.heading).toBe('Titan: coming soon');

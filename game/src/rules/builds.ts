@@ -1,7 +1,7 @@
 // Build enumeration for a world with support slots (Mars): each bus mix with each bay that fits, and the
 // support hardware that bay needs. Kept apart from balance.ts (the Moon's evaluator). Pure.
 import type { Build, GameData, Part } from './types';
-import { mountingPoints } from './payload';
+import { mountingPoints, pointsUsed } from './payload';
 
 /** Every subset of the instrument parts, each part at most once, in catalog order (the empty bay first, then by size). */
 function payloadSubsets(instruments: Part[]): string[][] {
@@ -28,7 +28,11 @@ export function supportFor(payload: string[], data: GameData): Build['support'] 
   return support;
 }
 
-/** Every build: each mix of bus parts, with each payload that fits its chassis, and the support each bay needs (and nothing more). */
+/**
+ * Every build: each mix of bus parts (the lights and heater options included, "None" meaning not fitted),
+ * with each bay that fits its chassis together with the fitted systems (instruments + lights, heater, arm
+ * and mast ≤ mounting points), and the support each bay needs (and nothing more).
+ */
 export function allBuildsWithSupport(data: GameData): Build[] {
   let buses: Partial<Build>[] = [{}];
   for (const slot of data.parts.slots) {
@@ -39,9 +43,10 @@ export function allBuildsWithSupport(data: GameData): Build[] {
   const support = new Map(bays.map((bay) => [bay, supportFor(bay, data)]));
   return buses.flatMap((bus) => {
     const points = mountingPoints(data.parts.parts.filter((p) => p.id === bus.chassis));
-    return bays.filter((bay) => bay.length <= points).map((payload) => {
+    return bays.flatMap((payload) => {
       const s = support.get(payload);
-      return (s ? { ...bus, payload, support: s } : { ...bus, payload }) as Build;
+      const build = (s ? { ...bus, payload, support: s } : { ...bus, payload }) as Build;
+      return pointsUsed(build, data.parts) <= points ? [build] : [];
     });
   });
 }

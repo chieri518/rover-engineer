@@ -74,13 +74,13 @@ describe('world data', () => {
     expect(mars.events.flare).toBeUndefined();
     expect(mars.events.quake).toBeUndefined();
     expect(mars.events.duststorm).toBeDefined();
-    // Mars offers the shared Moon parts (same ids and numbers, Mars wording; the X-ray also needs the arm,
-    // Mars M6) without the Moon-only ones, then its own parts; its tiers are the Moon's three plus Heavy.
+    // Mars offers the shared Moon parts (same ids and numbers, Mars wording; since November 16 the X-ray works
+    // as on the Moon, with no arm needed) without the Moon-only ones, then its own parts; its tiers are the
+    // Moon's three plus Heavy.
     const moonParts = loadGameData('moon').parts;
     const shared = mars.parts.parts.filter((p) => !p.worlds);
     const withoutWords = <P extends { name: string; description: string }>({ name: _n, description: _d, ...rest }: P) => rest;
-    expect(shared.map(withoutWords)).toEqual(moonParts.parts.filter((p) => !p.worlds).map((p) => withoutWords(
-      p.id === 'instrument-xray' ? { ...p, effects: { ...p.effects, needs: ['arm'] } } : p)));
+    expect(shared.map(withoutWords)).toEqual(moonParts.parts.filter((p) => !p.worlds).map(withoutWords));
     expect(mars.parts.parts.filter((p) => p.worlds).every((p) => p.worlds!.includes('mars'))).toBe(true);
     expect(mars.tiers.tiers.slice(0, 3)).toEqual(loadGameData('moon').tiers.tiers);
     // Heavy takes what the steel chassis can carry (the numbers come from the data files).

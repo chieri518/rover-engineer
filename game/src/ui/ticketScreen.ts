@@ -2,7 +2,7 @@
 import type { Screen } from '../flow/flow';
 import { quoteBuild } from '../rules/quote';
 import { reviewItems } from '../rules/relationships';
-import { isCompleteBuild } from '../rules/rover';
+import { completeBuild } from '../rules/rover';
 import type { TierFit } from '../rules/tiers';
 import { el, money } from './dom';
 import { tierWhyText } from './tierText';
@@ -16,7 +16,8 @@ export const ticketScreen: Screen = (game, root) => {
   // Pre-launch review: the build's relationships already in the notebook, plus hard blocks. It only
   // informs: the player can always launch.
   const r = text.review;
-  const review = isCompleteBuild(game.build, data.parts) ? reviewItems(game.build, game.state.notebook, data) : [];
+  const complete = completeBuild(game.build, data.parts);
+  const review = complete ? reviewItems(complete, game.state.notebook, data) : [];
   const reviewSection = el('section', { class: 'review', id: 'prelaunch-review', 'aria-labelledby': 'review-heading' },
     el('h3', { id: 'review-heading' }, r.heading),
     el('p', { class: 'muted' }, review.length ? r.intro : r.empty),

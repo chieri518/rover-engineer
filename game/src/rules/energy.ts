@@ -85,22 +85,49 @@ export function nightDraw(power: Pick<PartPower, 'lightsDraw' | 'heaterDraw'>, s
   return electronics + lights + power.heaterDraw;
 }
 
-/** One night's energy for the desk's night budget line (Mars M15). */
+/** One night's energy for the desk's night tile (Mars M15). */
 export interface NightBudget {
   asleep: number; // the whole night powered down
   withLights: number | null; // the whole night awake with the lights on (parked); null without lights
   heater: number; // the electric heater's share of each of the above (0 without one)
   steady: number; // steady income earned over the night (an RTG)
+  /** The battery's net change over the night (steady income minus draw): positive when the income covers it. */
+  net: { asleep: number; withLights: number | null };
+  /** The same net change as a rate: per second of night (net over the night's length). */
+  rate: { asleep: number; withLights: number | null };
 }
 
 export function nightBudget(power: PartPower, hasLights: boolean, night: NightTuning, nightSeconds: number): NightBudget {
   const draw = (poweredDown: boolean) => nightDraw(power, { isNight: true, poweredDown, hasLights }, night) * nightSeconds;
+  const steady = power.steadyIncome * nightSeconds;
+  const asleep = draw(true);
+  const withLights = hasLights ? draw(false) : null;
+  const net = { asleep: steady - asleep, withLights: withLights === null ? null : steady - withLights };
+  const perSecond = (x: number) => (nightSeconds > 0 ? x / nightSeconds : 0);
   return {
-    asleep: draw(true),
-    withLights: hasLights ? draw(false) : null,
+    asleep,
+    withLights,
     heater: power.heaterDraw * nightSeconds,
-    steady: power.steadyIncome * nightSeconds,
+    steady,
+    net,
+    rate: { asleep: perSecond(net.asleep), withLights: net.withLights === null ? null : perSecond(net.withLights) },
   };
+}
+
+/**
+ * How a night's net change reads on the desk: 'gain' when steady income covers the night (net 0 or more),
+ * 'empties' when the loss is at least the battery, 'large' when it is at least night.largeLossShare of it,
+ * else 'small'. Without a battery (capacity null) a loss is always 'small': there is nothing to compare it with.
+ */
+export type NightNetState = 'gain' | 'small' | 'large' | 'empties';
+
+export function nightNetState(net: number, batteryCapacity: number | null, night: NightTuning): NightNetState {
+  if (net >= 0) return 'gain';
+  if (batteryCapacity === null || batteryCapacity <= 0) return 'small';
+  const loss = -net;
+  if (loss >= batteryCapacity) return 'empties';
+  if (night.largeLossShare !== undefined && loss >= batteryCapacity * night.largeLossShare) return 'large';
+  return 'small';
 }
 
 /** Whether the rover may drive on Mars: never asleep, and at night only with lights (unless the night allows it). */

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
-import { deskCardNotes, milestoneHowTo, notReachedLine } from './milestoneText';
+import { deskCardNotes, milestoneCard, milestoneHowTo, notReachedLine, rewardText } from './milestoneText';
+import { armNotes } from './supportText';
 import type { GameData, Instrument } from '../rules/types';
 
 const data = loadGameData();
@@ -101,9 +102,39 @@ describe('debrief "Not reached" lines', () => {
   const m = (id: string) => mars.milestones.milestones.find((x) => x.id === id)!;
 
   it('names the support part the rover lacked (Mars M18), else the name alone', () => {
-    expect(notReachedLine(m('mars-rock-collection'), parts('arm-none', 'instrument-xray'), mars)).toBe('Rock collection · Needs the robotic arm.');
+    expect(notReachedLine(m('organic-signals'), parts('arm-none', 'instrument-organics'), mars)).toBe('Organic signals · Needs the robotic arm.');
+    expect(notReachedLine(m('mars-rock-collection'), parts('arm-none', 'instrument-xray'), mars)).toBe('Rock collection'); // the X-ray needs no arm
     expect(notReachedLine(m('rock-from-afar'), parts('mast-none', 'instrument-laser'), mars)).toBe('Rock from afar · Needs the remote sensing mast.');
     expect(notReachedLine(m('mars-rock-collection'), parts('arm-robotic', 'instrument-xray'), mars)).toBe('Rock collection');
     expect(notReachedLine(byId('rock-collection'), [], data)).toBe('Rock collection');
+  });
+});
+
+describe('the robotic arm as the X-ray\'s upgrade: card and reward words', () => {
+  const part = (d: GameData, id: string) => d.parts.parts.find((p) => p.id === id)!;
+  const rock = mars.milestones.milestones.find((x) => x.id === 'mars-rock-collection')!;
+
+  it('the X-ray\'s card and the arm\'s say what the arm adds, with the reach from the data; nothing on the Moon or on other parts', () => {
+    const reach = String(mars.tuning.instruments.arm!.reachM);
+    expect(armNotes(part(mars, 'instrument-xray'), mars)).toEqual([`With the robotic arm: reaches about ${reach} m and grinds the rock surface first, so readings earn more.`]);
+    const arm = armNotes(part(mars, 'arm-robotic'), mars);
+    expect(arm).toHaveLength(1);
+    expect(arm[0]).toContain(`${reach} m`);
+    expect(arm[0]).toMatch(/X-ray and organics/);
+    expect(armNotes(part(mars, 'instrument-organics'), mars)).toEqual([]);
+    expect(armNotes(part(mars, 'arm-none'), mars)).toEqual([]);
+    expect(armNotes(part(data, 'instrument-xray'), data)).toEqual([]);
+  });
+
+  it('a raised reward says it was ground down; a plain one does not', () => {
+    expect(rewardText({ money: 158, rp: 15, factor: 1.5 }, mars)).toMatch(/ · ground-down reading \+50%$/);
+    expect(rewardText({ money: 105, rp: 10 }, mars)).not.toMatch(/ground-down/);
+    expect(rewardText({ money: 105, rp: 10, factor: 1.5 }, data)).not.toMatch(/ground-down/); // no words for it on the Moon
+  });
+
+  it('the mission\'s milestone card shows the ground-down reward', () => {
+    const reached = { milestone: rock, stage: 1, stages: 3 };
+    expect(milestoneCard(reached, mars, false, [], true).reward).toBe(rewardText({ money: 158, rp: 15, factor: 1.5 }, mars));
+    expect(milestoneCard(reached, mars, false, []).reward).toBe(rewardText({ money: 105, rp: 10 }, mars));
   });
 });

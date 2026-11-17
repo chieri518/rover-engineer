@@ -208,6 +208,11 @@ export interface SolTuning {
 export interface NightTuning {
   awakeDrainPerSecond: number; // the electronics awake at night: battery drain on top of driving (the lights and heater draws are the parts', rules/energy.ts nightDraw)
   sleepDrainPerSecond: number; // the electronics powered down (P) at night
+  /**
+   * The desk's night tile (rules/energy.ts nightNetState): a night's net loss shows amber from this share of the
+   * battery. Needed where the tile shows (a world with nightBudget text: Mars); without it a loss is never amber.
+   */
+  largeLossShare?: number;
   /** Titan only (rules/titan.ts titanDrainPerSecond): the whole awake-at-night drain with the lights on. Mars uses the parts' lightsDraw instead. */
   lightsDrainPerSecond?: number;
   driveWithoutLights: boolean; // design: false, a rover without lights cannot drive at night
@@ -393,23 +398,35 @@ export interface MarsTextSections {
   /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
   campaign: MarsCampaignText;
   /**
-   * The desk's night budget line (Mars M15, ui/marsMission.ts nightBudgetLine): what one night costs this
-   * build asleep and awake with lights, the electric heater's share and an RTG's income. {energy}, {seconds}.
+   * The desk's night tile (Mars M15, ui/marsMission.ts nightBudgetTile): the battery's net rate at night per second
+   * asleep and awake with lights (unit design.spec.perSecond), the night's net change under each, and one sentence
+   * with both scales, the draws, the electric heater's share and an RTG's income.
    */
-  nightBudget: Record<'label' | 'asleep' | 'lights' | 'heater' | 'steady' | 'separator', string>;
+  nightBudget: Record<
+    | 'label' // {seconds}
+    | 'asleep' | 'lights' | 'noLights' // the tile's two values' labels, and the second's text on a rover without lights
+    // The line under each value, the night's net change ({net}); an amber or red value adds its battery share ({percent}):
+    | 'perNight' | 'perNightShare'
+    // The tooltip and screen-reader sentence ({seconds} {uses} {heater} {steady} {changes}) and its pieces:
+    | 'sentence' | 'usesAsleep' | 'usesLights' | 'usesJoin' | 'heaterEach' | 'heaterOne' | 'steady' // {energy}
+    | 'changesAsleep' | 'changesLights' | 'changesJoin' // {rate} {net} {seconds}
+    | 'stateLarge' | 'stateEmpties', // an amber or red value, so the state is not colour alone: {mode} {percent}
+    string
+  >;
   /** Per-world part wording, by part id: replaces the shared name or description (rules/merge.ts withPartText). */
   partText?: Record<string, { name?: string; description?: string }>;
   /**
    * Support hardware on the desk (Mars M5, ui/supportText.ts): `needs` on an instrument's card and its
    * refusal ({support}), `missing` in the warnings ({part}, {support}), and each support part's name.
+   * The arm as the X-ray's upgrade: `xrayWithArm` on the X-ray's card and `armAdds` on the arm's ({reach}),
+   * `groundDown` on the first ground-down X-ray reading and `groundDownReward` after a raised reward ({percent}).
    */
-  support: Record<'needs' | 'missing' | SupportSlot, string>;
+  support: Record<'needs' | 'missing' | SupportSlot, string> & Partial<Record<'xrayWithArm' | 'armAdds' | 'groundDown' | 'groundDownReward', string>>;
 }
 
 export interface MarsCampaignText {
-  carryOver: string; // {balance}: the balance carried over from the Moon
-  passMark: string; // {minimum}: the next mission's pass mark (Titan)
-  sameParts: string; // design screen: Mars has its own parts and ticket tiers
+  carryOver: string; // {balance}: the balance carried over from the last world (the desk's Budget tooltip)
+  passMark: string; // the desk's pass-mark tooltip: {minimum}, the next mission's pass mark (Mars); on the last mission (Titan) the goal, {minutes}
   ticketNote: string; // ticket screen: Mars's own tiers
   perseverance: string; // landing: {distance} km {direction} to Perseverance's landing site
   newHeading: string; // landing: "New on Mars"

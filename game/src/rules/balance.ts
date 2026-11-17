@@ -3,7 +3,7 @@
 import type { Build, BusSlot, GameData, Part } from './types';
 import { quoteBuild } from './quote';
 import { selectedParts } from './rover';
-import { instrumentsOf, mountingPoints } from './payload';
+import { fittedSystems, instrumentsOf, mountingPoints } from './payload';
 import { missionSetup, startMission, stepMission, type MissionEnd } from './mission';
 
 export interface BuildEval {
@@ -42,7 +42,7 @@ const short = (id: string) => SHORT[id] ?? id;
 
 export function buildLabel(build: Build, slots: BusSlot[]): string {
   const bay = build.payload.length ? build.payload.map(short).join('+') : 'empty';
-  return [...slots.map((s) => short(build[s])), bay].join(' ');
+  return [...slots.map((s) => { const id = build[s]; return id ? short(id) : '-'; }), bay].join(' ');
 }
 
 /** Every subset of the instrument parts, each part at most once, in catalog order (the empty bay first). */
@@ -52,7 +52,10 @@ function payloadSubsets(instruments: Part[]): string[][] {
   return subsets.sort((a, b) => a.length - b.length);
 }
 
-/** Every build: each mix of bus parts, with each payload that fits its chassis (the empty bay included). */
+/**
+ * Every build: each mix of bus parts (the lights and heater options included, "None" meaning not fitted),
+ * with each payload whose instruments fit the chassis beside the fitted systems (the empty bay included).
+ */
 export function allBuilds(data: GameData): Build[] {
   let buses: Partial<Build>[] = [{}];
   for (const slot of data.parts.slots) {
@@ -62,7 +65,8 @@ export function allBuilds(data: GameData): Build[] {
   const bays = payloadSubsets(data.parts.parts.filter((p) => p.slot === 'instrument'));
   return buses.flatMap((bus) => {
     const points = mountingPoints(data.parts.parts.filter((p) => p.id === bus.chassis));
-    return bays.filter((bay) => bay.length <= points).map((payload) => ({ ...bus, payload }) as Build);
+    const free = points - fittedSystems(bus, data.parts).length;
+    return bays.filter((bay) => bay.length <= free).map((payload) => ({ ...bus, payload }) as Build);
   });
 }
 

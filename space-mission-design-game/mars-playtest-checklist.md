@@ -14,7 +14,8 @@ Keys: W A S D drive, Space brake, P power down (sleep), number keys 1 to 3 use i
 - [ ] **Not offered on Mars.** A Moon build with the seismometer or the reflector loses them on Mars, and one line names them ("Not offered on Mars: ..."). The line goes away once a Mars rover is bought.
 - [ ] **New parts.** The desk offers the RTG, deployable solar arrays, the larger battery, the electric heater, grouser wheels, and eight instruments (camera, drill, neutron, X-ray, weather mast, radar, laser, organics). The RTG card says "Steady income 0.6 energy/s, day and night"; the electric heater "Heat output 3 · draws 1.2 energy/s every night". "No heater" warns that the rover freezes in its first night without another source of heat.
 - [ ] **Support slots.** Arm and Mast appear after the bus slots. The build is not complete until both are chosen ("No arm" counts). Support parts take no mounting point.
-- [ ] **Needs.** Without the arm, the X-ray and organics cards are greyed with "Needs the robotic arm."; without the mast, the laser card with "Needs the remote sensing mast.". Take the arm away with the X-ray in the bay: the X-ray stays, the warnings say it needs the arm, and the ticket cannot be bought until the arm is back or the X-ray is out.
+- [ ] **Needs.** Without the arm, the organics card is greyed with "Needs the robotic arm."; without the mast, the laser card with "Needs the remote sensing mast.". The X-ray fits without the arm (no "Needs support"). Take the arm away with organics in the bay: organics stays, the warnings say it needs the arm, and the ticket cannot be bought until the arm is back or organics is out.
+- [ ] **Arm perks on the cards.** The X-ray card says that with the robotic arm it reaches about 7 m and grinds the rock surface first, so readings earn more; the arm's card says what it adds to the X-ray and the organics spectrometer.
 - [ ] **Night budget line.** Under Battery: "Night energy (15 s): ... asleep · ... with lights". It shows a dash until power, lights and heater are chosen; "heater 18 of each" with the electric heater; "RTG +9" with the RTG; no "with lights" part without lights. It is absent on the Moon.
 - [ ] **Can earn and Where lines.** Each Mars instrument card lists its Mars milestones by name ("Can earn: ...") and a short "Where:" line naming the kinds of places it is used. No card gives a reward or a how-to.
 - [ ] **Tiers.** A heavy steel build with the arm, the mast and three instruments lands in the Heavy tier (100 kg, size 30, $300k); the over-the-top warning names Heavy.
@@ -22,13 +23,14 @@ Keys: W A S D drive, Space brake, P power down (sleep), number keys 1 to 3 use i
 
 ## 2. The four Mars instruments and their refusals
 
-Carry each one on a rover that can (the arm for the X-ray and organics, the mast for the laser).
+Carry each one on a rover that can (the arm for organics, the mast for the laser; the X-ray needs nothing).
 
 - [ ] **Weather mast.** Its key switches it on (0.05 energy/s) and off. The readout under the meters shows pressure and dust with trend arrows. Left on and awake for 10 s or more before the forecast, the storm forecast comes up to 30 s earlier and credits the mast. Powered down (P) or switched off, its count starts again. At 20% battery it switches itself off.
 - [ ] **Radar.** Its key switches it on (0.1 energy/s). The strip under the meters draws a profile column every 2 m driven, with the layer kind (crater floor, Séítah, delta front, boulder field). A sharp turn or 3 s standing still breaks the strip; a gentle curve does not.
 - [ ] **Laser.** Facing a boulder or the delta cliff within 12 m (a cone ahead), the HUD shows "Laser target: ..., n m" and a marker over the target. Stop and press its key: 2 s hold, 8 energy, a rock reading (or "fine layers of sedimentary rock" for the cliff). Refused with nothing ahead ("nothing to read ahead"), while moving, powered down, or without the energy.
 - [ ] **Organics.** Stop beside a boulder (within 4.5 m) and press its key: a 20 s hold with a progress bar, charged 1.5 per second as it runs (30 in all). Refused away from a boulder, on ground over 10°, or when the battery cannot hold the whole 30. If another drain empties the battery mid-reading, it stops with a notice and finds nothing.
-- [ ] **X-ray on Mars.** Needs the arm; reads a boulder within 4.5 m (3 m on the Moon); refused with "no boulder within reach" away from boulders and with a notice naming the slope on ground over 10°. "New type: n of 6" for a type not read yet.
+- [ ] **X-ray on Mars.** Works without the arm; reads a boulder within 4.5 m (3 m on the Moon), on any drivable ground; refused with "no boulder within reach" away from boulders. "New type: n of 6" for a type not read yet.
+- [ ] **X-ray with the arm.** Reads a boulder up to 7 m away (the "no boulder within reach" notice says 7 m). The first reading adds a ground-down line; in the debrief, Rock collection and Rare rock pay 50% more with a "ground-down reading +50%" note (Rock collection 158 per stage, Rare rock 180). Documented sample is unchanged.
 - [ ] **Neutron on Mars.** The hydrogen meter sits at its floor on the crater floor, reads higher in Séítah and on the delta foot, and rises toward the hidden hydrated ground over its last 80 m.
 - [ ] **Mast photo zones.** With the mast aboard, the viewpoint photo circles on the minimap are larger.
 - [ ] Mission history on: each new instrument shows one real fact on first use (MEDA, RIMFAX, SuperCam, SHERLOC; PIXL for the X-ray on Mars).
@@ -40,7 +42,7 @@ Carry each one on a rover that can (the arm for the X-ray and organics, the mast
 - [ ] **Each site.** Rocky area 1, Rocky area 2, East crater, the S, WSW, SW, SSE and ESE craters, the WNW knob, the Séítah knob, the Séítah edge, the delta foot (a thicker stretch of the delta line) and the flood boulder (a boulder icon) appear when found, with a legend entry per kind.
 - [ ] **Hydrated ground** is never drawn until Hydrated ground fires; then a dotted "Hydrated ground" area and a legend entry appear. It never shows a check.
 - [ ] **Check marks.** A site shows a check once each carried instrument has done its one thing there (one reading, a counted sample or a switched-on drive through its zone, a rim photo at craters with a rim). The flood boulder's camera counts only after the X-ray has read it.
-- [ ] **Boulders.** About 30 boulders ring each young crater (60 at East crater), 40 at the Séítah edge and along the delta foot, 15 at each knob; none on the sand ripples. Some sit on slopes the arm refuses, with level ground a few meters away.
+- [ ] **Boulders.** About 30 boulders ring each young crater (60 at East crater), 40 at the Séítah edge and along the delta foot, 15 at each knob; none on the sand ripples. Some sit on slopes where the organics spectrometer is refused, with level ground a few meters away.
 - [ ] **Power line.** A solar rover reads night, storm, shadow, low Sun or sunlight, with "dust −n%" once dust has cut income by 1%. An RTG rover reads "Steady power, day and night", never "Solar panel in sunlight".
 
 ## 4. The new milestones, earned on purpose
@@ -73,9 +75,9 @@ Fresh campaign, so the notebook is empty. Each notice appears once per mission; 
 
 - [ ] **RTG and neutron.** RTG with the neutron spectrometer on: the meter's floor is raised and jitters, and the lesson fires. On a solar rover: no lesson. A noisy rover that drives over the hydrated ground still earns it.
 - [ ] **Dust on the panels.** A solar rover: once dust has cut income past 15%, the lesson fires; the power line shows the dust share. A devil passing within 50 m resets the share. An RTG rover never gets it.
-- [ ] **The arm on a slope.** X-ray or organics on ground over 10° (the knobs, East crater's rim, slope-target boulders): the refusal names the slope and the lesson fires. Moving to level ground a few meters away, the reading works.
+- [ ] **The organics reading needs gentle ground.** Organics on ground over 10° (the knobs, East crater's rim, slope-target boulders): the refusal names the slope and the lesson fires. Moving to level ground a few meters away (the arm reaches 7 m), the reading works. The X-ray on the same ground reads without a refusal.
 - [ ] **No lights at night.** A rover without lights, awake at night: it cannot drive and the lesson fires. Asleep through the night: no lesson.
-- [ ] **Review.** On the next ticket screen the review lists the met Mars lessons: RTG and neutron yellow (green on solar), dust yellow for any solar part (green with an RTG), the arm yellow for any contact instrument (never "Solved"), no lights red (Blocked) whatever else. A lesson not met never appears. The review never blocks the purchase.
+- [ ] **Review.** On the next ticket screen the review lists the met Mars lessons: RTG and neutron yellow (green on solar), dust yellow for any solar part (green with an RTG), the organics lesson yellow for a build with the organics spectrometer (never "Solved"; not for the X-ray), no lights red (Blocked) whatever else. A lesson not met never appears. The review never blocks the purchase.
 - [ ] **Notebook.** One heading per world: "Moon lessons" with the Moon's count, "Mars lessons" with "n of 4 found". Moon lessons stay readable on Mars and never fire there.
 
 ## 6. Debrief
@@ -105,8 +107,10 @@ Estimates from [Generous pass on Mars](game-design.md#generous-pass-on-mars-mars
 | Camera (490) | Rocky area 2, WSW crater rim, sunset | Win (about 860) |
 | Drill (590) | Three sites near the lander | Win (about 820) |
 | Camera + drill (640) | Near route | Win (about 1,010) |
-| Arm + X-ray (620) | Near route | **Lose** (about 700); about 805 with Séítah's fourth type |
-| Arm + X-ray + camera (670) | Near route | Win (about 990) |
+| X-ray, no arm (500) | Near route | Win (about 820) |
+| X-ray + camera, no arm (550) | Near route | Win (about 1,110) |
+| Arm + X-ray (620) | Near route | Win narrowly (about 806, ground down) |
+| Arm + X-ray + camera (670) | Near route | Win (about 1,096) |
 | Arm + organics (670) | Two boulders at two sites | Win (about 860) |
 | Mast + laser (650) | Near route | Lose narrowly (about 775) |
 | Mast + laser + camera (700) | Near route | Win (about 965) |

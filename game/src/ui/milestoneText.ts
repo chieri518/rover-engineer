@@ -1,7 +1,7 @@
 // Wording for milestone pop-ups and the debrief, from text.json and milestones.json.
 import type { Missed, Reached } from '../rules/milestones';
 import { instrumentMilestones, unmetSupport } from '../rules/milestoneLists';
-import type { MissionResult } from '../rules/payout';
+import { milestoneReward, type MissionResult } from '../rules/payout';
 import type { BusSlot, GameData, Instrument, Milestone, MilestoneCategory, Part, TextFile } from '../rules/types';
 import { fill, money } from './dom';
 import type { MilestoneCard } from './hud';
@@ -70,7 +70,16 @@ export function milestoneTitle(m: Milestone, stage: number, stages: number, text
   return stages > 1 ? fill(text.milestone.stage, { name: m.name, stage, stages }) : m.name;
 }
 
-export function milestoneCard(r: Reached, data: GameData, history: boolean, recordsHeld: readonly string[]): MilestoneCard {
+/** "$90k · 8 RP", with the ground-down note when the reward was raised (a fitted robotic arm, X-ray reading milestones). */
+export function rewardText(reward: { money: number; rp: number; factor?: number }, data: GameData): string {
+  const base = fill(data.text.milestone.reward, { money: money(reward.money, data.text), rp: reward.rp });
+  const note = data.text.support?.groundDownReward;
+  if (reward.factor === undefined || reward.factor === 1 || !note) return base;
+  return `${base} · ${fill(note, { percent: Math.round((reward.factor - 1) * 100) })}`;
+}
+
+/** The pop-up card for a milestone reached; `groundDown`: the X-ray's readings are ground down this mission (MissionSetup.groundDown). */
+export function milestoneCard(r: Reached, data: GameData, history: boolean, recordsHeld: readonly string[], groundDown = false): MilestoneCard {
   const { text } = data;
   const m = r.milestone;
   const held = m.record && recordsHeld.includes(m.id);
@@ -81,7 +90,7 @@ export function milestoneCard(r: Reached, data: GameData, history: boolean, reco
     label,
     title: milestoneTitle(m, r.stage, r.stages, text),
     body: milestoneSummary(m, r.stage),
-    reward: held ? null : fill(text.milestone.reward, { money: money(m.money, text), rp: m.rp }),
+    reward: held ? null : rewardText(milestoneReward(m, groundDown, data.tuning), data),
     note: held ? text.milestone.recordHeld : undefined,
     // One fact per milestone: staged milestones show it on the first stage only.
     fact: history && r.stage === 1 ? m.fact : undefined,

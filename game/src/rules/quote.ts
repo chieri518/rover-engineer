@@ -2,7 +2,7 @@ import type { DraftBuild, GameData, Slot, Tier } from './types';
 import { chosenParts, isChassisOverloaded, missingSlots, roverTotals, type RoverTotals } from './rover';
 import { explainTier, type TierExplanation } from './tiers';
 import { driveStats, type DriveStats } from './drive';
-import { mountingPoints, payloadProblems, type PayloadProblem } from './payload';
+import { mountingPoints, payloadProblems, pointsUsed, type PayloadProblem } from './payload';
 
 /** Everything the design and ticket screens need to show about a build. */
 export interface BuildQuote extends RoverTotals {
@@ -17,9 +17,10 @@ export interface BuildQuote extends RoverTotals {
   maxLoad: number | null; // the chassis maximum load in kg
   mountingPoints: number | null; // the chassis mounting points (null: no chassis chosen yet)
   instruments: number; // instruments in the payload bay
+  pointsUsed: number; // mounting points the payload uses: instruments and fitted systems
   payloadProblems: PayloadProblem[];
   drive: DriveStats;
-  missing: Slot[]; // slots with no part chosen yet ('instrument': the bay is not confirmed): totals cover the chosen parts only
+  missing: Slot[]; // required bus slots with no part chosen yet: totals cover the chosen parts only
   complete: boolean;
 }
 
@@ -47,6 +48,7 @@ export function quoteBuild(build: DraftBuild, data: GameData, balance: number): 
     maxLoad: chassis?.effects.maxLoad ?? null,
     mountingPoints: chassis ? mountingPoints([chassis]) : null,
     instruments: build.payload?.length ?? 0,
+    pointsUsed: pointsUsed(build, data.parts),
     payloadProblems: problems,
     drive: driveStats(parts, data.tuning),
     missing,

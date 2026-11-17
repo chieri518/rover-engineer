@@ -68,9 +68,10 @@
     "startSecondsIntoDay": 7.25
   },
   "night": {
-    "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving. The world keeps only the electronics: awake 1, asleep 0.2 (3 per night). The parts own the rest (Mars M1, rules/energy.ts nightDraw): the LED floodlights' lightsDraw 3 while awake (so lights on is 4, a parked night 60, about a fixed panel's whole sol of income), an electric heater's heaterDraw every second of night, asleep too; an RTG's steadyIncome day and night. Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
+    "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving. The world keeps only the electronics: awake 1, asleep 0.2 (3 per night). The parts own the rest (Mars M1, rules/energy.ts nightDraw): the LED floodlights' lightsDraw 3 while awake (so lights on is 4, a parked night 60, about a fixed panel's whole sol of income), an electric heater's heaterDraw every second of night, asleep too; an RTG's steadyIncome day and night. Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). largeLossShare: the desk night tile shows a night's net loss amber from this share of the battery (Mars has ten nights; game-design.md, the night budget line). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
     "awakeDrainPerSecond": 1,
     "sleepDrainPerSecond": 0.2,
+    "largeLossShare": 0.1,
     "driveWithoutLights": false,
     "freezeRatePerSecond": 8,
     "warmRecoveryPerSecond": 6,
@@ -86,8 +87,8 @@
     "dustDevilSenseM": 150
   },
   "instruments": {
-    "_note": "Mars instruments (Mars step 4a; starting values from Phase 0 of the Mars engineering plan, tuned in the Mars balance phase). Rules: rules/instruments.ts and rules/mission.ts. arm: contact instruments (whose needs include the arm: the X-ray and organics spectrometers) refuse to read on ground steeper than slopeLimitDeg (MS2, Owner B item B13, provisional, for Chieri's review); ground stays drivable to 18 deg, so the arm lesson has a 10 to 18 deg band. mast: the camera's viewpoint photo zones grow by photoRangeFactor on a rover with a mast. chargedWhileHeld: the organics spectrometer pays its energyPerUse as it runs, energyPerUse / useSeconds per second of the hold (30 / 20 = 1.5/s), not up front; it starts only when the battery holds the whole 30.",
-    "arm": { "slopeLimitDeg": 10 },
+    "_note": "Mars instruments (Mars step 4a; starting values from Phase 0 of the Mars engineering plan, tuned in the Mars balance phase). Rules: rules/instruments.ts and rules/mission.ts. arm: contact instruments (whose needs include the arm: the organics spectrometer since November 16) refuse to read on ground steeper than slopeLimitDeg (MS2, Owner B item B13, provisional, for Chieri's review); ground stays drivable to 18 deg, so the arm lesson has a 10 to 18 deg band. With a robotic arm fitted (game-design.md, The X-ray spectrometer and the robotic arm; decided by the user November 16): every boulder reading (the X-ray and organics) reaches a boulder whose surface is within reachM of the rover's center instead of xray.reachM, and the X-ray's readings are ground down: the milestones an X-ray reading earns (Rock collection, Rare rock) pay groundDownFactor times their money and RP (rules/payout.ts). mast: the camera's viewpoint photo zones grow by photoRangeFactor on a rover with a mast. chargedWhileHeld: the organics spectrometer pays its energyPerUse as it runs, energyPerUse / useSeconds per second of the hold (30 / 20 = 1.5/s), not up front; it starts only when the battery holds the whole 30.",
+    "arm": { "slopeLimitDeg": 10, "reachM": 7, "groundDownFactor": 1.5 },
     "mast": { "photoRangeFactor": 1.5 },
     "chargedWhileHeld": ["organics"],
     "neutron": {
@@ -157,7 +158,7 @@
       "defaultLayer": "floor"
     },
     "laser": {
-      "_note": "Laser spectrometer: the nearest boulder (surface) or point of the delta cliff's foot line (terrain.json deltaFront.scarpLocal_xz) within reachM, inside a cone of coneDeg either side of the rover's heading. reachM is well beyond the X-ray's contact reach (4.5 m on Mars); the real SuperCam laser reads rocks up to about 7 m away (the game scales distances).",
+      "_note": "Laser spectrometer: the nearest boulder (surface) or point of the delta cliff's foot line (terrain.json deltaFront.scarpLocal_xz) within reachM, inside a cone of coneDeg either side of the rover's heading. reachM is well beyond the contact reach (4.5 m on Mars, 7 m with the robotic arm); the real SuperCam laser reads rocks up to about 7 m away (the game scales distances).",
       "reachM": 12,
       "coneDeg": 15
     }
