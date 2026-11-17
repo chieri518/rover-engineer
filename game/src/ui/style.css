@@ -501,19 +501,25 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   /* The header and the notes join into one strip across the top (the notes' padding costs the columns no height). */
   .desk:not(.no-preview) .desk-head { margin-bottom: 0; border-radius: 4px 4px 0 0; }
   .desk:not(.no-preview) .desk-notes {
-    margin-bottom: 12px; padding: 5px 16px 6px; background: var(--panel); border: 1px solid var(--edge); border-top: 0; border-radius: 0 0 4px 4px;
+    margin-bottom: 12px; padding: 5px 16px 6px; background: rgba(10, 16, 27, 0.66); border: 1px solid var(--edge); border-top: 0; border-radius: 0 0 4px 4px;
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
   }
   .desk:not(.no-preview) .palette, .desk:not(.no-preview) .sheet { box-shadow: 0 0 28px rgba(94, 200, 255, 0.06), 0 18px 48px rgba(0, 0, 0, 0.6); }
   .desk:not(.no-preview) .sheet .sheet-actions { background: rgba(7, 11, 20, 0.35); }
-  /* See-through where the browser can blur what is behind; solid panels (above) where it cannot. A blurred card
-     is the containing block of fixed descendants, which is why the hover card lives outside the palette. */
+  /* Frosted glass where the browser can blur what is behind; solid panels (above) where it cannot. Only the two
+     cards blur: they sit over the grid floor and the turntable's glow, which show through softly (a small radius,
+     or the thin grid lines blur away and the card reads solid). The wells inside them (tabs, tiles, stat tiles,
+     chips) go translucent too, or they would cover the glass. The notes sit over the plain sky gradient, where a
+     blur shows nothing, so they are translucent without one (above); the sticky header stays solid, so a page
+     scrolled under it on a short screen does not show through. A blurred card is the containing block of fixed
+     descendants, which is why the hover card lives outside the palette. */
   @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .desk:not(.no-preview) .palette, .desk:not(.no-preview) .sheet {
-      background: rgba(13, 20, 33, 0.74); -webkit-backdrop-filter: blur(14px) saturate(1.15); backdrop-filter: blur(14px) saturate(1.15);
+      background: rgba(13, 20, 33, 0.48); -webkit-backdrop-filter: blur(4px) saturate(1.5) brightness(1.2); backdrop-filter: blur(4px) saturate(1.5) brightness(1.2);
     }
-    .desk:not(.no-preview) .desk-head { background: rgba(15, 22, 36, 0.8); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
-    .desk:not(.no-preview) .desk-notes { background: rgba(10, 16, 27, 0.62); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+    .desk:not(.no-preview) :is(.palette-tab, .part-tile, .stat, .chip) { background-color: rgba(10, 16, 27, 0.36); }
+    .desk:not(.no-preview) .palette-tab[aria-selected='true'] { background-color: rgba(94, 200, 255, 0.1); }
+    .desk:not(.no-preview) .part-tile.fitted { background-color: rgba(33, 28, 16, 0.62); }
   }
 }
 @media (max-width: 999px) {
