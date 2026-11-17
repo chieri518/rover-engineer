@@ -677,13 +677,17 @@
     "tierJoin": "; ",
     "design": [
       {
-        "title": "Mission overview",
+        "title": "Welcome to REL",
         "body": [
-          "### Welcome to the Rover Exploration Laboratory",
-          "REL designs and operates robotic rovers for planetary exploration. As a rover engineer, you design the rover, secure its launch, and run its surface operations.",
-          "### Mission funding",
-          "Each mission's budget pays for the rover's components and its launch ticket. Completing milestones on the surface earns money back.",
-          "To fly the next mission, the final balance must reach the **pass mark**. If it falls short, the mission is repeated.",
+          "The Rover Exploration Laboratory (REL) designs and operates robotic rovers for planetary exploration. To transport a rover to the planetary surface, REL must purchase a launch ticket, reserving space aboard a launch vehicle.",
+          "As a rover engineer, you are responsible for rover design, launch preparation, and surface operations."
+        ]
+      },
+      {
+        "title": "Mission funding",
+        "body": [
+          "Each mission has a designated budget covering rover components and launch costs. Completing milestones during surface operations generates revenue.",
+          "To qualify for the next mission, the final balance must meet or exceed the **pass mark**. If the balance falls short, the mission must be repeated.",
           {
             "table": {
               "head": [
@@ -705,18 +709,11 @@
         ]
       },
       {
-        "title": "Rover configuration",
+        "title": "Rover design",
         "body": [
-          "### Components and payload",
-          "Fill the four required slots (frame, wheels, power and battery) for components and add optional payload before launch. Each component has a **cost**, a **mass** and a **size**; the specification sheet adds them up.",
-          "The payload bay holds instruments, and systems such as lights and a heater. Each item takes one mounting point, and the chassis has {minPoints} or {maxPoints}. A chassis with fewer points drops the instruments added last.",
-          "Instruments use energy each time they operate (active) and while switched on (standby). Each instrument card shows its energy use and the milestones it can earn."
-        ]
-      },
-      {
-        "title": "Launch operations",
-        "body": [
-          "REL must purchase a launch ticket to reserve space aboard a launch vehicle and transport the rover to the planetary surface.",
+          "Configure the four required components: **frame, wheels, power, and battery**. You may then equip optional scientific instruments in the payload bay.",
+          "Each instrument consumes energy both during operation (**active**) and while switched on (**standby**). Instrument cards display energy requirements and the milestones each instrument can earn.",
+          "Each component has **cost, mass, and size**. The specification sheet calculates the combined totals for your rover.",
           {
             "tiersTable": {
               "head": [
