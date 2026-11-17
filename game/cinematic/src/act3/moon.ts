@@ -121,10 +121,10 @@ export const moonClip = chaseClip({
         fill.setRGB(0.55, 0.65, 0.85).multiplyScalar(0.3);
         light.set({ rimDir, rim, bounce, fillDir, fill });
         lamps.update(o.rover.object, k);
-        glow.update(k, 1.0);
+        glow.update(k, a < 0 ? 1 : 0.4 + 0.6 * Math.exp(-a * 5)); // full at the snap, then a softer steady glow
         // A flare streak at the snap, from between the housings.
         mid.copy(lamps.positions[0]!).add(lamps.positions[1]!).multiplyScalar(0.5).project(o.camera);
-        const flare = a < 0 ? 0 : 0.25 + 1.1 * Math.exp(-a * 8);
+        const flare = a < 0 ? 0 : 0.1 + 1.1 * Math.exp(-a * 8);
         return {
           exposure: 1.0,
           contrast: 1.12,
