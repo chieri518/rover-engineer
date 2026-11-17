@@ -13,7 +13,7 @@ export const ticketScreen: Screen = (game, root) => {
   const t = text.ticket;
   const q = quoteBuild(game.build, data, game.state.balance);
   // Pre-launch review: the build's relationships already in the notebook, plus hard blocks (marked Caution,
-  // name only). It only informs: the player can always launch.
+  // with one short sentence saying why). It only informs: the player can always launch.
   const r = text.review;
   const complete = completeBuild(game.build, data.parts);
   const review = complete ? reviewItems(complete, game.state.notebook, data) : [];
@@ -23,10 +23,10 @@ export const ticketScreen: Screen = (game, root) => {
     review.length > 0 && el('ul', { class: 'review-items' },
       ...review.map((item) => el('li', { class: `review-item ${item.color}`, 'data-relationship': item.id, 'data-color': item.color },
         el('span', { class: 'review-mark' }, item.color === 'red' ? r.caution : r[item.color]),
-        el('div', {},
-          el('strong', {}, item.name),
-          item.color !== 'red' && el('p', {}, item.text),
-        ),
+        // A caution (a hard block) is one short sentence saying why; a lesson shows its name and its line.
+        item.color === 'red'
+          ? el('div', {}, el('strong', {}, item.text))
+          : el('div', {}, el('strong', {}, item.name), el('p', {}, item.text)),
       )),
     ),
   );
