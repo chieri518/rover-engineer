@@ -192,9 +192,12 @@ export class MusicPlayer {
     return this.current?.id ?? null;
   }
 
-  setMood(id: MoodId): void {
-    if (this.current?.id === id) return;
+  /** Crossfade to a mood, or fade out to silence with null. */
+  setMood(id: MoodId | null): void {
+    if ((this.current?.id ?? null) === id) return;
     this.current?.stop();
+    this.current = null;
+    if (id === null) return;
     this.current = new MoodVoice(this.b, id);
     this.current.tick(this.b.ac.currentTime + SCHEDULER.lookaheadSeconds);
     if (this.timer === null) {

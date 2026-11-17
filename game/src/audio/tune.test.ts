@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { BUS, MOODS, MOTOR } from './mix';
-import { Cooldown, levels, midiToHz, moodFor, motorTone, pickChord, pickDegree, volumeGain, WarningGate } from './tune';
+import { BUS, FILM, MOODS, MOTOR } from './mix';
+import { Cooldown, filmVolume, levels, midiToHz, moodFor, motorTone, pickChord, pickDegree, volumeGain, WarningGate } from './tune';
 
 function seq(values: number[]) {
   let i = 0;
@@ -31,6 +31,21 @@ describe('sound helpers', () => {
     expect(moodFor('design', 'mars')).toBe('calm');
     expect(moodFor('title', 'moon')).toBe('calm');
     expect(moodFor('debrief', 'titan')).toBe('calm');
+  });
+
+  it('the intro film silences the music (it has its own score)', () => {
+    expect(moodFor('film', 'moon')).toBeNull();
+    expect(moodFor('intro', 'moon')).toBe('calm');
+  });
+
+  it('the film follows the Effects slider and mute', () => {
+    const at = (effectsVolume: number, muted = false) => filmVolume({ effectsVolume, muted }, FILM);
+    expect(at(FILM.referenceSlider)).toBeCloseTo(FILM.volume);
+    expect(at(0)).toBe(0);
+    expect(at(0.6, true)).toBe(0);
+    expect(at(0.3)).toBeLessThan(at(0.6));
+    expect(at(1)).toBeLessThanOrEqual(1);
+    expect(at(1)).toBeGreaterThan(at(0.6));
   });
 
   it('note choices stay in the scale and never repeat back to back', () => {

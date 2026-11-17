@@ -26,6 +26,13 @@ export const REVERB = {
   return: 0.6,
 };
 
+/**
+ * The intro film's soundtrack (an HTML video, outside the Web Audio graph): its level at the default Effects
+ * slider, scaled with that slider like the effects bus. The film is mastered at about -16 LUFS, far louder
+ * than the ambient music, so it is turned down to sit with the game's effects.
+ */
+export const FILM = { volume: 0.55, referenceSlider: 0.6 };
+
 /** Crossfade between music moods on a screen change. */
 export const MUSIC_FADE_SECONDS = 4;
 /** The music scheduler wakes this often and schedules this far ahead (seconds). */
