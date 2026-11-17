@@ -108,6 +108,8 @@
     "restart": "Try Titan again",
     "endCampaign": "End the campaign",
     "continue": "Finish the campaign",
+    "badgePassed": "Titan survived",
+    "badgeFailed": "Rover lost",
     "storyPassed": "",
     "storyFailed": "The rover did not survive the Titan day. The board leaves the choice to mission control: another attempt, or closing the program here."
   },

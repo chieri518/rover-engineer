@@ -168,6 +168,7 @@
     "failedRound": "The balance is below the pass mark for the next mission, Titan ({minimum}). The round must be restarted. Balance, research points and records return to their values at the start of the Mars round.",
     "passedRound": "The balance meets the pass mark for the next mission, Titan ({minimum}). The Mars round is complete.",
     "continue": "Continue to Titan",
+    "badgePassed": "Passed · Titan unlocked",
     "storyPassed": "The Jezero results fund the program's last mission: a rover for the Shangri-La dunes on Titan, Saturn's largest moon. Titan takes away the sunlight. The battery is the budget, and the cold never lets up.",
     "storyFailed": "On these results, REL cannot fund the mission to Titan. The board has approved another attempt at Jezero crater, and the engineering notebook keeps what this rover learned."
   },

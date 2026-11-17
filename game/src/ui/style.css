@@ -606,21 +606,84 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
   .milestone-cards { bottom: 64px; }
   .milestone-log-body { max-height: 20vh; }
 }
-.panel.debrief { width: min(820px, 100%); }
-.debrief h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 20px 0 6px; font-weight: 600; }
-.debrief .outcome { font-size: 1.05rem; margin: 4px 0; }
+/* The debrief (game-design.md, "Debrief tabs"): heading and round badge, tabs, then the open tab's panel,
+   which scrolls inside the panel (a fixed panel height, so the heading and tabs stay put between tabs) so the Continue or Restart buttons under it stay in view on every tab. */
+.panel.debrief {
+  width: min(820px, 100%); min-width: 0; max-width: 100%; padding: 20px 24px 18px; display: flex; flex-direction: column;
+  height: min(760px, calc(100vh - 32px)); height: min(760px, calc(100dvh - 32px));
+}
+.debrief-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; flex: none; }
+.debrief-head h2 { margin: 0; }
+.debrief-badge {
+  font-family: var(--font-head); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em;
+  padding: 3px 9px; border-radius: 3px; border: 1px solid var(--line-strong); color: var(--muted); white-space: nowrap;
+}
+.debrief-badge.good { color: var(--good); border-color: rgba(123, 196, 127, 0.55); background: rgba(123, 196, 127, 0.08); }
+.debrief-badge.bad { color: var(--warn); border-color: rgba(255, 122, 89, 0.55); background: rgba(255, 122, 89, 0.08); }
+/* The tab row scrolls sideways on its own when it does not fit (phones); the page never does. */
+.debrief-tabs { display: flex; gap: 2px; margin-top: 14px; border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; flex: none; }
+.debrief-tab {
+  flex: none; margin-bottom: -1px; padding: 8px 12px; border: none; border-bottom: 2px solid transparent; border-radius: 0; background: none;
+  font-family: var(--font-head); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); white-space: nowrap;
+}
+.debrief-tab:hover { color: var(--text); }
+.debrief-tab[aria-selected='true'] { color: var(--info); border-bottom-color: var(--info); background: rgba(94, 200, 255, 0.06); }
+.debrief-tab:focus-visible { outline: 2px solid var(--info); outline-offset: -3px; }
+.debrief-panel { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 6px 4px 0; scrollbar-width: thin; }
+.debrief-panel[hidden] { display: none; }
+.debrief-panel:focus-visible { outline: 1px solid var(--line-strong); outline-offset: 2px; }
+.debrief-actions { flex: none; margin-top: 0; padding-top: 12px; border-top: 1px solid var(--line); }
+.debrief h3 { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--muted); margin: 16px 0 6px; font-weight: 600; }
+.debrief .outcome { font-size: 1.05rem; margin: 12px 0 2px; }
 .debrief .outcome.failed { color: var(--warn); }
-.debrief-milestones { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-.debrief-milestones li { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
-.debrief-milestones .reward { font-family: var(--font-mono); font-size: 0.95em; color: var(--good); text-align: right; }
-.debrief-milestones .reward.none { color: var(--muted); }
+.debrief p.lasted { margin: 0 0 10px; font-size: 0.9rem; }
+.debrief .outcome.round { font-size: 0.95rem; margin: 0; padding: 8px 12px; border-left: 3px solid var(--good); background: rgba(123, 196, 127, 0.06); }
+.debrief .outcome.round.failed { border-left-color: var(--warn); background: rgba(255, 122, 89, 0.06); }
+/* Overview tiles, as on the Campaign complete dashboard. */
+.debrief-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); gap: 8px; margin-top: 12px; }
+.debrief-tile { background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; padding: 8px 12px; display: grid; gap: 2px; align-content: start; }
+.debrief-tile-label { font-family: var(--font-head); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.debrief-tile-value { font-family: var(--font-mono); font-size: 1.35rem; font-weight: 500; line-height: 1.25; color: var(--accent); font-variant-numeric: tabular-nums; }
+.debrief-tile-value.good { color: var(--good); }
+.debrief-tile-value.bad { color: var(--warn); }
+.debrief-tile-sub { font-size: 0.78rem; color: var(--muted); }
+.debrief-ledger { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(220px, 100%), 1fr)); gap: 0 24px; }
+.debrief-ledger .row { font-size: 0.85rem; border-bottom: 1px solid var(--line); padding: 4px 0; }
+.debrief .story-beat { margin: 14px 0 4px; }
+/* Milestones: one compact row each; the history fact folds behind a toggle. */
+.debrief-milestones { list-style: none; padding: 0; margin: 0; display: grid; }
+.debrief-milestones > li { display: grid; grid-template-columns: 1fr auto; gap: 1px 12px; padding: 6px 0; border-bottom: 1px solid var(--line); }
+.debrief-milestones .category { color: var(--muted); font-size: 0.85rem; }
+.debrief-milestones .reward { font-family: var(--font-mono); font-size: 0.88rem; color: var(--good); text-align: right; }
+.debrief-milestones .reward.none { color: var(--muted); font-family: inherit; font-size: 0.8rem; max-width: 22ch; }
 .debrief-milestones .sub { grid-column: 1 / -1; font-size: 0.85rem; color: var(--muted); }
-.debrief-taught { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
-.debrief-taught > li { padding: 6px 0; border-bottom: 1px solid var(--line); }
-.debrief-taught p { margin: 4px 0; }
-.debrief-taught .sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 0; }
-.debrief-taught .answers { margin: 2px 0 4px; padding-left: 1.2em; }
-.ledger { max-width: 420px; }
+.debrief-milestones .sub.fact { display: block; margin-top: 4px; padding: 4px 10px; border-left: 2px solid rgba(94,200,255,0.4); background: rgba(94,200,255,0.02); border-radius: 0 4px 4px 0; font-size: 0.8rem; color: var(--muted); text-transform: none; letter-spacing: normal; }
+/* Lessons. */
+.debrief-taught { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.debrief-taught > li { padding: 8px 12px; background: var(--sunk); border: 1px solid var(--line); border-left: 3px solid var(--line-strong); border-radius: 4px; }
+.debrief-taught p { margin: 4px 0; font-size: 0.92rem; }
+.debrief-taught p.lesson-name { margin-top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 1rem; }
+.debrief-taught .sub { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin: 8px 0 2px; }
+.debrief-taught .sub.fact { font-size: 0.82rem; text-transform: none; letter-spacing: 0; }
+.debrief-taught .answers { margin: 2px 0 4px; padding-left: 1.2em; font-size: 0.9rem; }
+.debrief-taught .note { font-size: 0.78rem; }
+.debrief-new { font-family: var(--font-head); font-size: 0.66rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; padding: 1px 6px; border-radius: 3px; color: var(--on-accent); background: var(--accent); }
+/* Instrument log: one heading per instrument, its lines under it. */
+.debrief-log-group ul { margin: 2px 0; padding-left: 1.2em; font-size: 0.9rem; }
+.debrief-log-group p { margin: 2px 0; font-size: 0.85rem; }
+.debrief-log-summary { color: var(--muted); }
+.debrief-log-earned { color: var(--good); }
+@media (max-width: 560px) {
+  .panel.debrief { padding: 16px 14px 14px; }
+  .debrief-tab { padding: 8px 10px; }
+  .debrief-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .debrief-tile-value { font-size: 1.15rem; }
+}
+/* Short windows (a phone held sideways): no inner scrolling, the page scrolls as before. */
+@media (max-height: 480px) {
+  .panel.debrief { height: auto; }
+  .debrief-panel { overflow: visible; }
+}
 .album { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; }
 .album figure { margin: 0; background: var(--sunk); border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
 .album img { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; cursor: zoom-in; }
@@ -628,7 +691,10 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .album-view { position: fixed; inset: 0; background: rgba(3, 6, 12, 0.9); display: grid; place-items: center; padding: 16px; z-index: 10; cursor: zoom-out; }
 .album-view img { max-width: 100%; max-height: 90vh; border-radius: 4px; }
 .album-view figcaption { color: var(--text); text-align: center; margin-top: 8px; }
-.history { border-left: 3px solid var(--line); padding-left: 12px; }
+.history { margin-top: 14px; padding: 8px 12px; border-left: 3px solid var(--info); background: rgba(94, 200, 255, 0.05); border-radius: 0 4px 4px 0; }
+.history p { margin: 4px 0; font-size: 0.9rem; }
+.history .history-label { margin: 0; font-family: var(--font-head); font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--info); }
+.history .note { font-size: 0.78rem; }
 .setting { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; margin: 12px 0; }
 .setting input { margin-top: 4px; width: 18px; height: 18px; }
 .setting .muted { grid-column: 2; font-size: 0.85rem; margin: 0; }
