@@ -40,10 +40,55 @@ export function tutorialPages(
   });
 }
 
-/** The Welcome to REL intro pages (text.intro), filled from the Moon's data: {budget}, {nextMinimum}. */
-export function introPages(data: GameData): TutorialPageText[] {
-  const vars = { ...missionVars(data), nextMinimum: nextMinimum('moon', data) };
-  return data.text.intro.pages.map((page) => ({ title: fill(page.title, vars), paragraphs: page.body.map((p) => fill(p, vars)) }));
+/** A block of an intro page, ready to show: a paragraph, a subheading, a list or a table (cells may hold `**bold**`). */
+export type IntroBlockText =
+  | { kind: 'p'; text: string }
+  | { kind: 'h'; text: string }
+  | { kind: 'list'; items: string[] }
+  | { kind: 'table'; head: string[]; rows: string[][] };
+
+export interface IntroPageText {
+  title: string;
+  blocks: IntroBlockText[];
+}
+
+/**
+ * The Welcome to REL intro pages (text.intro, the quick-start guide), filled from the Moon's data: {budget},
+ * {nextMinimum}, the chassis mounting points ({maxPoints}, {minPoints}) and the ticket tiers (tiersTable).
+ */
+export function introPages(data: GameData): IntroPageText[] {
+  const { text } = data;
+  const points = data.parts.parts.flatMap((p) => (p.slot === 'chassis' && p.effects.mountingPoints ? [p.effects.mountingPoints] : []));
+  const vars = {
+    ...missionVars(data),
+    nextMinimum: nextMinimum('moon', data),
+    maxPoints: points.length ? Math.max(...points) : 0,
+    minPoints: points.length ? Math.min(...points) : 0,
+  };
+  return text.intro.pages.map((page) => {
+    const blocks: IntroBlockText[] = [];
+    for (const b of page.body) {
+      if (typeof b !== 'string') {
+        if ('table' in b) blocks.push({ kind: 'table', head: b.table.head.map((c) => fill(c, vars)), rows: b.table.rows.map((r) => r.map((c) => fill(c, vars))) });
+        else {
+          const rows = data.tiers.tiers.map((tier) => {
+            const v = { ...vars, name: tier.name, mass: tier.massLimit, size: tier.sizeLimit, price: money(tier.price, text) };
+            return b.tiersTable.row.map((c) => fill(c, v));
+          });
+          blocks.push({ kind: 'table', head: b.tiersTable.head.map((c) => fill(c, vars)), rows });
+        }
+        continue;
+      }
+      const line = fill(b, vars);
+      if (line.startsWith('### ')) blocks.push({ kind: 'h', text: line.slice(4) });
+      else if (line.startsWith('- ')) {
+        const last = blocks[blocks.length - 1];
+        if (last?.kind === 'list') last.items.push(line.slice(2));
+        else blocks.push({ kind: 'list', items: [line.slice(2)] });
+      } else blocks.push({ kind: 'p', text: line });
+    }
+    return { title: fill(page.title, vars), blocks };
+  });
 }
 
 /** The next mission's minimum budget (the pass mark); empty after the last mission, which passes on survival. */

@@ -666,7 +666,7 @@ export interface SharedTextFile {
   moneySuffix: string;
   title: Record<'heading' | 'subtitle' | 'kicker' | 'newCampaign' | 'continueCampaign', string>;
   /** The Welcome to REL intro, after Start new campaign (base only). Pages are filled by introPages(); **text** is bold. */
-  intro: { heading: string; skip: string; done: string; filmSkip: string; filmLabel: string; pages: TutorialPage[] };
+  intro: { heading: string; skip: string; done: string; filmSkip: string; filmLabel: string; pages: IntroPage[] };
   /** Why REL goes to this world: the design desk kicker and site context, and the context's sources (credits). Each world sets its own. */
   story: { kicker: string; site: string; sourcesLabel: string; sources: string[] };
   slots: Record<BusSlot | 'instrument', string> & Partial<Record<SupportSlot, string>>; // support slot names come with the world that offers them
@@ -835,6 +835,20 @@ export interface InstrumentText {
   log?: string; // the debrief's instrument log line (placeholders per instrument, see ui/screens.ts)
   logNone?: string; // ...when it was carried but recorded nothing
   logStorm?: string; // the weather mast: added to its log line when it forecast the dust storm early
+}
+
+/**
+ * One block of an intro page. A string is a paragraph (`**bold**` spans), a subheading when it starts with
+ * `### `, or a list item when it starts with `- ` (consecutive items form one list). `table` is a small
+ * table; `tiersTable` is the launch ticket tiers, one row per tier from tiers.json, each cell filled from
+ * `row` with {name}, {mass}, {size} and {price}. {name} placeholders are filled from the game data.
+ */
+export type IntroBlock = string | { table: { head: string[]; rows: string[][] } } | { tiersTable: { head: string[]; row: string[] } };
+
+/** One page of the Welcome to REL intro (the quick-start guide). */
+export interface IntroPage {
+  title: string;
+  body: IntroBlock[];
 }
 
 /** One page of a tutorial. {name} placeholders are filled from the game data. */

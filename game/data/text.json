@@ -9,7 +9,7 @@
     "continueCampaign": "Continue campaign"
   },
   "intro": {
-    "heading": "Welcome to REL",
+    "heading": "REL: Your First Mission",
     "skip": "Skip intro",
     "done": "Go to the design desk",
     "filmSkip": "Skip",
@@ -18,25 +18,124 @@
       {
         "title": "Welcome to REL",
         "body": [
-          "REL, the Rover Exploration Laboratory, designs and operates small robotic rovers.",
-          "You are REL's newest rover engineer, at mission control. For each mission you design the rover, buy its launch ticket, and drive it on the surface.",
-          "REL is fictional. The worlds, the ground under the rover and the missions the game cites are real, from NASA data and published sources."
+          "### You're in charge of the mission.",
+          "Welcome to **REL (Rover Exploration Laboratory)**, where small robotic rovers are designed and sent to explore planetary surfaces.",
+          "You're REL's newest rover engineer, stationed at Mission Control. Your job is to design a rover, secure its launch, and operate it on the surface.",
+          "Every decision affects your mission's success. Choose your equipment wisely, watch your spending, and make every trip count.",
+          "### The goal: Keep REL running.",
+          "Every mission starts with a budget. You spend it on rover components and a launch ticket, then earn money by completing milestones on the surface.",
+          "But there's a catch: you need to earn enough to fund the next mission.",
+          "At the end of each mission, your remaining balance must reach the **pass mark**, the minimum amount required to continue exploring.",
+          "**Your first mission: The Moon**",
+          {
+            "table": {
+              "head": [
+                "Mission finances",
+                "Amount"
+              ],
+              "rows": [
+                [
+                  "Starting budget",
+                  "{budget}"
+                ],
+                [
+                  "Required pass mark",
+                  "{nextMinimum}"
+                ]
+              ]
+            }
+          },
+          "If your final balance falls short, you'll need to attempt the same mission again.",
+          "**Your mission strategy:** Build a rover capable of completing valuable milestones without spending more than necessary."
         ]
       },
       {
-        "title": "Every mission must pay its way",
+        "title": "Design your rover",
         "body": [
-          "Each mission has a budget. The rover's parts and its launch ticket are paid from it, and work on the surface earns money back.",
-          "After the mission, the balance must reach the **pass mark**: the amount REL needs to fund the next mission. On the Moon, the budget is {budget} and the pass mark is {nextMinimum}. If the balance falls short, REL tries the same mission again."
+          "### Every component comes with a trade-off.",
+          "Your rover has four required component slots (frame, wheels, power and battery) and a payload bay for scientific instruments and systems.",
+          "Start by filling the four required slots. Every slot begins empty, and each must have one part before you can launch.",
+          "Each component has three specifications:",
+          "- **Cost:** How much it takes from your mission budget.",
+          "- **Mass:** How much weight it adds to your rover.",
+          "- **Size:** How much physical space it occupies.",
+          "Your specification sheet automatically calculates the rover's total cost, mass, and size as you make selections.",
+          "### Equip your payload bay",
+          "Your payload bay holds your scientific instruments, and systems such as lights and a heater. Each item takes up one mounting point, and you can equip only one of each.",
+          "Your chassis determines the number of available mounting points:",
+          "- Some chassis support {maxPoints} items.",
+          "- Others support {minPoints} items.",
+          "- If you switch to a chassis with fewer mounting points, the last instruments added are automatically removed.",
+          "Each instrument card shows its cost, mass, size, and energy consumption.",
+          "**Watch your energy!**",
+          "- **Active energy:** Consumed every time the instrument performs an action.",
+          "- **Standby energy:** A small amount of energy consumed while the instrument is switched on.",
+          "Both are shown as energy chips on the specification sheet.",
+          "You can leave the payload bay empty, but a rover without instruments will have very limited earning potential.",
+          "### Choose with milestones in mind",
+          "Each instrument card lists the milestones it can earn. Think about which milestones you want to complete and equip your rover accordingly.",
+          "**Know your controls:** The order in which you add instruments determines their number keys during the mission. Your first instrument is Key 1, your second is Key 2, and your third is Key 3."
         ]
       },
       {
-        "title": "Three worlds ahead",
+        "title": "Prepare for launch",
         "body": [
-          "**Mission 1 · The Moon.** The de Gerlache crater rim, near the south pole. Low sunlight, long shadows, and every kilogram counts.",
-          "**Mission 2 · Mars.** Jezero crater, an ancient lake bed. A night every sol, cold, and dust.",
-          "**Mission 3 · Titan.** The Shangri-La dunes on Saturn's largest moon. Almost no sunlight, constant cold, and one goal: survive.",
-          "Each mission's results fund the next."
+          "### Your design determines your ticket.",
+          "Once your rover is fully assembled, it's time to secure a launch ticket.",
+          "REL automatically selects the smallest ticket tier that accommodates both your rover's mass and size.",
+          {
+            "tiersTable": {
+              "head": [
+                "Ticket",
+                "Max. Mass",
+                "Max. Size",
+                "Cost"
+              ],
+              "row": [
+                "{name}",
+                "{mass} kg",
+                "{size}",
+                "{price}"
+              ]
+            }
+          },
+          "**Don't overlook the limits!**",
+          "Your rover must meet BOTH requirements to qualify for a ticket tier.",
+          "- Exceed either Small limit and you'll need a Medium or Large ticket.",
+          "- Exceed either Medium limit and you'll need a Large ticket.",
+          "- Exceed either Large limit and your rover cannot launch.",
+          "Even going slightly over a limit can mean paying significantly more for your launch.",
+          "The mass and size gauges on your specification sheet show the limits for each tier. Use them to check your design before committing to a ticket.",
+          "### Review before liftoff",
+          "Before purchasing your ticket, you'll see a pre-launch review.",
+          "It highlights relevant lessons from REL's engineering notebook, including:",
+          "- **Engineering lessons:** Insights from previous missions that apply to your current rover.",
+          "- **No lights:** A standard problem that is always checked.",
+          "The review is informational. It never prevents a launch.",
+          "Your engineering notebook starts nearly empty. As your rover explores and encounters new situations, it collects lessons that can help you make better decisions in future missions."
+        ]
+      },
+      {
+        "title": "Your mission begins",
+        "body": [
+          "### Time to explore.",
+          "Your rover is built, your ticket is secured, and it's time to hit the surface.",
+          "Your job now is to operate your rover, use its instruments, and complete the milestones that earn money for REL.",
+          "### Make every action count",
+          "Remember that your instruments consume energy when used, and some continue drawing energy while switched on.",
+          "Keep an eye on your estimated range and think carefully about how you use your equipment. The right combination of instruments and actions can make the difference between a successful mission and a costly one.",
+          "### Keep your finances in check",
+          "Your starting budget has already covered your rover components and launch ticket. Now it's time to earn that money back.",
+          "As you complete milestones, your mission balance grows. Your ultimate goal is to finish with at least the required pass mark.",
+          "**Moon Mission reminder:**",
+          "- Starting budget: {budget}",
+          "- Pass mark: {nextMinimum}",
+          "If you don't reach the pass mark, REL will send you back to try the same mission again.",
+          "### Learn from every mission",
+          "Your engineering notebook grows as your rover discovers new lessons. Use these insights to improve future designs, avoid previous mistakes, and make smarter engineering decisions.",
+          "The more you learn, the better prepared you'll be for the next mission.",
+          "**Design smart. Explore strategically. Keep REL moving forward.**",
+          "Good luck, Engineer!"
         ]
       }
     ]

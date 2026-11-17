@@ -1,12 +1,29 @@
-// The Welcome to REL intro (game-design.md §3): three short pages after Start new campaign, before the
-// first Moon design desk. Laid out like the tutorial dialog (Skip / Back / Next), but as its own screen.
+// The Welcome to REL intro (game-design.md §3): the quick-start guide "REL: Your First Mission", four pages
+// after the intro film, before the first Moon design desk. Laid out like the tutorial dialog (Skip / Back /
+// Next), but as its own screen, with subheadings, lists and tables; a long page scrolls inside the card.
 import type { Screen } from '../flow/flow';
 import { el, fill } from './dom';
-import { introPages } from './tutorialText';
+import { introPages, type IntroBlockText } from './tutorialText';
 
-/** A paragraph with its **bold** spans as <strong>. */
-function rich(text: string): HTMLElement {
-  return el('p', {}, ...text.split('**').map((part, i) => (i % 2 === 1 ? el('strong', {}, part) : part)));
+/** Text with its **bold** spans as <strong>. */
+function spans(text: string): (string | HTMLElement)[] {
+  return text.split('**').map((part, i) => (i % 2 === 1 ? el('strong', {}, part) : part));
+}
+
+function block(b: IntroBlockText): HTMLElement {
+  switch (b.kind) {
+    case 'h':
+      return el('h3', { class: 'intro-subhead' }, ...spans(b.text));
+    case 'list':
+      return el('ul', { class: 'intro-list' }, ...b.items.map((item) => el('li', {}, ...spans(item))));
+    case 'table':
+      return el('table', { class: 'intro-table' },
+        el('thead', {}, el('tr', {}, ...b.head.map((c) => el('th', { scope: 'col' }, ...spans(c))))),
+        el('tbody', {}, ...b.rows.map((r) => el('tr', {}, ...r.map((c, i) => (i === 0 ? el('th', { scope: 'row' }, ...spans(c)) : el('td', {}, ...spans(c))))))),
+      );
+    default:
+      return el('p', {}, ...spans(b.text));
+  }
 }
 
 export const introScreen: Screen = (game, root) => {
@@ -35,7 +52,8 @@ export const introScreen: Screen = (game, root) => {
     const last = index === pages.length - 1;
     step.textContent = fill(tut.step, { n: index + 1, total: pages.length });
     title.textContent = page.title;
-    body.replaceChildren(...page.paragraphs.map(rich));
+    body.replaceChildren(...page.blocks.map(block));
+    body.scrollTop = 0;
     back.hidden = index === 0;
     skip.hidden = last;
     next.textContent = last ? t.done : tut.next;
