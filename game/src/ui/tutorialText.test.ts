@@ -162,7 +162,7 @@ describe('Mars tutorial and briefing text', () => {
   it('Mars step 8: the design tutorial explains the night budget line, the power choices, the two heaters and the support slots', () => {
     const design = all(tutorialPages('design', mars, { mission: 'mars', instruments: [], balance: 900 }));
     expect(design).toContain(`one ${mars.tuning.sol!.nightSeconds} s night`);
-    expect(design).toContain('Night energy line');
+    expect(design).toContain('Night energy tile');
     for (const part of ['deployable solar arrays', 'radioisotope generator (RTG)', 'Radioisotope heater units', 'electric heater', 'robotic arm', 'remote sensing mast']) {
       expect(design).toContain(part);
     }

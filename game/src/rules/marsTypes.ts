@@ -208,6 +208,11 @@ export interface SolTuning {
 export interface NightTuning {
   awakeDrainPerSecond: number; // the electronics awake at night: battery drain on top of driving (the lights and heater draws are the parts', rules/energy.ts nightDraw)
   sleepDrainPerSecond: number; // the electronics powered down (P) at night
+  /**
+   * The desk's night tile (rules/energy.ts nightNetState): a night's net loss shows amber from this share of the
+   * battery. Needed where the tile shows (a world with nightBudget text: Mars); without it a loss is never amber.
+   */
+  largeLossShare?: number;
   /** Titan only (rules/titan.ts titanDrainPerSecond): the whole awake-at-night drain with the lights on. Mars uses the parts' lightsDraw instead. */
   lightsDrainPerSecond?: number;
   driveWithoutLights: boolean; // design: false, a rover without lights cannot drive at night
@@ -393,13 +398,18 @@ export interface MarsTextSections {
   /** Campaign and screens (M4): the Moon → Mars transition on the design, ticket and landing screens. */
   campaign: MarsCampaignText;
   /**
-   * The desk's night budget line (Mars M15, ui/marsMission.ts nightBudgetLine): what one night costs this
-   * build asleep and awake with lights, the electric heater's share and an RTG's income. {energy}, {seconds}.
+   * The desk's night tile (Mars M15, ui/marsMission.ts nightBudgetTile): the battery's net change over one night
+   * asleep and awake with lights, and one sentence with the draws, the electric heater's share and an RTG's income.
    */
-  nightBudget: Record<'label' | 'asleep' | 'lights' | 'heater' | 'steady' | 'separator', string> & {
-    /** The night tile's short units beside each large number (asleep, with lights, the RTG's income). */
-    units: Record<'asleep' | 'lights' | 'steady', string>;
-  };
+  nightBudget: Record<
+    | 'label' // {seconds}
+    | 'asleep' | 'lights' | 'noLights' // the tile's two values' labels, and the second's text on a rover without lights
+    // The tooltip and screen-reader sentence ({seconds} {uses} {heater} {steady} {changes}) and its pieces:
+    | 'sentence' | 'usesAsleep' | 'usesLights' | 'usesJoin' | 'heaterEach' | 'heaterOne' | 'steady' // {energy}
+    | 'changesAsleep' | 'changesLights' | 'changesJoin' // {net}
+    | 'stateLarge' | 'stateEmpties', // an amber or red value, so the state is not colour alone: {mode} {percent}
+    string
+  >;
   /** Per-world part wording, by part id: replaces the shared name or description (rules/merge.ts withPartText). */
   partText?: Record<string, { name?: string; description?: string }>;
   /**

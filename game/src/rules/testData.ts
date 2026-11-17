@@ -55,6 +55,7 @@ export const testTuning: Tuning = {
     maxSlopeDegrees: 20, slopeWarningDegrees: 18, slipLimit: 0.2, stuckSeconds: 5, digRecoveryPerSecond: 0.25,
     normalSinkageCm: [1, 2], softRimSinkageCm: [5, 7], slipPerSinkageCm: 0.03, referenceGrip: 0.55,
     slopeSlipFreeDeg: 10, slipPerUphillDeg: 0.01, softRadiusFactor: 1, softFadeFactor: 1.5, movingSpeedMps: 0.5,
+    softGroundRating: { referenceSoftness: 1, fairFromCm: 4.5, poorFromCm: 6.5 },
   },
   explore: { cellM: 20, revealRadiusM: 250 },
   boulderTrack: { widthM: 2.8, tileLengthM: 14, stepAlongM: 1, pointsAcross: 7, liftM: 0.04, stopShortM: 2.5, brighten: 1.25, glow: 0.14 },

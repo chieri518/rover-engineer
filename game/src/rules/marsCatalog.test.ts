@@ -10,7 +10,9 @@ import { validateGameData } from './validate';
 import { marsSetup, missionSetup, setStandby, startInstrumentUse, startMission, stepMission, type MissionSample } from './mission';
 import { seededRng } from './events';
 import { ticketTier } from './tiers';
-import { nightBudgetLine } from '../ui/marsMission';
+import { nightBudgetLine, nightBudgetTile } from '../ui/marsMission';
+import { driveStats } from './drive';
+import { softGroundRating } from './ground';
 import type { Build, DraftBuild, PartsFile } from './types';
 
 const mars = loadGameData('mars');
@@ -249,19 +251,49 @@ describe('The night budget line with the Mars parts', () => {
   const line = (b: Build) => nightBudgetLine(mars, selectedParts(b, mars.parts))?.value;
   const lit = { ...scout, lights: 'lights-led' };
 
-  it('changes with the power source and the heater: each segment shows when it applies', () => {
+  it('changes with the power source and the heater: each piece of the sentence shows when it applies', () => {
     const words = mars.text.nightBudget!;
     const has = (value: string | undefined, template: string) => template.split('{energy}').map((x) => x.trim()).filter(Boolean).every((x) => value!.includes(x));
-    const asleep = line(lit);
-    expect(has(asleep, words.asleep)).toBe(true);
-    expect(has(asleep, words.lights)).toBe(true);
-    expect(has(asleep, words.heater)).toBe(false);
-    expect(has(asleep, words.steady)).toBe(false);
-    expect(has(line({ ...lit, heater: 'heater-electric' }), words.heater)).toBe(true);
+    const plain = line(lit);
+    expect(has(plain, words.usesAsleep)).toBe(true);
+    expect(has(plain, words.usesLights)).toBe(true);
+    expect(has(plain, words.heaterEach)).toBe(false);
+    expect(has(plain, words.steady)).toBe(false);
+    expect(has(line({ ...lit, heater: 'heater-electric' }), words.heaterEach)).toBe(true);
     expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-none' }), words.steady)).toBe(true);
     expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' }), words.steady)).toBe(true);
-    expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' }), words.heater)).toBe(true);
-    expect(line(scout)).not.toContain(words.lights.replace('{energy} ', ''));
+    expect(has(line({ ...lit, power: 'power-rtg', heater: 'heater-electric' }), words.heaterEach)).toBe(true);
+    expect(has(line(scout), words.usesLights)).toBe(false);
+  });
+
+  it('an RTG rover gains overnight asleep (green); a solar rover with lights and an electric heater loses a large share of a small battery (amber)', () => {
+    const tile = (b: Build) => nightBudgetTile(mars, selectedParts(b, mars.parts))!.items.map((x) => [x.value, x.state]);
+    expect(tile({ ...lit, power: 'power-rtg', heater: 'heater-none' })).toEqual([['+6', 'gain'], ['\u221251', 'large']]); // 51 of 400
+    expect(tile({ ...lit, power: 'power-rtg', heater: 'heater-none', battery: 'battery-nih2' })).toEqual([['+6', 'gain'], ['\u221251', 'small']]);
+    expect(tile({ ...lit, heater: 'heater-electric' })).toEqual([['\u221221', 'small'], ['\u221278', 'large']]);
+    expect(tile({ ...lit, heater: 'heater-electric', battery: 'battery-large' })).toEqual([['\u221221', 'small'], ['\u221278', 'small']]);
+  });
+});
+
+describe('The soft-ground rating with the real parts', () => {
+  const rate = (b: Build, data = mars) => {
+    const parts = selectedParts(b, data.parts);
+    const d = driveStats(parts, data.tuning);
+    return softGroundRating(d.massKg, d.grip, data.tuning).rating;
+  };
+  const bus = { lights: 'lights-none', heater: 'heater-none', payload: [] as string[], support: { arm: 'arm-none', mast: 'mast-none' } };
+
+  it('rates a light grouser rover Good and a heavy steel rover on solid wheels Poor', () => {
+    expect(rate({ ...bus, chassis: 'chassis-titanium', wheels: 'wheels-grouser', power: 'power-solar-mast', battery: 'battery-li-ion' })).toBe('good');
+    expect(rate({ ...scout, wheels: 'wheels-grouser', lights: 'lights-led', payload: ['instrument-camera', 'instrument-xray'] })).toBe('good');
+    expect(rate({ ...bus, chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-rtg', battery: 'battery-nih2' })).toBe('poor');
+    expect(rate({ ...bus, chassis: 'chassis-titanium', wheels: 'wheels-solid', power: 'power-solar-mast', battery: 'battery-li-ion' })).toBe('fair');
+  });
+
+  it('rates the Moon cheapest rover Poor and a light mesh rover Good', () => {
+    const moonBus = { lights: 'lights-none', heater: 'heater-none', payload: [] as string[] };
+    expect(rate({ ...moonBus, chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-nih2' }, moon)).toBe('poor');
+    expect(rate({ ...moonBus, chassis: 'chassis-titanium', wheels: 'wheels-mesh', power: 'power-solar-mast', battery: 'battery-li-ion' }, moon)).toBe('good');
   });
 });
 

@@ -2,7 +2,7 @@
 // on the panels (with dust devils) in the energy step. Fixture parts and fixed test numbers, except where a
 // test names the real data (seeds, today's parts on the night budget, validation).
 import { describe, expect, it } from 'vitest';
-import { nightBudget, partPower } from './energy';
+import { nightBudget, nightNetState, partPower } from './energy';
 import { heatNow } from './cold';
 import { testParts, testTuning, testEvents } from './testData';
 import { meetsRequirements, selectedParts } from './rover';
@@ -242,7 +242,9 @@ describe('The night budget (Mars M15)', () => {
 
   it("gives today's numbers with today's parts: 3 asleep, 60 with lights", () => {
     const parts = ['power-fixed-panel', 'lights-led', 'heater-rhu'].map(real);
-    expect(nightBudget(partPower(parts), true, n, seconds)).toEqual({ asleep: expect.closeTo(3, 9), withLights: 60, heater: 0, steady: 0 });
+    expect(nightBudget(partPower(parts), true, n, seconds)).toEqual({
+      asleep: expect.closeTo(3, 9), withLights: 60, heater: 0, steady: 0, net: { asleep: expect.closeTo(-3, 9), withLights: -60 },
+    });
     expect(nightBudget(partPower([real('heater-rhu')]), false, n, seconds).withLights).toBeNull();
   });
 
@@ -253,6 +255,30 @@ describe('The night budget (Mars M15)', () => {
     expect(b.withLights).toBeCloseTo(78, 9);
     expect(b.heater).toBeCloseTo(18, 9);
     expect(b.steady).toBeCloseTo(9, 9);
+    expect(b.net.asleep).toBeCloseTo(-12, 9);
+    expect(b.net.withLights!).toBeCloseTo(-69, 9);
+  });
+
+  it('gives the net change over the night: an RTG covers a sleeping night, and none without lights', () => {
+    const rtg = nightBudget(partPower([fixture('power', RTG), real('lights-led')]), true, n, seconds);
+    expect(rtg.net.asleep).toBeCloseTo(6, 9); // 9 earned, 3 drawn
+    expect(rtg.net.withLights!).toBeCloseTo(-51, 9); // 9 earned, 60 drawn
+    expect(nightBudget(partPower([fixture('power', RTG)]), false, n, seconds).net.withLights).toBeNull();
+  });
+
+  it('states a night by its net change against the battery: gain, small, large (from largeLossShare), empties', () => {
+    expect(n.largeLossShare).toBe(0.1);
+    expect(nightNetState(6, 400, n)).toBe('gain');
+    expect(nightNetState(0, 400, n)).toBe('gain'); // covered exactly
+    expect(nightNetState(-21, 400, n)).toBe('small');
+    expect(nightNetState(-39.9, 400, n)).toBe('small');
+    expect(nightNetState(-40, 400, n)).toBe('large');
+    expect(nightNetState(-78, 400, n)).toBe('large');
+    expect(nightNetState(-399, 400, n)).toBe('large');
+    expect(nightNetState(-400, 400, n)).toBe('empties');
+    expect(nightNetState(-500, 400, n)).toBe('empties');
+    expect(nightNetState(-78, null, n)).toBe('small'); // no battery chosen: nothing to compare with
+    expect(nightNetState(-78, 400, { ...n, largeLossShare: undefined })).toBe('small');
   });
 });
 

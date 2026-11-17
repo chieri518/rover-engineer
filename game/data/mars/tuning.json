@@ -68,9 +68,10 @@
     "startSecondsIntoDay": 7.25
   },
   "night": {
-    "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving. The world keeps only the electronics: awake 1, asleep 0.2 (3 per night). The parts own the rest (Mars M1, rules/energy.ts nightDraw): the LED floodlights' lightsDraw 3 while awake (so lights on is 4, a parked night 60, about a fixed panel's whole sol of income), an electric heater's heaterDraw every second of night, asleep too; an RTG's steadyIncome day and night. Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
+    "_note": "Rules track (M3), placeholders tuned against the Moon parts (data/parts.json), checked by rules/marsNight.test.ts. Drains are per second of night on top of driving. The world keeps only the electronics: awake 1, asleep 0.2 (3 per night). The parts own the rest (Mars M1, rules/energy.ts nightDraw): the LED floodlights' lightsDraw 3 while awake (so lights on is 4, a parked night 60, about a fixed panel's whole sol of income), an electric heater's heaterDraw every second of night, asleep too; an RTG's steadyIncome day and night. Night cold 8/s: no heater freezes after 12.5 s of the 15 s night; the radioisotope heater (heat 2 x tuning.cold.heaterReductionPerHeat 1.5) leaves 5/s, 75 of 100 by dawn. Recovers 6/s by day. Panels give their full rate with the Sun at 15 deg or higher, sin(el)/sin(15) below (a fixed panel earns about 36 per clear sol). largeLossShare: the desk night tile shows a night's net loss amber from this share of the battery (Mars has ten nights; game-design.md, the night budget line). Interface: freeze rate (Owner B) against heater strength and draw (Owner A).",
     "awakeDrainPerSecond": 1,
     "sleepDrainPerSecond": 0.2,
+    "largeLossShare": 0.1,
     "driveWithoutLights": false,
     "freezeRatePerSecond": 8,
     "warmRecoveryPerSecond": 6,

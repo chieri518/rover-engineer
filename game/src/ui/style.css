@@ -397,16 +397,40 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .pip { width: 11px; height: 11px; border-radius: 50%; border: 1px solid var(--line-strong); }
 .pip.filled { background: var(--accent); border-color: var(--accent); }
 .pip.over { background: var(--warn); border-color: var(--warn); }
-/* Driving and energy: stat tiles, three across. */
-.stat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+/* Driving and energy: four stat tiles, two across, and the full-width night tile. */
+.stat-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .stat { position: relative; min-width: 0; padding: 3px 8px 4px; background: var(--sunk); border: 1px solid var(--line); border-radius: 4px; }
 .stat.wide { grid-column: 1 / -1; }
 .stat-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; min-height: 17px; white-space: nowrap; }
 .stat-label { font-size: 0.66rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-family: var(--font-head); font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
 .stat-note { font-size: 0.7rem; color: var(--muted); }
 .stat-value { font-size: 1.15rem; line-height: 1.2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-sub { font-size: 0.7rem; line-height: 1.2; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .stat.warn .stat-value { color: var(--warn); }
-.stat.night .stat-value { display: flex; gap: 14px; }
+/* Soft ground: the rating word and a three-segment meter (green Good, amber Fair, red Poor). */
+.soft-rating { display: inline-flex; align-items: center; gap: 8px; }
+.soft-meter { display: inline-flex; gap: 2px; }
+.soft-seg { width: 10px; height: 7px; border-radius: 1px; background: var(--line); }
+.soft-rating.good { color: var(--good); }
+.soft-rating.fair { color: var(--accent); }
+.soft-rating.poor { color: var(--warn); }
+.soft-seg.lit { background: currentColor; }
+/* The night tile: asleep and awake with lights side by side, each a small label with an icon above a signed
+   net value: green with "+" when steady income covers the night, neutral for a small loss, amber for a large
+   share of the battery, red when a night would empty it. */
+.night-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.night-item { display: flex; flex-direction: column; min-width: 0; white-space: nowrap; }
+.night-item + .night-item { padding-left: 8px; border-left: 1px solid var(--line); }
+.night-label { display: inline-flex; align-items: center; gap: 5px; min-width: 0; overflow: hidden; text-overflow: ellipsis; font-size: 0.72rem; color: var(--muted); }
+.night-icon { flex: none; position: relative; width: 9px; height: 9px; border-radius: 50%; }
+.night-item.asleep .night-icon { box-shadow: inset -3px -1px 0 0 var(--muted); } /* a crescent */
+.night-item.lights .night-icon { background: var(--accent-soft); box-shadow: 0 0 4px 1px rgba(240, 180, 41, 0.45); } /* a lamp */
+.night-item.none .night-icon { background: none; box-shadow: inset 0 0 0 1px var(--line-strong); }
+.night-value { font-size: 1.15rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+.night-item.gain .night-value { color: var(--good); }
+.night-item.large .night-value { color: var(--accent); }
+.night-item.empties .night-value { color: var(--warn); }
+.night-item.none .night-value { font-size: 0.85rem; line-height: 1.6; color: var(--muted); }
 .stat .info-button { width: 18px; height: 18px; font-size: 0.7rem; flex: none; }
 .spec-instr { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 8px; font-size: 0.78rem; }
 .chips { display: contents; list-style: none; }

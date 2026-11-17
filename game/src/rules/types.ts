@@ -271,6 +271,12 @@ export interface Tuning {
     softRadiusFactor: number; // ground inside rockyArea.radius × this is fully soft (fresh crater rim)
     softFadeFactor: number; // softness fades to zero at rockyArea.radius × this
     movingSpeedMps: number; // above this speed the rover counts as driving
+    /**
+     * The desk's Soft ground rating (rules/ground.ts softGroundRating): the build's sinkage at referenceSoftness
+     * (0..1), Good below fairFromCm, Fair below poorFromCm, Poor from it. Why these numbers: game-design.md, "How the
+     * mission systems work" (Poor starts just under the 20% dig-in slip on flat soft ground).
+     */
+    softGroundRating: { referenceSoftness: number; fairFromCm: number; poorFromCm: number };
   };
   explore: { cellM: number; revealRadiusM: number };
   /** The rolled boulder's track decal (world/boulderTrack.ts): a ribbon draped on the terrain. */
@@ -612,13 +618,23 @@ export type SpecText = Record<
   | 'massSize' | 'tierChip' | 'tierNone' | 'tierSentence' | 'tierNoneSentence' // {tier} {price}
   | 'mass' | 'size' | 'massUnit' | 'gaugeSentence' | 'gaugeLimit' | 'sizeUnitLong' // {label} {value} {unit} {limits}; {tier} {limit}
   | 'load' | 'loadSentence' | 'loadOverSentence' | 'loadNone' | 'bay' | 'baySentence' // {mass} {max}; {used} {points}
-  | 'drivingEnergy' | 'speed' | 'speedUnit' | 'speedSentence' | 'grip' | 'gripSentence' | 'range' | 'rangeUnit' | 'rangeSentence'
-  | 'battery' | 'batterySentence' | 'solar' | 'solarSentence' | 'solarAlmostNone' | 'steady' | 'steadySentence' | 'perSecond' | 'pending'
+  | 'drivingEnergy' | 'speed' | 'speedUnit' | 'speedSentence'
+  | 'softGround' | 'softGroundSentence' // {rating} {mass} {grip} {sinkage}
+  | 'battery' | 'batterySentence' | 'batteryRange' | 'batteryRangeSentence' // {capacity}; {range} {perKm}
+  | 'charging' | 'chargingSolar' | 'chargingSteady' | 'solarSentence' | 'solarAlmostNone' | 'steadySentence' // {income}
+  | 'perSecond' | 'pending'
   | 'instruments' | 'perUse'
   // the short warnings by the launch button (the full sentence is in the tooltip): {slots}; {part} {support}; {amount}
   | 'warnSlotsEmpty' | 'warnBelowMinimum' | 'warnOverTopTier' | 'warnBayOverCapacity' | 'warnSupport' | 'warnOverBudget' | 'warnOverloaded',
   string
-> & { instrumentNames: Record<Instrument, string> };
+> & {
+  instrumentNames: Record<Instrument, string>;
+  /** The Soft ground tile's rating words (rules/ground.ts softGroundRating). */
+  softGroundLevels: Record<SoftGroundRating, string>;
+};
+
+/** The desk's soft-ground rating of a build (rules/ground.ts softGroundRating). */
+export type SoftGroundRating = 'good' | 'fair' | 'poor';
 
 export interface SharedTextFile {
   moneyPrefix: string;

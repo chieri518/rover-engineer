@@ -36,6 +36,7 @@
     }
   },
   "design": {
+    "spec": { "chargingSolar": "solar, Titan haze" },
     "speedInfo": [
       "The mission compresses one Titan day, about 16 Earth days, into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
       "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",

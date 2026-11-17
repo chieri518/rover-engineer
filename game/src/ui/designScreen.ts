@@ -6,10 +6,11 @@
 import type { Screen } from '../flow/flow';
 import { canStartMission, isPlayable, nextMission } from '../rules/campaign';
 import { flatRangeM, partPower } from '../rules/energy';
+import { softGroundRating } from '../rules/ground';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
 import { bayCapacity, instrumentCosts } from '../rules/payload';
 import { chosenParts } from '../rules/rover';
-import type { DraftBuild, RequiredSlot, Tier } from '../rules/types';
+import type { DraftBuild, RequiredSlot, SoftGroundRating, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { categoryOfGroup, choosePart, mountPalette, partForGroup } from './deskPalette';
 import { el, fill, money } from './dom';
@@ -145,16 +146,26 @@ export const designScreen: Screen = (game, root) => {
   }
 
   /**
-   * A stat tile: a short label and a large value with a small unit, or a dash until the parts it needs are
-   * chosen. Its full sentence is the tooltip and what screen readers read. `extra` (the speed's ⓘ) sits by the label.
+   * A stat tile: a short label, a large value with a small unit (or a dash until the parts it needs are
+   * chosen) and an optional small line under it. Its full sentence is the tooltip and what screen readers read.
+   * `extra` (the speed's ⓘ) sits by the label; `value` may be a ready element (the soft-ground word and meter).
    */
-  function stat(label: string, value: string | null, unit: string, sentence: string, extra: Node | null = null, cls = ''): HTMLElement {
+  function stat(label: string, value: string | HTMLElement | null, unit: string, sentence: string, opts: { extra?: Node | null; sub?: string | null; cls?: string } = {}): HTMLElement {
     const full = value === null ? fill(st.pending, { label }) : sentence;
-    return el('div', { class: `stat ${cls}`, title: full },
-      el('div', { class: 'stat-head' }, el('span', { class: 'stat-label', 'aria-hidden': 'true' }, label), extra),
-      el('div', { class: 'stat-value', 'aria-hidden': 'true' }, value === null ? '—' : num(value, unit)),
+    return el('div', { class: `stat ${opts.cls ?? ''}`, title: full },
+      el('div', { class: 'stat-head' }, el('span', { class: 'stat-label', 'aria-hidden': 'true' }, label), opts.extra ?? null),
+      el('div', { class: 'stat-value', 'aria-hidden': 'true' }, value === null ? '—' : typeof value === 'string' ? num(value, unit) : value),
+      value !== null && opts.sub ? el('div', { class: 'stat-sub', 'aria-hidden': 'true' }, opts.sub) : null,
       el('span', { class: 'visually-hidden' }, full),
     );
+  }
+
+  /** The soft-ground rating as a short word and a three-segment meter (three lit for Good, one for Poor). */
+  function softGroundValue(rating: SoftGroundRating): HTMLElement {
+    const lit = rating === 'good' ? 3 : rating === 'fair' ? 2 : 1;
+    return el('span', { class: `soft-rating ${rating}` },
+      el('span', { class: 'soft-word' }, st.softGroundLevels[rating]),
+      el('span', { class: 'soft-meter' }, ...[0, 1, 2].map((i) => el('span', { class: `soft-seg${i < lit ? ' lit' : ''}` }))));
   }
 
   /** The bay's instrument energy: a short chip per instrument that uses any ("X-ray 3/use", "Neutron 0.1/s"), the full wording in its tooltip. */
@@ -290,33 +301,46 @@ export const designScreen: Screen = (game, root) => {
       ),
     );
 
-    // Driving and energy: stat tiles, the Mars night tile and the instruments' energy.
+    // Driving and energy: four stat tiles (speed, soft ground, battery, charging), the Mars night tile and the
+    // instruments' energy.
     const wheels = has('wheels');
-    const range = wheels && has('battery') ? (flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1) : null;
+    const soft = softGroundRating(d.massKg, d.grip, data.tuning);
+    const softSentence = fill(st.softGroundSentence, {
+      rating: st.softGroundLevels[soft.rating], mass: d.massKg, grip: d.grip.toFixed(2), sinkage: soft.sinkageCm.toFixed(1),
+    });
+    const range = wheels ? (flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1) : null;
+    const batterySentence = [
+      fill(st.batterySentence, { capacity: d.batteryCapacity }),
+      range !== null && fill(st.batteryRangeSentence, { range, perKm: (d.energyPerMeter * 1000).toFixed(0) }),
+    ].filter(Boolean).join(' ');
     const titanIncome = titanSolar(d.energyIncome, data);
-    const power = !has('power') ? stat(st.solar, null, '', '')
-      : chosenPower.steadyIncome > 0
-        ? stat(st.steady, `+${chosenPower.steadyIncome.toFixed(1)}`, st.perSecond, fill(st.steadySentence, { income: chosenPower.steadyIncome.toFixed(1) }))
+    const steady = chosenPower.steadyIncome;
+    const charging = !has('power') ? stat(st.charging, null, '', '')
+      : steady > 0
+        ? stat(st.charging, `+${steady.toFixed(1)}`, st.perSecond, fill(st.steadySentence, { income: steady.toFixed(1) }), { sub: st.chargingSteady })
         : titanIncome !== null
-          ? stat(st.solar, st.solarAlmostNone, st.perSecond, titanIncome, null, 'warn') // Titan: the rate is in the tooltip
-          : stat(st.solar, `+${d.energyIncome.toFixed(1)}`, st.perSecond, fill(st.solarSentence, { income: d.energyIncome.toFixed(1) }));
-    const nightTile = night && el('div', { class: 'stat wide night', title: `${night.label}: ${night.line}` },
-      el('div', { class: 'stat-head', 'aria-hidden': 'true' },
-        el('span', { class: 'stat-label' }, night.label),
-        night.heater && el('span', { class: 'stat-note' }, night.heater)),
-      el('div', { class: 'stat-value', 'aria-hidden': 'true' },
-        ...(night.items.length ? night.items.map((x) => num(x.value, x.unit)) : [dash])),
-      el('span', { class: 'visually-hidden' }, `${night.label}: ${night.line}`),
+          ? stat(st.charging, st.solarAlmostNone, st.perSecond, titanIncome, { sub: st.chargingSolar, cls: 'warn' }) // Titan: the rate is in the tooltip
+          : stat(st.charging, `+${d.energyIncome.toFixed(1)}`, st.perSecond, fill(st.solarSentence, { income: d.energyIncome.toFixed(1) }), { sub: st.chargingSolar });
+    // The night tile: the battery's net change over one night, asleep and awake with lights, coloured by state.
+    const nightTile = night && el('div', { class: 'stat wide night', title: `${night.label}: ${night.sentence}` },
+      el('div', { class: 'stat-head', 'aria-hidden': 'true' }, el('span', { class: 'stat-label' }, night.label)),
+      el('div', { class: 'night-items', 'aria-hidden': 'true' },
+        ...(night.items.length
+          ? night.items.map((x) => el('div', { class: `night-item ${x.key} ${x.state ?? 'none'}` },
+            el('span', { class: 'night-label' }, el('span', { class: 'night-icon' }), x.label),
+            el('span', { class: 'night-value' }, x.value)))
+          : [el('div', { class: 'stat-value' }, dash)])),
+      el('span', { class: 'visually-hidden' }, `${night.label}: ${night.sentence}`),
     );
     const driving = el('section', { class: 'spec-section' },
       el('div', { class: 'spec-head' }, el('h3', {}, st.drivingEnergy)),
       el('div', { class: 'stat-grid' },
         stat(st.speed, wheels ? (d.topSpeed * KMH).toFixed(0) : null, st.speedUnit,
-          fill(st.speedSentence, { game: d.topSpeed.toFixed(1), kmh: (d.topSpeed * KMH).toFixed(0) }), infoButton),
-        stat(st.grip, wheels ? d.grip.toFixed(2) : null, '', fill(st.gripSentence, { grip: d.grip.toFixed(2) })),
-        stat(st.range, range, st.rangeUnit, fill(st.rangeSentence, { range: range ?? '', perKm: (d.energyPerMeter * 1000).toFixed(0) })),
-        stat(st.battery, has('battery') ? String(d.batteryCapacity) : null, '', fill(st.batterySentence, { capacity: d.batteryCapacity })),
-        power,
+          fill(st.speedSentence, { game: d.topSpeed.toFixed(1), kmh: (d.topSpeed * KMH).toFixed(0) }), { extra: infoButton }),
+        stat(st.softGround, wheels ? softGroundValue(soft.rating) : null, '', softSentence),
+        stat(st.battery, has('battery') ? String(d.batteryCapacity) : null, '', batterySentence,
+          { sub: range !== null ? fill(st.batteryRange, { range }) : null }),
+        charging,
         nightTile,
       ),
       infoPanel,

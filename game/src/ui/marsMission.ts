@@ -3,7 +3,7 @@
 // decide (rules/mission.ts marsStatus and MissionStep.marsNotices); this module only words them. The Moon
 // never creates one.
 import type { GameData, Part } from '../rules/types';
-import { nightBudget, partPower } from '../rules/energy';
+import { nightBudget, nightNetState, partPower, type NightNetState } from '../rules/energy';
 import type { Rng } from '../rules/events';
 import { marsSetup, marsStatus, marsWeatherSky, type MarsNotice, type MarsSetup, type MarsStatus, type MissionSetup, type MissionState } from '../rules/mission';
 import { weatherReadout } from '../rules/instruments';
@@ -95,48 +95,70 @@ export class MarsMission {
 }
 
 /**
- * The desk's night budget line (Mars M15): what one night costs this build asleep and parked awake with the
- * lights on (with the electric heater's share of each), and an RTG's income over the night. Null where
- * there is no night (the Moon); a dash until the power source is chosen (the lights and the heater are
- * payload: left off, they add nothing).
+ * The desk's night budget line (Mars M15): the night tile's label and its full sentence (the draws asleep and
+ * awake with lights, the electric heater's share, an RTG's income, and the battery's net change). Null where
+ * there is no night budget (the Moon, Titan); a dash until the power source is chosen.
  */
 export function nightBudgetLine(data: GameData, parts: Part[]): { label: string; value: string } | null {
   const tile = nightBudgetTile(data, parts);
-  return tile && { label: tile.label, value: tile.line };
+  return tile && { label: tile.label, value: tile.sentence };
 }
 
-/** One number of the night tile with its short unit ("21" "asleep"). */
+/** One value of the night tile: its label, the signed net change ("+6", "−21") or "No lights", and its state. */
 export interface NightTileItem {
+  key: 'asleep' | 'lights';
+  label: string;
   value: string;
-  unit: string;
+  state: NightNetState | null; // null: no value (a rover without lights)
+}
+
+export interface NightTile {
+  label: string; // "Night energy (15 s)"
+  items: NightTileItem[]; // asleep, then awake with lights; none until the power source is chosen
+  sentence: string; // the tooltip and screen-reader sentence; a dash until the power source is chosen
+}
+
+/** A signed energy figure: "+6", "+0", "−21" (a true minus sign). */
+export function signedEnergy(x: number): string {
+  const v = Number(x.toFixed(1));
+  return v < 0 ? `\u2212${String(-v)}` : `+${String(v === 0 ? 0 : v)}`;
 }
 
 /**
- * The night budget as the specification's night tile shows it: the large numbers with their short units
- * (asleep, with lights, the RTG's income), the heater's share as a note beside the label, and the whole
- * line ("3 asleep · 60 with lights") for the tooltip and the screen reader. Null where there is no night
- * (the Moon); no items and a dash line until the power source is chosen.
+ * The night budget as the specification's night tile shows it: the battery's net change over one night asleep
+ * and awake with the lights on (rules/energy.ts nightBudget, nightNetState: green when steady income covers
+ * it, amber from night.largeLossShare of the battery, red when it would empty the battery), and the whole
+ * breakdown as one sentence. Null where there is no night budget (the Moon, Titan).
  */
-export function nightBudgetTile(data: GameData, parts: Part[]): { label: string; items: NightTileItem[]; heater: string | null; line: string } | null {
+export function nightBudgetTile(data: GameData, parts: Part[]): NightTile | null {
   const { night, sol } = data.tuning;
   const t = data.text.nightBudget;
   if (!night || !sol || !t) return null;
   const label = fill(t.label, { seconds: sol.nightSeconds });
-  if (!parts.some((p) => p.slot === 'power')) return { label, items: [], heater: null, line: '—' };
+  if (!parts.some((p) => p.slot === 'power')) return { label, items: [], sentence: '\u2014' };
   const hasLights = parts.some((p) => (p.effects.lightRange ?? 0) > 0); // as rules/mission.ts missionSetup
   const b = nightBudget(partPower(parts), hasLights, night, sol.nightSeconds);
+  const battery = parts.some((p) => p.slot === 'battery') ? parts.reduce((sum, p) => sum + (p.effects.batteryCapacity ?? 0), 0) : null;
   const energy = (x: number) => String(Number(x.toFixed(1)));
-  const heater = b.heater > 0 ? fill(t.heater, { energy: energy(b.heater) }) : null;
-  const line = [
-    fill(t.asleep, { energy: energy(b.asleep) }),
-    b.withLights !== null && fill(t.lights, { energy: energy(b.withLights) }),
-    heater,
-    b.steady > 0 && fill(t.steady, { energy: energy(b.steady) }),
-  ].filter((x): x is string => Boolean(x)).join(t.separator);
-  const items: NightTileItem[] = [
-    { value: energy(b.asleep), unit: t.units.asleep },
-    ...(b.withLights !== null ? [{ value: energy(b.withLights), unit: t.units.lights }] : []),
-    ...(b.steady > 0 ? [{ value: `+${energy(b.steady)}`, unit: t.units.steady }] : []),
-  ];
-  return { label, items, heater, line };
+  const item = (key: NightTileItem['key'], net: number | null): NightTileItem => {
+    const label = key === 'asleep' ? t.asleep : t.lights;
+    return net === null ? { key, label, value: t.noLights, state: null } : { key, label, value: signedEnergy(net), state: nightNetState(net, battery, night) };
+  };
+  const items = [item('asleep', b.net.asleep), item('lights', b.net.withLights)];
+
+  const uses = [fill(t.usesAsleep, { energy: energy(b.asleep) }), b.withLights !== null && fill(t.usesLights, { energy: energy(b.withLights) })]
+    .filter((x): x is string => Boolean(x)).join(t.usesJoin);
+  const heater = b.heater > 0 ? fill(b.withLights !== null ? t.heaterEach : t.heaterOne, { energy: energy(b.heater) }) : '';
+  const steady = b.steady > 0 ? fill(t.steady, { energy: energy(b.steady) }) : '';
+  const changes = [fill(t.changesAsleep, { net: signedEnergy(b.net.asleep) }), b.net.withLights !== null && fill(t.changesLights, { net: signedEnergy(b.net.withLights) })]
+    .filter((x): x is string => Boolean(x)).join(t.changesJoin);
+  const states = items.flatMap((x) => {
+    const net = x.key === 'asleep' ? b.net.asleep : b.net.withLights;
+    if (net === null || battery === null || battery <= 0) return [];
+    if (x.state === 'empties') return [fill(t.stateEmpties, { mode: x.label })];
+    if (x.state === 'large') return [fill(t.stateLarge, { mode: x.label, percent: Math.round((-net / battery) * 100) })];
+    return [];
+  });
+  const sentence = [fill(t.sentence, { seconds: sol.nightSeconds, uses, heater, steady, changes }), ...states].join(' ');
+  return { label, items, sentence };
 }

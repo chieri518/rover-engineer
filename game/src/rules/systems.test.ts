@@ -4,7 +4,7 @@ import { testEvents, testTuning as t } from './testData';
 import { driveEnergy, flatRangeM, solarIncome } from './energy';
 import { impactDamage, overloadDamage, steepSlopeDamage, tiltDeg } from './damage';
 import { freezeRate, noLightsLookaheadM, secondsToFreeze, stepFreeze } from './cold';
-import { sinkageCm, softnessAt, stepDig, wheelSlip } from './ground';
+import { sinkageCm, softGroundRating, softnessAt, stepDig, wheelSlip } from './ground';
 import { flareProtected, formatFlareDate, scheduleEvents, seededRng } from './events';
 import { createExplored, exploredShare, reveal } from './explore';
 
@@ -96,6 +96,26 @@ describe('soft ground', () => {
     expect(sinkageCm(1, t.mass.referenceMass, g, t)).toBeCloseTo(6, 9);
     expect(sinkageCm(1, t.mass.referenceMass * 1.5, g, t)).toBeCloseTo(9, 9);
     expect(sinkageCm(1, t.mass.referenceMass, g * 2, t)).toBeCloseTo(3, 9);
+  });
+
+  it("rates a build on soft ground from its sinkage at the reference softness: Good, Fair, Poor", () => {
+    const r = t.ground.softGroundRating;
+    const ref = t.mass.referenceMass;
+    const g = t.ground.referenceGrip;
+    // The reference rover (60 kg, solid-wheel grip) sinks 6 cm on the softest ground: Fair.
+    expect(softGroundRating(ref, g, t)).toEqual({ rating: 'fair', sinkageCm: sinkageCm(r.referenceSoftness, ref, g, t) });
+    expect(softGroundRating(ref, g, t).sinkageCm).toBeCloseTo(6, 9);
+    // Lighter or grippier sinks less (Good); heavier sinks more (Poor). The thresholds are inclusive from below.
+    expect(softGroundRating(ref * 0.7, 0.95, t).rating).toBe('good');
+    expect(softGroundRating(ref * 1.5, g, t).rating).toBe('poor');
+    const massAt = (cm: number) => (cm / 6) * ref; // at reference grip, sinkage is 6 cm x mass / reference mass
+    expect(softGroundRating(massAt(r.fairFromCm) - 0.01, g, t).rating).toBe('good');
+    expect(softGroundRating(massAt(r.fairFromCm) + 0.01, g, t).rating).toBe('fair');
+    expect(softGroundRating(massAt(r.poorFromCm) - 0.01, g, t).rating).toBe('fair');
+    expect(softGroundRating(massAt(r.poorFromCm) + 0.01, g, t).rating).toBe('poor');
+    // Poor starts just under the dig-in limit on flat soft ground.
+    expect(r.poorFromCm * t.ground.slipPerSinkageCm).toBeLessThanOrEqual(t.ground.slipLimit);
+    expect(r.poorFromCm * t.ground.slipPerSinkageCm).toBeGreaterThan(t.ground.slipLimit * 0.9);
   });
 
   it('slips more with soft ground, mass, weak wheels and steep climbs', () => {
