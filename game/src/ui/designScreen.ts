@@ -5,11 +5,11 @@
 // All numbers come from rules/ (quoteBuild); this file only lays them out.
 import type { Screen } from '../flow/flow';
 import { canStartMission, isPlayable, nextMission } from '../rules/campaign';
-import { flatRangeM } from '../rules/energy';
+import { flatRangeM, partPower } from '../rules/energy';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
 import { bayCapacity, instrumentCosts } from '../rules/payload';
 import { chosenParts } from '../rules/rover';
-import type { DraftBuild, Tier } from '../rules/types';
+import type { DraftBuild, RequiredSlot, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { categoryOfGroup, choosePart, mountPalette, partForGroup } from './deskPalette';
 import { el, fill, money } from './dom';
@@ -17,8 +17,8 @@ import { costsText, titanSolar } from './partCard';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
 import { missionVars, tutorialPages } from './tutorialText';
-import { nightBudgetLine } from './marsMission';
-import { missingSupportWarnings } from './supportText';
+import { nightBudgetTile } from './marsMission';
+import { missingSupportPairs } from './supportText';
 
 const KMH = 3.6;
 /** Below this many pixels left for the columns under the notes, the columns take the screen under the header instead. */
@@ -26,16 +26,45 @@ const MIN_GRID_PX = 520;
 /** #app's padding above and below the desk (style.css). */
 const APP_PADDING_PX = 16;
 
-/** A horizontal gauge with a tick at each tier limit. */
-function tierGauge(value: number, limits: { tier: Tier; limit: number }[], unit: string): HTMLElement {
+/** State colour for a value against a limit: ok, near it (from `warnShare` of it) or over it. */
+function limitState(value: number, limit: number, warnShare: number): 'ok' | 'near' | 'over' {
+  return value > limit ? 'over' : value >= limit * warnShare ? 'near' : 'ok';
+}
+
+/** A number with a small unit after it ("85" "kg"); the unit is left out when empty. */
+function num(value: string, unit = ''): HTMLElement {
+  return el('span', { class: 'num' }, value, unit ? el('span', { class: 'unit' }, unit) : null);
+}
+
+/**
+ * One row of the meters grid (label | bar | value). The row's cells are hidden from screen readers, which
+ * read its full sentence instead; the sentence is also the row's tooltip.
+ */
+function meterRow(label: string, bar: HTMLElement, value: HTMLElement, sentence: string, cls = ''): HTMLElement {
+  return el('div', { class: `meter-row ${cls}`, title: sentence },
+    el('span', { class: 'meter-label', 'aria-hidden': 'true' }, label),
+    el('span', { class: 'meter-bar', 'aria-hidden': 'true' }, bar),
+    el('span', { class: 'meter-num', 'aria-hidden': 'true' }, value),
+    el('span', { class: 'visually-hidden' }, sentence),
+  );
+}
+
+/**
+ * A tier gauge: the tier bands along the track with the current tier's band lit, a tick and letter at each
+ * tier limit, and the value's fill (red over the top tier).
+ */
+function tierGauge(value: number, limits: { tier: Tier; limit: number }[], current: Tier | null): HTMLElement {
   const top = limits[limits.length - 1]!.limit;
   const scale = Math.max(top * 1.12, value * 1.04);
   const pct = (v: number) => `${Math.min(100, (v / scale) * 100)}%`;
-  const over = value > top;
-  return el('div', { class: 'gauge', role: 'img', 'aria-label': `${value} ${unit}` },
-    el('div', { class: `gauge-fill${over ? ' over' : ''}`, style: `width: ${pct(value)}` }),
+  return el('div', { class: 'gauge' },
+    ...limits.map(({ tier, limit }, i) => {
+      const from = i ? limits[i - 1]!.limit : 0;
+      return el('div', { class: `gauge-band${tier.id === current?.id ? ' current' : ''}`, style: `left: ${pct(from)}; width: calc(${pct(limit)} - ${pct(from)})` });
+    }),
+    el('div', { class: `gauge-fill${value > top ? ' over' : ''}`, style: `width: ${pct(value)}` }),
     ...limits.map(({ tier, limit }) =>
-      el('div', { class: `gauge-tick${value > limit ? ' passed' : ''}`, style: `left: ${pct(limit)}`, title: `${tier.name}: ${limit} ${unit}` },
+      el('div', { class: `gauge-tick${value > limit ? ' passed' : ''}${tier.id === current?.id ? ' current' : ''}`, style: `left: ${pct(limit)}` },
         el('span', {}, tier.name[0] ?? ''),
       ),
     ),
@@ -46,6 +75,7 @@ export const designScreen: Screen = (game, root) => {
   const { data } = game;
   const text = data.text;
   const t = text.design;
+  const st = t.spec;
   const tiers = data.tiers.tiers;
   const allowed = canStartMission(game.state, data.tuning);
 
@@ -80,6 +110,7 @@ export const designScreen: Screen = (game, root) => {
 
   // Specification sheet.
   const sheet = el('div', { class: 'sheet-body' });
+  const remaining = el('span', { class: 'spec-remaining' }); // the money left, in the title row (update())
   const infoPanel = el('div', { class: 'info-panel', id: 'speed-info', hidden: true, role: 'region', 'aria-label': t.speedInfoTitle });
   const infoButton = el('button', {
     class: 'info-button',
@@ -90,8 +121,8 @@ export const designScreen: Screen = (game, root) => {
     'aria-controls': 'speed-info',
     onclick: () => setInfo(!infoOpen),
   }, 'i');
-  const warnings = el('ul', { class: 'warnings' });
-  const next = el('button', { class: 'primary', onclick: () => game.go('ticket') }, 'Continue to launch ticket');
+  const warnings = el('ul', { class: 'spec-warnings' });
+  const next = el('button', { class: 'primary', onclick: () => game.go('ticket') }, st.continue);
 
   let infoOpen = false; // the real-speed pop-up is optional and starts closed
   function setInfo(open: boolean): void {
@@ -99,9 +130,6 @@ export const designScreen: Screen = (game, root) => {
     infoPanel.hidden = !open;
     infoButton.setAttribute('aria-expanded', String(open));
   }
-
-  const row = (label: string, value: Node | string, cls = '') =>
-    el('div', { class: `row ${cls}` }, el('span', { class: 'label' }, label), el('span', { class: 'value' }, value));
 
   function renderInfo(q: BuildQuote): void {
     infoPanel.replaceChildren(
@@ -116,15 +144,37 @@ export const designScreen: Screen = (game, root) => {
     );
   }
 
-  /** The bay's instrument energy for the spec sheet: per use and standby, per instrument that has any. */
-  function instrumentEnergyText(): string {
+  /**
+   * A stat tile: a short label and a large value with a small unit, or a dash until the parts it needs are
+   * chosen. Its full sentence is the tooltip and what screen readers read. `extra` (the speed's ⓘ) sits by the label.
+   */
+  function stat(label: string, value: string | null, unit: string, sentence: string, extra: Node | null = null, cls = ''): HTMLElement {
+    const full = value === null ? fill(st.pending, { label }) : sentence;
+    return el('div', { class: `stat ${cls}`, title: full },
+      el('div', { class: 'stat-head' }, el('span', { class: 'stat-label', 'aria-hidden': 'true' }, label), extra),
+      el('div', { class: 'stat-value', 'aria-hidden': 'true' }, value === null ? '—' : num(value, unit)),
+      el('span', { class: 'visually-hidden' }, full),
+    );
+  }
+
+  /** The bay's instrument energy: a short chip per instrument that uses any ("X-ray 3/use", "Neutron 0.1/s"), the full wording in its tooltip. */
+  function instrumentEnergy(): HTMLElement {
     const instruments = (game.build.payload ?? []).flatMap((id) => partById(id) ?? []);
-    const items = instruments.flatMap((part) => {
+    const chips = instruments.flatMap((part) => {
       const c = instrumentCosts([part])[0];
       const costs = c && costsText(c, data, false);
-      return costs ? [fill(t.instrumentEnergyItem, { name: part.name, costs })] : [];
+      if (!c || !costs) return [];
+      const full = fill(t.instrumentEnergyItem, { name: part.name, costs });
+      const name = (c.instrument && st.instrumentNames[c.instrument]) || part.name;
+      const value = c.energyPerUse > 0 ? num(String(c.energyPerUse), st.perUse) : num(String(c.standbyEnergy), st.perSecond);
+      return [el('li', { class: 'chip', title: full },
+        el('span', { 'aria-hidden': 'true' }, name, ' ', value),
+        el('span', { class: 'visually-hidden' }, full))];
     });
-    return items.length ? items.join('; ') : t.instrumentEnergyNone;
+    return el('div', { class: 'spec-instr' },
+      el('span', { class: 'stat-label' }, st.instruments),
+      chips.length ? el('ul', { class: 'chips' }, ...chips) : el('span', { class: 'muted' }, t.instrumentEnergyNone),
+    );
   }
 
   // Live 3D preview of the rover as built so far (loaded on demand, with three.js). Without WebGL the
@@ -172,59 +222,126 @@ export const designScreen: Screen = (game, root) => {
     // A draft rover: driving numbers need the parts they come from.
     const has = (slot: keyof typeof game.build) => Boolean(game.build[slot]);
     const bayOver = q.payloadProblems.some((p) => p.kind === 'over-capacity');
+    const chosenPower = partPower(chosen);
+    const night = nightBudgetTile(data, chosen); // Mars only (null on the Moon and Titan)
+    const cash = (n: number) => money(n, text);
     const dash = '—';
-    const nightLine = nightBudgetLine(data, chosen); // Mars only (null on the Moon)
 
-    sheet.replaceChildren(
-      el('h3', {}, 'Cost'),
-      row('Budget', money(game.state.balance, text)),
-      row('Parts', money(q.cost, text)),
-      row('Ticket', q.tier ? money(q.ticketPrice, text) : '—'),
-      row('Total', money(q.totalCost, text), 'total'),
-      row('Remaining', money(q.remaining, text), q.remaining < 0 ? 'bad' : 'good'),
+    // Cost: the budget bar (parts and ticket against the budget) and the one large number, what remains.
+    const budget = game.state.balance;
+    const over = q.remaining < 0;
+    const costScale = Math.max(budget, q.totalCost, 1);
+    const share = (n: number) => `${(Math.max(0, n) / costScale) * 100}%`;
+    const costSentence = `${fill(st.costSentence, { budget: cash(budget), parts: cash(q.cost), ticket: cash(q.ticketPrice), total: cash(q.totalCost) })} ${
+      over ? fill(st.overSentence, { amount: cash(-q.remaining) }) : fill(st.remainingSentence, { amount: cash(q.remaining) })}`;
+    // The remaining money sits in the panel's title row, the one large number.
+    remaining.className = `spec-remaining ${over ? 'bad' : 'good'}`;
+    remaining.title = costSentence;
+    remaining.replaceChildren(
+      el('span', { class: 'spec-remaining-label' }, over ? st.overBudgetLabel : st.remaining),
+      el('strong', {}, over ? cash(-q.remaining) : cash(q.remaining)),
+    );
+    const cost = el('section', { class: 'spec-section spec-cost' },
+      el('h3', { class: 'visually-hidden' }, st.cost),
+      el('div', { class: `cost-bar${over ? ' over' : ''}`, role: 'img', 'aria-label': costSentence, title: costSentence },
+        el('span', { class: 'cost-seg parts', style: `width: ${share(q.cost)}` }),
+        el('span', { class: 'cost-seg ticket', style: `width: ${share(q.ticketPrice)}` }),
+        over && el('span', { class: 'cost-over', style: `left: ${share(budget)}; right: 0` }),
+        over && el('span', { class: 'cost-mark', style: `left: ${share(budget)}` }),
+      ),
+      el('div', { class: 'cost-legend', 'aria-hidden': 'true' },
+        el('span', { class: 'key parts' }, `${st.parts} `, el('b', {}, cash(q.cost))),
+        el('span', { class: 'key ticket' }, `${st.ticket} `, el('b', {}, q.tier ? cash(q.ticketPrice) : dash)),
+        el('span', { class: 'key budget' }, `${st.budget} `, el('b', {}, cash(budget))),
+      ),
+    );
 
-      el('h3', {}, 'Mass and size'),
-      row('Mass', `${q.mass} kg`, 'gauge-row'),
-      tierGauge(q.mass, tiers.map((tier) => ({ tier, limit: tier.massLimit })), 'kg'),
-      row('Size', `${q.size}`, 'gauge-row'),
-      tierGauge(q.size, tiers.map((tier) => ({ tier, limit: tier.sizeLimit })), 'size units'),
-      row('Chassis load', `${q.mass} / ${q.maxLoad ?? '—'} kg`, q.overloaded ? 'bad' : ''),
-      row('Payload bay', `${q.pointsUsed} / ${q.mountingPoints ?? '—'} mounting points`, bayOver ? 'bad' : ''),
+    // Mass and size: the tier gauges, the ticket tier as a chip in the heading, the chassis load and the bay.
+    const gaugeRow = (label: string, value: number, unit: string, unitLong: string, limits: { tier: Tier; limit: number }[]) =>
+      meterRow(label, tierGauge(value, limits, q.tier), num(String(value), unit),
+        fill(st.gaugeSentence, { label, value, unit: unitLong, limits: limits.map((l) => fill(st.gaugeLimit, { tier: l.tier.name, limit: l.limit })).join(', ') }),
+        value > limits[limits.length - 1]!.limit ? 'bad' : ''); // red only on the gauge past the top tier
+    const tierSentence = q.tier ? fill(st.tierSentence, { tier: q.tier.name, price: cash(q.ticketPrice) }) : st.tierNoneSentence;
+    const load = q.maxLoad === null ? null : limitState(q.mass, q.maxLoad, data.tuning.mass.loadWarningShare);
+    const loadBar = el('div', { class: `load-bar ${load ?? ''}` },
+      el('span', { class: 'load-fill', style: `width: ${q.maxLoad ? Math.min(100, (q.mass / q.maxLoad) * 100) : 0}%` }));
+    const points = q.mountingPoints ?? 0;
+    const pips = el('div', { class: 'pips' },
+      ...Array.from({ length: q.mountingPoints === null ? 0 : Math.max(points, q.pointsUsed) }, (_, i) =>
+        el('span', { class: `pip${i < q.pointsUsed ? ' filled' : ''}${i >= points ? ' over' : ''}` })));
+    const massSize = el('section', { class: 'spec-section' },
+      el('div', { class: 'spec-head' },
+        el('h3', {}, st.massSize),
+        el('span', { class: `tier-chip${q.tier ? '' : ' bad'}`, title: tierSentence },
+          el('span', { 'aria-hidden': 'true' }, q.tier ? fill(st.tierChip, { tier: q.tier.name, price: cash(q.ticketPrice) }) : st.tierNone),
+          el('span', { class: 'visually-hidden' }, tierSentence)),
+      ),
+      el('div', { class: 'spec-meters' },
+        gaugeRow(st.mass, q.mass, st.massUnit, st.massUnit, tiers.map((tier) => ({ tier, limit: tier.massLimit }))),
+        gaugeRow(st.size, q.size, '', st.sizeUnitLong, tiers.map((tier) => ({ tier, limit: tier.sizeLimit }))),
+        meterRow(st.load, loadBar,
+          q.maxLoad === null ? num(dash) : num(String(q.mass), `/ ${q.maxLoad} ${st.massUnit}`),
+          q.maxLoad === null ? st.loadNone : fill(load === 'over' ? st.loadOverSentence : st.loadSentence, { mass: q.mass, max: q.maxLoad }),
+          load === 'over' ? 'bad' : load === 'near' ? 'near' : ''),
+        meterRow(st.bay, pips,
+          q.mountingPoints === null ? num(dash) : num(String(q.pointsUsed), `/ ${points}`),
+          q.mountingPoints === null ? t.bayNoChassis : fill(st.baySentence, { used: q.pointsUsed, points }),
+          bayOver ? 'bad' : ''),
+      ),
+    );
 
-      el('h3', {}, 'Launch ticket'),
-      row('Tier', q.tier ? `${q.tier.name}` : 'None fits', q.tier ? '' : 'bad'),
-
-      el('h3', {}, 'Driving'),
-      el('div', { class: 'row speed' },
-        el('span', { class: 'label' }, 'Max speed'),
-        el('span', { class: 'value' }, has('wheels') ? `${d.topSpeed.toFixed(1)} m/s (${(d.topSpeed * KMH).toFixed(0)} km/h)` : dash, infoButton),
+    // Driving and energy: stat tiles, the Mars night tile and the instruments' energy.
+    const wheels = has('wheels');
+    const range = wheels && has('battery') ? (flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1) : null;
+    const titanIncome = titanSolar(d.energyIncome, data);
+    const power = !has('power') ? stat(st.solar, null, '', '')
+      : chosenPower.steadyIncome > 0
+        ? stat(st.steady, `+${chosenPower.steadyIncome.toFixed(1)}`, st.perSecond, fill(st.steadySentence, { income: chosenPower.steadyIncome.toFixed(1) }))
+        : titanIncome !== null
+          ? stat(st.solar, st.solarAlmostNone, st.perSecond, titanIncome, null, 'warn') // Titan: the rate is in the tooltip
+          : stat(st.solar, `+${d.energyIncome.toFixed(1)}`, st.perSecond, fill(st.solarSentence, { income: d.energyIncome.toFixed(1) }));
+    const nightTile = night && el('div', { class: 'stat wide night', title: `${night.label}: ${night.line}` },
+      el('div', { class: 'stat-head', 'aria-hidden': 'true' },
+        el('span', { class: 'stat-label' }, night.label),
+        night.heater && el('span', { class: 'stat-note' }, night.heater)),
+      el('div', { class: 'stat-value', 'aria-hidden': 'true' },
+        ...(night.items.length ? night.items.map((x) => num(x.value, x.unit)) : [dash])),
+      el('span', { class: 'visually-hidden' }, `${night.label}: ${night.line}`),
+    );
+    const driving = el('section', { class: 'spec-section' },
+      el('div', { class: 'spec-head' }, el('h3', {}, st.drivingEnergy)),
+      el('div', { class: 'stat-grid' },
+        stat(st.speed, wheels ? (d.topSpeed * KMH).toFixed(0) : null, st.speedUnit,
+          fill(st.speedSentence, { game: d.topSpeed.toFixed(1), kmh: (d.topSpeed * KMH).toFixed(0) }), infoButton),
+        stat(st.grip, wheels ? d.grip.toFixed(2) : null, '', fill(st.gripSentence, { grip: d.grip.toFixed(2) })),
+        stat(st.range, range, st.rangeUnit, fill(st.rangeSentence, { range: range ?? '', perKm: (d.energyPerMeter * 1000).toFixed(0) })),
+        stat(st.battery, has('battery') ? String(d.batteryCapacity) : null, '', fill(st.batterySentence, { capacity: d.batteryCapacity })),
+        power,
+        nightTile,
       ),
       infoPanel,
-      row('Grip', has('wheels') ? d.grip.toFixed(2) : dash),
-      row('Drive energy', has('wheels') ? `${(d.energyPerMeter * 1000).toFixed(0)} energy/km` : dash),
-      row('Range on battery', has('wheels') && has('battery') ? `${(flatRangeM(d.batteryCapacity, d.energyPerMeter) / 1000).toFixed(1)} km on flat ground` : dash),
-
-      el('h3', {}, t.sheetEnergy),
-      row('Battery', has('battery') ? `${d.batteryCapacity} energy` : dash),
-      row('Solar income', has('power') ? (titanSolar(d.energyIncome, data) ?? `${d.energyIncome.toFixed(1)} energy/s in full sun`) : dash),
-      row(t.instrumentEnergy, instrumentEnergyText()),
-      ...(nightLine ? [row(nightLine.label, nightLine.value)] : []),
+      instrumentEnergy(),
     );
+
+    sheet.replaceChildren(cost, massSize, driving);
     renderInfo(q);
 
-    warnings.replaceChildren(
-      ...[
-        !q.complete && fill(t.slotsEmpty, { slots: q.missing.map((s) => text.slots[s] ?? s).join(', ') }),
-        !allowed && t.belowMinimum,
-        !q.tier && t.overTopTier,
-        bayOver && t.bayOverCapacity,
-        ...missingSupportWarnings(q.payloadProblems, data),
-        !q.canAfford && t.overBudget,
-        q.overloaded && t.chassisOverloaded,
-      ]
-        .filter((w): w is string => Boolean(w))
-        .map((w) => el('li', {}, w)),
-    );
+    // Warnings: one short line each by the launch button, the full sentence in its tooltip and for screen readers.
+    const slots = q.missing.map((slot) => t.categories[slot as RequiredSlot] ?? text.slots[slot] ?? slot).join(', ');
+    const list: { short: string; full: string }[] = [
+      !q.complete && { short: fill(st.warnSlotsEmpty, { slots }), full: fill(t.slotsEmpty, { slots: q.missing.map((x) => text.slots[x] ?? x).join(', ') }) },
+      !allowed && { short: st.warnBelowMinimum, full: t.belowMinimum },
+      !q.tier && { short: st.warnOverTopTier, full: t.overTopTier },
+      bayOver && { short: st.warnBayOverCapacity, full: t.bayOverCapacity },
+      ...missingSupportPairs(q.payloadProblems, data),
+      !q.canAfford && { short: fill(st.warnOverBudget, { amount: cash(-q.remaining) }), full: t.overBudget },
+      q.overloaded && { short: st.warnOverloaded, full: t.chassisOverloaded },
+    ].filter((w): w is { short: string; full: string } => Boolean(w));
+    warnings.hidden = list.length === 0;
+    warnings.replaceChildren(...list.map((w) => el('li', { title: w.full },
+      el('span', { class: 'warn-mark', 'aria-hidden': 'true' }, '!'),
+      el('span', { class: 'warn-text', 'aria-hidden': 'true' }, w.short),
+      el('span', { class: 'visually-hidden' }, w.full))));
     next.disabled = !q.complete || !allowed || !q.canLaunch || !q.canAfford;
   }
 
@@ -279,7 +396,7 @@ export const designScreen: Screen = (game, root) => {
     el('div', { class: 'desk-head-side' },
       help,
       notebookButton,
-      el('div', { class: 'budget' }, el('span', { class: 'label' }, 'Budget'), el('strong', {}, money(game.state.balance, text))),
+      el('div', { class: 'budget' }, el('span', { class: 'label' }, st.budgetLabel), el('strong', {}, money(game.state.balance, text))),
     ),
   );
   // Palette | rover | specification. The sheet scrolls inside itself so the launch button stays in view.
@@ -288,11 +405,10 @@ export const designScreen: Screen = (game, root) => {
     viewport,
     el('aside', { class: 'sheet', 'aria-label': t.sheetHeading },
       el('div', { class: 'sheet-scroll' },
-        el('h2', {}, t.sheetHeading),
+        el('div', { class: 'spec-title' }, el('h2', {}, t.sheetHeading), remaining),
         sheet,
-        warnings,
       ),
-      el('div', { class: 'actions sheet-actions' }, next),
+      el('div', { class: 'actions sheet-actions' }, warnings, next),
     ),
   );
 

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { worldGameData } from '../gameData';
 import { selectedParts } from '../rules/rover';
 import type { Build, Part } from '../rules/types';
-import { nightBudgetLine } from './marsMission';
+import { nightBudgetLine, nightBudgetTile } from './marsMission';
 
 const build: Build = {
   chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
@@ -30,5 +30,20 @@ describe('night budget line', () => {
   it('is not shown on the Moon', () => {
     const moon = worldGameData('moon');
     expect(nightBudgetLine(moon, selectedParts(build, moon.parts))).toBeNull();
+    expect(nightBudgetTile(moon, selectedParts(build, moon.parts))).toBeNull();
+  });
+
+  it('gives the spec sheet night tile its large numbers and short units, with the whole line for the tooltip', () => {
+    const mars = worldGameData('mars');
+    const swap = (slot: Part['slot'], effects: Part['effects']) => (p: Part) => (p.slot === slot ? { ...p, effects } : p);
+    const parts = selectedParts(build, mars.parts).map(swap('power', { steadyIncome: 0.6, heat: 2 })).map(swap('heater', { heat: 3, heaterDraw: 1.2 }));
+    expect(nightBudgetTile(mars, parts)).toEqual({
+      label: 'Night energy (15 s)',
+      items: [{ value: '21', unit: 'asleep' }, { value: '78', unit: 'with lights' }, { value: '+9', unit: 'RTG' }],
+      heater: 'heater 18 of each',
+      line: '21 asleep · 78 with lights · heater 18 of each · RTG +9',
+    });
+    expect(nightBudgetTile(mars, selectedParts({ ...build, lights: 'lights-none' }, mars.parts))?.items).toEqual([{ value: '3', unit: 'asleep' }]);
+    expect(nightBudgetTile(mars, parts.filter((p) => p.slot !== 'power'))).toMatchObject({ items: [], line: '—' });
   });
 });

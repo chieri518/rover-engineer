@@ -26,7 +26,8 @@
     "referenceMass": 60,
     "speedLossPerKg": 0.006,
     "energyGainPerKg": 0.01,
-    "minSpeedFactor": 0.4
+    "minSpeedFactor": 0.4,
+    "loadWarningShare": 0.9
   },
   "speed": {
     "compression": 6

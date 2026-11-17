@@ -15,12 +15,18 @@ export function needsText(needs: readonly SupportSlot[], data: GameData): string
 
 /** The warnings for instruments in the bay whose support part is missing, one per missing part. */
 export function missingSupportWarnings(problems: readonly PayloadProblem[], data: GameData): string[] {
+  return missingSupportPairs(problems, data).map((w) => w.full);
+}
+
+/** The same warnings, each with its short form for the desk's specification ("X-ray spectrometer needs the robotic arm"). */
+export function missingSupportPairs(problems: readonly PayloadProblem[], data: GameData): { short: string; full: string }[] {
   const t = data.text.support;
   if (!t) return [];
   return problems.flatMap((p) => {
     if (p.kind !== 'needs') return [];
     const part: Part | undefined = data.parts.parts.find((x) => x.id === p.id);
-    return [fill(t.missing, { part: part?.name ?? p.id, support: t[p.support] })];
+    const vars = { part: part?.name ?? p.id, support: t[p.support] };
+    return [{ short: fill(data.text.design.spec.warnSupport, vars), full: fill(t.missing, vars) }];
   });
 }
 

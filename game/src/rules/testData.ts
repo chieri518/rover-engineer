@@ -40,7 +40,7 @@ export const testTuning: Tuning = {
     deathPenalty: { energy: 100, stuck: 200, froze: 300, destroyed: 400 },
     penaltyMinFraction: 0.25,
   },
-  mass: { referenceMass: 60, speedLossPerKg: 0.006, minSpeedFactor: 0.4, energyGainPerKg: 0.01 },
+  mass: { referenceMass: 60, speedLossPerKg: 0.006, minSpeedFactor: 0.4, energyGainPerKg: 0.01, loadWarningShare: 0.9 },
   speed: { compression: 4 },
   energy: { slopeEnergyFactor: 0.05, lowWarningShare: 0.2 },
   damage: {

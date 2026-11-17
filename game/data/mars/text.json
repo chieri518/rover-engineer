@@ -41,7 +41,8 @@
     "lights": "{energy} with lights",
     "heater": "heater {energy} of each",
     "steady": "RTG +{energy}",
-    "separator": " · "
+    "separator": " · ",
+    "units": { "asleep": "asleep", "lights": "with lights", "steady": "RTG" }
   },
   "design": {
     "notOffered": "Not offered on Mars: {parts}.",

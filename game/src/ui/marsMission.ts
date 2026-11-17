@@ -101,19 +101,42 @@ export class MarsMission {
  * payload: left off, they add nothing).
  */
 export function nightBudgetLine(data: GameData, parts: Part[]): { label: string; value: string } | null {
+  const tile = nightBudgetTile(data, parts);
+  return tile && { label: tile.label, value: tile.line };
+}
+
+/** One number of the night tile with its short unit ("21" "asleep"). */
+export interface NightTileItem {
+  value: string;
+  unit: string;
+}
+
+/**
+ * The night budget as the specification's night tile shows it: the large numbers with their short units
+ * (asleep, with lights, the RTG's income), the heater's share as a note beside the label, and the whole
+ * line ("3 asleep · 60 with lights") for the tooltip and the screen reader. Null where there is no night
+ * (the Moon); no items and a dash line until the power source is chosen.
+ */
+export function nightBudgetTile(data: GameData, parts: Part[]): { label: string; items: NightTileItem[]; heater: string | null; line: string } | null {
   const { night, sol } = data.tuning;
   const t = data.text.nightBudget;
   if (!night || !sol || !t) return null;
   const label = fill(t.label, { seconds: sol.nightSeconds });
-  if (!parts.some((p) => p.slot === 'power')) return { label, value: '—' };
+  if (!parts.some((p) => p.slot === 'power')) return { label, items: [], heater: null, line: '—' };
   const hasLights = parts.some((p) => (p.effects.lightRange ?? 0) > 0); // as rules/mission.ts missionSetup
   const b = nightBudget(partPower(parts), hasLights, night, sol.nightSeconds);
   const energy = (x: number) => String(Number(x.toFixed(1)));
-  const items = [
+  const heater = b.heater > 0 ? fill(t.heater, { energy: energy(b.heater) }) : null;
+  const line = [
     fill(t.asleep, { energy: energy(b.asleep) }),
     b.withLights !== null && fill(t.lights, { energy: energy(b.withLights) }),
-    b.heater > 0 && fill(t.heater, { energy: energy(b.heater) }),
+    heater,
     b.steady > 0 && fill(t.steady, { energy: energy(b.steady) }),
-  ].filter((x): x is string => Boolean(x));
-  return { label, value: items.join(t.separator) };
+  ].filter((x): x is string => Boolean(x)).join(t.separator);
+  const items: NightTileItem[] = [
+    { value: energy(b.asleep), unit: t.units.asleep },
+    ...(b.withLights !== null ? [{ value: energy(b.withLights), unit: t.units.lights }] : []),
+    ...(b.steady > 0 ? [{ value: `+${energy(b.steady)}`, unit: t.units.steady }] : []),
+  ];
+  return { label, items, heater, line };
 }

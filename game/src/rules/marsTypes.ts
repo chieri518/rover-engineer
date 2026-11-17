@@ -396,7 +396,10 @@ export interface MarsTextSections {
    * The desk's night budget line (Mars M15, ui/marsMission.ts nightBudgetLine): what one night costs this
    * build asleep and awake with lights, the electric heater's share and an RTG's income. {energy}, {seconds}.
    */
-  nightBudget: Record<'label' | 'asleep' | 'lights' | 'heater' | 'steady' | 'separator', string>;
+  nightBudget: Record<'label' | 'asleep' | 'lights' | 'heater' | 'steady' | 'separator', string> & {
+    /** The night tile's short units beside each large number (asleep, with lights, the RTG's income). */
+    units: Record<'asleep' | 'lights' | 'steady', string>;
+  };
   /** Per-world part wording, by part id: replaces the shared name or description (rules/merge.ts withPartText). */
   partText?: Record<string, { name?: string; description?: string }>;
   /**

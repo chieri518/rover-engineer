@@ -225,6 +225,7 @@ export interface Tuning {
     referenceMass: number;
     speedLossPerKg: number; // share of base speed lost per kg above the reference mass
     minSpeedFactor: number; // a rover never drops below this share of its base speed
+    loadWarningShare: number; // the desk's chassis-load bar turns amber from this share of the chassis maximum load
     energyGainPerKg: number; // share of energy per meter added per kg above the reference mass
   };
   /** Driving is compressed like time: game speed = real speed × compression. Part base speeds are real m/s. */
@@ -604,6 +605,21 @@ export interface DashboardText {
   storyLost: string; // closing line when Titan was not survived
 }
 
+/** The desk's specification panel wording (text.json design.spec). */
+export type SpecText = Record<
+  | 'budgetLabel' | 'continue' | 'cost' | 'remaining' | 'overBudgetLabel' | 'parts' | 'ticket' | 'budget'
+  | 'costSentence' | 'remainingSentence' | 'overSentence' // {budget} {parts} {ticket} {total}; {amount}
+  | 'massSize' | 'tierChip' | 'tierNone' | 'tierSentence' | 'tierNoneSentence' // {tier} {price}
+  | 'mass' | 'size' | 'massUnit' | 'gaugeSentence' | 'gaugeLimit' | 'sizeUnitLong' // {label} {value} {unit} {limits}; {tier} {limit}
+  | 'load' | 'loadSentence' | 'loadOverSentence' | 'loadNone' | 'bay' | 'baySentence' // {mass} {max}; {used} {points}
+  | 'drivingEnergy' | 'speed' | 'speedUnit' | 'speedSentence' | 'grip' | 'gripSentence' | 'range' | 'rangeUnit' | 'rangeSentence'
+  | 'battery' | 'batterySentence' | 'solar' | 'solarSentence' | 'solarAlmostNone' | 'steady' | 'steadySentence' | 'perSecond' | 'pending'
+  | 'instruments' | 'perUse'
+  // the short warnings by the launch button (the full sentence is in the tooltip): {slots}; {part} {support}; {amount}
+  | 'warnSlotsEmpty' | 'warnBelowMinimum' | 'warnOverTopTier' | 'warnBayOverCapacity' | 'warnSupport' | 'warnOverBudget' | 'warnOverloaded',
+  string
+> & { instrumentNames: Record<Instrument, string> };
+
 export interface SharedTextFile {
   moneyPrefix: string;
   moneySuffix: string;
@@ -631,6 +647,11 @@ export interface SharedTextFile {
     speedInfo: string[]; // the optional real-speed pop-up, one paragraph per entry
     /** By instrument: a desk card's short line on where the instrument is used (Mars step 6d; none on the Moon). Names places, never a lesson. */
     instrumentWhere?: Partial<Record<Instrument, string>>;
+    /**
+     * The specification panel (game-design.md, "The engineer's desk as a parts editor"): short labels and units
+     * on screen, and a full sentence per number (the *Sentence keys) for its tooltip and screen-reader name.
+     */
+    spec: SpecText;
   };
   ticket: Record<
     'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
