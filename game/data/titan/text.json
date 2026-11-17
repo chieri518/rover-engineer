@@ -39,7 +39,6 @@
     "spec": { "chargingSolar": "solar, Titan haze" },
     "brief": {
       "watch": [
-        { "icon": "haze", "text": "Solar panels: almost no power", "tip": "Thick haze lets little sunlight through. In this version the rover runs on its battery alone." },
         { "icon": "cold", "text": "Cold, day and night", "tip": "About −179 °C everywhere on the map. The cold never lets up." },
         { "icon": "night", "text": "One long night", "tip": "About {dayLeftMinutes} minutes of daylight, then a {nightMinutes}-minute night." },
         { "icon": "rain", "text": "Methane rain", "tip": "One rainstorm crosses the site, forecast about {rainWarningSeconds} s ahead. Rain cools the rover faster." },
