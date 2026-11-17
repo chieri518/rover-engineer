@@ -44,6 +44,7 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
   const sunDist = 1.6e7;
   const sun = new THREE.Mesh(new THREE.SphereGeometry(sunDist * 0.0047, 32, 16), sunMat);
   sun.position.copy(sunDir).multiplyScalar(sunDist);
+  sun.renderOrder = -3; // before the planet and its atmosphere (see buildEarth), so both still cover it
   scene.add(sun);
 
   // Light: the sun (unfiltered up here) and a faint blue earthshine from below.

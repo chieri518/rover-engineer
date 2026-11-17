@@ -299,13 +299,17 @@ export async function buildEarth(renderer: THREE.WebGLRenderer, o: { lat0: numbe
   disposables.push(earthGeo);
   const earth = new THREE.Mesh(earthGeo, earthMat);
   earth.frustumCulled = false;
+  earth.renderOrder = -2;
 
+  // The atmosphere composites over the planet and space only. It marches the whole view ray and ignores depth,
+  // so it is drawn in the opaque pass before everything else (renderOrder -1, not transparent): a craft in front of
+  // the planet (above the air, at orbital height) is then drawn over it, solid, instead of hazed through.
   const atmoMat = new THREE.ShaderMaterial({
     vertexShader: EARTH_VERT,
     fragmentShader: ATMO_FRAG,
     uniforms: { center: { value: center }, sunDir: { value: sunDir }, sunI: { value: 16 }, steps: { value: 20 } },
     side: THREE.BackSide,
-    transparent: true,
+    transparent: false,
     depthWrite: false,
     depthTest: false,
     blending: THREE.CustomBlending,
@@ -317,7 +321,7 @@ export async function buildEarth(renderer: THREE.WebGLRenderer, o: { lat0: numbe
   disposables.push(atmoGeo);
   const atmo = new THREE.Mesh(atmoGeo, atmoMat);
   atmo.frustumCulled = false;
-  atmo.renderOrder = 5;
+  atmo.renderOrder = -1;
 
   const group = new THREE.Group();
   group.add(earth, atmo);
