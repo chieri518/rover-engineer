@@ -9,6 +9,7 @@ import { startWorld, type CinematicWorld } from '../lib/world';
 import { recordDrive, type DriveTrack } from './track';
 import { chaseRig, type ChaseFraming, type ChaseRig } from './rig';
 import { dress } from './dress';
+import type { RoverDress } from '../rig/dress';
 
 export interface ChaseClip {
   /** Per sub-frame, after the rover and camera are placed and before the world updates its view. */
@@ -25,6 +26,8 @@ export interface ClipSetup {
   track: DriveTrack;
   rig: ChaseRig;
   ctx: SequenceContext;
+  /** The dressed rover (Act 2's look): LEDs, lamp lenses, indirect-light share, its materials. */
+  dress: RoverDress;
 }
 
 export interface ChaseClipDef {
@@ -68,7 +71,7 @@ export function chaseClip(def: ChaseClipDef): SequenceDef {
       const dressed = dress(w, ctx);
       const track = recordDrive(o, def.start, def.lead, duration + 0.5, def.drive, { speedBoost: def.speedBoost });
       const rig = chaseRig(track, (x, z) => w.scene.terrain.heightAt(x, z), def.framing);
-      const clip = await def.setup({ w, track, rig, ctx });
+      const clip = await def.setup({ w, track, rig, ctx, dress: dressed.dress });
       const camera = o.camera;
       camera.aspect = ctx.width / ctx.height;
       return {

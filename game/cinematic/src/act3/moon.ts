@@ -9,6 +9,8 @@ import { smoothstep } from '../lib/ease';
 import { lampRig } from './fx/lamps';
 import { LampGlow } from './fx/lampGlow';
 import { WheelDust } from './fx/wheelDust';
+import { Rocks } from './fx/rocks';
+import { RoverLight } from './fx/roverLight';
 
 const HEADING = 284; // toward the cold patch's centroid from its drive point (-1030, -210)
 const DIR = { x: Math.sin((HEADING * Math.PI) / 180), z: -Math.cos((HEADING * Math.PI) / 180) };
@@ -18,6 +20,7 @@ const LAMP_COLOR = 0xf4f1ea;
 /** Where the crest's shadow begins along the drive (the rover crosses it about 1 s into the shot). */
 const TERMINATOR = { x: -949, z: -190 };
 const MOON_G = 1.62;
+const ROCK_LAYER = 2;
 
 export const moonClip = chaseClip({
   id: 'moon-chase',
@@ -26,13 +29,16 @@ export const moonClip = chaseClip({
   start: { x: -1030 - DIR.x * START_BACK_M, z: -210 - DIR.z * START_BACK_M, headingDeg: HEADING },
   lead: 2.5,
   drive: () => ({ throttle: 0.55, steer: 0, brake: false }),
+  // An operator's chase: low, off to the rover's right, easing in and across as the rover tips over the rim.
   framing: {
-    distance: (t) => 5.8 - 0.5 * smoothstep(0, DURATION, t),
-    height: () => 2.0,
-    lookAhead: () => 8,
-    lookHeight: () => -0.2,
-    fov: () => 42,
+    distance: (t) => 5.6 - 0.8 * smoothstep(0, DURATION, t),
+    height: (t) => 1.15 + 0.25 * smoothstep(1.0, DURATION, t),
+    side: (t) => 1.25 - 0.75 * smoothstep(0, DURATION, t),
+    lookAhead: () => 9,
+    lookHeight: (t) => 0.45 - 0.35 * smoothstep(1.0, DURATION, t),
+    fov: () => 40,
     followY: 0.12,
+    shakeM: 0.025,
   },
   prepare(w) {
     w.offline.setSun(HEADING + 180 - 35, 2.2);
@@ -42,9 +48,27 @@ export const moonClip = chaseClip({
   setup({ w, track }) {
     const o = w.offline;
     const h = w.data.tuning.rover;
+    const groundAt = (x: number, z: number) => w.scene.terrain.heightAt(x, z);
+    // The game's floodlight (one SpotLight at the front): a wider, softer pool that fades with distance instead of
+    // ending in a hard edge, casting shadows (rocks throw long shadows into the dark). Moved just ahead of the drill
+    // tower, so the tower does not shadow the middle of the pool.
+    const lamp = o.lamp!;
+    Object.assign(lamp, { angle: 0.8, penumbra: 1, decay: 1.3, distance: 80 });
+    lamp.position.x += 0.32;
+    lamp.target.position.x += 0.32;
+    lamp.castShadow = true;
+    lamp.shadow.camera.layers.set(ROCK_LAYER); // only the rocks shadow the floodlight (not the rover's own parts)
+    lamp.shadow.mapSize.set(2048, 2048);
+    lamp.shadow.camera.near = 0.2;
+    lamp.shadow.camera.far = 70;
+    lamp.shadow.bias = -0.0004;
+    lamp.shadow.normalBias = 0.02;
+    lamp.shadow.radius = 2;
+    const rocks = new Rocks(o, track, groundAt, { from: -0.5, to: DURATION, count: 1800, halfWidthM: 14, aheadM: 30, color: 0x8e8a83, sizeM: [0.025, 0.3], layer: ROCK_LAYER, sunLine: new THREE.Vector4(DIR.x, DIR.z, -(TERMINATOR.x * DIR.x + TERMINATOR.z * DIR.z) - 4, 2.5) });
+    const light = new RoverLight(o.rover.object);
     const lamps = lampRig(h, { color: LAMP_COLOR, intensity: 40, angleRad: 0.55, penumbra: 0.5, rangeM: 45, dropM: 1.2, toeOutDeg: 4 });
     const glow = new LampGlow(lamps, LAMP_COLOR, 0.32);
-    const dust = new WheelDust(track, (x, z) => w.scene.terrain.heightAt(x, z), lamps, {
+    const dust = new WheelDust(track, groundAt, lamps, {
       rate: 900,
       fullSpeed: 9,
       gravity: MOON_G,
@@ -64,7 +88,13 @@ export const moonClip = chaseClip({
       from: -1.5,
       to: DURATION + 0.1,
     });
-    o.scene.add(glow.object, dust.object);
+    o.scene.add(glow.object, dust.object, rocks.object);
+    const fwd = new THREE.Vector3();
+    const rimDir = new THREE.Vector3();
+    const rim = new THREE.Color();
+    const bounce = new THREE.Color();
+    const fill = new THREE.Color();
+    const fillDir = new THREE.Vector3();
     const snap = ACT3_CUES.floodlights.t;
     const sunColor = new THREE.Color();
     const ambient = new THREE.Color(0.004, 0.004, 0.005);
@@ -76,12 +106,25 @@ export const moonClip = chaseClip({
         // The floodlights strike: a hard snap with a quick stutter, settling at full.
         const a = t - snap;
         const k = a < 0 ? 0 : a < 0.035 ? 1.15 : a < 0.07 ? 0.35 : a < 0.11 ? 1.05 : 1;
-        o.setLamp(0.32 * k);
+        o.setLamp(0.5 * k);
+        // Light on the rover: while the regolith around it is sunlit, a bounce from below; in the dark, the pool of
+        // floodlight ahead throws light back onto its front edges (a rim from ahead and above), with a little bounce,
+        // and a faint cool fill from behind (Earthshine) keeps the shapes.
+        o.rover.forward(fwd);
+        fwd.y = 0;
+        fwd.normalize();
+        const sunGround = 1 - smoothstep(0.9, 1.4, t);
+        rimDir.set(fwd.x * 0.9 + fwd.z * 0.45, 0.75, fwd.z * 0.9 - fwd.x * 0.45);
+        rim.setRGB(1, 0.97, 0.92).multiplyScalar(2.2 * k);
+        bounce.setRGB(0.9, 0.88, 0.85).multiplyScalar(0.55 * sunGround + 0.35 * k);
+        fillDir.set(-fwd.x, 0.5, -fwd.z);
+        fill.setRGB(0.55, 0.65, 0.85).multiplyScalar(0.3);
+        light.set({ rimDir, rim, bounce, fillDir, fill });
         lamps.update(o.rover.object, k);
-        glow.update(k, 1.4);
+        glow.update(k, 1.0);
         // A flare streak at the snap, from between the housings.
         mid.copy(lamps.positions[0]!).add(lamps.positions[1]!).multiplyScalar(0.5).project(o.camera);
-        const flare = a < 0 ? 0 : 0.5 + 1.4 * Math.exp(-a * 7);
+        const flare = a < 0 ? 0 : 0.25 + 1.1 * Math.exp(-a * 8);
         return {
           exposure: 1.0,
           contrast: 1.12,
@@ -101,6 +144,7 @@ export const moonClip = chaseClip({
       dispose() {
         glow.dispose();
         dust.dispose();
+        rocks.dispose();
       },
     };
   },
