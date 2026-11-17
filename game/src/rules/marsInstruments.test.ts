@@ -475,10 +475,10 @@ describe('Mars instrument data', () => {
       const t = mars.text.instrumentText[inst];
       expect(t.fact, inst).toBeTruthy();
       expect(t.source, inst).toBeTruthy();
-      expect(t.controls, inst).not.toMatch(/no results yet|no readings yet|no profile yet/);
     }
     const all = JSON.stringify(mars.text.instrumentText);
     expect(all).not.toMatch(/found organic molecules|signs of life/i);
+    expect(all).not.toMatch(/no results yet|no readings yet|no profile yet/); // every Mars instrument has its results (step 4a)
   });
 
   it('validation catches broken Mars instrument tuning', () => {

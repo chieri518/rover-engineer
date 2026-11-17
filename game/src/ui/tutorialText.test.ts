@@ -1,49 +1,99 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import type { Instrument } from '../rules/types';
-import { missionVars, tutorialPages } from './tutorialText';
+import { instrumentLine, missionVars, pageStrings, tutorialPages, type TutorialPageText } from './tutorialText';
 import { fill } from './dom';
+import { MILESTONE_LOG_KEY } from './hud';
 
 const data = loadGameData();
 
 describe('tutorial text', () => {
+  /** Every string the drive help shows, page by page (instrument rows read "Name: step · step. Counts"). */
+  const driveStrings = (d: typeof data, mission: 'moon' | 'mars' | 'titan', instruments: Instrument[]) =>
+    tutorialPages('drive', d, { mission, instruments }).flatMap(pageStrings);
+  const rows = (d: typeof data, mission: 'moon' | 'mars' | 'titan', instruments: Instrument[]) =>
+    tutorialPages('drive', d, { mission, instruments }).flatMap((p) => p.instruments ?? []);
+
   it('fills every placeholder on both tutorials', () => {
     for (const id of ['design', 'drive'] as const) {
       const pages = tutorialPages(id, data, { mission: 'moon', instruments: ['camera', 'drill'] });
       expect(pages.length).toBeGreaterThan(0);
-      for (const p of pages) for (const s of [p.title, ...p.paragraphs]) expect(s).not.toMatch(/\{\w+\}/);
+      for (const p of pages) for (const s of pageStrings(p)) expect(s).not.toMatch(/\{\w+\}/);
     }
   });
 
   it('takes numbers from the game data and shows only the instruments carried, with their bay keys', () => {
-    const drive = (...instruments: Instrument[]) =>
-      tutorialPages('drive', data, { mission: 'moon', instruments }).flatMap((p) => p.paragraphs).join('\n');
+    const drive = (...instruments: Instrument[]) => driveStrings(data, 'moon', instruments).join('\n');
     expect(drive('camera')).toContain(`${data.tuning.ground.maxSlopeDegrees}°`);
     expect(drive('camera')).toContain(`at least ${data.tuning.milestones.earthPhotoMinDistanceM} m from the lander`);
-    expect(drive('camera')).toContain('Camera: 1 ');
+    expect(drive('camera')).toContain('Camera: Press 1 ·');
     expect(drive('camera')).not.toContain('Drill:');
     expect(drive('drill')).toContain(`at least ${data.tuning.milestones.sampleSpacingM} m from the lander and from each other`);
-    expect(drive('drill', 'camera')).toContain('press 1 ');
-    expect(drive('drill', 'camera')).toContain('Camera: 2 ');
+    expect(drive('drill', 'camera')).toContain('Drill: Stop · Press 1 ·');
+    expect(drive('drill', 'camera')).toContain('Camera: Press 2 ·');
     expect(drive()).not.toMatch(/Camera:|Drill:/);
     const design = tutorialPages('design', data, { mission: 'moon', instruments: [] }).flatMap((p) => p.paragraphs).join('\n');
     for (const tier of data.tiers.tiers) expect(design).toContain(`${tier.massLimit} kg`);
   });
 
-  it('has a line for each of the six instruments, keyed in bay order', () => {
+  it('has a row for each of the six instruments, keyed in bay order, with no placeholder left', () => {
     const all: Instrument[] = ['camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector'];
+    const names = ['Camera', 'Drill', 'Neutron spectrometer', 'X-ray spectrometer', 'Seismometer station', 'Laser retroreflector'];
+    for (const bay of [all, [...all].reverse()]) {
+      const r = rows(data, 'moon', bay);
+      expect(r.map((x) => x.key)).toEqual(bay.map((_, i) => i + 1));
+      expect(r.map((x) => x.name)).toEqual(bay.map((i) => names[all.indexOf(i)]));
+      for (const x of r) {
+        expect(x.steps.length, x.name).toBeGreaterThan(0);
+        expect(x.steps, x.name).toContain(`Press ${x.key}`);
+        for (const s of [x.name, ...x.steps, x.counts ?? '']) expect(s, x.name).not.toMatch(/[{}]/);
+      }
+    }
+    // The instrument rows are on their own page (the second, on every world), and the map and the notebook on another.
     const pages = tutorialPages('drive', data, { mission: 'moon', instruments: all });
-    const text = pages.flatMap((p) => p.paragraphs).join('\n');
-    for (const [i, name] of ['Camera', 'Drill', 'Neutron spectrometer', 'X-ray spectrometer', 'Seismometer station', 'Laser retroreflector'].entries()) {
-      expect(text).toContain(`${name}: `);
-      expect(text).toMatch(new RegExp(`${name}: [^\\n]*\\b${i + 1}\\b`));
+    const inst = pages.find((p) => p.instruments)!;
+    expect(inst.title).toBe('Instruments');
+    expect(pages.indexOf(inst)).toBe(1);
+    expect(pageStrings(inst).join('\n')).not.toMatch(/notebook|The map starts/);
+    expect(pages.find((p) => p.title === 'Map and notebook')!.paragraphs.join('\n')).toMatch(/The map starts[\s\S]*engineering notebook/);
+  });
+
+  it('opens the drive help with the controls as key caps, the bay keys from the instruments carried', () => {
+    for (const world of ['moon', 'mars', 'titan'] as const) {
+      const d = loadGameData(world);
+      const pages = (instruments: Instrument[]) => tutorialPages('drive', d, { mission: world, instruments });
+      const first = pages(['camera', 'drill'])[0]!;
+      expect(first.controls, world).toBeDefined();
+      expect(first.controls!.heading).toBe(d.text.tutorial.controlsHeading);
+      const keys = first.controls!.keys;
+      const caps = keys.map((k) => k.caps.flat());
+      for (const want of [['W', 'A', 'S', 'D'], ['Space'], ['P'], ['N'], ['L'], ['M']]) {
+        expect(caps.some((c) => want.every((w) => c.includes(w))), `${world} ${want.join(' ')}`).toBe(true);
+      }
+      expect(keys.find((k) => k.caps.flat().includes('W'))!.caps).toHaveLength(2); // W A S D or the arrows
+      if (world !== 'moon') expect(keys.find((k) => k.caps.flat().includes('P'))!.label).toMatch(/sleep/i);
+      // The milestone list's key, the one the HUD listens for (KeyL shows as L).
+      const logKey = keys.find((k) => k.caps.flat().includes(MILESTONE_LOG_KEY.replace(/^Key/, '')));
+      expect(logKey, world).toBeDefined();
+      expect(logKey!.caps).toEqual([[MILESTONE_LOG_KEY.replace(/^Key/, '')]]);
+      expect(logKey!.label).toMatch(/milestone list/i);
+      // The bay's keys: 1 to n for the instruments carried, just 1 for one, and none for an empty bay.
+      const bay = keys.at(-1)!;
+      expect(bay.caps).toEqual([['1'], ['2']]);
+      expect(bay.join).toBe(d.text.tutorial.keysTo);
+      expect(pages(['camera'])[0]!.controls!.keys.at(-1)!.caps).toEqual([['1']]);
+      expect(pages([])[0]!.controls!.keys.map((k) => k.label)).not.toContain(bay.label);
+      expect(pages([])[0]!.controls!.keys).toHaveLength(keys.length - 1);
+      // Only the first page has key caps, and the old sentence of keys is gone.
+      for (const p of pages(['camera']).slice(1)) expect(p.controls, p.title).toBeUndefined();
+      expect(pages(['camera']).flatMap(pageStrings).join('\n'), world).not.toMatch(/W A S D or arrow keys/);
     }
   });
 
   it('covers the bay and the notebook, and announces no relationship', () => {
     const join = (id: 'design' | 'drive') =>
       tutorialPages(id, data, { mission: 'moon', instruments: ['camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector'] })
-        .flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
+        .flatMap(pageStrings).join('\n');
     const design = join('design');
     expect(design).not.toMatch(/No instruments|No lights|No heater/); // leaving a part off is not a choice on the desk (November 16)
     expect(design).toMatch(/energy/i);
@@ -57,23 +107,66 @@ describe('tutorial text', () => {
   });
 
   it('the drive tutorial gives the stations\' lander distance from the data, with no placeholder left', () => {
-    const lines = tutorialPages('drive', data, { mission: 'moon', instruments: ['seismometer', 'reflector'] }).flatMap((p) => p.paragraphs);
+    const r = rows(data, 'moon', ['seismometer', 'reflector']);
     const distance = data.tuning.milestones.sampleMinDistanceM;
     for (const name of ['Seismometer station', 'Laser retroreflector']) {
-      const line = lines.find((l) => l.startsWith(`${name}: `));
-      expect(line, name).toBeDefined();
-      expect(line).toContain(`more than ${distance} m from the lander`);
-      expect(line).not.toMatch(/[{}]/);
+      const row = r.find((x) => x.name === name);
+      expect(row, name).toBeDefined();
+      expect(row!.counts).toContain(`more than ${distance} m from the lander`);
+      expect(instrumentLine(row!)).not.toMatch(/[{}]/);
     }
+    expect(r.find((x) => x.name === 'Laser retroreflector')!.steps).toEqual(['Stop', 'Earth in view', 'Press 2', 'Sets it down']);
     const changed = { ...data, tuning: { ...data.tuning, milestones: { ...data.tuning.milestones, sampleMinDistanceM: 250 } } };
-    const moved = tutorialPages('drive', changed, { mission: 'moon', instruments: ['seismometer'] }).flatMap((p) => p.paragraphs).join('\n');
-    expect(moved).toContain('more than 250 m from the lander');
+    expect(rows(changed, 'moon', ['seismometer'])[0]!.counts).toContain('more than 250 m from the lander');
   });
 
-  it('the drive tutorial leaves out the number-key line for an empty bay', () => {
-    const lines = (instruments: Instrument[]) => tutorialPages('drive', data, { mission: 'moon', instruments }).flatMap((p) => p.paragraphs).join('\n');
-    expect(lines([])).not.toMatch(/number key/);
-    expect(lines(['camera'])).toMatch(/number key/);
+  it('the drive tutorial says so for an empty bay, with no instrument rows', () => {
+    for (const world of ['moon', 'mars', 'titan'] as const) {
+      const d = loadGameData(world);
+      const page = tutorialPages('drive', d, { mission: world, instruments: [] }).find((p) => p.title === 'Instruments')!;
+      expect(page.instruments, world).toBeUndefined();
+      expect(page.paragraphs, world).toEqual([d.text.tutorial.drive.find((p) => p.instruments)!.emptyBay]);
+      expect(page.paragraphs[0]).toMatch(/empty/);
+      const full = tutorialPages('drive', d, { mission: world, instruments: ['camera'] }).find((p) => p.title === 'Instruments')!;
+      expect(full.paragraphs.join('\n')).toMatch(/number key/);
+      expect(full.instruments).toHaveLength(1);
+    }
+  });
+
+  it('Titan: a row for every instrument its parts offer, claiming only what holds there', () => {
+    const titan = loadGameData('titan');
+    const all: Instrument[] = ['camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector'];
+    const r = rows(titan, 'titan', all);
+    expect(r.map((x) => x.key)).toEqual([1, 2, 3, 4, 5, 6]);
+    for (const row of r) expect(row.steps.length, row.name).toBeGreaterThan(0); // none is a bare key-and-name row
+    expect(r[1]!.name).toBe('Drill');
+    expect(r[1]!.counts).toContain(`at least ${titan.tuning.milestones.sampleSpacingM} m from the lander`);
+    expect(r[0]!.counts).toMatch(/dune crest/);
+    // No quake, no Earth in the sky and no milestone for these four on Titan: the rows must not promise one.
+    expect(titan.events.quake).toBeFalsy();
+    expect(r.slice(2).map((x) => x.counts).join('\n')).not.toMatch(/moonquake|before the quake|Earth in view|more than \d+ m/);
+    expect(r[5]!.steps).not.toContain('Earth in view');
+    for (const s of driveStrings(titan, 'titan', all)) expect(s).not.toMatch(/[{}]/);
+  });
+
+  it('shows each instrument\'s energy cost on its row, from the part data', () => {
+    for (const world of ['moon', 'mars', 'titan'] as const) {
+      const d = loadGameData(world);
+      const insts = d.allParts.parts.flatMap((p) => (p.effects.instrument && (!p.worlds || p.worlds.includes(world)) ? [p.effects.instrument] : []));
+      for (const inst of insts) {
+        const part = d.allParts.parts.find((p) => p.effects.instrument === inst)!;
+        const row = rows(d, world, [inst])[0]!;
+        const { energyPerUse, standbyEnergy } = part.effects;
+        if (energyPerUse) expect(row.steps, `${world} ${inst}`).toContain(`${energyPerUse} energy`);
+        else if (standbyEnergy) expect(row.steps, `${world} ${inst}`).toContain(`${standbyEnergy} energy/s`);
+      }
+    }
+    // Change the data and the row follows.
+    const moon = loadGameData();
+    const changed = { ...moon, allParts: { ...moon.allParts, parts: moon.allParts.parts.map((p) => (p.effects.instrument === 'drill' ? { ...p, effects: { ...p.effects, energyPerUse: 77 } } : p.effects.instrument === 'neutron' ? { ...p, effects: { ...p.effects, standbyEnergy: 0.9 } } : p)) } };
+    const r = rows(changed, 'moon', ['drill', 'neutron']);
+    expect(r[0]!.steps).toContain('77 energy');
+    expect(r[1]!.steps).toContain('0.9 energy/s');
   });
 
   it('the design tutorial says each instrument card lists its milestones (every Moon instrument earns some)', () => {
@@ -81,6 +174,16 @@ describe('tutorial text', () => {
     expect(design).toMatch(/the milestones each instrument can earn/);
     expect(design).not.toMatch(/earn no milestones yet/);
     expect(design).not.toMatch(/a few problems/);
+  });
+
+  it('the Instruments page is page 2 of the drive help on every world, with or without instruments', () => {
+    for (const [world, d] of [['moon', data], ['mars', loadGameData('mars')], ['titan', loadGameData('titan')]] as const) {
+      for (const bay of [['camera'], []] as Instrument[][]) {
+        const pages = tutorialPages('drive', d, { mission: world, instruments: bay });
+        expect(pages[1]!.title, `${world} ${bay.length}`).toBe('Instruments');
+        expect(pages.filter((p) => p.title === 'Instruments')).toHaveLength(1);
+      }
+    }
   });
 });
 
@@ -118,7 +221,7 @@ describe('the Rover Operations Guide (the Moon design tutorial) and briefing lin
 
 describe('Mars tutorial and briefing text', () => {
   const mars = loadGameData('mars');
-  const all = (pages: { title: string; paragraphs: string[] }[]) => pages.flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
+  const all = (pages: TutorialPageText[]) => pages.flatMap(pageStrings).join('\n');
   const unfilled = /\{\w+\}|\[placeholder\]/;
 
   it('Mars has its own design and drive pages, with every placeholder filled', () => {
@@ -151,18 +254,25 @@ describe('Mars tutorial and briefing text', () => {
     };
     const offered = mars.parts.parts.flatMap((p) => (p.slot === 'instrument' && p.effects.instrument ? [p.effects.instrument] : []));
     expect(offered).toHaveLength(8);
-    const lines = tutorialPages('drive', mars, { mission: 'mars', instruments: offered }).flatMap((p) => p.paragraphs);
-    for (const [i, inst] of offered.entries()) {
-      const line = lines.find((l) => l.startsWith(`${names[inst]}: `));
-      expect(line, inst).toBeDefined();
-      expect(line, inst).toMatch(new RegExp(`\\b${i + 1}\\b`));
+    const pages = tutorialPages('drive', mars, { mission: 'mars', instruments: offered });
+    const lines = pages.flatMap(pageStrings);
+    const r = pages.flatMap((p) => p.instruments ?? []);
+    expect(r.map((x) => x.name)).toEqual(offered.map((inst) => names[inst]));
+    for (const [i, x] of r.entries()) {
+      expect(x.key, x.name).toBe(i + 1);
+      expect(x.steps, x.name).toContain(`Press ${i + 1}`);
+      expect(x.counts, x.name).toBeTruthy();
+      expect(instrumentLine(x), x.name).not.toMatch(/[{}]/);
     }
+    // A full Mars bay (five mounting points at most) in another order keeps the bay order.
+    const five = offered.slice(3);
+    expect(tutorialPages('drive', mars, { mission: 'mars', instruments: five }).flatMap((p) => p.instruments ?? []).map((x) => x.name)).toEqual(five.map((inst) => names[inst]));
     const drive = lines.join('\n');
     const mt = mars.tuning.milestones;
     expect(drive).toContain(`at least ${mt.sampleMinDistanceM} m from the lander and ${mt.sampleSpacingM} m from each other`);
     for (const site of ['Rocky area 2', 'Rocky area 1', 'young craters']) expect(drive).toContain(site);
     expect(drive).toMatch(/nearest lead is drawn larger and listed first/);
-    // With an empty bay every page still has text (the instrument page keeps its notebook line).
+    // With an empty bay every page still has text (the instrument page keeps its empty-bay line).
     for (const p of tutorialPages('drive', mars, { mission: 'mars', instruments: [] })) expect(p.paragraphs.length, p.title).toBeGreaterThan(0);
   });
 

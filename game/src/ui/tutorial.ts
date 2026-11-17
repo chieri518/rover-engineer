@@ -3,7 +3,7 @@
 import type { TextFile } from '../rules/types';
 import type { TutorialId } from '../save/tutorialSeen';
 import { el, fill } from './dom';
-import type { TutorialBlockText, TutorialPageText } from './tutorialText';
+import type { TutorialBlockText, TutorialInstrumentText, TutorialKeyText, TutorialPageText } from './tutorialText';
 
 /** Text with its **bold** spans as <strong>. */
 function spans(text: string): (string | HTMLElement)[] {
@@ -33,6 +33,43 @@ export interface TutorialHandle {
   close(): void;
   /** Remove without running onClose, for a screen that is being torn down. */
   dispose(): void;
+}
+
+/** A page's content: the Controls key caps (drive help), the blocks (paragraphs, subheadings, lists, tables), then the instrument rows (drive help). */
+function pageContent(page: TutorialPageText): HTMLElement[] {
+  const out: HTMLElement[] = [];
+  if (page.controls && page.controls.keys.length > 0) {
+    out.push(el('section', { class: 'tutorial-controls', 'aria-label': page.controls.heading },
+      el('h3', { class: 'tutorial-controls-head' }, page.controls.heading),
+      el('ul', { class: 'tutorial-keys' }, ...page.controls.keys.map(keyItem)),
+    ));
+  }
+  out.push(...page.blocks.map(block));
+  if (page.instruments?.length) out.push(el('ol', { class: 'tutorial-instruments' }, ...page.instruments.map(instrumentRow)));
+  return out;
+}
+
+const cap = (c: string, extra = '') => el('kbd', { class: `tutorial-cap${extra}` }, c);
+
+function keyItem(k: TutorialKeyText): HTMLElement {
+  const caps = el('span', { class: 'tutorial-caps' });
+  k.caps.forEach((group, i) => {
+    if (i > 0) caps.append(el('span', { class: 'tutorial-caps-join' }, k.join));
+    caps.append(...group.map((c) => cap(c)));
+  });
+  // A long run of caps (W A S D or the arrows) takes the whole row.
+  return el('li', { class: k.caps.flat().length > 4 ? 'tutorial-keys-wide' : undefined }, caps, el('span', { class: 'tutorial-key-label' }, k.label));
+}
+
+function instrumentRow(r: TutorialInstrumentText): HTMLElement {
+  return el('li', { class: 'tutorial-instrument' },
+    cap(String(r.key), ' tutorial-cap-big'),
+    el('div', { class: 'tutorial-instrument-text' },
+      el('strong', {}, r.name),
+      r.steps.length > 0 && el('ul', { class: 'tutorial-steps' }, ...r.steps.map((s) => el('li', {}, s))),
+      r.counts && el('p', { class: 'tutorial-counts' }, r.counts),
+    ),
+  );
 }
 
 const FOCUSABLE = 'button:not([disabled]), a[href], input:not([disabled]), [tabindex]:not([tabindex="-1"])';
@@ -90,13 +127,14 @@ export function openTutorial(
     const last = index === pages.length - 1;
     step.textContent = fill(text.step, { n: index + 1, total: pages.length });
     title.textContent = page.title;
-    body.replaceChildren(...page.blocks.map(block));
+    body.replaceChildren(...pageContent(page));
     body.scrollTop = 0;
+    dialog.scrollTop = 0;
     if (last) body.append(el('p', { class: 'note' }, text.reopen));
     back.hidden = index === 0;
     skip.hidden = last;
     next.textContent = last ? text.done : text.next;
-    next.focus();
+    next.focus({ preventScroll: true });
   }
 
   const onKey = (e: KeyboardEvent) => {
@@ -118,10 +156,10 @@ export function openTutorial(
       const active = document.activeElement;
       if (e.shiftKey && (active === first || !dialog.contains(active))) {
         e.preventDefault();
-        lastItem.focus();
+        lastItem.focus({ preventScroll: true });
       } else if (!e.shiftKey && (active === lastItem || !dialog.contains(active))) {
         e.preventDefault();
-        first.focus();
+        first.focus({ preventScroll: true });
       }
     }
   };

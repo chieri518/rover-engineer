@@ -457,7 +457,7 @@ export interface MilestoneTuning {
   photoLosTailM: number;
 }
 
-/** Orbital survey leads: rough bearings to areas of interest, given at the landing briefing. */
+/** Orbital survey leads: rough bearings to areas of interest, shown by the minimap. */
 export interface SurveyTuning {
   /** site: a terrain.json feature key (craterDescent, shadowedCrater) or feature name (Rocky area 1). */
   leads: { id: string; site: string }[];
@@ -726,7 +726,7 @@ export interface SharedTextFile {
     compass: string[]; // 16 points from north, full words
     compassShort: string[]; // 16 points from north, abbreviated
   };
-  mission: Record<'heading' | 'briefing' | 'controls' | 'boundary' | 'loading' | 'loadFailed', string>; // loadFailed: {error}
+  mission: Record<'heading' | 'briefing' | 'boundary' | 'loading' | 'loadFailed', string>; // loadFailed: {error}
   hud: Record<
     | 'energy' | 'damage' | 'cold' | 'sunlit' | 'shadow' | 'powerDown' | 'powerUp' | 'poweredDown' | 'minimap'
     | 'endedHeading' | 'endedSurvived' | 'endedFailed' | 'lasted' | 'toDebrief'
@@ -781,7 +781,7 @@ export interface SharedTextFile {
     | 'xrayNewType', // Rock collection's count after a reading of a new rock type: {count} {total}
     string
   >;
-  /** Per instrument: HUD button, controls line, refusal when not carried, and the history fact shown on first use. */
+  /** Per instrument: HUD button, refusal when not carried, and the history fact shown on first use. */
   instrumentText: Record<Instrument, InstrumentText>;
   /** X-ray spectrometer rock types (placeholder content), keyed by tuning.instruments.xray.rocks ids. */
   rocks: Record<string, { name: string; elements: string }>;
@@ -789,7 +789,8 @@ export interface SharedTextFile {
   settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'music' | 'effects' | 'soundHelp' | 'muted' | 'mute' | 'unmute' | 'back', string>;
   tutorial: Record<
     | 'label' | 'designHeading' | 'driveHeading' | 'help' | 'helpDesign' | 'helpDrive'
-    | 'next' | 'back' | 'skip' | 'done' | 'step' | 'reopen' | 'tierItem' | 'tierJoin',
+    | 'next' | 'back' | 'skip' | 'done' | 'step' | 'reopen' | 'tierItem' | 'tierJoin'
+    | 'controlsHeading' | 'keysOr' | 'keysTo', // the drive help's key caps: heading, between alternative keys, and in the bay's "1 to n"
     string
   > & {
     design: TutorialPage[];
@@ -815,10 +816,9 @@ export interface SharedTextFile {
 /** text.json, with the Mars-only and Titan-only sections that data/mars/text.json and data/titan/text.json add. */
 export type TextFile = SharedTextFile & Partial<MarsTextSections> & Partial<TitanTextSections>;
 
-/** An instrument's mission text. {key} is its mission key; controls may also use {energy} and {standby}. */
+/** An instrument's mission text. {key} is its mission key where a line uses it. */
 export interface InstrumentText {
   button: string; // HUD button label
-  controls: string; // the controls line under the HUD buttons
   notCarried: string; // the notice when it is used on a rover that does not carry it
   holding?: string; // the hint while the rover holds still for it (default: instruments.holding)
   fact?: string; // one real-history sentence, shown on first use when Mission history is on
@@ -855,7 +855,28 @@ export type TutorialBlock = string | { table: { head: string[]; rows: string[][]
 export interface TutorialPage {
   title: string;
   body: TutorialBlock[];
-  instrument?: Partial<Record<Instrument, string>>; // shown only for the instruments carried, in bay order; {key} is the mission key
+  /** Key caps with short labels, shown above the body (the drive help's Controls section). */
+  keys?: TutorialKey[];
+  /**
+   * The drive help's Instruments page: one row per instrument carried, in bay order, from these entries
+   * ({key} is the mission key). A carried instrument with no entry gets a row with its key and part name.
+   */
+  instruments?: Partial<Record<Instrument, TutorialInstrumentRow>>;
+  emptyBay?: string; // with `instruments`: the page's only line when the bay is empty (the body is left out)
+}
+
+/** One Controls entry: groups of key caps (alternatives, joined by tutorial.keysOr) and what they do. */
+export interface TutorialKey {
+  caps?: string[][]; // e.g. [["W", "A", "S", "D"], ["↑", "←", "↓", "→"]]; not set on a bay entry
+  label: string;
+  bay?: boolean; // the caps are the bay's number keys, "1 to n" from the instruments carried; left out for an empty bay
+}
+
+/** One instrument's row on the drive help's Instruments page. */
+export interface TutorialInstrumentRow {
+  name: string; // shown in bold beside the key
+  steps: string[]; // short step chips, in order, e.g. "Stop", "Press {key}"
+  counts?: string; // one short line: where or when it counts
 }
 
 /** A hand-written credits entry, for sources with no metadata in the data files. */

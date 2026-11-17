@@ -23,7 +23,7 @@ import marsTerrain from '../../public/terrain/mars/terrain.json';
 import { foundNotice } from './surveyText';
 import { deskCardNotes, milestoneHowTo, milestoneSummary } from './milestoneText';
 import { armNotes, needsText } from './supportText';
-import { missionVars, tutorialPages } from './tutorialText';
+import { instrumentLine, missionVars, pageStrings, tutorialPages } from './tutorialText';
 import { fill } from './dom';
 
 const data = loadGameData();
@@ -46,9 +46,9 @@ const NEW_MILESTONES = [
   'documented-sample', 'fresh-ejecta-sample', 'moonquake-record', 'clean-seismogram', 'laser-ranging-site', 'science-station',
 ];
 
-/** The drive tutorial's line for one station; fails loudly if the line is missing, so the guard never checks the wrong text. */
+/** The drive tutorial's row for one station, as one line; fails loudly if the row is missing, so the guard never checks the wrong text. */
 function stationLine(instrument: Instrument, start: RegExp): string {
-  const lines = tutorialPages('drive', data, { mission: 'moon', instruments: [instrument] }).flatMap((p) => p.paragraphs).filter((s) => start.test(s));
+  const lines = tutorialPages('drive', data, { mission: 'moon', instruments: [instrument] }).flatMap(pageStrings).filter((s) => start.test(s));
   if (lines.length !== 1) throw new Error(`expected one drive tutorial line for ${instrument}, found ${lines.length}`);
   return lines[0]!;
 }
@@ -212,7 +212,11 @@ function marsTexts(d: GameData): MarsText[] {
   // The tutorial with every Mars instrument aboard.
   for (const id of ['design', 'drive'] as const) {
     for (const page of tutorialPages(id, d, { mission: 'mars', instruments, balance: 900 })) {
-      for (const [i, para] of [page.title, ...page.paragraphs].entries()) add(`tutorial ${id} ${page.title} ${i}`, para);
+      const rows = page.instruments ?? [];
+      const lines = pageStrings(page).slice(0, rows.length ? -rows.length : undefined);
+      for (const [i, para] of lines.entries()) add(`tutorial ${id} ${page.title} ${i}`, para);
+      // Each instrument row is checked as that instrument's text too (its key, name, steps and where it counts).
+      for (const [i, row] of rows.entries()) add(`tutorial ${id} ${page.title} row ${instruments[i]}`, instrumentLine(row), [instruments[i]!]);
     }
   }
   // Desk, mission, HUD, site and instrument texts, by path (each labelled with it).
@@ -240,6 +244,7 @@ describe('spoiler guard, Mars: no Mars text names a Mars lesson before it happen
       expect(labels, id).toContain(id);
     }
     expect(labels.some((l) => l.startsWith('tutorial drive'))).toBe(true);
+    for (const inst of ['neutron', 'xray', 'laser', 'organics', 'weather', 'radar']) expect(labels.some((l) => l.startsWith('tutorial drive') && l.endsWith(`row ${inst}`)), inst).toBe(true);
     expect(labels.some((l) => l.startsWith('notice '))).toBe(true);
     expect(labels.some((l) => l.startsWith('instrumentText.organics'))).toBe(true);
     expect(texts.find((x) => x.label === 'desk instrument-xray')!.text).toContain('Can earn: Rock collection');

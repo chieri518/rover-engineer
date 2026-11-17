@@ -182,12 +182,6 @@ export const missionScreen: Screen = (game, root) => {
   };
   const ti = text.instruments;
   const itx = text.instrumentText;
-  const controls = [text.mission.controls, ...instruments.map((i) => fill(itx[i].controls, {
-    key: keyOf(i),
-    energy: costOf(i)?.energyPerUse ?? 0,
-    standby: costOf(i)?.standbyEnergy ?? 0,
-  }))]
-    .join(' ');
   /** The instrument's real-history fact, the first time it is used in a mission (Mission history setting). */
   const showFact = (inst: Instrument) => {
     const fact = itx[inst].fact;
@@ -285,7 +279,6 @@ export const missionScreen: Screen = (game, root) => {
   }, el('span', { class: 'instrument-key' }, String(keyOf(inst))), buttonLabels.get(inst)!)]));
   const hud = new Hud(text, togglePower, el('div', { class: 'hud-extra' },
     instruments.length > 0 && el('div', { class: 'hud-instruments', role: 'group', 'aria-label': ti.buttonsLabel }, ...instrumentButtons.values()),
-    el('p', { class: 'muted' }, controls),
     status,
     el('div', { class: 'hud-help' }, help, notebookButton),
   ), () => game.setSettings({ muted: !game.settings.muted }));

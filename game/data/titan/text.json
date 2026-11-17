@@ -89,7 +89,6 @@
   },
   "mission": {
     "briefing": "One Titan day in the Shangri-La dunes. The battery is the energy budget, and the cold never lets up.",
-    "controls": "W A S D or arrow keys to drive. Space to brake. P to power down (sleep) or power up.",
     "loading": "Loading the Shangri-La dunes…",
     "loadFailed": "Titan failed to load: {error}"
   },
@@ -156,10 +155,57 @@
     "drive": [
       {
         "title": "One Titan day",
+        "keys": [
+          { "caps": [["W", "A", "S", "D"], ["↑", "←", "↓", "→"]], "label": "Drive" },
+          { "caps": [["Space"]], "label": "Brake" },
+          { "caps": [["P"]], "label": "Power down (sleep) / up" },
+          { "caps": [["N"]], "label": "Notebook" },
+          { "caps": [["L"]], "label": "Milestone list" },
+          { "caps": [["M"]], "label": "Mute" },
+          { "label": "Instruments", "bay": true }
+        ],
         "body": [
-          "W A S D or arrow keys to drive. Space to brake. P to power down or power up.",
           "The mission lasts {minutes} minutes and covers one Titan day, about 16 Earth days. It starts in the morning: about {dayLeftMinutes} minutes of daylight, then a {nightMinutes}-minute night, then dawn for the last {dawnMinutes} minutes. There is no clock: the Sun is a faint disc behind the haze.",
           "Dark dune sand is soft, and the wheels can dig in. The bright interdune corridors are firm."
+        ]
+      },
+      {
+        "title": "Instruments",
+        "instruments": {
+          "camera": {
+            "name": "Camera",
+            "steps": ["Press {key}", "Takes a photograph"],
+            "counts": "The Dune sea photograph counts from a dune crest viewpoint, looking out over the dune field."
+          },
+          "drill": {
+            "name": "Drill",
+            "steps": ["Stop", "Press {key}", "Drills a sample", "{energy} energy"],
+            "counts": "Counts at up to three sites, each at least {sampleSpacing} m from the lander and from each other. A first sample in the Selk ejecta field is a record."
+          },
+          "neutron": {
+            "name": "Neutron spectrometer",
+            "steps": ["Press {key}", "On or off", "{standby} energy/s"],
+            "counts": "Titan has no hydrogen-rich ground for it to find, and no milestone here uses it."
+          },
+          "xray": {
+            "name": "X-ray spectrometer",
+            "steps": ["Stop beside a boulder", "Press {key}", "Reads its main elements", "{energy} energy"],
+            "counts": "No milestone here uses it."
+          },
+          "seismometer": {
+            "name": "Seismometer station",
+            "steps": ["Stop", "Press {key}", "Sets it down"],
+            "counts": "There is no quake to record on Titan, and no milestone here uses it."
+          },
+          "reflector": {
+            "name": "Laser retroreflector",
+            "steps": ["Stop", "Press {key}", "Sets it down"],
+            "counts": "Earth is never in Titan's sky for it to mirror lasers from, and no milestone here uses it."
+          }
+        },
+        "emptyBay": "The payload bay is empty: this rover carries no instruments.",
+        "body": [
+          "Each instrument has its number key and a button beside the meters."
         ]
       },
       {
@@ -186,15 +232,10 @@
         ]
       },
       {
-        "title": "Instruments and map",
-        "instrument": {
-          "camera": "Camera: {key} (or its button) takes a photograph. The Dune sea photograph counts from a dune crest viewpoint, looking out over the dune field.",
-          "drill": "Drill: stop the rover, then press {key} (or its button) to drill a sample. Samples count at up to three sites, each at least {sampleSpacing} m from the lander and from each other. A first sample in the Selk ejecta field is a record."
-        },
+        "title": "Map and notebook",
         "body": [
-          "Each instrument in the payload bay has a number key, 1 to {bayMax} in bay order, and a button beside the meters.",
-          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it.",
-          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been. Arrows at the edge of the map point toward the orbital survey leads from the landing briefing."
+          "The map starts zoomed in on the lander and widens as the rover explores. It shows only ground within {revealRadius} m of where the rover has been. Arrows at the edge of the map point toward the orbital survey leads.",
+          "The engineering notebook records what the mission teaches about the rover. Open it with N or the Notebook button; the mission pauses while it is open, and Escape closes it."
         ]
       }
     ]

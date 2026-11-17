@@ -16,6 +16,25 @@ export interface TutorialPageText {
   blocks: TutorialBlockText[];
   /** Every line of text on the page, in order (paragraphs, subheadings, list items, table rows): for search and tests. */
   paragraphs: string[];
+  /** The drive help's Controls section, shown above the paragraphs: its heading and key caps. */
+  controls?: { heading: string; keys: TutorialKeyText[] };
+  /** The drive help's Instruments page: one row per instrument carried, in bay order, shown after the paragraphs. */
+  instruments?: TutorialInstrumentText[];
+}
+
+/** One Controls entry: groups of key caps, joined by `join` ("or" between alternatives, "to" in the bay's "1 to n"). */
+export interface TutorialKeyText {
+  caps: string[][];
+  join: string;
+  label: string;
+}
+
+/** One instrument row: its mission key, name, step chips and where it counts, all filled. */
+export interface TutorialInstrumentText {
+  key: number;
+  name: string;
+  steps: string[];
+  counts?: string;
 }
 
 /** The page's text lines (a table row is its cells joined by " · "). */
@@ -69,17 +88,53 @@ export function tutorialPages(
     maxPoints: points.length ? Math.max(...points) : 0, // the chassis mounting points (the Moon's guide)
     minPoints: points.length ? Math.min(...points) : 0,
   };
+  const bay = opts.instruments;
   return t[id].map((page) => {
-    // One line per carried instrument, with its mission key (bay order).
-    const instrumentLines: TutorialBlock[] = opts.instruments.flatMap((inst, i) => {
-      const line = page.instrument?.[inst];
-      return line ? [fill(line, { ...vars, key: i + 1 })] : [];
-    });
-    // In the drive tutorial, a body line that mentions the bay's number keys ({bayMax}) is left out for an empty bay.
-    const body = page.body.filter((p) => id !== 'drive' || opts.instruments.length > 0 || typeof p !== 'string' || !p.includes('{bayMax}'));
-    const blocks = blocksOf([...instrumentLines, ...body], vars, data);
-    return { title: fill(page.title, vars), blocks, paragraphs: linesOf(blocks) };
+    const blocks = blocksOf(page.body, vars, data);
+    const out: TutorialPageText = { title: fill(page.title, vars), blocks, paragraphs: linesOf(blocks) };
+    if (page.keys) {
+      // The bay's entry reads "1 to n" (just "1" for one instrument) and is left out for an empty bay.
+      const keys = page.keys.flatMap((k): TutorialKeyText[] => {
+        if (!k.bay) return [{ caps: (k.caps ?? []).map((g) => g.map((c) => fill(c, vars))), join: t.keysOr, label: fill(k.label, vars) }];
+        if (bay.length === 0) return [];
+        return [{ caps: bay.length === 1 ? [['1']] : [['1'], [String(bay.length)]], join: t.keysTo, label: fill(k.label, vars) }];
+      });
+      out.controls = { heading: t.controlsHeading, keys };
+    }
+    if (page.instruments) {
+      // An empty bay: the page's only line says so. A carried instrument this world's help does not
+      // cover still gets its row (key and part name), so the rows match the HUD buttons.
+      if (bay.length === 0) {
+        const empty = blocksOf(page.emptyBay ? [page.emptyBay] : [], vars, data);
+        return { ...out, blocks: empty, paragraphs: linesOf(empty) };
+      }
+      out.instruments = bay.map((inst, i) => {
+        const key = i + 1;
+        const row = page.instruments![inst];
+        const part = data.allParts.parts.find((p) => p.effects.instrument === inst);
+        if (!row) return { key, name: part?.name ?? inst, steps: [] };
+        // {energy} and {standby}: the part's own costs, the numbers the mission charges (see payload.ts).
+        const v = { ...vars, key, energy: part?.effects.energyPerUse ?? 0, standby: part?.effects.standbyEnergy ?? 0 };
+        return { key, name: fill(row.name, v), steps: row.steps.map((s) => fill(s, v)), ...(row.counts ? { counts: fill(row.counts, v) } : {}) };
+      });
+    }
+    return out;
   });
+}
+
+/** Every string a page shows, in reading order (for search and tests): an instrument row reads "Name: step · step. Counts". */
+export function pageStrings(page: TutorialPageText): string[] {
+  return [
+    page.title,
+    ...(page.controls ? [page.controls.heading, ...page.controls.keys.map((k) => `${k.caps.map((g) => g.join(' ')).join(` ${k.join} `)}: ${k.label}`)] : []),
+    ...page.paragraphs,
+    ...(page.instruments ?? []).map(instrumentLine),
+  ];
+}
+
+/** An instrument row as one line: "Drill: Stop · Press 2 · Drills a sample. Counts at …". */
+export function instrumentLine(row: TutorialInstrumentText): string {
+  return `${row.name}: ${row.steps.join(' · ')}${row.steps.length ? '.' : ''}${row.counts ? ` ${row.counts}` : ''}`;
 }
 
 /** The next mission's minimum budget (the pass mark); empty after the last mission, which passes on survival. */
