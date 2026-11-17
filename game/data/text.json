@@ -707,19 +707,16 @@
       {
         "title": "Rover configuration",
         "body": [
-          "### Components",
-          "Fill the four required slots (frame, wheels, power and battery) before launch. Each component has a **cost**, a **mass** and a **size**; the specification sheet adds them up.",
-          "### Payload bay",
+          "### Components and payload",
+          "Fill the four required slots (frame, wheels, power and battery) for components and add optional payload before launch. Each component has a **cost**, a **mass** and a **size**; the specification sheet adds them up.",
           "The payload bay holds instruments, and systems such as lights and a heater. Each item takes one mounting point, and the chassis has {minPoints} or {maxPoints}. A chassis with fewer points drops the instruments added last.",
-          "Instruments use energy each time they operate (active) and while switched on (standby). Each instrument card shows its energy use and the milestones it can earn.",
-          "Instruments get number keys in the order you add them (first = Key 1). An empty bay is allowed, but it earns little."
+          "Instruments use energy each time they operate (active) and while switched on (standby). Each instrument card shows its energy use and the milestones it can earn."
         ]
       },
       {
         "title": "Launch operations",
         "body": [
-          "### Launch ticket",
-          "REL assigns the smallest ticket that fits both the rover's mass and its size. Going over either limit moves the rover up a tier; over the Large limits, it cannot launch.",
+          "REL must purchase a launch ticket to reserve space aboard a launch vehicle and transport the rover to the planetary surface.",
           {
             "tiersTable": {
               "head": [
@@ -735,20 +732,7 @@
                 "{price}"
               ]
             }
-          },
-          "The mass and size gauges on the specification sheet show how close the rover is to each limit.",
-          "### Pre-launch review",
-          "Before you buy the ticket, a review lists the engineering notebook's lessons that apply to your rover and always checks for missing lights. It is advice only and never blocks a launch."
-        ]
-      },
-      {
-        "title": "Surface operations",
-        "body": [
-          "### Mission execution",
-          "Drive the rover, use its instruments, and complete milestones to earn money. Watch the battery: instruments draw energy when used and while switched on.",
-          "For the Moon mission, finish with at least **{nextMinimum}**.",
-          "### Engineering records",
-          "The engineering notebook records what your rover learns on the surface. Its lessons appear in later pre-launch reviews, so use them to design better rovers."
+          }
         ]
       }
     ],

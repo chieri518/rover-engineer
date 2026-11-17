@@ -40,15 +40,13 @@ describe('tutorial text', () => {
     }
   });
 
-  it('covers the bay, the review and the notebook, and announces no relationship', () => {
+  it('covers the bay and the notebook, and announces no relationship', () => {
     const join = (id: 'design' | 'drive') =>
       tutorialPages(id, data, { mission: 'moon', instruments: ['camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector'] })
         .flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
     const design = join('design');
     expect(design).toContain('mounting point');
-    expect(design).toContain('An empty bay is allowed');
     expect(design).not.toMatch(/No instruments|No lights|No heater/); // leaving a part off is not a choice on the desk (November 16)
-    expect(design).toContain('pre-launch review');
     expect(design).toMatch(/energy/i);
     const drive = join('drive');
     expect(drive).toContain('engineering notebook');
@@ -88,18 +86,17 @@ describe('tutorial text', () => {
 });
 
 describe('the Rover Operations Guide (the Moon design tutorial) and briefing lines', () => {
-  it('has the four guide pages, every number filled from the data', () => {
+  it('has the three guide pages, every number filled from the data', () => {
     const pages = tutorialPages('design', data, { mission: 'moon', instruments: [] });
-    expect(pages.map((p) => p.title)).toEqual(['Mission overview', 'Rover configuration', 'Launch operations', 'Surface operations']);
+    expect(pages.map((p) => p.title)).toEqual(['Mission overview', 'Rover configuration', 'Launch operations']);
     const strings = pages.flatMap((p) => [p.title, ...p.blocks.flatMap((b) => (b.kind === 'list' ? b.items : b.kind === 'table' ? [...b.head, ...b.rows.flat()] : [b.text]))]);
     for (const s of strings) expect(s).not.toMatch(/\{\w+\}/);
     const all = strings.join('\n');
     const budget = `$${data.tuning.budget.startingBudget}k`;
     const pass = `$${data.tuning.budget.minimumBudget.mars}k`;
-    // The Moon's finances table, and the pass mark again on the last page.
+    // The Moon's finances table.
     const finances = pages[0]!.blocks.find((b) => b.kind === 'table');
     expect(finances?.kind === 'table' && finances.rows.map((r) => r[1])).toEqual([budget, pass]);
-    expect(all).toContain(`finish with at least **${pass}**`);
     // The ticket table: one row per tier, from tiers.json.
     const tickets = pages[2]!.blocks.find((b) => b.kind === 'table');
     expect(tickets?.kind === 'table' && tickets.rows).toEqual(data.tiers.tiers.map((t) => [t.name, `${t.massLimit} kg`, `${t.sizeLimit}`, `$${t.price}k`]));
