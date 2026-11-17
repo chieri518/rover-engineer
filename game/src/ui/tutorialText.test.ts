@@ -88,28 +88,26 @@ describe('tutorial text', () => {
 });
 
 describe('Welcome to REL intro and briefing lines', () => {
-  it('has the four quick-start pages, every number filled from the data', () => {
+  it('has the four guide pages, every number filled from the data', () => {
     const pages = introPages(data);
-    expect(pages.map((p) => p.title)).toEqual(['Welcome to REL', 'Design your rover', 'Prepare for launch', 'Your mission begins']);
+    expect(pages.map((p) => p.title)).toEqual(['Mission overview', 'Rover configuration', 'Launch operations', 'Surface operations']);
     const strings = pages.flatMap((p) => [p.title, ...p.blocks.flatMap((b) => (b.kind === 'list' ? b.items : b.kind === 'table' ? [...b.head, ...b.rows.flat()] : [b.text]))]);
     for (const s of strings) expect(s).not.toMatch(/\{\w+\}/);
     const all = strings.join('\n');
     const budget = `$${data.tuning.budget.startingBudget}k`;
     const pass = `$${data.tuning.budget.minimumBudget.mars}k`;
-    // The Moon's finances table and the reminder list.
+    // The Moon's finances table, and the pass mark again on the last page.
     const finances = pages[0]!.blocks.find((b) => b.kind === 'table');
     expect(finances?.kind === 'table' && finances.rows.map((r) => r[1])).toEqual([budget, pass]);
-    expect(all).toContain(`Starting budget: ${budget}`);
-    expect(all).toContain(`Pass mark: ${pass}`);
+    expect(all).toContain(`the required final balance is **${pass}**`);
     // The ticket table: one row per tier, from tiers.json.
     const tickets = pages[2]!.blocks.find((b) => b.kind === 'table');
     expect(tickets?.kind === 'table' && tickets.rows).toEqual(data.tiers.tiers.map((t) => [t.name, `${t.massLimit} kg`, `${t.sizeLimit}`, `$${t.price}k`]));
     // The chassis mounting points.
     const points = data.parts.parts.filter((p) => p.slot === 'chassis').map((p) => p.effects.mountingPoints!);
-    expect(all).toContain(`support ${Math.max(...points)} items`);
-    expect(all).toContain(`support ${Math.min(...points)} items`);
+    expect(all).toContain(`(${Math.min(...points)} or ${Math.max(...points)} points)`);
     // Subheadings and lists are parsed, not shown as markdown.
-    expect(pages[0]!.blocks[0]).toEqual({ kind: 'h', text: "You're in charge of the mission." });
+    expect(pages[0]!.blocks[0]).toEqual({ kind: 'h', text: 'Welcome to the Rover Exploration Laboratory' });
     expect(all).not.toMatch(/^(### |- )/m);
     expect(all).not.toMatch(/research point|\bRP\b/);
   });

@@ -53,7 +53,7 @@ export interface IntroPageText {
 }
 
 /**
- * The Welcome to REL intro pages (text.intro, the quick-start guide), filled from the Moon's data: {budget},
+ * The Welcome to REL intro pages (text.intro, the Rover Operations Guide), filled from the Moon's data: {budget},
  * {nextMinimum}, the chassis mounting points ({maxPoints}, {minPoints}) and the ticket tiers (tiersTable).
  */
 export function introPages(data: GameData): IntroPageText[] {

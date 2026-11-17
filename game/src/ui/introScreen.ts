@@ -1,4 +1,4 @@
-// The Welcome to REL intro (game-design.md §3): the quick-start guide "REL: Your First Mission", four pages
+// The Welcome to REL intro (game-design.md §3): the guide "REL | Rover Operations Guide", four pages
 // after the intro film, before the first Moon design desk. Laid out like the tutorial dialog (Skip / Back /
 // Next), but as its own screen, with subheadings, lists and tables; a long page scrolls inside the card.
 import type { Screen } from '../flow/flow';
