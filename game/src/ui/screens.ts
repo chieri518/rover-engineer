@@ -18,6 +18,7 @@ import { isPlayable, nextMission } from '../rules/campaign';
 import { briefingLines, kmText } from './surveyText';
 import { missionVars } from './tutorialText';
 import { creditsScreen } from './creditsScreen';
+import { filmScreen } from './filmScreen';
 import { introScreen } from './introScreen';
 import { renderDashboard } from './dashboard';
 import { designScreen } from './designScreen';
@@ -411,6 +412,7 @@ export const screens: Record<ScreenId, Screen> = {
   title,
   settings,
   credits: creditsScreen,
+  film: filmScreen,
   intro: introScreen,
   design: designScreen,
   ticket: ticketScreen,
