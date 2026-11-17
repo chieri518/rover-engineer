@@ -3,7 +3,29 @@
 import type { TextFile } from '../rules/types';
 import type { TutorialId } from '../save/tutorialSeen';
 import { el, fill } from './dom';
-import type { TutorialInstrumentText, TutorialKeyText, TutorialPageText } from './tutorialText';
+import type { TutorialBlockText, TutorialInstrumentText, TutorialKeyText, TutorialPageText } from './tutorialText';
+
+/** Text with its **bold** spans as <strong>. */
+function spans(text: string): (string | HTMLElement)[] {
+  return text.split('**').map((part, i) => (i % 2 === 1 ? el('strong', {}, part) : part));
+}
+
+/** One block of a page: a paragraph, a subheading, a list or a table. */
+function block(b: TutorialBlockText): HTMLElement {
+  switch (b.kind) {
+    case 'h':
+      return el('h3', { class: 'tutorial-subhead' }, ...spans(b.text));
+    case 'list':
+      return el('ul', { class: 'tutorial-list' }, ...b.items.map((item) => el('li', {}, ...spans(item))));
+    case 'table':
+      return el('table', { class: 'tutorial-table' },
+        el('thead', {}, el('tr', {}, ...b.head.map((c) => el('th', { scope: 'col' }, ...spans(c))))),
+        el('tbody', {}, ...b.rows.map((r) => el('tr', {}, ...r.map((c, i) => (i === 0 ? el('th', { scope: 'row' }, ...spans(c)) : el('td', {}, ...spans(c))))))),
+      );
+    default:
+      return el('p', {}, ...spans(b.text));
+  }
+}
 
 export interface TutorialHandle {
   readonly root: HTMLElement;
@@ -13,16 +35,16 @@ export interface TutorialHandle {
   dispose(): void;
 }
 
-/** A page's content: the Controls key caps (drive help), the paragraphs, then the instrument rows (drive help). */
+/** A page's content: the Controls key caps (drive help), the blocks (paragraphs, subheadings, lists, tables), then the instrument rows (drive help). */
 function pageContent(page: TutorialPageText): HTMLElement[] {
   const out: HTMLElement[] = [];
   if (page.controls && page.controls.keys.length > 0) {
     out.push(el('section', { class: 'tutorial-controls', 'aria-label': page.controls.heading },
-      el('h3', { class: 'tutorial-subhead' }, page.controls.heading),
+      el('h3', { class: 'tutorial-controls-head' }, page.controls.heading),
       el('ul', { class: 'tutorial-keys' }, ...page.controls.keys.map(keyItem)),
     ));
   }
-  out.push(...page.paragraphs.map((p) => el('p', {}, p)));
+  out.push(...page.blocks.map(block));
   if (page.instruments?.length) out.push(el('ol', { class: 'tutorial-instruments' }, ...page.instruments.map(instrumentRow)));
   return out;
 }
@@ -77,8 +99,11 @@ export function openTutorial(
     onclick: () => (index < pages.length - 1 ? show(index + 1) : close()),
   });
   const skip = el('button', { type: 'button', class: 'tutorial-skip', onclick: () => close() }, text.skip);
+  // A guide with subheadings, lists or tables (the Moon's Rover Operations Guide) gets a wider card whose body scrolls.
+  const rich = pages.some((p) => p.blocks.some((b) => b.kind !== 'p'));
+  const label = id === 'design' && text.designLabel ? text.designLabel : `${text.label} · ${id === 'design' ? text.designHeading : text.driveHeading}`;
   const dialog = el('section', {
-    class: 'tutorial',
+    class: rich ? 'tutorial tutorial-rich' : 'tutorial',
     id: 'tutorial-dialog',
     role: 'dialog',
     'aria-modal': 'true',
@@ -87,7 +112,7 @@ export function openTutorial(
     'data-tutorial': id,
   },
     el('div', { class: 'tutorial-head' },
-      el('span', { class: 'tutorial-label' }, `${text.label} · ${id === 'design' ? text.designHeading : text.driveHeading}`),
+      el('span', { class: 'tutorial-label' }, label),
       step,
     ),
     title,

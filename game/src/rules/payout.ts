@@ -83,6 +83,50 @@ export function deathPenalty(cause: DeathCause, secondsLasted: number, tuning: T
   return Math.round(base * factor);
 }
 
+/** A milestone earned this mission, as the payout counts it; a record already held is listed but pays nothing. */
+export interface EarnedLine extends PaidMilestone {
+  stagesTotal: number; // milestoneStages: how many stages it has (1 for most)
+  recordHeld: boolean; // a record already earned this campaign: money and RP are 0
+}
+
+/**
+ * The milestones earned, one line each in the order given (repeats dropped), with what each pays: its
+ * reward times the stages reached (clamped to its stages; none reached: left out), ground-down X-ray
+ * readings raised (milestoneReward), records already earned this campaign at 0. The HUD's milestone
+ * list during the mission and the debrief's payout (missionPayout) both read it.
+ */
+export function earnedLines(
+  earned: readonly EarnedMilestone[],
+  catalog: readonly Milestone[],
+  tuning: Tuning,
+  recordsEarned: readonly string[],
+  groundDown: boolean,
+): EarnedLine[] {
+  const lines: EarnedLine[] = [];
+  const seen = new Set<string>();
+  for (const e of earned) {
+    if (seen.has(e.id)) continue;
+    seen.add(e.id);
+    const milestone = catalog.find((m) => m.id === e.id);
+    if (!milestone) throw new Error(`unknown milestone ${e.id}`);
+    const stagesTotal = milestoneStages(milestone);
+    const stages = Math.min(Math.max(e.stages ?? 1, 0), stagesTotal);
+    if (stages === 0) continue;
+    const recordHeld = milestone.record === true && recordsEarned.includes(milestone.id);
+    const reward = milestoneReward(milestone, groundDown, tuning);
+    lines.push({
+      milestone,
+      stages,
+      stagesTotal,
+      recordHeld,
+      money: recordHeld ? 0 : reward.money * stages,
+      rp: recordHeld ? 0 : reward.rp * stages,
+      ...(reward.factor !== 1 && !recordHeld ? { factor: reward.factor } : {}),
+    });
+  }
+  return lines;
+}
+
 /**
  * Money = survival payout (if survived) + milestone money − death penalty (if died).
  * RP = milestone RP. Records already earned this campaign pay nothing. Ground-down X-ray readings raise
@@ -94,22 +138,10 @@ export function missionPayout(
   tuning: Tuning,
   recordsEarned: readonly string[],
 ): Payout {
-  const paid: PaidMilestone[] = [];
-  const newRecords: string[] = [];
-  const seen = new Set<string>();
-  for (const earned of result.earned) {
-    if (seen.has(earned.id)) continue;
-    seen.add(earned.id);
-    const milestone = catalog.find((m) => m.id === earned.id);
-    if (!milestone) throw new Error(`unknown milestone ${earned.id}`);
-    if (milestone.record && recordsEarned.includes(milestone.id)) continue;
-    const maxStages = milestoneStages(milestone);
-    const stages = Math.min(Math.max(earned.stages ?? 1, 0), maxStages);
-    if (stages === 0) continue;
-    if (milestone.record) newRecords.push(milestone.id);
-    const reward = milestoneReward(milestone, result.groundDown === true, tuning);
-    paid.push({ milestone, stages, money: reward.money * stages, rp: reward.rp * stages, ...(reward.factor !== 1 ? { factor: reward.factor } : {}) });
-  }
+  const paid: PaidMilestone[] = earnedLines(result.earned, catalog, tuning, recordsEarned, result.groundDown === true)
+    .filter((l) => !l.recordHeld)
+    .map(({ recordHeld: _held, stagesTotal: _total, ...p }) => p);
+  const newRecords = paid.filter((p) => p.milestone.record).map((p) => p.milestone.id);
   const milestoneMoney = paid.reduce((s, p) => s + p.money, 0);
   const milestoneRp = paid.reduce((s, p) => s + p.rp, 0);
   const survivalPayout = result.survived ? tuning.payout.survivalPayout : 0;

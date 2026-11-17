@@ -9,37 +9,8 @@
     "continueCampaign": "Continue campaign"
   },
   "intro": {
-    "heading": "Welcome to REL",
-    "skip": "Skip intro",
-    "done": "Go to the design desk",
     "filmSkip": "Skip",
-    "filmLabel": "Intro film: a rover's journey from launch on Earth to the Moon, Mars and Titan",
-    "pages": [
-      {
-        "title": "Welcome to REL",
-        "body": [
-          "REL, the Rover Exploration Laboratory, designs and operates small robotic rovers.",
-          "You are REL's newest rover engineer, at mission control. For each mission you design the rover, buy its launch ticket, and drive it on the surface.",
-          "REL is fictional. The worlds, the ground under the rover and the missions the game cites are real, from NASA data and published sources."
-        ]
-      },
-      {
-        "title": "Every mission must pay its way",
-        "body": [
-          "Each mission has a budget. The rover's parts and its launch ticket are paid from it, and work on the surface earns money back.",
-          "After the mission, the balance must reach the **pass mark**: the amount REL needs to fund the next mission. On the Moon, the budget is {budget} and the pass mark is {nextMinimum}. If the balance falls short, REL tries the same mission again."
-        ]
-      },
-      {
-        "title": "Three worlds ahead",
-        "body": [
-          "**Mission 1 · The Moon.** The de Gerlache crater rim, near the south pole. Low sunlight, long shadows, and every kilogram counts.",
-          "**Mission 2 · Mars.** Jezero crater, an ancient lake bed. A night every sol, cold, and dust.",
-          "**Mission 3 · Titan.** The Shangri-La dunes on Saturn's largest moon. Almost no sunlight, constant cold, and one goal: survive.",
-          "Each mission's results fund the next."
-        ]
-      }
-    ]
+    "filmLabel": "Intro film: a rover's journey from launch on Earth to the Moon, Mars and Titan"
   },
   "story": {
     "kicker": "Mission 1 · The Moon, de Gerlache rim",
@@ -201,22 +172,14 @@
   "ticket": {
     "heading": "Launch ticket",
     "briefing": "REL secures a spot for the rover on the next commercial launch to the lunar south pole.",
-    "tierRule": "The ticket tier is the smallest one that fits both the rover's mass and its size.",
-    "whySmallest": "The rover fits the {tier} tier, the smallest available.",
-    "whyPushed": "The rover exceeds the {lower} tier's {reasons}, so {tier} is the smallest tier that fits.",
-    "whyNone": "The rover exceeds the {tier} tier's {reasons}. No tier can carry it.",
-    "massOver": "mass limit by {n} kg",
-    "sizeOver": "size limit by {n}",
     "and": " and "
   },
   "review": {
     "heading": "Pre-launch review",
-    "intro": "Lessons from the engineering notebook that apply to this rover, plus hard blocks. You can launch either way.",
     "empty": "No lesson in the notebook applies to this rover yet. Lessons are learned on the surface, when parts affect each other in a mission.",
     "green": "Fine",
     "yellow": "Risk",
-    "blocked": "Blocked",
-    "hardBlock": "Always checked"
+    "caution": "Caution"
   },
   "notebook": {
     "open": "Notebook",
@@ -240,9 +203,6 @@
     "briefing": "The lander has touched down on the de Gerlache crater rim. The rover is deploying."
   },
   "survey": {
-    "heading": "Orbital survey leads",
-    "intro": "Orbital data show four areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
-    "lead": "{name}: about {distance} km {direction}. {source}",
     "leads": {
       "layers": {
         "name": "Layered wall exposure",
@@ -297,7 +257,6 @@
     "siteLineDocumented": "Camera: photograph a boulder after reading it, from within {documentedRange} m.",
     "legendLead": "Survey lead",
     "shadowedCraterName": "Permanently shadowed crater",
-    "loading": "Loading orbital survey data.",
     "compass": [
       "north",
       "north-northeast",
@@ -551,7 +510,11 @@
     "categoryCapability": "Capability",
     "categoryScientific": "Scientific",
     "categoryRecord": "Record",
-    "categoryPicture": "Pretty picture"
+    "categoryPicture": "Pretty picture",
+    "logHeading": "Milestones",
+    "logEmpty": "None yet. Rewards are added to the budget at the debrief.",
+    "logHeldReward": "Record held, no reward",
+    "logToggle": "Show or hide the milestones reached this mission ({key})"
   },
   "instruments": {
     "buttonsLabel": "Instruments",
@@ -684,6 +647,7 @@
   "tutorial": {
     "label": "Tutorial",
     "designHeading": "Rover design",
+    "designLabel": "REL | Rover Operations Guide",
     "driveHeading": "First drive",
     "help": "Help",
     "helpDesign": "Open the rover design tutorial",
@@ -701,35 +665,59 @@
     "keysTo": "to",
     "design": [
       {
-        "title": "Parts, mass and cost",
+        "title": "Welcome to REL",
         "body": [
-          "Choose one part for each of the four bus slots: chassis, wheels, power source and battery. Then fit the payload bay. Everything starts empty, and the rover can launch once the four bus slots have a part; the bay may stay empty. Each part has a cost, a mass and a size. The specification sheet shows the totals for the rover.",
-          "Cheap parts are heavy and light parts are expensive. A heavier rover is slower, uses more energy per meter and sinks deeper in soft ground."
+          "The Rover Exploration Laboratory (REL) designs and operates robotic rovers for planetary exploration. To transport a rover to the planetary surface, REL must purchase a launch ticket, reserving space aboard a launch vehicle.",
+          "As a rover engineer, you are responsible for rover design, launch preparation, and surface operations."
         ]
       },
       {
-        "title": "Payload bay",
+        "title": "Mission funding",
         "body": [
-          "The payload bay holds the instruments, one of each, and the rover's systems: the lights and a heater. Each item takes one mounting point, and the chassis sets how many there are: {bayMin} or {bayMax}, depending on the frame. A full bay cannot take another item, and a chassis with fewer points removes the instruments added last. To leave something off, just do not fit it.",
-          "Each instrument card shows its cost, mass and size, and what it costs in energy: some use energy every time they work, and some draw a little while switched on. The specification sheet adds these to the range estimate. An empty bay is allowed, but a rover with no instruments cannot earn much.",
-          "Each instrument card lists the milestones it can earn.",
-          "The order of the bay is the order of the number keys in the mission: the first instrument added is key 1."
+          "Each mission has a designated budget covering rover components and launch costs. Completing milestones during surface operations generates revenue.",
+          "To qualify for the next mission, the final balance must meet or exceed the **pass mark**. If the balance falls short, the mission must be repeated.",
+          {
+            "table": {
+              "head": [
+                "Moon mission",
+                "Amount"
+              ],
+              "rows": [
+                [
+                  "Mission budget",
+                  "{budget}"
+                ],
+                [
+                  "Pass mark",
+                  "{nextMinimum}"
+                ]
+              ]
+            }
+          }
         ]
       },
       {
-        "title": "Launch ticket",
+        "title": "Rover design",
         "body": [
-          "REL buys the rover a spot on the next launch. The ticket tier is the smallest one that fits both the rover's mass and its size: {tiers}.",
-          "A rover just over a tier limit pays the much higher price of the next tier. A rover above the {top} limits cannot launch. The marks on the mass and size gauges show each limit.",
-          "On the launch ticket screen, the pre-launch review lists lessons from the engineering notebook that apply to this rover, and one problem that is always checked (no lights). It never stops a launch. At first it has little to say: the notebook fills as the rover learns things on the surface."
-        ]
-      },
-      {
-        "title": "Chassis and budget",
-        "body": [
-          "Each chassis has a maximum load. If the total mass exceeds it, the frame takes damage throughout the mission.",
-          "The parts and the ticket are paid from the budget. After the mission, the balance must meet the minimum budget for the next mission ({nextMinimum}), or the round is restarted.",
-          "Optional: the i button beside the maximum speed compares game speeds with real rover speeds."
+          "Configure the four required components: **frame, wheels, power, and battery**. You may then equip optional scientific instruments in the payload bay.",
+          "Each instrument consumes energy both during operation (**active**) and while switched on (**standby**). Instrument cards display energy requirements and the milestones each instrument can earn.",
+          "Each component has **cost, mass, and size**. The specification sheet calculates the combined totals for your rover.",
+          {
+            "tiersTable": {
+              "head": [
+                "Ticket",
+                "Maximum mass",
+                "Maximum size",
+                "Cost"
+              ],
+              "row": [
+                "{name}",
+                "{mass} kg",
+                "{size}",
+                "{price}"
+              ]
+            }
+          }
         ]
       }
     ],

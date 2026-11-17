@@ -35,7 +35,7 @@ describe('sound helpers', () => {
 
   it('the intro film silences the music (it has its own score)', () => {
     expect(moodFor('film', 'moon')).toBeNull();
-    expect(moodFor('intro', 'moon')).toBe('calm');
+    expect(moodFor('design', 'moon')).toBe('calm');
   });
 
   it('the film follows the Effects slider and mute', () => {

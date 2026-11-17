@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { deathPenalty, isXrayReading, milestoneReward, missionPayout } from './payout';
+import { deathPenalty, earnedLines, isXrayReading, milestoneReward, missionPayout } from './payout';
 import { testMilestones, testTuning } from './testData';
 import { loadGameData } from '../gameData';
 import type { DeathCause } from './types';
@@ -129,5 +129,40 @@ describe('ground-down X-ray readings (the robotic arm as the X-ray\'s upgrade, N
   it('on the Moon (no arm tuning) the flag changes nothing', () => {
     const rc = moon.milestones.milestones.find((x) => x.id === 'rock-collection')!;
     expect(milestoneReward(rc, true, moon.tuning)).toEqual({ money: rc.money, rp: rc.rp, factor: 1 });
+  });
+});
+
+describe('earned lines (the HUD milestone list and the debrief share them)', () => {
+  const moon = loadGameData();
+  const cat = moon.milestones.milestones;
+  const m = (id: string) => cat.find((x) => x.id === id)!;
+
+  it('one line per milestone in the order given, a staged one paid for every stage reached', () => {
+    const lines = earnedLines([{ id: 'odometer', stages: 2 }, { id: 'touchdown' }, { id: 'odometer' }], cat, moon.tuning, [], false);
+    expect(lines.map((l) => l.milestone.id)).toEqual(['odometer', 'touchdown']);
+    expect(lines[0]).toMatchObject({ stages: 2, stagesTotal: 3, money: m('odometer').money * 2, rp: m('odometer').rp * 2, recordHeld: false });
+    expect(lines[1]).toMatchObject({ stages: 1, stagesTotal: 1, money: m('touchdown').money, rp: m('touchdown').rp });
+  });
+
+  it('a record already held is listed at 0; the payout leaves it out', () => {
+    const lines = earnedLines([{ id: 'touchdown' }], cat, moon.tuning, ['touchdown'], false);
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toMatchObject({ recordHeld: true, money: 0, rp: 0 });
+    const p = missionPayout({ survived: true, secondsLasted: 1, earned: [{ id: 'touchdown' }] }, cat, moon.tuning, ['touchdown']);
+    expect(p.milestones).toEqual([]);
+  });
+
+  it('their money and RP add up to the debrief milestone money and RP on every world, ground down or not', () => {
+    for (const d of [moon, loadGameData('mars'), loadGameData('titan')]) {
+      const all = d.milestones.milestones;
+      const earned = all.map((x, i) => (i % 2 ? { id: x.id, stages: 2 } : { id: x.id }));
+      const held = all.filter((x) => x.record).slice(0, 1).map((x) => x.id);
+      for (const groundDown of [false, true]) {
+        const lines = earnedLines(earned, all, d.tuning, held, groundDown);
+        const p = missionPayout({ survived: false, cause: 'energy', secondsLasted: 10, earned, groundDown }, all, d.tuning, held);
+        expect(lines.reduce((s, l) => s + l.money, 0)).toBe(p.milestoneMoney);
+        expect(lines.reduce((s, l) => s + l.rp, 0)).toBe(p.milestoneRp);
+      }
+    }
   });
 });
