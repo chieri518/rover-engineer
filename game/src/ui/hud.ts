@@ -12,6 +12,7 @@
 import type { TextFile } from '../rules/types';
 import type { RadarColumn } from '../rules/instruments';
 import { el } from './dom';
+import { noticeNeeded, staleNotices } from './noticeStack';
 
 /** How the radar strip draws each layer kind (presentation only): band count, dip across the strip, colors. */
 const RADAR_LOOK: Record<string, { bands: number; dip: number; jumble?: boolean; colors: [string, string] }> = {
@@ -110,6 +111,7 @@ export class Hud {
   private readonly progressFill = el('div', { class: 'hold-progress-fill' });
   private readonly progressText = el('span', {});
   private lastWarnings = '';
+  private warningLines: string[] = [];
 
   constructor(
     private readonly text: TextFile,
@@ -297,16 +299,27 @@ export class Hud {
     const key = lines.join('\n');
     if (key === this.lastWarnings) return;
     this.lastWarnings = key;
+    this.warningLines = lines;
     this.warnings.replaceChildren(...lines.map((l) => el('li', {}, l)));
+    this.dropStaleNotices();
+  }
+
+  /** Removes live notices a standing warning now says, and earlier copies of `incoming` (one copy at a time). */
+  private dropStaleNotices(incoming?: string): void {
+    const live = [...this.notices.children];
+    for (const i of staleNotices(live.map((n) => n.textContent ?? ''), this.warningLines, incoming)) live[i]?.remove();
   }
 
   /**
    * A short notice that fades after a few seconds. At most three show; a fourth pushes out the oldest.
    * An array is a notice of several lines (a located site with its instrument lines), shown longer.
+   * Words a standing warning already says are not posted; a repeat replaces the earlier copy.
    */
   notify(message: string | string[], tone: 'warn' | 'good' = 'warn'): void {
     const long = Array.isArray(message) && message.length > 1;
     const text = Array.isArray(message) ? message.join('\n') : message;
+    if (!noticeNeeded(text, this.warningLines)) return;
+    this.dropStaleNotices(text);
     const n = el('div', { class: `hud-notice ${tone}${long ? ' site' : ''}` }, text);
     this.notices.append(n);
     while (this.notices.childElementCount > 3) this.notices.firstElementChild?.remove();
