@@ -182,7 +182,7 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
   for (const p of [plume1, plume2]) {
     p.uniforms.sunDir.value.copy(sunDir);
     p.uniforms.sunCol.value.set(1, 0.97, 0.92);
-    p.uniforms.steps.value = ctx.settings.quality === 'final' ? 40 : 24;
+    p.uniforms.steps.value = ctx.settings.quality === 'final' ? 20 : 14;
   }
 
   let tShot = 0;
