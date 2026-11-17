@@ -747,7 +747,11 @@ export interface SharedTextFile {
     | 'notReachedNeeds' // a "Not reached" line naming the support part the rover lacked: {name}, {needs} (Mars M18)
     | 'logHeading' | 'logNote' | 'logRock' | 'logNoRocks' | 'logQuakeClean' | 'logQuakeNoisy' | 'logQuakeMissed' | 'logQuakeNone' | 'logStationNone' | 'logReflector' | 'logReflectorNone' | 'logHydrogen' | 'logHydrogenNone'
     | 'taughtHeading' | 'taughtNote' | 'taughtAnswers' | 'taughtSource' // "What the rover taught us": the relationships met
-    | 'storyPassed' | 'storyFailed', // the story line after the passed or failed round line (empty: not shown)
+    | 'storyPassed' | 'storyFailed' // the story line after the passed or failed round line (empty: not shown)
+    // The debrief tabs (November 17, 2026): the round badge by the heading, the tab labels ({count}), the
+    // Overview tiles ({count}), a new lesson's tag
+    | 'badgePassed' | 'badgeFailed' | 'tabsLabel' | 'tabOverview' | 'tabMilestones' | 'tabLessons' | 'tabLessonsNew' | 'tabLog' | 'tabPhotos'
+    | 'tileMilestones' | 'tileNotReached' | 'lessonNew',
     string
   > & Partial<Record<
     // The last mission (Titan overlay): lostAt {time} {total} {cause} when the rover was lost, survivedTitan {minutes}, endCampaign button

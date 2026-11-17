@@ -1,16 +1,19 @@
 // Screens: title, settings, landing, debrief and Campaign complete (after the last mission, with the
 // campaign summary). The design, ticket and mission screens have their own files.
-import { milestoneStages, type EarnedMilestone } from '../rules/payout';
+import { milestoneStages } from '../rules/payout';
 import type { AlbumPhoto, Screen, ScreenId } from '../flow/flow';
-import type { Build, BusSlot, GameData, HistoryKey, Instrument, Milestone } from '../rules/types';
+import type { Build, BusSlot, GameData, HistoryKey, Milestone } from '../rules/types';
 import type { TitanCampaignText } from '../rules/titanTypes';
-import { earnedWith, groupMilestones, notReached, rockTypeTally, stagesEarned, type MilestoneGroupKey } from '../rules/milestoneLists';
+import { groupMilestones, notReached, stagesEarned } from '../rules/milestoneLists';
 import { instrumentsOf } from '../rules/payload';
 import { completeBuild, providesCapability, selectedParts } from '../rules/rover';
-import { taughtLessons, type RelationshipEvent } from '../rules/relationships';
-import type { InstrumentLog } from '../rules/instruments';
+import { taughtLessons, type TaughtLesson } from '../rules/relationships';
 import { categoryLabel, causeText, milestoneSummary, notReachedLine, rewardText } from './milestoneText';
 import { el, fill, money, panel } from './dom';
+import {
+  debriefBadge, debriefTabs, groupHeading, instrumentLogGroups, lessonIsNew, overviewTiles, payoutRows,
+  type DebriefTab, type DebriefTabId, type LogGroup, type Tone,
+} from './debriefText';
 import { gameDaysElapsed } from '../rules/sun';
 import { azimuthDeg, compassPoint } from '../rules/survey';
 import { isPlayable, nextMission } from '../rules/campaign';
@@ -186,84 +189,14 @@ function albumView(photos: AlbumPhoto[]): HTMLElement {
 }
 
 /**
- * The debrief's instrument log: one line per carried new instrument (an X-ray line per rock read), with
- * plain wording when unused. The X-ray adds the rock types read out of all the suites' types (when the
- * world has a rock-collection milestone and a rock was read), and each instrument's last line names the
- * milestones earned that need it ("Earned: ...").
- */
-function instrumentLogLines(log: InstrumentLog | null, data: GameData, earned: readonly EarnedMilestone[]): string[] {
-  if (!log) return [];
-  const { text } = data;
-  const t = text.debrief;
-  const has = (i: Instrument) => log.carried.includes(i);
-  const lines: string[] = [];
-  // One group of lines per carried new instrument; nothing for instruments not carried.
-  const add = (inst: Instrument, own: string[]) => {
-    const names = earnedWith(inst, data.milestones.milestones, earned).map((m) => m.name);
-    if (names.length > 0 && own.length > 0) own[own.length - 1] += ` ${fill(t.logEarned, { names: names.join(t.logEarnedJoin) })}`;
-    lines.push(...own);
-  };
-  if (has('neutron')) {
-    add('neutron', [log.hydrogenPeak === null ? t.logHydrogenNone : fill(t.logHydrogen, { percent: Math.round(log.hydrogenPeak * 100) })]);
-  }
-  if (has('xray')) {
-    const own = log.rocks.length === 0 ? [t.logNoRocks] : log.rocks.map((r) => {
-      const rock = text.rocks[r.rock];
-      return fill(t.logRock, { rock: rock?.name ?? r.rock, elements: rock?.elements ?? '' });
-    });
-    const tally = rockTypeTally(log.rocks, data.tuning.instruments.xray);
-    const collection = data.milestones.milestones.some((m) => m.trigger.type === 'reading' && m.trigger.rocks);
-    if (collection && tally.count > 0 && tally.total > 0) own.push(fill(t.logRockTypes, tally));
-    add('xray', own);
-  }
-  if (has('seismometer')) {
-    add('seismometer', [!log.stationPlaced ? t.logStationNone : log.quake === 'clean' ? t.logQuakeClean : log.quake === 'noisy' ? t.logQuakeNoisy : log.quake === 'missed' ? t.logQuakeMissed : t.logQuakeNone]);
-  }
-  if (has('reflector')) add('reflector', [log.reflectorPlaced ? t.logReflector : t.logReflectorNone]);
-  // Mars (step 4a): the weather mast, the radar, the laser and the organics spectrometer, in their own words.
-  const it = text.instrumentText;
-  if (has('weather') && it.weather?.log && it.weather.logNone) {
-    const seconds = Math.round(log.weatherSeconds ?? 0);
-    const line = seconds > 0 ? fill(it.weather.log, { seconds }) : it.weather.logNone;
-    add('weather', [log.stormForecastByMast && it.weather.logStorm ? `${line} ${it.weather.logStorm}` : line]);
-  }
-  if (has('radar') && it.radar?.log && it.radar.logNone) {
-    const names = (log.radarLayers ?? []).map((k) => it.radar.layers?.[k] ?? k);
-    const longest = log.radarLongestM ?? null;
-    add('radar', [longest === null ? it.radar.logNone : fill(it.radar.log, { meters: Math.round(longest), layers: names.join(text.ticket.and) || '—' })]);
-  }
-  if (has('laser') && it.laser?.logNone) {
-    const own = (log.laser ?? []).map((r) => {
-      if (r.target === 'cliff') return it.laser.resultCliff ?? '';
-      const rock = r.rock ? text.rocks[r.rock] : undefined;
-      return fill(it.laser.result ?? t.logRock, { rock: rock?.name ?? r.rock ?? '', elements: rock?.elements ?? '' });
-    }).filter(Boolean);
-    add('laser', own.length ? own : [it.laser.logNone]);
-  }
-  if (has('organics') && it.organics?.log && it.organics.logNone) {
-    const count = log.organics ?? 0;
-    add('organics', [count > 0 ? fill(it.organics.log, { count }) : it.organics.logNone]);
-  }
-  return lines;
-}
-
-/** A debrief group's heading: "The rover", the instrument's part name, or "Instruments together". */
-function groupHeading(key: MilestoneGroupKey, data: GameData): string {
-  const t = data.text.debrief;
-  if (key.kind === 'rover') return t.groupRover;
-  if (key.kind === 'combo') return t.groupCombo;
-  return data.parts.parts.find((p) => p.slot === 'instrument' && p.effects.instrument === key.instrument)?.name ?? key.instrument;
-}
-
-/**
  * "What the rover taught us": each relationship met this mission, in the order met, with what happened
  * and why, and the ways to solve it; the real mission behind it only with Mission history on
- * (rules: taughtLessons).
+ * (rules: taughtLessons). A lesson not in the notebook at launch is marked new.
  */
-function taughtItems(met: readonly RelationshipEvent[] | undefined, data: GameData, history: boolean): HTMLElement[] {
+function taughtItems(lessons: readonly TaughtLesson[], data: GameData, isNew: (id: string) => boolean): HTMLElement[] {
   const t = data.text.debrief;
-  return taughtLessons(met, data.relationships, history).map((l) => el('li', { 'data-relationship': l.id },
-    el('strong', {}, l.name),
+  return lessons.map((l) => el('li', { 'data-relationship': l.id },
+    el('p', { class: 'lesson-name' }, el('strong', {}, l.name), isNew(l.id) && el('span', { class: 'debrief-new' }, t.lessonNew)),
     el('p', {}, l.debrief),
     el('p', { class: 'sub' }, t.taughtAnswers),
     el('ul', { class: 'answers' }, ...l.answers.map((a) => el('li', {}, a))),
@@ -272,6 +205,69 @@ function taughtItems(met: readonly RelationshipEvent[] | undefined, data: GameDa
   ));
 }
 
+/** The instrument log: one heading per carried instrument, its lines as a list, then its summary and "Earned: ...". */
+function logView(groups: readonly LogGroup[]): HTMLElement {
+  return el('div', { class: 'debrief-log' },
+    ...groups.map((g) => el('section', { class: 'debrief-log-group', 'data-instrument': g.instrument },
+      el('h4', { class: 'debrief-group' }, g.heading),
+      el('ul', {}, ...g.lines.map((l) => el('li', {}, l))),
+      g.summary && el('p', { class: 'debrief-log-summary' }, g.summary),
+      g.earned && el('p', { class: 'debrief-log-earned' }, g.earned),
+    )),
+  );
+}
+
+/**
+ * Accessible tabs (WAI-ARIA tabs pattern, automatic activation): a tablist of buttons over one panel each.
+ * Left and Right move between tabs (wrapping), Home and End jump; only the selected tab takes Tab (roving
+ * tabindex), then focus goes into its panel.
+ */
+function debriefTabsView(tabs: readonly DebriefTab[], panels: ReadonlyMap<DebriefTabId, Node[]>, label: string): HTMLElement[] {
+  const buttons = tabs.map((tab) => el('button', {
+    type: 'button',
+    role: 'tab',
+    class: 'debrief-tab',
+    id: `debrief-tab-${tab.id}`,
+    'aria-controls': `debrief-panel-${tab.id}`,
+    onclick: () => select(tab.id),
+  }, tab.label));
+  const views = tabs.map((tab) => el('div', {
+    role: 'tabpanel',
+    class: `debrief-panel debrief-panel-${tab.id}`,
+    id: `debrief-panel-${tab.id}`,
+    'aria-labelledby': `debrief-tab-${tab.id}`,
+    tabindex: 0, // the panel scrolls on its own: keyboard users can focus it to scroll
+  }, ...(panels.get(tab.id) ?? [])));
+  const select = (id: DebriefTabId, focus = false) => {
+    tabs.forEach((tab, i) => {
+      const on = tab.id === id;
+      buttons[i]!.setAttribute('aria-selected', String(on));
+      buttons[i]!.tabIndex = on ? 0 : -1;
+      views[i]!.hidden = !on;
+      if (on) {
+        views[i]!.scrollTop = 0;
+        if (focus) buttons[i]!.focus();
+      }
+    });
+  };
+  const tablist = el('div', { class: 'debrief-tabs', role: 'tablist', 'aria-label': label, 'aria-orientation': 'horizontal' }, ...buttons);
+  tablist.addEventListener('keydown', (e) => {
+    const i = buttons.findIndex((b) => b.getAttribute('aria-selected') === 'true');
+    const to = { ArrowRight: i + 1, ArrowLeft: i - 1, Home: 0, End: tabs.length - 1 }[e.key];
+    if (to === undefined || e.altKey || e.ctrlKey || e.metaKey) return;
+    e.preventDefault();
+    select(tabs[(to + tabs.length) % tabs.length]!.id, true);
+  });
+  select(tabs[0]!.id);
+  return [tablist, ...views];
+}
+
+/**
+ * The debrief (game-design.md, "Debrief tabs"): the heading with the round badge, then tabs. Overview first:
+ * the outcome, the round result, the payout (rows, then the tiles), the mission history (or Titan's Dragonfly) and the
+ * story beat. Then Milestones, Lessons, Instrument log and Photos (the last three only when not empty).
+ * The Continue or Restart buttons sit under the tabs, on every tab.
+ */
 const debrief: Screen = (game, root) => {
   const { data } = game;
   const { text } = data;
@@ -294,8 +290,9 @@ const debrief: Screen = (game, root) => {
   const historyKey: HistoryKey = result.survived ? 'survived' : result.detail === 'rollover' ? 'rollover' : (result.cause ?? 'energy');
   const days = result.survived ? data.tuning.mission.gameDays : gameDaysElapsed(result.secondsLasted, data.tuning.mission).toFixed(1);
 
-  const logLines = instrumentLogLines(game.instrumentLog, data, result.earned);
-  const taught = taughtItems(result.relationships, data, history);
+  const logGroups = instrumentLogGroups(game.instrumentLog, data, result.earned);
+  const lessons = taughtLessons(result.relationships, data.relationships, history);
+  const isNew = (id: string) => lessonIsNew(id, game.notebookAtLaunch);
 
   // The rover as launched (the mission flies game.build) and the records held before this mission.
   const launched = completeBuild(game.build, data.parts);
@@ -305,17 +302,20 @@ const debrief: Screen = (game, root) => {
 
   // Milestones grouped by instrument (rules: groupMilestones), catalog order within a group; a staged
   // milestone is one line with its count; records already held this campaign are listed without a reward.
+  // The history fact (Mission history on) shows expanded under the summary.
   const item = (m: Milestone) => {
     const paid = payout.milestones.find((p) => p.milestone.id === m.id);
     const maxStages = milestoneStages(m);
     const stages = Math.min(stagesEarned(result.earned, m.id), maxStages);
-    return el('li', {},
-      el('span', {}, el('strong', {}, maxStages > 1 ? fill(t.stagedCount, { name: m.name, stages, max: maxStages }) : m.name), ` · ${categoryLabel(m.category, text)}`),
+    return el('li', { 'data-milestone': m.id },
+      el('span', { class: 'name' },
+        el('strong', {}, maxStages > 1 ? fill(t.stagedCount, { name: m.name, stages, max: maxStages }) : m.name),
+        el('span', { class: 'category' }, ` · ${categoryLabel(m.category, text)}`)),
       paid
         ? el('span', { class: 'reward' }, rewardText(paid, data))
         : el('span', { class: 'reward none' }, t.recordHeld),
       el('span', { class: 'sub' }, milestoneSummary(m, stages)),
-      history && el('span', { class: 'sub fact' }, m.fact),
+      history && m.fact && el('span', { class: 'sub fact' }, m.fact),
     );
   };
   const earnedList = data.milestones.milestones.filter((m) => stagesEarned(result.earned, m.id) > 0);
@@ -326,52 +326,75 @@ const debrief: Screen = (game, root) => {
   // "Not reached": names only (game-design.md M11), each with the support part the rover lacked for it, if any (Mars M18).
   const missed = notReached(data.milestones.milestones, launchParts, result.earned, recordsHeldAtLaunch, bay);
 
-  root.append(
-    el('section', { class: 'panel debrief' },
-      el('h2', {}, t.heading),
-      el('p', { class: `outcome${result.survived ? '' : ' failed'}` },
-        lostAt ?? (result.survived ? (last && t.survivedTitan ? fill(t.survivedTitan, minimum) : t.survived) : fill(t.cause, { cause: causeText(result, text) }))),
-      el('p', { class: 'muted' }, fill(text.hud.lasted, { days, total: data.tuning.mission.gameDays })),
+  const tiles = overviewTiles({
+    payout, balance: state.balance, failed, last, milestones: earnedList.length, notReached: missed.length,
+  }, data);
+  const badge = debriefBadge(failed, t);
+  const tone = (base: string, v: Tone) => (v ? `${base} ${v}` : base);
+  const story = failed ? t.storyFailed : t.storyPassed;
 
+  const overview: Node[] = [
+    el('p', { class: `outcome${result.survived ? '' : ' failed'}` },
+      lostAt ?? (result.survived ? (last && t.survivedTitan ? fill(t.survivedTitan, minimum) : t.survived) : fill(t.cause, { cause: causeText(result, text) }))),
+    el('p', { class: 'muted lasted' }, fill(text.hud.lasted, { days, total: data.tuning.mission.gameDays })),
+    el('p', { class: failed ? 'outcome round failed' : 'outcome round' }, fill(failed ? t.failedRound : t.passedRound, minimum)),
+    el('h3', {}, t.payoutHeading),
+    el('div', { class: 'ledger debrief-ledger' },
+      ...payoutRows(payout, result, data).map((r) => row(r.label, r.value, r.tone === 'bad' ? 'bad' : ''))),
+    el('div', { class: 'debrief-tiles' },
+      ...tiles.map((s) => el('div', { class: 'debrief-tile', 'data-tile': s.id },
+        el('span', { class: 'debrief-tile-label' }, s.label),
+        el('span', { class: tone('debrief-tile-value', s.tone) }, s.value),
+        s.sub && el('span', { class: 'debrief-tile-sub' }, s.sub),
+      ))),
+    roverHistory && el('aside', { class: 'history' },
+      el('p', { class: 'history-label' }, t.historyHeading),
+      el('p', {}, text.history[historyKey]),
+      el('p', { class: 'note' }, `Source: ${text.historySources[historyKey]}`),
+    ),
+    text.titanCampaign && dragonflyView(text.titanCampaign, game.state.lastBuild, data),
+    story && el('p', { class: 'story-beat' }, story),
+  ].filter((n): n is HTMLElement => !!n);
+
+  const panels = new Map<DebriefTabId, Node[]>([
+    ['overview', overview],
+    ['milestones', [
       el('h3', {}, t.milestonesHeading),
       groups.length ? el('div', { class: 'debrief-groups' }, ...groups) : el('p', { class: 'muted' }, t.noMilestones),
+      ...(missed.length > 0 ? [
+        el('h3', {}, t.notReachedHeading),
+        el('p', { class: 'muted' }, t.notReachedNote),
+        el('ul', { class: 'debrief-not-reached' }, ...missed.map((m) => el('li', {}, notReachedLine(m, launchParts, data)))),
+      ] : []),
+    ]],
+    ['lessons', [
+      el('h3', {}, t.taughtHeading),
+      el('p', { class: 'muted' }, t.taughtNote),
+      el('ul', { class: 'debrief-taught' }, ...taughtItems(lessons, data, isNew)),
+    ]],
+    ['log', [
+      el('h3', {}, t.logHeading),
+      el('p', { class: 'note' }, t.logNote),
+      logView(logGroups),
+    ]],
+    ['photos', [el('h3', {}, t.albumHeading), game.album.length ? albumView(game.album) : el('p', { class: 'muted' }, t.noPhotos)]],
+  ]);
+  const tabs = debriefTabs({
+    milestones: earnedList.length,
+    lessons: lessons.length,
+    newLessons: lessons.filter((l) => isNew(l.id)).length,
+    logGroups: logGroups.length,
+    photos: game.album.length,
+    camera: bay.includes('camera'),
+  }, t);
 
-      missed.length > 0 && el('h3', {}, t.notReachedHeading),
-      missed.length > 0 && el('p', { class: 'muted' }, t.notReachedNote),
-      missed.length > 0 && el('ul', { class: 'debrief-not-reached' }, ...missed.map((m) => el('li', {}, notReachedLine(m, launchParts, data)))),
-
-      el('h3', {}, t.payoutHeading),
-      el('div', { class: 'ledger' },
-        row(t.survivalPayout, money(payout.survivalPayout, text)),
-        row(t.milestoneMoney, money(payout.milestoneMoney, text)),
-        row(result.survived ? t.penalty : `${t.penalty} (${causeText(result, text)})`, money(-payout.penalty, text), payout.penalty > 0 ? 'bad' : ''),
-        row(t.net, money(payout.money, text), 'total'),
-        row(t.rpEarned, String(payout.rp)),
-        row(t.balance, money(state.balance, text), 'total'),
-      ),
-
-      logLines.length > 0 && el('h3', {}, t.logHeading),
-      logLines.length > 0 && el('ul', { class: 'debrief-log' }, ...logLines.map((l) => el('li', {}, l))),
-      logLines.length > 0 && el('p', { class: 'note' }, t.logNote),
-
-      taught.length > 0 && el('h3', {}, t.taughtHeading),
-      taught.length > 0 && el('p', { class: 'muted' }, t.taughtNote),
-      taught.length > 0 && el('ul', { class: 'debrief-taught' }, ...taught),
-
-      el('h3', {}, t.albumHeading),
-      game.album.length ? albumView(game.album) : el('p', { class: 'muted' }, t.noPhotos),
-
-      text.titanCampaign && dragonflyView(text.titanCampaign, game.state.lastBuild, data),
-
-      roverHistory && el('h3', {}, t.historyHeading),
-      roverHistory && el('div', { class: 'history' },
-        el('p', {}, text.history[historyKey]),
-        el('p', { class: 'note' }, `Source: ${text.historySources[historyKey]}`),
-      ),
-
-      el('p', { class: failed ? 'outcome failed' : 'outcome' }, fill(failed ? t.failedRound : t.passedRound, minimum)),
-      (failed ? t.storyFailed : t.storyPassed) && el('p', { class: 'story-beat' }, failed ? t.storyFailed : t.storyPassed),
-      el('div', { class: 'actions' },
+  root.append(
+    el('section', { class: 'panel debrief' },
+      el('div', { class: 'debrief-head' },
+        el('h2', {}, t.heading),
+        el('span', { class: tone('debrief-badge', badge.tone) }, badge.text)),
+      ...debriefTabsView(tabs, panels, t.tabsLabel),
+      el('div', { class: 'actions debrief-actions' },
         failed
           ? el('button', { class: 'primary', onclick: () => game.restartRound() }, t.restart)
           : el('button', { class: 'primary', onclick: () => game.continueCampaign() }, t.continue),

@@ -732,7 +732,7 @@ export const missionScreen: Screen = (game, root) => {
       measure: tallyMeasure(tally, state, setup.stats.batteryCapacity, album.length, !!(setup.mars ?? setup.titan)),
       ...(setup.groundDown ? { groundDown: true } : {}), // a fitted arm ground down the X-ray's readings: its reading milestones pay more
     };
-    hud.showEnd(lines, () => game.endMission(result, album, log), () => openNotes());
+    hud.showEnd(lines, () => game.endMission(result, album, log, notebookAtLaunch), () => openNotes());
   };
 
   const onStep = (s: MoonStepSample): MoonDriveLimits | void => {
