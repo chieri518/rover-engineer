@@ -63,8 +63,9 @@ export function chaseClip(def: ChaseClipDef): SequenceDef {
     async load(ctx): Promise<SequenceInstance> {
       const w = await startWorld(def.world, ctx);
       const o = w.offline;
-      dress(o.rover.object);
       def.prepare?.(w, ctx);
+      o.updateView(0); // place the Sun (and its light) for the clip before dressing the rover
+      const dressed = dress(w, ctx);
       const track = recordDrive(o, def.start, def.lead, duration + 0.5, def.drive, { speedBoost: def.speedBoost });
       const rig = chaseRig(track, (x, z) => w.scene.terrain.heightAt(x, z), def.framing);
       const clip = await def.setup({ w, track, rig, ctx });
@@ -86,6 +87,7 @@ export function chaseClip(def: ChaseClipDef): SequenceDef {
         },
         dispose() {
           clip.dispose?.();
+          dressed.dispose();
           w.scene.dispose();
         },
       };
