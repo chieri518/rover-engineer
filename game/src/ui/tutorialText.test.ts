@@ -46,8 +46,8 @@ describe('tutorial text', () => {
         .flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
     const design = join('design');
     expect(design).toContain('mounting point');
-    expect(design).toContain('Leaving the payload bay empty is permitted');
-    expect(design).not.toMatch(/No instruments|No heater/); // leaving a part off is not a choice on the desk (November 16); "No lights" is the review's check
+    expect(design).toContain('An empty bay is allowed');
+    expect(design).not.toMatch(/No instruments|No lights|No heater/); // leaving a part off is not a choice on the desk (November 16)
     expect(design).toContain('pre-launch review');
     expect(design).toMatch(/energy/i);
     const drive = join('drive');
@@ -81,7 +81,7 @@ describe('tutorial text', () => {
 
   it('the design tutorial says each instrument card lists its milestones (every Moon instrument earns some)', () => {
     const design = tutorialPages('design', data, { mission: 'moon', instruments: [] }).flatMap((p) => p.paragraphs).join('\n');
-    expect(design).toMatch(/lists its associated mission milestones/);
+    expect(design).toMatch(/the milestones it can earn/);
     expect(design).not.toMatch(/earn no milestones yet/);
     expect(design).not.toMatch(/a few problems/);
   });
@@ -99,13 +99,13 @@ describe('the Rover Operations Guide (the Moon design tutorial) and briefing lin
     // The Moon's finances table, and the pass mark again on the last page.
     const finances = pages[0]!.blocks.find((b) => b.kind === 'table');
     expect(finances?.kind === 'table' && finances.rows.map((r) => r[1])).toEqual([budget, pass]);
-    expect(all).toContain(`the required final balance is **${pass}**`);
+    expect(all).toContain(`finish with at least **${pass}**`);
     // The ticket table: one row per tier, from tiers.json.
     const tickets = pages[2]!.blocks.find((b) => b.kind === 'table');
     expect(tickets?.kind === 'table' && tickets.rows).toEqual(data.tiers.tiers.map((t) => [t.name, `${t.massLimit} kg`, `${t.sizeLimit}`, `$${t.price}k`]));
     // The chassis mounting points.
     const points = data.parts.parts.filter((p) => p.slot === 'chassis').map((p) => p.effects.mountingPoints!);
-    expect(all).toContain(`(${Math.min(...points)} or ${Math.max(...points)} points)`);
+    expect(all).toContain(`the chassis has ${Math.min(...points)} or ${Math.max(...points)}`);
     // Subheadings and lists are parsed, not shown as markdown.
     expect(pages[0]!.blocks[0]).toEqual({ kind: 'h', text: 'Welcome to the Rover Exploration Laboratory' });
     expect(all).not.toMatch(/^(### |- )/m);
