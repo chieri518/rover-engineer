@@ -68,19 +68,35 @@ function run(cmd, argv) {
 }
 
 // --------------------------------------------------------------------------------------------------------
-// Mux: two-pass loudness normalization of the score to -16 LUFS / -1 dBTP, AAC 192k, video copied.
+// Mux: loudness normalization of the score to -16 LUFS / -1 dBTP by one linear gain, AAC 192k, video copied.
+// The gain comes from ebur128, the same meter as the final check (loudnorm's own measurement reads ~0.5 LU off
+// on this score, and its linear mode silently turns dynamic when the score's LRA is over its target). The score's
+// master limits its peaks so the gain fits under the true-peak ceiling; if it ever does not, the gain is lowered
+// (quieter, never compressed or clipped) and a warning says so.
+
+function ebur128(file) {
+  const r = run(FFMPEG, ['-hide_banner', '-nostats', '-i', file, '-af', 'ebur128=peak=true:framelog=quiet', '-f', 'null', '-']);
+  const summary = r.stderr.slice(r.stderr.lastIndexOf('Summary:'));
+  const num = (re) => Number(re.exec(summary)?.[1]);
+  return { summary, I: num(/I:\s+(-?[\d.]+) LUFS/), LRA: num(/LRA:\s+([\d.]+) LU/), TP: num(/Peak:\s+(-?[\d.]+) dBFS/) };
+}
 
 function mux() {
   const video = args.video ?? path.join(outDir, 'intro-video.mp4');
   const audio = args.audio ?? path.join(outDir, 'score.wav');
   const out = args.out ?? path.join(outDir, 'rover-engineer-intro.mp4');
-  const target = { I: -16, TP: -1.5, LRA: 11 }; // TP a little under -1 leaves room for the AAC encoder's overshoot
-  const probe = run(FFMPEG, ['-hide_banner', '-i', audio, '-af', `loudnorm=I=${target.I}:TP=${target.TP}:LRA=${target.LRA}:print_format=json`, '-f', 'null', '-']);
-  const m = JSON.parse(probe.stderr.slice(probe.stderr.lastIndexOf('{'), probe.stderr.lastIndexOf('}') + 1));
-  log(`score as rendered: ${m.input_i} LUFS, true peak ${m.input_tp} dBTP, LRA ${m.input_lra}`);
-  const ln = `loudnorm=I=${target.I}:TP=${target.TP}:LRA=${target.LRA}:measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`;
+  const target = { I: -16, TP: -1.5 }; // TP a little under -1 leaves room for the AAC encoder's overshoot
+  const m = ebur128(audio);
+  if (!Number.isFinite(m.I) || !Number.isFinite(m.TP)) throw new Error(`could not measure ${audio}:\n${m.summary}`);
+  log(`score as rendered: ${m.I} LUFS, true peak ${m.TP} dBTP, LRA ${m.LRA} LU`);
+  let gain = target.I - m.I;
+  if (m.TP + gain > target.TP) {
+    gain = target.TP - m.TP;
+    log(`warning: the score's peaks allow only ${gain.toFixed(1)} dB of gain: ${(m.I + gain).toFixed(1)} LUFS instead of ${target.I}`);
+  }
+  log(`gain ${gain.toFixed(2)} dB`);
   const normWav = path.join(outDir, 'score-normalized.wav');
-  run(FFMPEG, ['-y', '-hide_banner', '-i', audio, '-af', `${ln},aresample=48000`, '-c:a', 'pcm_s24le', normWav]);
+  run(FFMPEG, ['-y', '-hide_banner', '-i', audio, '-af', `volume=${gain.toFixed(3)}dB,aresample=48000`, '-c:a', 'pcm_s24le', normWav]);
   run(FFMPEG, ['-y', '-hide_banner', '-i', video, '-i', normWav, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', '192k', '-shortest', '-movflags', '+faststart', out]);
   const webmVideo = video.replace(/\.mp4$/, '.webm');
   if (existsSync(webmVideo)) {
