@@ -6,7 +6,7 @@
 // unit canisters, or the electric heater's patches and wiring), Mars's support hardware (a robotic arm
 // folded at the front with its tool turret, a remote sensing mast with its head), and the payload bay's
 // instruments: a camera mast and a regolith drill at the front, a neutron spectrometer and an X-ray
-// spectrometer arm under the body, a seismometer station and a laser retroreflector carried on the deck,
+// spectrometer arm under the body (its head moves to the robotic arm's turret when the arm is fitted), a seismometer station and a laser retroreflector carried on the deck,
 // and on Mars a weather mast, a radar antenna under the rear, a laser telescope on the mast head and an
 // organics sensor head on the arm's turret, each in its own place, so any mix can be drawn. The two deployables are also drawn on the ground by world/stations.ts.
 // Visual only: the physics body stays the box and four ray-cast wheels in vehicle.ts.
@@ -933,7 +933,8 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
 
   // Low on the body: the neutron spectrometer, a detector block on the front face between the front
   // wheels (below the floodlights, beside the drill), and the X-ray spectrometer on the back, its
-  // sensor head on a jointed arm lowered toward the ground under the rear of the body.
+  // sensor head on a jointed arm lowered toward the ground under the rear of the body. With the robotic
+  // arm fitted, the X-ray head sits on the arm's turret instead (drawn after the arm).
   const hasInstrument = (i: Instrument) => look.instruments.includes(i);
   if (hasInstrument('neutron')) {
     slot = 'neutron';
@@ -948,7 +949,7 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     add(box(0.05, 0.1, 0.36), frame, nx - 0.1, -0.105, 0);
     add(cable([[nx - 0.1, 0.0, 0.12], [nx - 0.16, -0.06, 0.14], [nx - 0.2, deckY + 0.03, 0.16]]), dark);
   }
-  if (hasInstrument('xray')) {
+  if (hasInstrument('xray') && !look.arm) {
     slot = 'xray';
     const ax = -l * 0.43;
     add(new RoundedBoxGeometry(0.18, 0.12, 0.22, 1, 0.012).toNonIndexed(), casing, ax, -0.29, 0);
@@ -985,7 +986,9 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
   const xu = ax + 0.02; // the upper arm
   const xf = ax + 0.11; // the forearm, in front of it
   const turret = new THREE.Vector3(ax + 0.14, armY - 0.1, zw); // the tool turret's hub (its axis along z)
-  const tool = { contact: 0.45, organics: -0.6, corer: -1.75, brush: -2.75 }; // angles around the hub, from +x toward +y
+  // Angles around the hub, from +x toward +y. The X-ray head, when fitted, takes the contact sensor's
+  // place, turned a little further up so it clears the organics head and the wrist.
+  const tool = { contact: 0.45, xray: 0.7, organics: -0.6, corer: -1.75, brush: -2.75 };
   /** The frame of a tool on the turret: origin at the hub, +x pointing out along the tool. */
   const onTurret = (angle: number) =>
     new THREE.Matrix4().makeTranslation(turret.x, turret.y, turret.z).multiply(new THREE.Matrix4().makeRotationZ(angle));
@@ -1050,22 +1053,38 @@ export function buildRoverModel(handling: RoverHandling, connectY: number, look:
     add(axle(0.034, 0.07, 12, true), dark, xf, armY, zw); // the wrist joint
     add(strut([xf, armY - 0.02, zw], [turret.x, turret.y + 0.04, zw], 0.022, 8), dark);
     // The turret: a hub with end caps, and its tools: a coring drill pointing down, a contact sensor
-    // pointing forward, a dust brush toward the body, and a bare flange where a spectrometer can mount.
+    // pointing forward (the X-ray head when it is fitted), a dust brush toward the body, and a bare
+    // flange where a spectrometer can mount.
     add(axle(0.05, 0.08, 12), casing, turret.x, turret.y, turret.z);
     for (const s of [-1, 1]) add(axle(0.054, 0.012, 12), dark, turret.x, turret.y, turret.z + s * 0.042);
     add(strut(out(tool.corer, 0.045), out(tool.corer, 0.13), 0.034, 10), casing);
     add(strut(out(tool.corer, 0.13), out(tool.corer, 0.16), 0.022, 10), dark);
     add(strut(out(tool.corer, 0.16), out(tool.corer, 0.22), 0.01, 6), frame);
-    const contact = onTurret(tool.contact);
-    add(new RoundedBoxGeometry(0.08, 0.06, 0.06, 1, 0.008).toNonIndexed().translate(0.09, 0, 0).applyMatrix4(contact), casing);
-    add(axle(0.026, 0.014, 10, true).translate(0.137, 0, 0).applyMatrix4(contact), dark);
-    add(axle(0.018, 0.004, 10, true).translate(0.145, 0, 0).applyMatrix4(contact), lens);
+    if (!hasInstrument('xray')) {
+      const contact = onTurret(tool.contact);
+      add(new RoundedBoxGeometry(0.08, 0.06, 0.06, 1, 0.008).toNonIndexed().translate(0.09, 0, 0).applyMatrix4(contact), casing);
+      add(axle(0.026, 0.014, 10, true).translate(0.137, 0, 0).applyMatrix4(contact), dark);
+      add(axle(0.018, 0.004, 10, true).translate(0.145, 0, 0).applyMatrix4(contact), lens);
+    }
     add(strut(out(tool.brush, 0.045), out(tool.brush, 0.1), 0.02, 8), dark);
     add(strut(out(tool.brush, 0.1), out(tool.brush, 0.125), 0.032, 10), frame);
     add(strut(out(tool.organics, 0.045), out(tool.organics, 0.065), 0.032, 10), dark);
     // Cables along the top of the arm, from the shoulder over the elbow to the wrist.
     add(cable([[l / 2 + 0.032, armY + 0.07, zs - 0.05], [xu - 0.01, armY + 0.045, zs - 0.1], [xu, armY + 0.04, ze + 0.1],
       [(xu + xf) / 2, armY + 0.072, ze + 0.02], [xf, armY + 0.04, ze + 0.1], [xf, armY + 0.038, zw - 0.07]], 0.007), dark);
+  }
+  if (look.arm && hasInstrument('xray')) {
+    // The X-ray head on the turret, as at the back without the arm: a mounting flange, the head under
+    // gold blanket, its contact ring and the casing ring at the tip. Its cable runs over the hub, on the
+    // side away from the organics head's, into the wrist.
+    slot = 'xray';
+    const place = onTurret(tool.xray);
+    add(axle(0.03, 0.03, 12, true).translate(0.06, 0, 0).applyMatrix4(place), dark);
+    add(axle(0.055, 0.08, 16, true).translate(0.115, 0, 0).applyMatrix4(place), foil);
+    add(axle(0.04, 0.02, 16, true).translate(0.165, 0, 0).applyMatrix4(place), dark);
+    add(axle(0.032, 0.008, 16, true).translate(0.179, 0, 0).applyMatrix4(place), casing);
+    const from = new THREE.Vector3(0.1, 0.045, 0.04).applyMatrix4(place).toArray();
+    add(cable([from, [turret.x - 0.005, turret.y + 0.075, turret.z + 0.06], [xf + 0.01, armY - 0.01, zw + 0.045], [xf - 0.02, armY, zw + 0.03]], 0.006), dark);
   }
 
   // Mars instruments: a weather mast on the back right of the deck, the radar's flat antenna under the
