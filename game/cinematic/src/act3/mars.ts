@@ -31,10 +31,12 @@ export const marsClip = chaseClip({
   lead: 2.5,
   drive: () => ({ throttle: 0.5, steer: 0, brake: false }),
   framing: {
-    distance: () => 6.2,
-    height: () => 1.4,
+    // Low, off the rover's left shoulder, drifting in toward the storm.
+    distance: (t) => 6.8 - 0.5 * smoothstep(0, 3, t),
+    height: (t) => 1.2 + 0.15 * smoothstep(0, 3, t),
+    side: (t) => -1.1 + 0.6 * smoothstep(0, 3, t),
     lookAhead: () => 10,
-    lookHeight: () => 2.1,
+    lookHeight: () => 1.7,
     fov: () => 42,
     followY: 0.12,
   },
