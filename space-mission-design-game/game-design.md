@@ -1356,6 +1356,10 @@ Quiet and spacious: the sound sits behind the game and never competes with it. P
 - **Effects.** The rover's motor hum follows its speed, with a soft crunch from the wheels on the ground. The rover sounds only where there is air to carry it: silent on the Moon (no air, so no hum, crunch or soft bumps; damaging impacts still sound as a warning), quieter and duller on Mars (thin air; Perseverance's microphones recorded its own wheels in 2021), clear on Titan (air thicker than Earth's). Subtle button clicks, part added and removed on the design screen, a launch sound. A chime on each milestone, and a cue per instrument (camera shutter, drill whir, spectrometer blip, seismometer ping, station set down). Warnings are clear but soft: low battery, damage and impacts, cold, flares, moonquakes, storms and rain. They sound once when they start, never on repeat.
 - **Controls.** Separate Music and Effects volume sliders on the Settings screen (defaults: music 25%, effects 60%), and a mute toggle in the mission HUD; the M key mutes or unmutes anywhere. All are saved with the other settings.
 
+### Intro video *(November 16)*
+
+A wordless ~40 s cinematic intro (launch from Earth, landing at the Moon's south pole, the rover waking up and driving off, then the Moon, Mars and Titan) exists as a separate render: the video file and the code that re-renders it, with its own synthesized score, live in `game/cinematic/` (see its README). It is **not wired into the game**: whether it replaces the Welcome to REL intro is pending a team decision.
+
 ## 12. Tech stack and fit with the brief
 
 | Part | Choice | Why |

@@ -60,6 +60,8 @@ No AI-generated images, video or audio are used in the game. Its visuals are rea
 
 The game's music and sound effects are not recordings or generated audio files: they are synthesized at run time in the browser (Web Audio API) by Claude-written code, so they too are covered by the code acknowledgement.
 
+The intro video (`game/cinematic/`), including its music, was produced with AI-written code: Claude wrote the code that renders every frame (three.js, from the game's own terrain and models plus public-domain NASA Earth imagery credited in `game/cinematic/assets/CREDITS.md`) and synthesizes the score. No AI image, video or audio generator was used.
+
 ### NASA branding
 
 The game uses no NASA logos, insignia or other branding, and SI was not used to create or modify any. The in-game agency, REL (Rover Exploration Laboratory), is fictional. NASA missions and datasets are named only as factual sources, and the credits screen states that the game is not affiliated with or endorsed by NASA.
