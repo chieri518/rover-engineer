@@ -11,7 +11,7 @@ import { softGroundRating } from '../rules/ground';
 import { quoteBuild, type BuildQuote } from '../rules/quote';
 import { bayCapacity, instrumentCosts } from '../rules/payload';
 import { chosenParts } from '../rules/rover';
-import type { DraftBuild, RequiredSlot, SoftGroundRating, Tier } from '../rules/types';
+import type { BriefItem, DraftBuild, RequiredSlot, SoftGroundRating, Tier } from '../rules/types';
 import type { BuildPreview } from './buildPreview';
 import { categoryOfGroup, choosePart, mountPalette, partForGroup } from './deskPalette';
 import { el, fill, money } from './dom';
@@ -21,6 +21,7 @@ import { openNotebook, type NotebookHandle } from './notebook';
 import { missionVars, tutorialPages } from './tutorialText';
 import { nightBudgetTile } from './marsMission';
 import { missingSupportPairs } from './supportText';
+import { briefIcon } from './briefIcons';
 
 const KMH = 3.6;
 /** Below this many pixels left for the columns under the notes, the columns take the screen under the header instead. */
@@ -393,18 +394,31 @@ export const designScreen: Screen = (game, root) => {
     onclick: openHelp,
   }, text.tutorial.help);
 
-  // After the Moon (Mars, Titan): the balance carried over, the next pass mark (on Titan the survival
-  // goal: it passes if the rover is still running at the end), and what the parts and tickets are for now
-  // (Mars has its own; Titan's are the Moon's). Titan adds a plain warning that solar panels give almost no
-  // power there.
-  const mars = text.campaign;
+  // The top bar's key numbers (game-design.md, "the header reads at a glance"): the budget, and beside it in
+  // the same style the pass mark for the next world, or on the last mission (Titan, which passes on survival)
+  // the goal. The full sentences are each metric's tooltip and screen-reader text; after the Moon the budget's
+  // also says where the balance came from.
+  const h = t.header;
+  const vars = missionVars(data);
+  const campaign = text.campaign;
   const nextStep = nextMission(game.state.mission);
-  const transition = mars && el('p', { class: 'world-transition' }, el('span', { class: 'clamp' }, // the span clamps; the box keeps its padding
-    fill(mars.carryOver, { balance: money(game.state.balance, text) }), ' ',
-    nextStep && isPlayable(nextStep) ? fill(mars.passMark, { minimum: money(data.tuning.budget.minimumBudget[nextStep], text) })
-      : nextStep ? fill(mars.passMark, missionVars(data)) : '', ' ',
-    mars.sameParts,
-  ));
+  const metric = (cls: string, label: string, value: string, sub: string, sentence: string): HTMLElement =>
+    el('div', { class: `metric ${cls}`, title: sentence },
+      el('span', { class: 'metric-label', 'aria-hidden': 'true' }, label),
+      el('span', { class: 'metric-value', 'aria-hidden': 'true' }, el('strong', {}, value), sub ? el('span', { class: 'metric-sub' }, sub) : null),
+      el('span', { class: 'visually-hidden' }, `${label} ${value}${sub ? ` ${sub}` : ''}. ${sentence}`));
+  const balance = money(game.state.balance, text);
+  const budgetMetric = metric('budget-metric', st.budgetLabel, balance, '',
+    [h.budgetSentence, campaign ? fill(campaign.carryOver, { balance }) : ''].filter(Boolean).join(' '));
+  let goalMetric: HTMLElement | null = null;
+  if (nextStep && isPlayable(nextStep)) {
+    const world = text.dashboard.worldShort[nextStep];
+    const minimum = money(data.tuning.budget.minimumBudget[nextStep], text);
+    goalMetric = metric('pass-metric', h.passMarkLabel, minimum, fill(h.passMarkFor, { world }),
+      fill(campaign?.passMark ?? h.passMarkSentence, { minimum, world }));
+  } else if (nextStep) {
+    goalMetric = metric('goal-metric', h.goalLabel, fill(h.goalValue, vars), '', fill(campaign?.passMark ?? '', vars));
+  }
 
   // Engineering notebook: what REL has learned in the field, for planning the next rover.
   let notebook: NotebookHandle | null = null;
@@ -426,7 +440,7 @@ export const designScreen: Screen = (game, root) => {
     el('div', { class: 'desk-head-side' },
       help,
       notebookButton,
-      el('div', { class: 'budget' }, el('span', { class: 'label' }, st.budgetLabel), el('strong', {}, money(game.state.balance, text))),
+      el('div', { class: 'desk-metrics' }, budgetMetric, goalMetric),
     ),
   );
   // Palette | rover | specification. The sheet scrolls inside itself so the launch button stays in view.
@@ -439,9 +453,10 @@ export const designScreen: Screen = (game, root) => {
   );
   const grid = el('div', { class: 'desk-grid' }, palette.element, viewport, sheetPanel);
 
-  // The notes: compact, so the desk fits one screen. The story and the carry-over show two lines each until
-  // "More" (the full text is always in the page, so screen readers read all of it); the not-offered notice
-  // and Titan's solar note always show in full.
+  // The notes: compact, so the desk fits one screen. The story shows two lines until "More" (the full text is
+  // always in the page, so screen readers read all of it), with the not-offered notice as a small chip beside
+  // "More". The mission brief sits right: Watch out and Science here, an icon and a few words per item, one
+  // more sentence in each item's tooltip and screen-reader text.
   const notesToggle = el('button', {
     type: 'button',
     class: 'notes-toggle',
@@ -454,21 +469,30 @@ export const designScreen: Screen = (game, root) => {
       notesToggle.textContent = open ? t.notesLess : t.notesMore;
     },
   }, t.notesMore);
+  const b = t.brief;
+  const briefGroup = (cls: string, heading: string, items: BriefItem[]) => el('section', { class: `brief-group ${cls}` },
+    el('h3', { class: 'brief-heading' }, heading),
+    el('ul', { class: 'brief-items' }, ...items.map((item) => {
+      const tip = item.tip ? fill(item.tip, vars) : '';
+      return el('li', { class: 'brief-item', title: tip || undefined },
+        briefIcon(item.icon), el('span', {}, item.text), tip ? el('span', { class: 'visually-hidden' }, `. ${tip}`) : null);
+    })));
   const notes = el('div', { class: 'desk-notes collapsed', id: 'desk-notes' },
     el('div', { class: 'desk-notes-main' },
       el('p', { class: 'story-site clamp' }, text.story.site), // why REL is going to this site
-      el('p', { class: 'muted' }, t.tutorial),
+      el('div', { class: 'notes-row' },
+        notesToggle,
+        notOffered.length > 0 && el('p', { class: 'not-offered', role: 'status' },
+          fill(t.notOffered, { parts: notOffered.map((p) => p.name).join(text.ticket.and) })),
+      ),
     ),
-    el('div', { class: 'desk-notes-side' },
-      transition,
-      notOffered.length > 0 && el('p', { class: 'world-transition not-offered', role: 'status' },
-        fill(t.notOffered, { parts: notOffered.map((p) => p.name).join(text.ticket.and) })),
-      text.titanCampaign && el('p', { class: 'world-transition world-warning' }, text.titanCampaign.solarNote),
+    el('section', { class: 'desk-brief', 'aria-label': b.label },
+      briefGroup('watch', b.watchHeading, b.watch),
+      briefGroup('science', b.scienceHeading, b.science),
     ),
-    notesToggle,
   );
   const desk = el('section', { class: 'desk' },
-    // The top bar stays in view while the desk scrolls: title, help, notebook and balance. The longer notes sit below it.
+    // The top bar stays in view while the desk scrolls: title, help, notebook, budget and pass mark. The story and the brief sit below it.
     head,
     notes,
     grid,

@@ -633,6 +633,31 @@ export type SpecText = Record<
   softGroundLevels: Record<SoftGroundRating, string>;
 };
 
+/** An icon of the desk's mission brief (drawn by ui/briefIcons.ts). */
+export type BriefIcon =
+  | 'flare' | 'quake' | 'slope' | 'sand' | 'cold' | 'night' | 'storm' | 'rain' | 'haze'
+  | 'layers' | 'rock' | 'hydrogen' | 'radar' | 'sky' | 'earth' | 'view' | 'organics';
+
+/** One line of the mission brief: an icon, a few words, and an optional sentence for its tooltip ({placeholders} from missionVars). */
+export interface BriefItem {
+  icon: BriefIcon;
+  text: string;
+  tip?: string;
+}
+
+/**
+ * The desk's mission brief (game-design.md, "the header reads at a glance"): what to watch out for on this
+ * world and what science it offers, 3 to 5 items each. General only: it names no milestone, gives no how-to
+ * and no reward, and hints at no lesson (ui/spoilerGuard.test.ts checks every string on every world).
+ */
+export interface MissionBrief {
+  label: string; // the brief's accessible name
+  watchHeading: string;
+  scienceHeading: string;
+  watch: BriefItem[];
+  science: BriefItem[];
+}
+
 /** The desk's soft-ground rating of a build (rules/ground.ts softGroundRating). */
 export type SoftGroundRating = 'good' | 'fair' | 'poor';
 
@@ -646,7 +671,7 @@ export interface SharedTextFile {
   story: { kicker: string; site: string; sourcesLabel: string; sources: string[] };
   slots: Record<BusSlot | 'instrument', string> & Partial<Record<SupportSlot, string>>; // support slot names come with the world that offers them
   design: Record<
-    | 'heading' | 'tutorial' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum'
+    | 'heading' | 'overTopTier' | 'overBudget' | 'chassisOverloaded' | 'belowMinimum'
     | 'speedInfoButton' | 'speedInfoTitle' | 'speedInfoBuild' | 'speedInfoSources' | 'slotEmpty' | 'slotsEmpty'
     | 'previewLabel' | 'previewEmpty' // the live 3D build preview (aria label, empty-state hint)
     | 'bayHint' | 'bayPoints' | 'bayNoChassis' | 'bayFull' | 'bayDropped' | 'bayOverCapacity' | 'bayKey' // the payload bay (instruments and systems)
@@ -661,6 +686,14 @@ export interface SharedTextFile {
     /** The palette's category names: the four required bus slots and the payload. */
     categories: Record<RequiredSlot | 'payload', string>;
     speedInfo: string[]; // the optional real-speed pop-up, one paragraph per entry
+    /**
+     * The top bar's key numbers (game-design.md, "the header reads at a glance"): the budget's tooltip
+     * (with campaign.carryOver after the Moon), the pass mark ({minimum}, {world}: the next world; its tooltip is
+     * campaign.passMark where the world has one, else passMarkSentence) and, on the last mission, the goal ({minutes}).
+     */
+    header: Record<'budgetSentence' | 'passMarkLabel' | 'passMarkFor' | 'passMarkSentence' | 'goalLabel' | 'goalValue', string>;
+    /** The world's mission brief beside the story (each world sets its own). */
+    brief: MissionBrief;
     /** By instrument: a desk card's short line on where the instrument is used (Mars step 6d; none on the Moon). Names places, never a lesson. */
     instrumentWhere?: Partial<Record<Instrument, string>>;
     /**

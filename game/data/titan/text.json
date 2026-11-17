@@ -37,6 +37,20 @@
   },
   "design": {
     "spec": { "chargingSolar": "solar, Titan haze" },
+    "brief": {
+      "watch": [
+        { "icon": "haze", "text": "Solar panels: almost no power", "tip": "Thick haze lets little sunlight through. In this version the rover runs on its battery alone." },
+        { "icon": "cold", "text": "Cold, day and night", "tip": "About −179 °C everywhere on the map. The cold never lets up." },
+        { "icon": "night", "text": "One long night", "tip": "About {dayLeftMinutes} minutes of daylight, then a {nightMinutes}-minute night." },
+        { "icon": "rain", "text": "Methane rain", "tip": "One rainstorm crosses the site, forecast about {rainWarningSeconds} s ahead. Rain cools the rover faster." },
+        { "icon": "sand", "text": "Soft sand on the dunes", "tip": "Loose sand covers the dune crests and upper flanks. The corridors between the dunes are firm." }
+      ],
+      "science": [
+        { "icon": "organics", "text": "Organic dune sand", "tip": "The dune sand is thought to be organic material, and nobody has sampled it yet." },
+        { "icon": "view", "text": "Views from the dune crests", "tip": "The crests look out across the dune field." },
+        { "icon": "rock", "text": "Blocks from Selk crater", "tip": "At the edge of the map lie blocks thrown out by Selk, where water may once have mixed with organic material." }
+      ]
+    },
     "speedInfo": [
       "The mission compresses one Titan day, about 16 Earth days, into {minutes} minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
       "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
@@ -61,7 +75,6 @@
   "campaign": {
     "carryOver": "Balance carried over from Mars: {balance}.",
     "passMark": "This is the last mission. Its goal is to survive: the rover must still be running at the end of the {minutes} minutes (asleep counts). The balance does not decide it.",
-    "sameParts": "Parts and launch ticket tiers are the same as on the Moon in this version.",
     "ticketNote": "The launch ticket tiers are the same as for the Moon in this version.",
     "perseverance": "",
     "newHeading": "New on Titan",

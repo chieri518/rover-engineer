@@ -60,7 +60,6 @@
   },
   "design": {
     "heading": "Rover design",
-    "tutorial": "Choose a chassis, wheels, a power source and a battery, and fit the payload bay. Mass and size set the launch ticket tier. Light parts cost more.",
     "slotEmpty": "Not chosen",
     "bayHint": "Instruments and systems, one of each and one heater at most, in any mix. Each item takes one mounting point; the chassis sets how many there are. Leave off what the rover does not need.",
     "bayPoints": "{used} of {points} mounting points used",
@@ -86,6 +85,33 @@
     "notesMore": "More",
     "notesLess": "Less",
     "notOffered": "Not offered on the Moon: {parts}.",
+    "header": {
+      "budgetSentence": "The budget pays for the rover's parts and its launch ticket.",
+      "passMarkLabel": "Pass mark",
+      "passMarkFor": "to reach {world}",
+      "passMarkSentence": "After this mission the balance must stay at or above {minimum}, the pass mark for {world}.",
+      "goalLabel": "Goal",
+      "goalValue": "Survive {minutes} min"
+    },
+    "brief": {
+      "label": "Mission brief",
+      "watchHeading": "Watch out",
+      "scienceHeading": "Science here",
+      "watch": [
+        { "icon": "flare", "text": "Solar flares", "tip": "Flares strike at random times, with about {warningSeconds} s of warning." },
+        { "icon": "quake", "text": "A moonquake", "tip": "A moonquake shakes the whole site at a random time. Nothing prevents it." },
+        { "icon": "slope", "text": "Steep slopes and boulders", "tip": "Hard impacts and ground steeper than {maxSlope}° damage the rover, and a rollover ends the mission." },
+        { "icon": "sand", "text": "Soft crater rims", "tip": "The ground is soft around fresh craters. A heavy rover sinks in and can get stuck." },
+        { "icon": "cold", "text": "Bitter cold in sunless craters", "tip": "Crater floors that never see the Sun freeze a rover that stays too long." }
+      ],
+      "science": [
+        { "icon": "layers", "text": "Rock layers in crater walls", "tip": "The inner walls of craters can expose layers of rock." },
+        { "icon": "rock", "text": "Boulders to read", "tip": "Boulders around young craters hold different kinds of rock." },
+        { "icon": "hydrogen", "text": "Hydrogen in the soil", "tip": "Hydrogen in the top meter of soil can mean buried ice." },
+        { "icon": "quake", "text": "Moonquake signals", "tip": "The moonquake's shaking can be recorded from the surface." },
+        { "icon": "earth", "text": "Earth low in the sky", "tip": "From near the pole, Earth stays low above the horizon." }
+      ]
+    },
     "instrumentEnergy": "Instrument energy",
     "instrumentEnergyItem": "{name}: {costs}",
     "instrumentEnergyNone": "None",

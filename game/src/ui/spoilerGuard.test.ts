@@ -8,6 +8,9 @@
 // Mars (Mars step 6d; mars-rover-engineering-implementation-plan.md, "Spoiler guard (Revised)"): the same for
 // the Mars lessons, over every Mars desk, milestone, tutorial, site and HUD text (not the lessons' own texts in
 // relationships.json, which show only once a lesson is met). See the Mars block below.
+// The desk's mission brief and header metrics (game-design.md, "the header reads at a glance"): every string,
+// filled as the player sees it, on every world: the Moon's key words everywhere, the Mars rules on Mars, and
+// no milestone names. Titan has no lessons yet (checked below, so a new one brings its own rules here).
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import { buildSites, type SurveyFeatures } from '../rules/survey';
@@ -20,7 +23,8 @@ import marsTerrain from '../../public/terrain/mars/terrain.json';
 import { foundNotice } from './surveyText';
 import { deskCardNotes, milestoneHowTo, milestoneSummary } from './milestoneText';
 import { armNotes, needsText } from './supportText';
-import { tutorialPages } from './tutorialText';
+import { missionVars, tutorialPages } from './tutorialText';
+import { fill } from './dom';
 
 const data = loadGameData();
 const { text } = data;
@@ -49,6 +53,25 @@ function stationLine(instrument: Instrument, start: RegExp): string {
   return lines[0]!;
 }
 
+/** The desk's mission brief and header metric strings for one world, filled as the player sees them, labelled. */
+function briefTexts(d: GameData): [string, string][] {
+  const vars = { ...missionVars(d), minimum: '$800k', world: 'Titan', balance: '$780k' };
+  const { brief, header } = d.text.design;
+  const c = d.text.campaign;
+  const out: [string, string][] = [
+    [`${d.world} brief.label`, brief.label], [`${d.world} brief.watchHeading`, brief.watchHeading], [`${d.world} brief.scienceHeading`, brief.scienceHeading],
+    ...Object.entries(header).map(([k, v]): [string, string] => [`${d.world} header.${k}`, fill(v, vars)]),
+    ...(c ? [[`${d.world} campaign.carryOver`, fill(c.carryOver, vars)], [`${d.world} campaign.passMark`, fill(c.passMark, vars)]] as [string, string][] : []),
+  ];
+  for (const group of ['watch', 'science'] as const) {
+    for (const [i, item] of brief[group].entries()) {
+      out.push([`${d.world} brief.${group}.${i}.text`, item.text]);
+      if (item.tip) out.push([`${d.world} brief.${group}.${i}.tip`, fill(item.tip, vars)]);
+    }
+  }
+  return out;
+}
+
 /** Every player-facing text Phase 5 added, labelled. */
 function newTexts(): [string, string][] {
   const s = text.survey;
@@ -67,6 +90,8 @@ function newTexts(): [string, string][] {
     // The stations' tutorial lines: pick the paragraph that names the instrument (not the first drive paragraph).
     ['tutorial.drive.seismometer', stationLine('seismometer', /^Seismometer station/)],
     ['tutorial.drive.reflector', stationLine('reflector', /^Laser retroreflector/)],
+    // The desk's mission brief and header metrics (November 16).
+    ...briefTexts(data),
   ];
   // The desk cards: the milestone names each instrument lists.
   for (const i of ALL) out.push([`desk card ${i}`, instrumentMilestones(i, data.milestones.milestones).map((m) => m.name).join(', ')]);
@@ -222,6 +247,13 @@ describe('spoiler guard, Mars: no Mars text names a Mars lesson before it happen
     expect(texts.find((x) => x.label === 'desk arm-robotic')!.text).toContain('X-ray and organics');
     expect(texts.some((x) => x.label === 'instrumentText.xray.slope')).toBe(false); // the X-ray has no slope refusal any more
     for (const key of ['support.xrayWithArm', 'support.armAdds', 'support.groundDown', 'support.groundDownReward']) expect(texts.map((x) => x.label), key).toContain(key);
+    // The desk's mission brief: every item's words and tooltip (the Mars design text, by path).
+    for (const group of ['watch', 'science'] as const) {
+      for (const [i, item] of mars.text.design.brief[group].entries()) {
+        expect(texts.map((x) => x.label)).toContain(`design.brief.${group}.${i}.text`);
+        if (item.tip) expect(texts.map((x) => x.label)).toContain(`design.brief.${group}.${i}.tip`);
+      }
+    }
     for (const x of texts) expect(x.text.length, x.label).toBeGreaterThan(0);
   });
 
@@ -246,5 +278,49 @@ describe('spoiler guard, Mars: no Mars text names a Mars lesson before it happen
     expect(caught(fake('Keep the lights on through the night.', ['night-weather']))).toBe(true);
     expect(caught(fake('Fixed solar panel. Nothing at night, less in a dust storm.'))).toBe(false);
     expect(caught(fake('Clean run'))).toBe(false);
+  });
+});
+
+// --- The desk's mission brief, every world ---
+// The brief is general (game-design.md, "the header reads at a glance"): no lesson words (the Moon's key words
+// on every world, so no brief says lights, heaters, shadow or quiet ground are needed), and no milestone names.
+
+const titan = loadGameData('titan');
+
+describe("spoiler guard: the desk's mission brief names no lesson and no milestone", () => {
+  const worlds = [data, mars, titan];
+
+  it('collects every brief string on the Moon, Mars and Titan', () => {
+    for (const d of worlds) {
+      const texts = briefTexts(d);
+      expect(texts.filter(([label]) => label.includes('.watch.')).length, d.world).toBeGreaterThanOrEqual(3);
+      expect(texts.filter(([label]) => label.includes('.science.')).length, d.world).toBeGreaterThanOrEqual(3);
+      for (const [label, t] of texts) expect(t.length, label).toBeGreaterThan(0);
+    }
+    // The Moon's brief is in the Moon guard's texts too.
+    expect(newTexts().map(([label]) => label)).toContain('moon brief.watch.0.text');
+  });
+
+  it.each(KEY_WORDS)('no brief on any world hints at "%s" (%s)', (_lesson, word) => {
+    for (const d of worlds) for (const [label, t] of briefTexts(d)) expect(t, label).not.toMatch(word);
+  });
+
+  it("no brief names one of its world's milestones", () => {
+    for (const d of worlds) {
+      const names = d.milestones.milestones.map((m) => new RegExp(`\\b${m.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i'));
+      for (const [label, t] of briefTexts(d).filter(([l]) => l.includes(' brief.'))) {
+        for (const name of names) expect(t, label).not.toMatch(name);
+      }
+    }
+  });
+
+  it('Titan has no lesson of its own yet (a new one needs its rules in this guard)', () => {
+    expect(titan.relationships.relationships.filter((r) => r.world === 'titan')).toEqual([]);
+  });
+
+  it('the guard catches a brief that would spoil a lesson', () => {
+    expect('Long shadows').toMatch(KEY_WORDS[4]![1]);
+    expect('Bring lights for the craters').toMatch(KEY_WORDS[5]![1]);
+    expect('A heater keeps it working').toMatch(KEY_WORDS[2]![1]);
   });
 });

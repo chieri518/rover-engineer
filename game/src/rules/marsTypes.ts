@@ -425,9 +425,8 @@ export interface MarsTextSections {
 }
 
 export interface MarsCampaignText {
-  carryOver: string; // {balance}: the balance carried over from the Moon
-  passMark: string; // {minimum}: the next mission's pass mark (Titan)
-  sameParts: string; // design screen: Mars has its own parts and ticket tiers
+  carryOver: string; // {balance}: the balance carried over from the last world (the desk's Budget tooltip)
+  passMark: string; // the desk's pass-mark tooltip: {minimum}, the next mission's pass mark (Mars); on the last mission (Titan) the goal, {minutes}
   ticketNote: string; // ticket screen: Mars's own tiers
   perseverance: string; // landing: {distance} km {direction} to Perseverance's landing site
   newHeading: string; // landing: "New on Mars"

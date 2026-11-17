@@ -57,6 +57,21 @@
   },
   "design": {
     "notOffered": "Not offered on Mars: {parts}.",
+    "brief": {
+      "watch": [
+        { "icon": "storm", "text": "Dust storm mid-mission", "tip": "A regional dust storm reaches the site partway through the mission. An orbital forecast warns about {stormLeadSols} sol ahead." },
+        { "icon": "night", "text": "A cold night every sol", "tip": "Each of the {sols} sols ends in a night with no sunlight, and the rover cools everywhere on the map." },
+        { "icon": "sand", "text": "Soft sand ripples", "tip": "Séítah's sand ripples are soft. A heavy rover sinks in and can get stuck." },
+        { "icon": "slope", "text": "Steep slopes and boulders", "tip": "Hard impacts and ground steeper than {maxSlope}° damage the rover, and a rollover ends the mission." }
+      ],
+      "science": [
+        { "icon": "layers", "text": "Rock layers at the delta front", "tip": "Jezero's ancient river delta exposes layers laid down in and around the old lake." },
+        { "icon": "rock", "text": "Boulders to read", "tip": "Each site has its own rocks, and the foot of the delta holds rock from the old lake." },
+        { "icon": "radar", "text": "Ground beneath the surface", "tip": "What lies under the crater floor can be imaged from the surface." },
+        { "icon": "sky", "text": "Sky and weather", "tip": "Pressure, wind and dust in the air change from day to night and through the storm." },
+        { "icon": "hydrogen", "text": "Hydrogen in the soil", "tip": "Some ground holds more hydrogen than the ground around it." }
+      ]
+    },
     "instrumentWhere": {
       "camera": "Where: the delta front, young crater rims, and the sky at sunset.",
       "drill": "Where: rock away from the lander. Séítah and the foot of the delta hold rock of their own.",
@@ -85,7 +100,6 @@
   "campaign": {
     "carryOver": "Balance carried over from the Moon: {balance}.",
     "passMark": "After this mission the balance must stay at or above {minimum}, the pass mark for Titan.",
-    "sameParts": "Mars has its own parts: the Moon's, without the two instruments that have no work on this mission, plus new power sources, a larger battery, an electric heater, grouser wheels, an arm, a mast and four Mars instruments. Launches to Mars have their own ticket tiers, with a Heavy tier.",
     "ticketNote": "Launches to Mars have their own ticket tiers: the Moon's three, and a Heavy tier for rovers up to 100 kg.",
     "perseverance": "NASA's Perseverance rover landed in Jezero crater on February 18, 2021. Its landing site, Octavia E. Butler Landing, is about {distance} km {direction} of the lander.",
     "newHeading": "New on Mars",

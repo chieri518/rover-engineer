@@ -172,7 +172,7 @@ describe('Mars tutorial and briefing text', () => {
     const c = mars.text.campaign!;
     const vars = missionVars(mars);
     for (const line of c.newOnMars) expect(fill(line, vars)).not.toMatch(unfilled);
-    for (const s of [mars.text.story.kicker, c.sameParts, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
+    for (const s of [mars.text.story.kicker, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
       expect(s).not.toMatch(unfilled);
     }
     expect(mars.text.comingSoon.heading).toBe('Titan: coming soon');
