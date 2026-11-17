@@ -63,6 +63,7 @@ vec3 seaLevel(vec3 p) {
     if (on <= 0.0) continue;
     vec2 d = p.xz - enginePos[i];
     float rho = length(d);
+    if (rho > exitR * 1.6 + s * 0.05 || s > front[i] + 0.5 || s > 14.0) continue;
     float fm = smoothstep(front[i], front[i] - 1.2, s);
     float rc = exitR * (0.9 + 0.1 * cos(s * 6.2831 / lambda)) + s * 0.03;
     float core = exp(-pow(rho / rc, 4.0)) * exp(-s / 6.0);
@@ -72,11 +73,12 @@ vec3 seaLevel(vec3 p) {
     float n = snoise(vec3(d * 3.0, (s - time * 40.0) * 0.8 + float(i) * 7.0));
     col += on * fm * (vec3(1.0, 0.82, 0.55) * core * (3.0 + 1.0 * n) + vec3(1.0, 0.95, 0.85) * knot * 12.0);
   }
-  if (columnOn > 0.0) {
-    float rho = length(p.xz);
+  float rhoC = length(p.xz);
+  if (columnOn > 0.0 && rhoC < (1.5 + s * spread) * 1.6 + 0.5) {
+    float rho = rhoC;
     float R = 1.5 + s * spread;
     vec3 q = vec3(p.x * 0.55, (s - time * 28.0) * 0.22, p.z * 0.55);
-    float n = fbm3(q) + 0.5 * snoise(q * 2.7 + 4.0);
+    float n = fbm3(q);
     float edge = R * (1.0 + 0.45 * n) - rho;
     float dens = smoothstep(-0.2, R * 0.5, edge);
     float T = clamp(1.0 - s / columnLen, 0.0, 1.0);

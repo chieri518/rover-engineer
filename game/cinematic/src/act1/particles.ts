@@ -62,9 +62,9 @@ float puff(vec2 q, float v) {
     float r = 0.22 + 0.25 * h.z;
     d += exp(-dot(q - c, q - c) / (r * r)) * (0.55 + 0.45 * h.z);
   }
-  float n = fbm5(vec3(q * 2.6, v * 7.0)) * 0.55 + snoise(vec3(q * 9.0, v * 3.0 + 1.0)) * 0.12;
+  float n = fbm5(vec3(q * 2.2, v * 7.0)) * 0.45 + snoise(vec3(q * 7.0, v * 3.0 + 1.0)) * 0.05;
   d = d * 0.75 + n - 0.32;
-  d *= 1.0 - smoothstep(0.62, 0.98, length(q));
+  d *= 1.0 - smoothstep(0.45, 0.98, length(q));
   return clamp(d, 0.0, 1.0);
 }
 void main() {
@@ -76,9 +76,9 @@ void main() {
   float dx = puff(q + vec2(e, 0.0), v) - puff(q - vec2(e, 0.0), v);
   float dy = puff(q + vec2(0.0, e), v) - puff(q - vec2(0.0, e), v);
   // A dome over the density: the puff bulges toward the viewer where it is thick.
-  vec2 g = vec2(dx, dy) / (2.0 * e) * 0.18 + q * 0.55;
+  vec2 g = vec2(dx, dy) / (2.0 * e) * 0.16 + q * 0.22;
   vec3 n = normalize(vec3(-g, 1.0));
-  gl_FragColor = vec4(smoothstep(0.0, 0.85, d), n.xy * 0.5 + 0.5, d);
+  gl_FragColor = vec4(pow(smoothstep(0.0, 0.85, d), 1.4), n.xy * 0.5 + 0.5, d);
 }`;
 
 const SMOKE_VERT = /* glsl */ `
@@ -149,7 +149,7 @@ void main() {
   alpha *= soft * smoothstep(1.0, 4.0, vViewZ);
   if (alpha < 0.002) discard;
   vec3 V = normalize(cameraPosition - vW);
-  vec2 nl = tex.gb * 2.0 - 1.0;
+  vec2 nl = (tex.gb * 2.0 - 1.0) * 0.6;
   vec3 N = normalize(nl.x * vR + nl.y * vU + V * sqrt(max(0.0, 1.0 - dot(nl, nl))));
   float thick = tex.a;
   // Ambient: sky above, dark ground below.
@@ -163,10 +163,10 @@ void main() {
     float att = 1.0 / (1.0 + d2 / (lightRad[i] * lightRad[i]));
     float ndl = clamp(dot(N, L) * 0.8 + 0.2, 0.0, 1.0);
     // Light through thin edges toward the viewer.
-    float trans = pow(clamp(dot(-V, L), 0.0, 1.0), 3.0) * (1.0 - D) * 0.6;
+    float trans = pow(clamp(dot(-V, L), 0.0, 1.0), 3.0) * D * 0.5;
     light += lightCol[i] * att * (ndl + trans);
   }
-  float self = mix(1.0, 0.35, thick);
+  float self = mix(1.0, 0.78, thick);
   vec3 albedo = (kind > 1.5 ? vec3(0.92, 0.93, 0.95) : vec3(0.62, 0.6, 0.58)) * vP.w;
   vec3 col = albedo * light * self;
   // Hot gas: emission by temperature, brightest in the dense core of the puff.
@@ -447,6 +447,8 @@ attribute vec4 iS; // width, bright, floor, seed
 uniform float time;
 uniform float gravity;
 uniform float streak;
+uniform float focus;
+uniform float aperture;
 varying float vHeat;
 varying float vTemp;
 varying float vAcross;
@@ -497,10 +499,15 @@ void main() {
   vec3 side = normalize(cross(dir, toCam) + 1e-6);
   // position.x: -0.5..0.5 across, position.y: -0.5 (tail) .. 0.5 (head)
   float s = position.y + 0.5;
-  vec3 w = mix(tail, head, s) + side * position.x * iS.x + dir * (s - 0.5) * iS.x;
+  // Out of focus, a spark is drawn as wide as its circle of confusion (and dimmer), so the lens samples of the
+  // depth of field blend into a soft streak instead of showing as separate copies.
+  float z = dot(head - cameraPosition, -vec3(viewMatrix[0][2], viewMatrix[1][2], viewMatrix[2][2]));
+  float coc = aperture * abs(z - focus) / max(focus, 0.1);
+  float wEff = max(iS.x, coc * 1.4);
+  vec3 w = mix(tail, head, s) + side * position.x * wEff + dir * (s - 0.5) * wEff;
   float u = a / max(life, 0.05);
-  vTemp = mix(0.95, 0.45, u);
-  vHeat = iS.y * exp(-u * 1.5) * (1.0 - smoothstep(0.75, 1.0, u));
+  vTemp = mix(0.84, 0.42, u);
+  vHeat = iS.y * exp(-u * 1.5) * (1.0 - smoothstep(0.75, 1.0, u)) * (iS.x / wEff) * clamp(len / max(len + wEff, 1e-4) * 1.0 + 0.3, 0.0, 1.0);
   vAcross = position.x * 2.0;
   vAlong = s;
   gl_Position = projectionMatrix * viewMatrix * vec4(w, 1.0);
@@ -524,7 +531,7 @@ void main() {
 
 export class SparkSystem {
   readonly mesh: THREE.Mesh;
-  readonly uniforms = { time: { value: 0 }, gravity: { value: 9.81 }, streak: { value: 0.03 } };
+  readonly uniforms = { time: { value: 0 }, gravity: { value: 9.81 }, streak: { value: 0.03 }, focus: { value: 10 }, aperture: { value: 0 } };
   private readonly geo: THREE.InstancedBufferGeometry;
   private readonly material: THREE.ShaderMaterial;
   constructor(spawns: SparkSpawn[], gain = 40) {

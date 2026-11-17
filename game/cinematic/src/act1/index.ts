@@ -147,7 +147,7 @@ export const act1: SequenceDef[] = [
         rocket.stage1.rotation.set(0, 0, 0);
         const glows = ENGINE_START.map((_, i) => Math.min(1.2, engineLevel(i, t)));
         const ig = Math.max(...ENGINE_START.map((_, i) => igniterFlash(i, t)));
-        rocket.setEngines(glows, ig);
+        rocket.setEngines(glows, ig, t);
         rocket.setMvac(0, 0);
 
         // Plume.
@@ -164,7 +164,7 @@ export const act1: SequenceDef[] = [
         const nY = nozzleY(t);
         pu.floorS.value = ris < 6 ? nY - 4.0 : nY - PAD.deckY;
         if (ris > 60) pu.floorS.value = nY;
-        pu.steps.value = quality === 'final' ? 48 : 28;
+        pu.steps.value = f.shot === 'ignition' ? 14 : quality === 'final' ? 26 : 20;
         pu.gain.value = f.shot === 'ignition' ? 0.4 : 1;
 
         // Flame lights, flickering.
@@ -197,8 +197,12 @@ export const act1: SequenceDef[] = [
           fc(tr * 30 * flick(5), 1, 0.42, 0.14),
           ...floods.map(() => fc(0.25, 0.8, 0.88, 1.0)),
         ];
-        lightSet.radius = [5, 12, 8, 8, 160, 160, 160];
+        lightSet.radius = [5, 10, 6, 6, 160, 160, 160];
         smoke.setLights(lightSet);
+        smoke.uniforms.skyAmb.value.set(0.11, 0.13, 0.22);
+        smoke.uniforms.groundAmb.value.set(0.03, 0.025, 0.03);
+        smoke.uniforms.dawnDir.value.set(sunDir.x, 0.15, sunDir.z).normalize();
+        smoke.uniforms.dawnCol.value.set(0.22, 0.1, 0.07);
         smoke.uniforms.fireGain.value = f.shot === 'ignition' ? 18 : 12;
         sparks.uniforms.time.value = t;
 
@@ -210,7 +214,7 @@ export const act1: SequenceDef[] = [
           const shk = (0.004 + 0.05 * hit * (1 - 0.5 * smoothstep(T.ignition + 0.6, T.shot2, t))) ;
           const push = easeInOutSine(k);
           camera.fov = lerp(30, 27, push);
-          camera.position.set(lerp(1.2, 0.5, push), lerp(10.6, 10.5, push), lerp(6.9, 5.6, push));
+          camera.position.set(lerp(1.4, 0.6, push), lerp(11.7, 11.5, push), lerp(7.2, 5.9, push));
           camera.position.x += shake(t, 11, 7) * shk;
           camera.position.y += shake(t, 12, 7) * shk;
           const look = v3(lerp(-0.5, -0.1, push), lerp(13.4, 13.1, push), lerp(-0.3, 0, push));
@@ -218,7 +222,7 @@ export const act1: SequenceDef[] = [
           look.y += shake(t, 14, 9) * shk * 0.5;
           camera.lookAt(look);
           const focus = camera.position.distanceTo(v3(-0.3, 13.2, 0.4));
-          const preExp = 2.0;
+          const preExp = 1.35;
           const postExp = 0.32;
           post = {
             exposure: lerp(preExp, postExp, 0.85 * smoothstep(T.ignition - 0.2, T.ignition + 0.08, t) + 0.15 * smoothstep(T.ignition + 0.2, T.ignition + 1.0, t)) * (1 + 0.3 * ig),
@@ -242,15 +246,15 @@ export const act1: SequenceDef[] = [
           // Liftoff: pull back and crane up from the base to the whole rocket rising.
           const k = f.t / ACT1_SHOTS[1]!.duration;
           const pull = easeOutCubic(clamp01(k * 1.05));
-          const a0 = v3(-16, 8.5, 30);
-          const a1 = v3(-190, 26, 255);
+          const a0 = v3(-15, 9, 27);
+          const a1 = v3(-125, 22, 170);
           camera.position.lerpVectors(a0, a1, pull);
-          camera.position.y += 6 * easeInOutCubic(k);
+          camera.position.y += 14 * easeInOutCubic(k);
           const roar = th * (1 - 0.6 * pull);
           const shk = 0.03 + 0.22 * roar;
           camera.position.x += shake(t, 21, 5) * shk;
           camera.position.y += shake(t, 22, 5) * shk;
-          const lookY = lerp(18, baseY + 26, phase(k, 0.0, 1.0, easeInOutSine));
+          const lookY = lerp(18, baseY * 0.62 + 14, phase(k, 0.0, 1.0, easeInOutSine));
           const look = v3(0, lookY, 0);
           look.x += shake(t, 23, 6) * shk * 0.4;
           camera.lookAt(look);
@@ -272,6 +276,8 @@ export const act1: SequenceDef[] = [
             liftColor: [0.45, 0.55, 1],
           };
         }
+        sparks.uniforms.focus.value = post.focusDistance ?? 10;
+        sparks.uniforms.aperture.value = DBG.noDof ? 0 : post.aperture ?? 0;
         if (DBG.cam) {
           camera.position.set(...DBG.cam.pos);
           camera.lookAt(...DBG.cam.look);

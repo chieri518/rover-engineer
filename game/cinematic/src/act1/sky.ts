@@ -64,18 +64,17 @@ void main() {
   vec3 sH = normalize(vec3(sunDir.x, 0.0, sunDir.z));
   float c = dot(normalize(vec3(d.x, 0.0, d.z) + 1e-5), sH);
   col += stars(d) * starAmount * smoothstep(0.08, 0.5, h) * (1.0 - 0.85 * pow(max(c * 0.5 + 0.5, 0.0), 2.0)) * 0.12;
-  // Cirrus deck at 9 km, lit from below by the sun (pink and gold on the sun side, mauve away from it).
+  // A thin altocumulus/cirrus deck at 9 km, lit from below by the sun (pink and gold toward it, mauve away).
   if (h > 0.0) {
-    vec2 p = d.xz / max(h, 0.02) * 9.0 + vec2(skyTime * 0.004, 0.0);
-    vec2 q = vec2(p.x * 0.18 + p.y * 0.05, p.y * 0.55);
-    float n = fbm5(vec3(q * 0.35, 2.0)) + 0.5 * fbm3(vec3(q * 1.6 + 3.0, 5.0));
-    float streaks = fbm3(vec3(p.x * 0.05, p.y * 1.4, 9.0));
-    float a = smoothstep(0.05, 0.75, n + 0.35 * streaks) * cirrusAmount;
-    a *= smoothstep(0.0, 0.08, h) * (1.0 - smoothstep(0.55, 0.95, h));
+    vec2 p = d.xz / max(h, 0.03) * 9.0 + vec2(skyTime * 0.004, 0.0);
+    float n = fbm5(vec3(p * 0.09, 2.0));
+    float fine = fbm3(vec3(p * 0.55 + 3.0, 5.0));
+    float a = smoothstep(0.08, 0.6, n + 0.25 * fine) * cirrusAmount;
+    a *= smoothstep(0.02, 0.12, h) * (1.0 - smoothstep(0.5, 0.9, h));
     float toward = pow(max(c * 0.5 + 0.5, 0.0), 3.0);
-    vec3 lit = mix(vec3(0.22, 0.10, 0.16), vec3(1.25, 0.48, 0.25), toward);
-    lit += vec3(1.4, 0.8, 0.4) * pow(max(c, 0.0), 8.0) * exp(-h / 0.12);
-    col = mix(col, lit * (0.6 + 0.4 * n), a * 0.85);
+    vec3 lit = mix(vec3(0.10, 0.06, 0.10), vec3(0.75, 0.32, 0.20), toward);
+    lit += vec3(0.9, 0.5, 0.25) * pow(max(c, 0.0), 8.0) * exp(-h / 0.12);
+    col = mix(col, lit * (0.7 + 0.3 * fine), a * 0.6);
   }
   gl_FragColor = vec4(col, 1.0);
 }`;

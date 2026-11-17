@@ -211,7 +211,7 @@ export function buildPad(renderer: THREE.WebGLRenderer, fog: FogUniforms): Pad {
         vec2 tp = an.x > 0.5 ? vCW.zy : (an.y > 0.5 ? vCW.xz : vCW.xy);
         float n1 = fbm3(vec3(tp * 0.25, 1.0));
         float n2 = snoise(vec3(tp * 3.0, 2.0));
-        vec3 c = vec3(0.34, 0.33, 0.31) * (0.85 + 0.2 * n1 + 0.06 * n2);
+        vec3 c = vec3(0.24, 0.235, 0.225) * (0.85 + 0.2 * n1 + 0.06 * n2);
         // Formwork lines and soot: dark low down near the trench, streaks running down.
         // Formwork panels (1.2 m lifts, 2.4 m wide), faint stains running down, soot near the top and the trench.
         vec2 pf = abs(fract(tp / vec2(2.4, 1.2)) - 0.5) * vec2(2.4, 1.2);
@@ -416,10 +416,10 @@ export function buildPad(renderer: THREE.WebGLRenderer, fog: FogUniforms): Pad {
   // ------------------------------------------------------------------------------------------------ lightning masts + catenaries
   const mastMat = track(withSkyFog(new THREE.MeshStandardMaterial({ color: 0x2a2b2c, roughness: 0.7, metalness: 0.3 }), fog));
   const mastPos = [
-    new THREE.Vector3(-95, 0, -85),
-    new THREE.Vector3(95, 0, -85),
-    new THREE.Vector3(95, 0, 85),
-    new THREE.Vector3(-95, 0, 85),
+    new THREE.Vector3(122, 0, 44),
+    new THREE.Vector3(44, 0, 122),
+    new THREE.Vector3(-122, 0, -44),
+    new THREE.Vector3(44, 0, -122),
   ];
   const mastH = 135;
   for (const p of mastPos) {

@@ -261,7 +261,7 @@ export interface Rocket {
   stage1: THREE.Group;
   stage2: THREE.Group;
   /** Per-engine glow of the nozzle interiors (0..1), and the igniter flash (0..1, green). */
-  setEngines(glow: number[], igniter: number): void;
+  setEngines(glow: number[], igniter: number, time?: number): void;
   /** Upper stage engine glow (0..1) and the radiative nozzle extension's heat (0..1). */
   setMvac(glow: number, heat: number): void;
   dispose(): void;
@@ -324,6 +324,7 @@ export async function buildRocket(renderer: THREE.WebGLRenderer): Promise<Rocket
   // Nozzle glow uniforms shared by the inner walls (one per engine).
   const engineGlow = ROCKET.engines.map(() => ({ value: 0 }));
   const igniter = { value: 0 };
+  const tflow = { value: 0 };
   const makeBellMat = (glow: { value: number }, opts: { mvac?: boolean } = {}) => {
     const m = new THREE.MeshPhysicalMaterial({
       map: bellAlbedo.texture,
@@ -333,7 +334,8 @@ export async function buildRocket(renderer: THREE.WebGLRenderer): Promise<Rocket
       roughness: 1,
       metalness: 1,
       side: THREE.DoubleSide,
-      color: opts.mvac ? new THREE.Color(0.35, 0.33, 0.33) : new THREE.Color(1, 1, 1),
+      color: opts.mvac ? new THREE.Color(0.35, 0.33, 0.33) : new THREE.Color(0.75, 0.72, 0.7),
+      envMapIntensity: 0.45,
     });
     const heat = { value: 0 };
     m.userData.heat = heat;
@@ -341,8 +343,9 @@ export async function buildRocket(renderer: THREE.WebGLRenderer): Promise<Rocket
       s.uniforms.glow = glow;
       s.uniforms.igniter = igniter;
       s.uniforms.heat = heat;
+      s.uniforms.tflow = tflow;
       s.fragmentShader = s.fragmentShader
-        .replace('#include <common>', '#include <common>\nuniform float glow; uniform float igniter; uniform float heat;')
+        .replace('#include <common>', '#include <common>\nuniform float glow; uniform float igniter; uniform float heat; uniform float tflow;')
         .replace(
           '#include <emissivemap_fragment>',
           `#include <emissivemap_fragment>
@@ -350,8 +353,14 @@ export async function buildRocket(renderer: THREE.WebGLRenderer): Promise<Rocket
             float v = vMapUv.y;
             if (!gl_FrontFacing) {
               // Inside the bell: white-hot at the throat, orange at the exit; the igniter flashes green first.
-              vec3 hot = mix(vec3(1.0, 0.92, 0.75) * 22.0, vec3(1.0, 0.45, 0.12) * 3.5, smoothstep(0.0, 0.9, v));
-              totalEmissiveRadiance += hot * glow + vec3(0.25, 1.0, 0.35) * 25.0 * igniter * (1.0 - v * 0.7);
+              float tubes = 0.75 + 0.25 * cos(vMapUv.x * 6.2831 * 160.0);
+              // Hot gas streaming down the wall: bright streaks that flicker.
+              float a = vMapUv.x * 6.2831;
+              float flow = 0.55 + 0.45 * sin(a * 23.0 + sin(a * 7.0 + tflow * 3.0) * 2.0 + v * 4.0 - tflow * 9.0) * sin(a * 11.0 - tflow * 5.0 + v * 2.0);
+              vec3 hot = mix(vec3(1.0, 0.95, 0.85) * 60.0, vec3(1.0, 0.55, 0.15) * 10.0, smoothstep(0.0, 0.4, v));
+              hot = mix(hot, vec3(1.0, 0.3, 0.05) * 2.5, smoothstep(0.35, 1.0, v));
+              hot *= mix(1.0, flow, smoothstep(0.1, 0.5, v));
+              totalEmissiveRadiance += hot * tubes * glow + vec3(0.25, 1.0, 0.35) * 25.0 * igniter * (1.0 - v * 0.7);
             }
             // The radiatively cooled extension glows dull red to orange when it is hot.
             totalEmissiveRadiance += mix(vec3(1.0, 0.35, 0.08), vec3(0.5, 0.06, 0.01), v) * 3.0 * heat * smoothstep(0.15, 0.35, v);
@@ -515,9 +524,10 @@ export async function buildRocket(renderer: THREE.WebGLRenderer): Promise<Rocket
     group,
     stage1,
     stage2,
-    setEngines(glow, ig) {
+    setEngines(glow, ig, time = 0) {
       glow.forEach((g, i) => (engineGlow[i]!.value = g));
       igniter.value = ig;
+      tflow.value = time;
     },
     setMvac(glow, heat) {
       mvacGlow.value = glow;

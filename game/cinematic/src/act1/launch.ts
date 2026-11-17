@@ -130,10 +130,11 @@ export function buildSpawns(quality: 'preview' | 'final'): { smoke: Spawn[]; spa
   const baseY0 = PAD.rocketBaseY;
 
   // 1. Cold vapour pouring off the tank and the engine section before launch (sinks, drifts).
-  for (const tb of spawnTimes(-3, T.release + 0.5, () => 34 * q, r)) {
+  for (const tb of spawnTimes(-3, T.release + 0.5, () => 60 * q, r)) {
     const a = R(0, Math.PI * 2);
-    const y = R(baseY0 + 0.5, baseY0 + 6);
-    add({ tb, life: R(3.5, 5.5), p: [Math.cos(a) * 2.3, y, Math.sin(a) * 2.3], v: [Math.cos(a) * R(0.4, 1.2), R(-1.2, -0.3), Math.sin(a) * R(0.4, 1.2)], drag: 0.7, buoy: -0.5, size0: R(0.5, 1.0), grow: R(1.0, 1.8), kind: Kind.Steam, tint: R(0.85, 1), opacity: R(0.08, 0.16), fadeIn: 0.6 });
+    const y = R(baseY0 - 0.5, baseY0 + 5);
+    const rr = R(1.6, 2.4);
+    add({ tb, life: R(3.5, 5.5), p: [Math.cos(a) * rr, y, Math.sin(a) * rr], v: [Math.cos(a) * R(0.3, 1.0), R(-1.6, -0.5), Math.sin(a) * R(0.3, 1.0)], drag: 0.6, buoy: -0.7, size0: R(0.5, 1.0), grow: R(1.0, 1.8), kind: Kind.Steam, tint: R(0.85, 1), opacity: R(0.18, 0.32), fadeIn: 0.6 });
   }
   // LOX vent plume high on the tank (visible in the wide shot until liftoff).
   for (const tb of spawnTimes(-4, T.release + 0.3, () => 14 * q, r)) {
@@ -182,11 +183,11 @@ export function buildSpawns(quality: 'preview' | 'final'): { smoke: Spawn[]; spa
       const sp = R(35, 60) * (0.6 + 0.4 * k);
       add({ tb, life: R(1.2, 2.2), p: [sx * R(13, 15), R(1.5, 5), R(-3.5, 3.5)], v: [sx * sp, R(1, 7), R(-9, 9)], drag: R(0.9, 1.4), buoy: 5, size0: R(2.2, 3.5), grow: R(7, 10), kind: Kind.Fire, heat: R(0.75, 0.95), cool: R(1.1, 1.6), opacity: R(0.5, 0.8), tint: R(0.35, 0.5), fadeIn: 0.06 });
     }
-    for (const tb of spawnTimes(T.ignition + 0.35, T.shot3, (t) => 70 * q * trench(t), r)) {
+    for (const tb of spawnTimes(T.ignition + 0.35, T.shot3, (t) => 95 * q * trench(t), r)) {
       const k = trench(tb);
-      const sp = R(30, 55) * (0.6 + 0.4 * k);
-      const dark = r() < 0.3;
-      add({ tb, life: R(7, 11), p: [sx * R(14, 18), R(2, 6), R(-4, 4)], v: [sx * sp, R(2, 9), R(-12, 12)], drag: R(0.45, 0.7), buoy: R(3, 6), size0: R(3.5, 5), grow: R(10, 15), kind: dark ? Kind.Smoke : Kind.Steam, heat: R(0.12, 0.22), cool: R(1.5, 2.5), opacity: R(0.55, 0.8), tint: dark ? R(0.45, 0.65) : R(0.75, 0.95), fadeIn: 0.2 });
+      const sp = R(40, 80) * (0.6 + 0.4 * k);
+      const dark = r() < 0.2;
+      add({ tb, life: R(8, 12), p: [sx * R(14, 18), R(2, 6), R(-4, 4)], v: [sx * sp, R(2, 12), R(-16, 16)], drag: R(0.32, 0.5), buoy: R(3, 7), size0: R(4, 6), grow: R(13, 19), kind: dark ? Kind.Smoke : Kind.Steam, heat: R(0.12, 0.22), cool: R(1.5, 2.5), opacity: R(0.55, 0.8), tint: dark ? R(0.85, 0.95) : R(0.8, 0.98), fadeIn: 0.2 });
     }
   }
 
@@ -196,35 +197,37 @@ export function buildSpawns(quality: 'preview' | 'final'): { smoke: Spawn[]; spa
     if (t < T.release) return 0;
     return thrust(t) * smooth(3, 14, ris) * (1 - smooth(110, 240, ris));
   };
-  for (const tb of spawnTimes(T.release, T.shot3, (t) => 130 * q * impact(t), r)) {
+  for (const tb of spawnTimes(T.release, T.shot3, (t) => 150 * q * impact(t), r)) {
     const a = R(0, Math.PI * 2);
-    const sp = R(25, 50);
+    const sp = R(30, 65);
     const ris = rise(tb);
     const y = ris < 40 ? PAD.deckY + 0.5 : 1;
     add({ tb, life: R(1.0, 1.8), p: [Math.cos(a) * R(2, 6), y, Math.sin(a) * R(2, 6)], v: [Math.cos(a) * sp, R(0, 5), Math.sin(a) * sp], drag: 1.5, buoy: 5, size0: R(2, 3), grow: R(6, 9), kind: Kind.Fire, heat: R(0.75, 0.95), cool: 1.4, opacity: 0.7, tint: 0.4, fadeIn: 0.05 });
     if (r() < 0.75) {
-      const dark = r() < 0.25;
-      add({ tb: tb + R(0.05, 0.3), life: R(7, 11), p: [Math.cos(a) * R(4, 9), y + 1, Math.sin(a) * R(4, 9)], v: [Math.cos(a) * sp * 0.9, R(2, 8), Math.sin(a) * sp * 0.9], drag: R(0.45, 0.7), buoy: R(3, 6), size0: R(4, 6), grow: R(10, 14), kind: dark ? Kind.Smoke : Kind.Steam, heat: R(0.12, 0.2), cool: 2, opacity: R(0.55, 0.8), tint: dark ? R(0.45, 0.6) : R(0.75, 0.95), fadeIn: 0.2 });
+      const dark = r() < 0.2;
+      add({ tb: tb + R(0.05, 0.3), life: R(8, 12), p: [Math.cos(a) * R(4, 9), y + 1, Math.sin(a) * R(4, 9)], v: [Math.cos(a) * sp * 0.9, R(2, 10), Math.sin(a) * sp * 0.9], drag: R(0.35, 0.55), buoy: R(3, 7), size0: R(5, 7), grow: R(13, 18), kind: dark ? Kind.Smoke : Kind.Steam, heat: R(0.12, 0.2), cool: 2, opacity: R(0.55, 0.8), tint: dark ? R(0.85, 0.95) : R(0.8, 0.98), fadeIn: 0.2 });
     }
   }
   // 6. The exhaust trail left in the air behind the rising rocket.
-  for (const tb of spawnTimes(T.release + 0.8, T.shot3, (t) => 45 * q * smooth(T.release + 0.8, T.release + 2, t), r)) {
+  for (const tb of spawnTimes(T.release + 0.8, T.shot3, (t) => 130 * q * smooth(T.release + 0.8, T.release + 2, t), r)) {
     const yN = nozzleY(tb);
-    const below = R(25, 45);
+    const below = R(22, 48);
     if (yN - below < 8) continue;
-    add({ tb, life: R(6, 9), p: [R(-2, 2), yN - below, R(-2, 2)], v: [R(-3, 3), R(-12, -4), R(-3, 3)], drag: 0.8, buoy: 1.5, size0: R(5, 8), grow: R(5, 8), kind: Kind.Steam, heat: R(0.1, 0.18), cool: 1.5, opacity: R(0.4, 0.6), tint: R(0.75, 0.9), fadeIn: 0.25 });
+    add({ tb, life: R(6, 9), p: [R(-2.5, 2.5), yN - below, R(-2.5, 2.5)], v: [R(-4, 4), R(-14, -4), R(-4, 4)], drag: 0.8, buoy: 1.5, size0: R(7, 10), grow: R(5, 9), kind: Kind.Steam, heat: R(0.1, 0.18), cool: 1.5, opacity: R(0.4, 0.6), tint: R(0.75, 0.9), fadeIn: 0.25 });
   }
 
   // ---------------------------------------------------------------------------------------------- sparks
   // Igniter sparks (radial outward firing igniters on the deck at the hole corners, spraying under the engines).
   const corners: [number, number][] = [
-    [PAD.hole - 0.3, PAD.hole - 0.3],
-    [-(PAD.hole - 0.3), PAD.hole - 0.3],
-    [-(PAD.hole - 0.3), -(PAD.hole - 0.3)],
-    [PAD.hole - 0.3, -(PAD.hole - 0.3)],
+    [3.3, 3.3],
+    [-3.3, 3.3],
+    [-3.3, -3.3],
+    [3.3, -3.3],
   ];
   for (const tb of spawnTimes(T.sparks, T.ignition + 0.25, (t) => 900 * smooth(T.sparks, T.sparks + 0.25, t) * (q > 0.5 ? 1 : 0.5), r)) {
     const [cx, cz] = corners[Math.floor(r() * 4)]!;
+    // Fewer from the corners nearest the close-up camera (south side), so the foreground is not cluttered.
+    if (cz > 0 && r() < 0.6) continue;
     // Aim at the space under the engines, spread wide, upward.
     const ax = -cx + R(-3, 3);
     const az = -cz + R(-3, 3);

@@ -113,7 +113,7 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
     const r = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
     for (let i = 0; i < 160; i++) {
       const a = r() * Math.PI * 2;
-      const sp = 2 + r() * 6;
+      const sp = 4 + r() * 9;
       spawns.push({
         tb: SEP + r() * 0.15,
         life: 2.5 + r() * 1.5,
@@ -127,7 +127,7 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
         spin: (r() - 0.5) * 0.6,
         kind: Kind.Steam,
         tint: 0.9,
-        opacity: 0.07 + r() * 0.08,
+        opacity: 0.035 + r() * 0.05,
         heat: 0,
         cool: 1,
         fadeIn: 0.05,
