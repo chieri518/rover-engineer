@@ -1123,6 +1123,7 @@ The Moon teaches one trade-off. Mars and Titan add more intricate ones about wha
 - **Sleep:** *Proposed:* the same power-down toggle (P) the Moon uses for flares. Energy drains slowly and no milestones are earned. The rover wakes at dawn by itself.
 - **No lights:** *Proposed:* the rover cannot drive at night. It can only sleep or sit still, the same rule as the Moon's permanent-shadow edge.
 - At dusk a notice reads: "Sunset. Lights on to keep driving, or sleep until dawn." An empty battery at night ends the mission as out of energy, the Moon rule.
+- For a rover without lights the dusk notice is the standing no-lights warning's own sentence, so the HUD shows it once: a notice with the same words as a standing warning is not posted (and one already showing goes when the warning appears), and a notice repeated while the first is still showing replaces it rather than stacking a second copy. This holds for every world's notices.
 
 #### Cold at night
 
