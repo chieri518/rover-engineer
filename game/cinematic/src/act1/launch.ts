@@ -47,9 +47,9 @@ export function engineLevel(i: number, t: number): number {
 
 /** Igniter flash (green TEA-TEB) for engine i. */
 export function igniterFlash(i: number, t: number): number {
-  const a = t - (ENGINE_START[i]! - 0.12);
-  if (a < 0 || a > 0.35) return 0;
-  return Math.sin((a / 0.35) * Math.PI) ** 2;
+  const a = t - (ENGINE_START[i]! - 0.1);
+  if (a < 0 || a > 0.2) return 0;
+  return Math.sin((a / 0.2) * Math.PI) ** 2;
 }
 
 /** Height the rocket has risen since release (m). Starts slow (the weight shows), then accelerates. */
@@ -178,10 +178,10 @@ export function buildSpawns(quality: 'preview' | 'final'): { smoke: Spawn[]; spa
     return th * (1 - smooth(25, 80, ris));
   };
   for (const sx of [-1, 1]) {
-    for (const tb of spawnTimes(T.ignition + 0.3, T.shot3, (t) => 85 * q * trench(t), r)) {
+    for (const tb of spawnTimes(T.ignition + 0.3, T.shot3, (t) => 130 * q * trench(t), r)) {
       const k = trench(tb);
       const sp = R(35, 60) * (0.6 + 0.4 * k);
-      add({ tb, life: R(1.2, 2.2), p: [sx * R(13, 15), R(1.5, 5), R(-3.5, 3.5)], v: [sx * sp, R(1, 7), R(-9, 9)], drag: R(0.9, 1.4), buoy: 5, size0: R(2.2, 3.5), grow: R(7, 10), kind: Kind.Fire, heat: R(0.75, 0.95), cool: R(1.1, 1.6), opacity: R(0.5, 0.8), tint: R(0.35, 0.5), fadeIn: 0.06 });
+      add({ tb, life: R(0.9, 1.6), p: [sx * R(13, 15), R(1.5, 5), R(-3.5, 3.5)], v: [sx * sp, R(1, 7), R(-9, 9)], drag: R(0.9, 1.4), buoy: 5, size0: R(1.5, 2.6), grow: R(5, 8), kind: Kind.Fire, heat: R(0.7, 0.95), cool: R(1.5, 2.2), opacity: R(0.35, 0.65), tint: R(0.35, 0.5), fadeIn: 0.06 });
     }
     for (const tb of spawnTimes(T.ignition + 0.35, T.shot3, (t) => 95 * q * trench(t), r)) {
       const k = trench(tb);
@@ -202,7 +202,8 @@ export function buildSpawns(quality: 'preview' | 'final'): { smoke: Spawn[]; spa
     const sp = R(30, 65);
     const ris = rise(tb);
     const y = ris < 40 ? PAD.deckY + 0.5 : 1;
-    add({ tb, life: R(1.0, 1.8), p: [Math.cos(a) * R(2, 6), y, Math.sin(a) * R(2, 6)], v: [Math.cos(a) * sp, R(0, 5), Math.sin(a) * sp], drag: 1.5, buoy: 5, size0: R(2, 3), grow: R(6, 9), kind: Kind.Fire, heat: R(0.75, 0.95), cool: 1.4, opacity: 0.7, tint: 0.4, fadeIn: 0.05 });
+    add({ tb, life: R(0.6, 1.2), p: [Math.cos(a) * R(2, 6), y, Math.sin(a) * R(2, 6)], v: [Math.cos(a) * sp, R(0, 5), Math.sin(a) * sp], drag: 1.5, buoy: 5, size0: R(1.0, 1.8), grow: R(3.5, 5.5), kind: Kind.Fire, heat: R(0.7, 0.95), cool: 2.0, opacity: R(0.35, 0.6), tint: 0.4, fadeIn: 0.05 });
+    add({ tb: tb + R(0, 0.02), life: R(0.5, 1.0), p: [Math.cos(a + 0.3) * R(2, 6), y, Math.sin(a + 0.3) * R(2, 6)], v: [Math.cos(a + 0.3) * sp * 1.1, R(0, 3), Math.sin(a + 0.3) * sp * 1.1], drag: 1.8, buoy: 4, size0: R(0.8, 1.4), grow: R(3, 4.5), kind: Kind.Fire, heat: R(0.7, 0.9), cool: 2.2, opacity: R(0.3, 0.5), tint: 0.4, fadeIn: 0.05 });
     if (r() < 0.75) {
       const dark = r() < 0.2;
       add({ tb: tb + R(0.05, 0.3), life: R(8, 12), p: [Math.cos(a) * R(4, 9), y + 1, Math.sin(a) * R(4, 9)], v: [Math.cos(a) * sp * 0.9, R(2, 10), Math.sin(a) * sp * 0.9], drag: R(0.35, 0.55), buoy: R(3, 7), size0: R(5, 7), grow: R(13, 18), kind: dark ? Kind.Smoke : Kind.Steam, heat: R(0.12, 0.2), cool: 2, opacity: R(0.55, 0.8), tint: dark ? R(0.85, 0.95) : R(0.8, 0.98), fadeIn: 0.2 });

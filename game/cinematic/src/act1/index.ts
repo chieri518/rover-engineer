@@ -148,6 +148,7 @@ export const act1: SequenceDef[] = [
         const ig = Math.max(...ENGINE_START.map((_, i) => igniterFlash(i, t)));
         rocket.setEngines(glows, ig, t);
         rocket.setMvac(0, 0);
+        rocket.setSoot(0);
 
         // Plume.
         const pu = plume.uniforms;
@@ -170,9 +171,9 @@ export const act1: SequenceDef[] = [
         const flick = (seed: number) => 1 + 0.18 * noise1(t * 23, seed) + 0.1 * noise1(t * 57, seed + 3);
         const ignFlash = ig;
         flameKey.position.set(0.5, nY - 3, 1.0);
-        flameKey.intensity = th * 2.5e3 * flick(1) + ignFlash * 150;
+        flameKey.intensity = th * 2.5e3 * flick(1) + ignFlash * 60;
         flameKey.color.setRGB(1, 0.55, 0.22);
-        if (ignFlash > th) flameKey.color.setRGB(0.4, 1, 0.5);
+        if (ignFlash > th) flameKey.color.setRGB(0.7, 1, 0.75);
         flameLow.position.set(0, Math.max(2, nY - 30), 0);
         flameLow.intensity = th * smoothstep(5, 30, ris) * 1.2e4 * flick(2);
         const tr = th * (1 - smoothstep(25, 80, ris)) * smoothstep(T.ignition + 0.3, T.ignition + 0.9, t);
@@ -202,7 +203,7 @@ export const act1: SequenceDef[] = [
         smoke.uniforms.groundAmb.value.set(0.03, 0.025, 0.03);
         smoke.uniforms.dawnDir.value.set(sunDir.x, 0.15, sunDir.z).normalize();
         smoke.uniforms.dawnCol.value.set(0.22, 0.1, 0.07);
-        smoke.uniforms.fireGain.value = f.shot === 'ignition' ? 18 : 12;
+        smoke.uniforms.fireGain.value = f.shot === 'ignition' ? 18 : 9;
         sparks.uniforms.time.value = t;
 
         // ---------------------------------------------------------------------------- cameras and looks
