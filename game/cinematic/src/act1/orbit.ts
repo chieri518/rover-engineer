@@ -19,8 +19,8 @@ const LAT0 = 27.2;
 const LON0 = -79.6;
 const PITCH = THREE.MathUtils.degToRad(26);
 /** Sun: low in the east-north-east, just risen at the point below. */
-const SUN_EL = THREE.MathUtils.degToRad(7);
-const SUN_AZ = THREE.MathUtils.degToRad(112); // from north toward east
+const SUN_EL = THREE.MathUtils.degToRad(9);
+const SUN_AZ = THREE.MathUtils.degToRad(128); // from north toward east: light from the camera's right
 const GROUND_SPEED = 2100; // m/s, eastward
 
 const DUR = ACT1_SHOTS[2]!.duration;
@@ -47,7 +47,7 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
   scene.add(sun);
 
   // Light: the sun (unfiltered up here) and a faint blue earthshine from below.
-  const sunLight = new THREE.DirectionalLight(0xfff6ec, 7);
+  const sunLight = new THREE.DirectionalLight(0xfff6ec, 8);
   sunLight.position.copy(sunDir).multiplyScalar(500);
   sunLight.castShadow = true;
   sunLight.shadow.mapSize.set(2048, 2048);
@@ -60,7 +60,7 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
   sc.far = 1000;
   sunLight.shadow.bias = -0.0005;
   scene.add(sunLight, sunLight.target);
-  scene.add(new THREE.HemisphereLight(0x000000, 0x6a7a90, 1.6));
+  scene.add(new THREE.HemisphereLight(0x000000, 0x5a6c88, 0.55));
 
   // Environment for reflections: black space, a bright blue-orange limb band, a dark planet below.
   const envScene = new THREE.Scene();
@@ -126,10 +126,38 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
         spin: (r() - 0.5) * 0.6,
         kind: Kind.Steam,
         tint: 0.9,
-        opacity: 0.02 + r() * 0.03,
+        opacity: 0.01 + r() * 0.02,
         heat: 0,
         cool: 1,
         fadeIn: 0.05,
+      });
+    }
+  }
+  {
+    // Ullage thrusters on the upper stage: four short white jets backward, just after separation.
+    let seed = 0x11a9e;
+    const r = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296);
+    for (let i = 0; i < 90; i++) {
+      const q = i % 4;
+      const a = (q / 4) * Math.PI * 2 + Math.PI / 4;
+      const sp = 10 + r() * 8;
+      spawns.push({
+        tb: SEP + 0.12 + r() * 0.55,
+        life: 0.9 + r() * 0.6,
+        p: toWorld([Math.cos(a) * 2.25, ROCKET.stage1Top + 0.8, Math.sin(a) * 2.25], true),
+        v: toWorld([Math.cos(a) * 2.5 + (r() - 0.5) * 2, -sp, Math.sin(a) * 2.5 + (r() - 0.5) * 2], false),
+        drag: 0.6,
+        buoy: 0,
+        size0: 0.2 + r() * 0.2,
+        grow: 2.5 + r() * 2,
+        rot: r() * 6.28,
+        spin: (r() - 0.5) * 1.5,
+        kind: Kind.Steam,
+        tint: 1,
+        opacity: 0.06 + r() * 0.06,
+        heat: 0,
+        cool: 1,
+        fadeIn: 0.03,
       });
     }
   }
@@ -177,10 +205,13 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
       rocket.group.quaternion.copy(rocketQuat);
       rocket.group.position.copy(axis).multiplyScalar(s2).add(rocketOrigin);
       rocket.stage2.position.set(0, 0, 0);
-      // First stage: burning, cut-off, then drifting back and tumbling slowly.
+      rocket.setSoot(1);
+      // First stage: burning, cut-off, then the spring kick at separation (a quick shove over 0.15 s, then a
+      // steady 2.4 m/s drift back) with a slow tumble and a small sideways slip.
       const as = Math.max(0, t - SEP);
-      rocket.stage1.position.set(0.15 * as * as, -(2.2 * as + 0.4 * as * as) - s2, -0.25 * as);
-      rocket.stage1.rotation.set(0.05 * as * as, 0, -0.07 * as - 0.02 * as * as);
+      const kick = as < 0.15 ? 8 * as * as : 0.18 + 2.4 * (as - 0.15);
+      rocket.stage1.position.set(0.35 * as * as, -kick - 0.25 * as * as - s2, -0.3 * as);
+      rocket.stage1.rotation.set(0.06 * as * as, 0, -0.05 * as - 0.03 * as * as);
       const on1 = t < MECO ? 1 : Math.max(0, 1 - (t - MECO) / 0.18);
       rocket.setEngines([on1, on1, on1, on1, on1].map((x) => x * 0.6), 0);
       const lv2 = t < MVAC ? 0 : 1 - Math.exp(-(t - MVAC) / 0.12);
@@ -190,23 +221,26 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
       u1.time.value = t;
       u1.vacExpand.value = 0.75 + 0.8 * clamp01((t - MECO) / 0.3);
       u1.vacScatter.value = 0.12 * on1;
-      u1.vacHot.value = 9 * on1;
+      u1.vacHot.value = 5 * on1;
       u1.gain.value = 1;
       const u2 = plume2.uniforms;
       u2.time.value = t;
-      u2.vacExpand.value = 0.85;
-      u2.vacScatter.value = 0.12 * lv2;
-      u2.vacHot.value = 14 * lv2;
+      // The vacuum engine lights into a bell that opens up over half a second.
+      u2.vacExpand.value = lerp(0.2, 0.72, smoothstep(MVAC, MVAC + 0.6, t));
+      u2.vacScatter.value = 0.22 * lv2;
+      u2.vacHot.value = 10 * lv2;
       plume1.mesh.visible = on1 > 0.001;
       plume2.mesh.visible = lv2 > 0.001;
 
       // Camera: off the rocket's south-west flank, slowly drifting and pushing in, a little float.
       const k = t / DUR;
-      const center = rocketOrigin.clone().add(axis.clone().multiplyScalar(40));
-      const look = new THREE.Vector3(Math.sin(THREE.MathUtils.degToRad(8)), -0.17, -Math.cos(THREE.MathUtils.degToRad(8))).normalize();
+      const center = rocketOrigin.clone().add(axis.clone().multiplyScalar(38));
+      // A slow arc around the rocket (yaw 2° -> 16°) while pushing in: parallax against the planet.
+      const yaw = THREE.MathUtils.degToRad(lerp(2, 16, easeInOutSine(k)));
+      const look = new THREE.Vector3(Math.sin(yaw), -0.17, -Math.cos(yaw)).normalize();
       const side = new THREE.Vector3().crossVectors(look, new THREE.Vector3(0, 1, 0)).normalize();
-      const dist = lerp(105, 88, easeInOutSine(k));
-      camera.position.copy(center).addScaledVector(look, -dist).addScaledVector(side, lerp(-18, 8, easeInOutSine(k))).addScaledVector(new THREE.Vector3(0, 1, 0), lerp(-6, 6, k));
+      const dist = lerp(92, 74, easeInOutSine(k));
+      camera.position.copy(center).addScaledVector(look, -dist).addScaledVector(side, lerp(-10, 4, easeInOutSine(k))).addScaledVector(new THREE.Vector3(0, 1, 0), lerp(-4, 5, k));
       camera.position.x += shake(t, 41, 0.6) * 0.8;
       camera.position.y += shake(t, 42, 0.6) * 0.8;
       const target = camera.position.clone().addScaledVector(look, 100).addScaledVector(side, lerp(-4, 2, k));

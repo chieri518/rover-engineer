@@ -54,31 +54,44 @@ export const MAX_LIGHTS = 8;
 
 const ATLAS_FRAG = /* glsl */ `
 // 2x2 atlas of puff shapes. R: density, G/B: normal xy (0.5-centred), A: thickness.
+// Variants 0-2: billows (overlapping lobes, domain-warped, their edges eroded into cauliflower and wisps);
+// variant 3: a thin stretched wisp.
 float puff(vec2 q, float v) {
+  // Domain warp so no lobe is a clean circle.
+  vec2 w = vec2(fbm3(vec3(q * 1.7, v * 5.0 + 1.0)), fbm3(vec3(q * 1.7 + 7.3, v * 5.0 + 2.0)));
+  q += w * 0.28;
   float d = 0.0;
-  for (int i = 0; i < 9; i++) {
-    vec3 h = hash33(vec3(float(i), v * 17.0, 3.0));
-    vec2 c = (h.xy - 0.5) * 0.9;
-    float r = 0.22 + 0.25 * h.z;
-    d += exp(-dot(q - c, q - c) / (r * r)) * (0.55 + 0.45 * h.z);
+  if (v < 2.5) {
+    for (int i = 0; i < 11; i++) {
+      vec3 h = hash33(vec3(float(i), v * 17.0, 3.0));
+      vec2 c = (h.xy - 0.5) * vec2(1.0, 0.85);
+      float r = 0.14 + 0.24 * h.z;
+      d += exp(-dot(q - c, q - c) / (r * r)) * (0.5 + 0.5 * h.z);
+    }
+    d *= 0.8;
+  } else {
+    vec2 s = vec2(q.x * 0.55, q.y * 1.8);
+    d = exp(-dot(s, s) * 1.6) * 0.9;
   }
-  float n = fbm5(vec3(q * 2.2, v * 7.0)) * 0.45 + snoise(vec3(q * 7.0, v * 3.0 + 1.0)) * 0.05;
-  d = d * 0.75 + n - 0.32;
-  d *= 1.0 - smoothstep(0.45, 0.98, length(q));
-  return clamp(d, 0.0, 1.0);
+  // Erode the edges: subtract noise where the density is thin (billowy cauliflower rims and torn wisps).
+  float n1 = fbm5(vec3(q * 3.0, v * 7.0));
+  float n2 = fbm3(vec3(q * 9.0, v * 3.0 + 1.0));
+  d = d + 0.35 * n1 - 0.3;
+  d -= (1.0 - smoothstep(0.0, 0.6, d)) * (0.25 + 0.25 * n2);
+  float mask = 1.0 - smoothstep(0.55, 1.0, length(q) + 0.18 * n1);
+  return clamp(d * mask, 0.0, 1.0);
 }
 void main() {
   vec2 cell = floor(vUv * 2.0);
   float v = cell.x + cell.y * 2.0;
   vec2 q = (fract(vUv * 2.0) - 0.5) * 2.0;
-  float e = 1.0 / 256.0;
+  float e = 1.0 / 512.0;
   float d = puff(q, v);
   float dx = puff(q + vec2(e, 0.0), v) - puff(q - vec2(e, 0.0), v);
   float dy = puff(q + vec2(0.0, e), v) - puff(q - vec2(0.0, e), v);
-  // A dome over the density: the puff bulges toward the viewer where it is thick.
-  vec2 g = vec2(dx, dy) / (2.0 * e) * 0.16 + q * 0.22;
+  vec2 g = vec2(dx, dy) / (2.0 * e) * 0.12 + q * 0.18;
   vec3 n = normalize(vec3(-g, 1.0));
-  gl_FragColor = vec4(pow(smoothstep(0.0, 0.85, d), 1.4), n.xy * 0.5 + 0.5, d);
+  gl_FragColor = vec4(pow(smoothstep(0.0, 0.8, d), 1.25), n.xy * 0.5 + 0.5, d);
 }`;
 
 const SMOKE_VERT = /* glsl */ `
@@ -141,7 +154,9 @@ void main() {
   #include <logdepthbuf_fragment>
   vec4 tex = texture2D(atlas, vUv);
   float kind = vP.z;
-  float D = tex.r;
+  // Per-particle, slowly changing erosion in world space: breaks up the sprite's outline so neighbours merge.
+  float er = snoise(vW * 0.09 + vec3(vP.w * 13.0, 0.0, vP.w * 7.0));
+  float D = clamp((tex.r - 0.18 * (er * 0.5 + 0.5)) / 0.82, 0.0, 1.0);
   float alpha = D * vP.x;
   // Soft particles against the opaque scene, and fade very close to the camera.
   float sceneZ = viewZFromLogDepth(texture2D(tDepth, gl_FragCoord.xy / resolution).x, logFar);
@@ -153,7 +168,9 @@ void main() {
   vec3 N = normalize(nl.x * vR + nl.y * vU + V * sqrt(max(0.0, 1.0 - dot(nl, nl))));
   float thick = tex.a;
   // Ambient: sky above, dark ground below.
-  vec3 light = mix(groundAmb, skyAmb, N.y * 0.5 + 0.5);
+  // Sky light is shadowed low in a big cloud (its upper parts block the sky): a cheap self-shadow by height.
+  float skyVis = mix(0.45, 1.0, smoothstep(2.0, 35.0, vW.y));
+  vec3 light = mix(groundAmb, skyAmb, N.y * 0.5 + 0.5) * skyVis;
   float wrapD = clamp(dot(N, dawnDir) * 0.5 + 0.5, 0.0, 1.0);
   light += dawnCol * (wrapD * wrapD + pow(clamp(dot(-V, dawnDir), 0.0, 1.0), 6.0) * (0.4 + 0.6 * D) * 1.2);
   for (int i = 0; i < ${MAX_LIGHTS}; i++) {
@@ -277,7 +294,7 @@ export class SmokeSystem {
     this.order = new Int32Array(this.n);
     this.depth = new Float32Array(this.n);
     this.px = new Float32Array(this.n * 9);
-    this.atlas = bake(o.renderer, { width: 1024, height: 1024, frag: ATLAS_FRAG, wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping });
+    this.atlas = bake(o.renderer, { width: 2048, height: 2048, frag: ATLAS_FRAG, wrapS: THREE.ClampToEdgeWrapping, wrapT: THREE.ClampToEdgeWrapping });
     const lights = Array.from({ length: MAX_LIGHTS }, () => new THREE.Vector3());
     this.uniforms = {
       atlas: { value: this.atlas.texture },

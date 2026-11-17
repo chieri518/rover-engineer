@@ -150,7 +150,7 @@ void surface(vec2 uv, out vec3 albedo, out float height, out float rough, out fl
   float big = fbm3(vec3(x * 0.15, y * 0.08, 1.3));
   float fine = snoise(vec3(x * 6.0, y * 6.0, 4.0));
   float streak = fbm3(vec3(x * 2.5, y * 0.12, 7.7)); // vertical rain streaks
-  albedo = white * (0.96 + 0.04 * big) * (1.0 - 0.06 * smoothstep(0.2, 0.7, streak));
+  albedo = white * (0.94 + 0.06 * big) * (1.0 - 0.1 * smoothstep(0.2, 0.7, streak));
   height = 0.5 + 0.01 * fine;
   rough = 0.38 + 0.08 * big + 0.05 * fine;
   metal = 0.0;
@@ -161,7 +161,7 @@ void surface(vec2 uv, out vec3 albedo, out float height, out float rough, out fl
   float seamU = abs(fract(u * 4.0) - 0.5) * (2.0 * PI * 2.1 / 4.0);
   vseam = (1.0 - smoothstep(0.004, 0.012, abs(seamU - 1.65))) * band(y, 1.2, 36.0, 0.02);
   height += weld * 0.18 + vseam * 0.10;
-  albedo *= 1.0 - 0.10 * weld - 0.06 * vseam;
+  albedo *= 1.0 - 0.28 * weld - 0.15 * vseam;
   // Rivet rows either side of the welds.
   float rivY = abs(fract((y - 1.3) / 2.6 + 0.5) - 0.5) * 2.6;
   float rivets = (1.0 - smoothstep(0.004, 0.009, length(vec2(fract(x / 0.09) - 0.5, (rivY - 0.05) / 0.09) * 0.09))) * band(y, 1.2, 50.0, 0.02);
@@ -264,6 +264,8 @@ export interface Rocket {
   setEngines(glow: number[], igniter: number, time?: number): void;
   /** Upper stage engine glow (0..1) and the radiative nozzle extension's heat (0..1). */
   setMvac(glow: number, heat: number): void;
+  /** Ascent soot on the first stage's lower body (0 on the pad, 1 in the orbit shot). */
+  setSoot(k: number): void;
   dispose(): void;
 }
 
@@ -301,9 +303,29 @@ export async function buildRocket(renderer: THREE.WebGLRenderer): Promise<Rocket
     normalScale: new THREE.Vector2(1, 1),
     roughness: 1,
     metalness: 1,
-    clearcoat: 0.25,
-    clearcoatRoughness: 0.35,
+    clearcoat: 0.35,
+    clearcoatRoughness: 0.25,
   });
+  // Ascent soot (orbit shot only): the exhaust's backflow blackens the first stage's lower metres in streaks.
+  const soot = { value: 0 };
+  bodyMat.onBeforeCompile = (sh) => {
+    sh.uniforms.soot = soot;
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float soot;')
+      .replace(
+        '#include <map_fragment>',
+        `#include <map_fragment>
+        {
+          float y = vMapUv.y * ${H.toFixed(2)};
+          float a = vMapUv.x * 6.2831;
+          float streaks = 0.5 + 0.5 * sin(a * 37.0 + sin(a * 5.0) * 3.0) * sin(a * 13.0 + 1.7);
+          float reach = 3.0 + 9.0 * streaks;
+          float k = soot * (1.0 - smoothstep(1.0, reach, y)) * step(y, 36.0);
+          diffuseColor.rgb *= 1.0 - 0.75 * k;
+        }`,
+      );
+  };
+  bodyMat.customProgramCacheKey = () => 'rocket-body';
   disposables.push(bodyMat);
 
   // ------------------------------------------------------------------------------------------------ bell maps
@@ -360,7 +382,7 @@ export async function buildRocket(renderer: THREE.WebGLRenderer): Promise<Rocket
               vec3 hot = mix(vec3(1.0, 0.95, 0.85) * 60.0, vec3(1.0, 0.55, 0.15) * 10.0, smoothstep(0.0, 0.4, v));
               hot = mix(hot, vec3(1.0, 0.3, 0.05) * 2.5, smoothstep(0.35, 1.0, v));
               hot *= mix(1.0, flow, smoothstep(0.1, 0.5, v));
-              totalEmissiveRadiance += hot * tubes * glow + vec3(0.25, 1.0, 0.35) * 25.0 * igniter * (1.0 - v * 0.7);
+              totalEmissiveRadiance += hot * tubes * glow + vec3(0.3, 1.0, 0.4) * 10.0 * igniter * (1.0 - v * 0.8) * max(0.0, 1.0 - glow * 1.5);
             }
             // The radiatively cooled extension glows dull red to orange when it is hot.
             totalEmissiveRadiance += mix(vec3(1.0, 0.35, 0.08), vec3(0.5, 0.06, 0.01), v) * 3.0 * heat * smoothstep(0.15, 0.35, v);
@@ -528,6 +550,9 @@ export async function buildRocket(renderer: THREE.WebGLRenderer): Promise<Rocket
       glow.forEach((g, i) => (engineGlow[i]!.value = g));
       igniter.value = ig;
       tflow.value = time;
+    },
+    setSoot(k) {
+      soot.value = k;
     },
     setMvac(glow, heat) {
       mvacGlow.value = glow;

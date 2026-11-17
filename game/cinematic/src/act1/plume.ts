@@ -85,7 +85,19 @@ vec3 seaLevel(vec3 p) {
     T = clamp(T * (0.8 + 0.35 * n), 0.0, 1.0);
     float fm = smoothstep(columnOn * columnLen * 1.3, columnOn * columnLen * 1.3 - 4.0, s);
     float startCore = smoothstep(0.0, 2.5, s);
-    col += fireRamp(T) * dens * pow(T, 1.3) * 4.0 * fm * startCore;
+    // Flow streaks along the axis (stretched noise, fast) give the column texture instead of a smooth rod.
+    float ang = atan(p.z, p.x);
+    float streak = snoise(vec3(cos(ang) * 2.2, sin(ang) * 2.2, s * 0.07 - time * 5.0));
+    float body = dens * (0.55 + 0.6 * smoothstep(-0.6, 0.8, streak));
+    // Darker, cooler sooty edge: temperature falls toward the boundary.
+    float edgeCool = smoothstep(0.0, R * 0.6, edge);
+    float Tl = T * mix(0.55, 1.0, edgeCool);
+    col += fireRamp(Tl) * body * pow(Tl, 1.3) * 4.0 * fm * startCore;
+    // Shock diamonds in the merged core: a chain of bright knots fading down the column.
+    float lam = 1.6 + s * 0.05;
+    float dia = pow(0.5 + 0.5 * cos(s / lam * 6.2831), 6.0) * exp(-s / 16.0) * smoothstep(1.0, 4.0, s);
+    float coreR = 0.9 + s * 0.02;
+    col += vec3(1.0, 0.9, 0.7) * exp(-pow(rho / coreR, 2.0)) * dia * 9.0 * fm;
   }
   // Fire spreading where the column meets the ground/deck.
   float toFloor = floorS - s;
@@ -103,18 +115,25 @@ vec3 vac(vec3 p, vec3 V) {
   if (s < 0.0) return vec3(0.0);
   float rho = length(p.xz);
   float R = exitR + s * vacExpand;
-  vec3 q = vec3(p.x, s - time * 60.0, p.z) * (0.6 / max(1.0, R * 0.25));
-  float n = fbm3(q);
+  // Flow-aligned streaks (stretched along the axis) plus a slow large-scale billow.
+  float sc = 1.0 / max(1.0, R * 0.2);
+  float ang = atan(p.z, p.x);
+  float streak = snoise(vec3(cos(ang) * 3.0, sin(ang) * 3.0, s * 0.04 * sc - time * 1.5));
+  float n = fbm3(vec3(p.x * sc * 0.5, (s - time * 60.0) * sc * 0.2, p.z * sc * 0.5));
   float x = rho / R;
-  float body = exp(-x * x * 2.2) * exp(-s / boundL * 2.2);
-  float shell = exp(-pow((x - 0.92) / 0.08, 2.0)) * exp(-s / boundL * 1.6) * 0.9;
-  float dens = (body + shell) * (0.7 + 0.45 * n) / (1.0 + R * 0.05);
-  // Sunlight scattered by the exhaust: forward-peaked phase function.
+  float fall = exp(-s / (boundL * 0.2));
+  // A hollow, soft-edged bell: thin gas inside, a brighter boundary layer, fading with distance.
+  float body = exp(-x * x * 1.8) * 0.45;
+  float shell = exp(-pow((x - 0.85) / 0.16, 2.0)) * 0.7;
+  float dens = (body + shell) * fall * (0.65 + 0.35 * n) * (0.8 + 0.35 * streak) / (1.0 + R * 0.04);
+  dens *= smoothstep(1.15, 0.95, x);
+  // Sunlight scattered by the exhaust: forward-peaked, plus a little back-scatter.
   float mu = dot(V, sunDir);
-  float phase = 0.25 + 1.6 * pow(max(mu * 0.5 + 0.5, 0.0), 6.0);
-  vec3 scat = sunCol * dens * phase * vacScatter;
-  float hot = exp(-s / (exitR * 2.2)) * exp(-x * x * 3.0);
-  vec3 em = fireRamp(0.8 * exp(-s / (exitR * 4.0)) + 0.15) * hot * vacHot;
+  float phase = 0.35 + 1.4 * pow(max(mu * 0.5 + 0.5, 0.0), 5.0);
+  vec3 scat = sunCol * dens * phase * vacScatter * mix(vec3(1.0, 0.92, 0.82), vec3(0.85, 0.92, 1.0), smoothstep(0.0, 60.0, s));
+  // Hot core near the nozzle: a narrow orange-white jet, not a ball.
+  float core = exp(-pow(rho / (exitR * (0.6 + s * 0.04)), 2.0)) * exp(-s / (exitR * 3.0));
+  vec3 em = fireRamp(0.55 + 0.4 * exp(-s / (exitR * 3.0))) * core * vacHot;
   return scat + em;
 }
 
