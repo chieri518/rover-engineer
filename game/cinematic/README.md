@@ -12,10 +12,18 @@ npm install
 npm run cinematic:check                                  # typecheck the cinematic
 node cinematic/tools/fetch-assets.mjs                    # download the public-domain imagery (once)
 node cinematic/tools/render.mjs --preset preview         # quick draft, 960x540 30 fps, ~1 min
-node cinematic/tools/render.mjs --preset final           # the film: 1920x1080 60 fps -> out/intro-video.mp4
-node cinematic/tools/render.mjs --score                  # the score -> out/score.wav
-node cinematic/tools/render.mjs --mux                    # -16 LUFS, AAC 192k, mux -> out/rover-engineer-intro.mp4
+node cinematic/tools/render.mjs --preset final --webm    # the film, ~1 h on an M2: out/intro-video.mp4 (CRF 17 master) + .webm
+node cinematic/tools/render.mjs --score                  # the score -> out/score.wav (10 s)
+node cinematic/tools/render.mjs --web                    # two-pass H.264 of the master, 25 MB -> out/intro-video-web.mp4
+node cinematic/tools/render.mjs --mux --video cinematic/out/intro-video-web.mp4 --out cinematic/out/rover-engineer-intro.mp4
+node cinematic/tools/render.mjs --mux --out cinematic/out/rover-engineer-intro-hq.mp4   # also muxes the WebM (-hq.webm)
 ```
+
+The deliverables (1920x1080, 60 fps, 39.3 s, −16 LUFS integrated, true peak −2.3 dBTP):
+`rover-engineer-intro.mp4` (H.264 High, ~24.6 MB, for sharing), `rover-engineer-intro-hq.mp4` (CRF 17, ~41 MB)
+and the VP9/Opus WebM (~20 MB). The film's grain makes a CRF encode large; the 25 MB two-pass encode measures
+SSIM 0.99 against the CRF 17 master. The last full final render took 62 min (0.64 output fps on average; the
+ignition close-up, the wake/gaze shallow-focus shots and the Mars storm are the costly ones).
 
 Useful options: `--from 12 --to 15` (a range, in film seconds), `--stills 1,5.5,13` (PNG stills to
 `out/stills/`), `--sub 16 --ss 2` (more sub-frames, more supersampling), `--webm` (also a VP9 WebM),
@@ -67,4 +75,5 @@ The Moon has no air: from touchdown to the Mars cut the soundtrack is score only
 | draft   | 1280x720  | 30  | 1             | 4          | look checks with blur    |
 | final   | 1920x1080 | 60  | 1.5           | 8          | the film                 |
 
-Sequences can ask for more sub-frames on a shot (`minSubframes`, e.g. shallow focus).
+Sequences can ask for more sub-frames on a shot (`minSubframes`): the ignition close-up and the wake, gaze and
+tracks shots use 20–28 for smooth shallow focus.

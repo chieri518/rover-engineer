@@ -7,6 +7,7 @@
 //   node cinematic/tools/render.mjs --preset final --from 12 --to 15 --out cinematic/out/part.mp4
 //   node cinematic/tools/render.mjs --preset final --stills 1,5.5,13 [--stills-dir DIR]   PNG stills
 //   node cinematic/tools/render.mjs --score                        the score, to cinematic/out/score.wav
+//   node cinematic/tools/render.mjs --web [--target-mb 25]          two-pass H.264 of the master for sharing
 //   node cinematic/tools/render.mjs --mux [--video V] [--audio A]  loudness-normalize the score and mux
 //
 // Options: --w --h --ss --fps --sub --shutter --quality --crf --port --webm --keep-profile --headed
@@ -108,6 +109,29 @@ function mux() {
   const summary = check.stderr.slice(check.stderr.lastIndexOf('Summary:'));
   log(`final loudness:\n${summary.trim()}`);
   log(`wrote ${out} (${(statSync(out).size / 1e6).toFixed(1)} MB)`);
+}
+
+// --------------------------------------------------------------------------------------------------------
+// Web encode: a two-pass H.264 of the CRF master sized for sharing (default 25 MB with 192k audio). The film's
+// grain makes a CRF encode large; at the same size two passes keep SSIM ~0.99 against the master.
+
+function webEncode() {
+  const video = args.video ?? path.join(outDir, 'intro-video.mp4');
+  const out = args.out ?? path.join(outDir, 'intro-video-web.mp4');
+  const targetMB = Number(args['target-mb'] ?? 25);
+  const probe = run(FFMPEG.replace(/ffmpeg$/, 'ffprobe'), ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', video]);
+  const seconds = Number(probe.stdout.trim());
+  const kbps = Math.floor((targetMB * 8e3 * 0.985) / seconds - 192 - 16); // room for audio and the container
+  const passlog = path.join(process.env.TMPDIR ?? tmpdir(), `rover-intro-x264-${process.pid}`);
+  const enc = ['-c:v', 'libx264', '-preset', 'veryslow', '-tune', 'film', '-b:v', `${kbps}k`, '-maxrate', `${kbps * 2}k`, '-bufsize', `${kbps * 2.5}k`,
+    '-profile:v', 'high', '-pix_fmt', 'yuv420p', '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv'];
+  try {
+    run(FFMPEG, ['-y', '-hide_banner', '-i', video, ...enc, '-pass', '1', '-passlogfile', passlog, '-an', '-f', 'null', '-']);
+    run(FFMPEG, ['-y', '-hide_banner', '-i', video, ...enc, '-pass', '2', '-passlogfile', passlog, '-an', '-movflags', '+faststart', out]);
+  } finally {
+    for (const f of [`${passlog}-0.log`, `${passlog}-0.log.mbtree`]) rmSync(f, { force: true });
+  }
+  log(`wrote ${out} (${kbps} kbps, ${(statSync(out).size / 1e6).toFixed(1)} MB)`);
 }
 
 // --------------------------------------------------------------------------------------------------------
@@ -250,7 +274,8 @@ async function capture() {
   log(`took ${((Date.now() - started) / 1000).toFixed(0)} s`);
 }
 
-if (args.mux) mux();
+if (args.web) webEncode();
+else if (args.mux) mux();
 else
   await capture().catch((e) => {
     console.error(e);
