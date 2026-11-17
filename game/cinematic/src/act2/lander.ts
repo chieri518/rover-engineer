@@ -25,7 +25,7 @@ export const LANDER = {
   bayHalfW: 1.12,
   hingeX: 2.8,
   hatchThick: 0.12,
-  footR: 4.5,
+  footR: 5.4,
   footPadR: 0.44,
 } as const;
 
@@ -105,6 +105,27 @@ function logoTexture(): THREE.CanvasTexture {
     g.textAlign = 'center';
     g.textBaseline = 'middle';
     g.fillText('REL', 512, 268);
+    // Stencilled and weathered: bridges cut through the letters, and the paint worn away in specks and scuffs.
+    g.globalCompositeOperation = 'destination-out';
+    g.fillStyle = '#000';
+    for (const x of [372, 528, 668]) g.fillRect(x, 150, 9, 240);
+    let s = 91;
+    const rand = () => ((s = (s * 16807) % 2147483647) / 2147483647);
+    for (let i = 0; i < 1300; i++) {
+      const r = rand() < 0.9 ? 1 + rand() * 3 : 4 + rand() * 9;
+      g.globalAlpha = 0.5 + rand() * 0.5;
+      g.beginPath();
+      g.ellipse(rand() * 1024, rand() * 512, r, r * (0.4 + rand() * 0.6), rand() * 3, 0, Math.PI * 2);
+      g.fill();
+    }
+    g.globalAlpha = 0.6;
+    for (let i = 0; i < 40; i++) {
+      const x = rand() * 1024;
+      const y = rand() * 512;
+      g.fillRect(x, y, 40 + rand() * 160, 2 + rand() * 3);
+    }
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
   });
 }
 
@@ -169,7 +190,9 @@ export function buildLander(opts: LanderOptions): LanderParts {
     return track(cinePatch(m, { moon: opts.moon, indirect: inside ? indirect.inside : indirect.outside, key: 'lander' }));
   };
   const M = {
-    gold: make({ color: new THREE.Color(0.95, 0.56, 0.15), metalness: 0.7, roughness: 0.6, roughnessMap: foil.facets, normalMap: foil.normal, normalScale: new THREE.Vector2(0.55, 0.55) }),
+    gold: make({ color: new THREE.Color(0.74, 0.4, 0.07), metalness: 0.8, roughness: 0.55, roughnessMap: foil.facets, normalMap: foil.normal, normalScale: new THREE.Vector2(1.0, 1.0) }),
+    bronze: make({ color: new THREE.Color(0.62, 0.33, 0.09), metalness: 0.75, roughness: 0.55, roughnessMap: foil.facets, normalMap: foilFine.normal, normalScale: new THREE.Vector2(0.65, 0.65) }),
+    darkPanel: make({ color: new THREE.Color(0.11, 0.115, 0.12), metalness: 0.25, roughness: 0.5, normalMap: panels.normal, normalScale: new THREE.Vector2(0.9, 0.9), aoMap: panels.grime }),
     silver: make({ color: new THREE.Color(0.85, 0.85, 0.87), metalness: 1, roughness: 0.5, roughnessMap: foilFine.facets, normalMap: foilFine.normal, normalScale: new THREE.Vector2(0.5, 0.5) }),
     white: make({ color: new THREE.Color(0.6, 0.6, 0.58), metalness: 0, roughness: 0.52, normalMap: panels.normal, normalScale: new THREE.Vector2(0.9, 0.9), aoMap: panels.grime, aoMapIntensity: 1 }),
     whitePlain: make({ color: new THREE.Color(0.6, 0.59, 0.57), metalness: 0, roughness: 0.5, roughnessMap: grain }),
@@ -200,7 +223,7 @@ export function buildLander(opts: LanderOptions): LanderParts {
   const put = (g: THREE.BufferGeometry, m: THREE.Material, uvScale = 0.5, matrix?: THREE.Matrix4) => {
     if (matrix) g.applyMatrix4(matrix);
     // Foil crinkles at a few centimetres whatever the part's size.
-    if (m === M.gold || m === M.silver || m === M.inSilver) uvScale = 1.3;
+    if (m === M.gold || m === M.bronze || m === M.silver || m === M.inSilver) uvScale = 1.3;
     if (uvScale > 0) boxUV(g, uvScale);
     const list = statics.get(m) ?? [];
     list.push(g.index ? g.toNonIndexed() : g);
@@ -231,8 +254,8 @@ export function buildLander(opts: LanderOptions): LanderParts {
   // Body shell: gold MLI below, white structure above, silver bands, the door face framed around the opening.
   for (let k = 0; k < 8; k++) {
     if (k === 0) continue;
-    facePanel(k, L.bottomY, L.bandY, M.gold, 0.0);
-    facePanel(k, L.bandY, L.deckY, M.white, 0.0);
+    facePanel(k, L.bottomY, L.bandY, k % 2 === 0 ? M.bronze : M.gold, 0.0);
+    facePanel(k, L.bandY, L.deckY, k === 2 || k === 6 || k === 4 ? M.darkPanel : M.white, 0.0);
     facePanel(k, L.bandY - 0.06, L.bandY + 0.06, M.silver, 0.02, FACE_W * 0.98, 0.04);
     facePanel(k, L.bottomY, L.bottomY + 0.18, M.graphite, 0.03, FACE_W * 0.99, 0.06);
     // Corner longerons at the octagon's vertices.
@@ -280,7 +303,7 @@ export function buildLander(opts: LanderOptions): LanderParts {
   }
   // REL logos on the upper band: on the faces either side of the door (seen in the wide shots).
   for (const k of [7, 3]) {
-    const g = new THREE.PlaneGeometry(1.5, 0.75);
+    const g = new THREE.PlaneGeometry(0.95, 0.475);
     g.rotateY(Math.PI / 2);
     put(g, M.logo, 0, faceMatrix(k, (L.bandY + L.deckY) / 2 + 0.05, 0.004));
   }
@@ -342,16 +365,37 @@ export function buildLander(opts: LanderOptions): LanderParts {
   // ---------------------------------------------------------------------------------------------------
   // Top: four propellant tanks in cradles, a central avionics drum, RCS pods, star trackers, the high-gain
   // dish on a boom aimed at Earth, and a vertical solar array on a mast, turned to the Sun.
-  for (const [x, z] of [[1.15, 1.15], [1.15, -1.15], [-1.15, 1.15], [-1.15, -1.15]] as const) {
-    const r = 0.68;
-    put(new THREE.SphereGeometry(r, 40, 24), (x > 0) === (z > 0) ? M.silver : M.whitePlain, 0.6, at(x, L.deckY + 0.12 + r, z));
-    const ring = new THREE.TorusGeometry(r + 0.02, 0.035, 8, 40);
+  // Exposed structure above the deck: an octagonal truss (posts, a top ring, cross-bracing) carrying four
+  // big spherical propellant tanks on struts, with feed lines down to the engines.
+  {
+    const R = L.radius - 0.2;
+    const top = L.deckY + 1.15;
+    for (let k = 0; k < 8; k++) {
+      const a0 = ((k + 0.5) * Math.PI) / 4;
+      const a1 = ((k + 1.5) * Math.PI) / 4;
+      const p0 = new THREE.Vector3(Math.cos(a0) * R, L.deckY + 0.1, -Math.sin(a0) * R);
+      const p1 = new THREE.Vector3(Math.cos(a1) * R, L.deckY + 0.1, -Math.sin(a1) * R);
+      const q0 = p0.clone().setY(top);
+      const q1 = p1.clone().setY(top);
+      put(rod(p0, q0, 0.045, 10), M.alu, 0.5);
+      put(rod(q0, q1, 0.04, 10), M.alu, 0.5);
+      put(rod(p0, q1, 0.022, 8), M.alu, 0.5);
+      put(new THREE.SphereGeometry(0.06, 12, 8), M.graphite, 0.5, at(q0.x, q0.y, q0.z));
+    }
+  }
+  for (const [x, z] of [[1.2, 1.2], [1.2, -1.2], [-1.2, 1.2], [-1.2, -1.2]] as const) {
+    const r = 0.8;
+    const cy = L.deckY + 0.5 + r;
+    put(new THREE.SphereGeometry(r, 48, 28), (x > 0) === (z > 0) ? M.silver : M.whitePlain, 0.6, at(x, cy, z));
+    const ring = new THREE.TorusGeometry(r + 0.02, 0.04, 8, 48);
     ring.rotateX(Math.PI / 2);
-    put(ring, M.alu, 0.5, at(x, L.deckY + 0.12 + r, z));
+    put(ring, M.alu, 0.5, at(x, cy, z));
     for (let i = 0; i < 4; i++) {
       const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
-      put(rod(new THREE.Vector3(x + Math.cos(a) * (r + 0.02), L.deckY + 0.12 + r, z + Math.sin(a) * (r + 0.02)), new THREE.Vector3(x + Math.cos(a) * 0.45, L.deckY + 0.1, z + Math.sin(a) * 0.45), 0.025), M.alu, 0.5);
+      put(rod(new THREE.Vector3(x + Math.cos(a) * (r + 0.02), cy, z + Math.sin(a) * (r + 0.02)), new THREE.Vector3(x + Math.cos(a) * 0.55, L.deckY + 0.1, z + Math.sin(a) * 0.55), 0.03), M.alu, 0.5);
     }
+    // Feed line from the tank's bottom down through the deck.
+    put(new THREE.TubeGeometry(new THREE.CatmullRomCurve3([new THREE.Vector3(x, cy - r, z), new THREE.Vector3(x * 0.8, L.deckY + 0.3, z * 0.8), new THREE.Vector3(x * 0.55, L.deckY + 0.05, z * 0.55)]), 16, 0.035, 8), M.alu, 0);
   }
   put(cyl(0.55, 0.55, 0.9, 32), M.gold, 0.6, at(0, L.deckY + 0.55, 0));
   put(cyl(0.58, 0.58, 0.05, 32), M.alu, 0.5, at(0, L.deckY + 1.02, 0));
@@ -386,8 +430,8 @@ export function buildLander(opts: LanderOptions): LanderParts {
   }
   // High-gain antenna: a boom, a gimbal and a parabolic dish facing Earth.
   {
-    const base = new THREE.Vector3(-1.6, L.deckY + 0.1, 0.0);
-    const top = new THREE.Vector3(-1.6, L.deckY + 1.3, 0.0);
+    const base = new THREE.Vector3(-1.95, L.deckY + 0.1, 0.0);
+    const top = new THREE.Vector3(-1.95, L.deckY + 2.3, 0.0);
     put(rod(base, top, 0.045), M.alu, 0.5);
     put(box(0.18, 0.16, 0.18), M.dark, 0.5, at(top.x, top.y, top.z));
     const e = opts.earthLocal.clone().normalize();
@@ -424,10 +468,10 @@ export function buildLander(opts: LanderOptions): LanderParts {
     sun.y = 0;
     sun.normalize();
     const mastBase = new THREE.Vector3(0.9, L.deckY + 0.1, -0.2);
-    const mastTop = new THREE.Vector3(0.9, L.deckY + 1.15, -0.2);
+    const mastTop = new THREE.Vector3(0.9, L.deckY + 2.1, -0.2);
     put(rod(mastBase, mastTop, 0.05), M.alu, 0.5);
     const yaw = Math.atan2(-sun.z, sun.x); // panel normal toward the Sun
-    const pc = new THREE.Vector3(0.9, L.deckY + 2.05, -0.2);
+    const pc = new THREE.Vector3(0.9, L.deckY + 3.0, -0.2);
     put(box(0.04, 1.7, 1.5), M.cells, 0, at(pc.x, pc.y, pc.z, yaw));
     put(box(0.05, 1.76, 0.04), M.alu, 0.5, at(pc.x - Math.sin(yaw) * 0, pc.y, pc.z, yaw).multiply(at(0, 0, 0.77)));
     put(box(0.05, 1.76, 0.04), M.alu, 0.5, at(pc.x, pc.y, pc.z, yaw).multiply(at(0, 0, -0.77)));
@@ -487,7 +531,7 @@ export function buildLander(opts: LanderOptions): LanderParts {
     const mid = top.clone().lerp(ball, 0.55);
     put(rod(top, mid, 0.1, 20), M.gold, 0.5);
     put(rod(mid.clone().lerp(top, 0.05), mid.clone().lerp(ball, 0.02), 0.115, 20), M.alu, 0.5);
-    put(rod(mid, ball, 0.068, 20), M.alu, 0.5);
+    put(rod(mid, ball, 0.068, 20), M.graphite, 0.5);
     put(rod(top, top.clone().lerp(mid, 0.12), 0.13, 20), M.alu, 0.5);
     // Secondary struts to a knee.
     const knee = top.clone().lerp(ball, 0.72);
@@ -622,7 +666,7 @@ export function buildLander(opts: LanderOptions): LanderParts {
     hput(band, M.stripes, 0, at(T + 0.012, 0.2, 0));
     hput(box(0.04, 0.1, W), M.graphite, 0.5, at(-0.0, H + 0.03, 0));
     // A second, smaller REL mark on the outer skin.
-    const mark = new THREE.PlaneGeometry(0.9, 0.45);
+    const mark = new THREE.PlaneGeometry(0.56, 0.28);
     mark.rotateY(Math.PI / 2);
     hput(mark, M.logo, 0, at(T + 0.013, H * 0.62, 0));
   }

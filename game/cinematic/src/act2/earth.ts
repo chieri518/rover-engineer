@@ -78,6 +78,9 @@ const FRAG = /* glsl */ `
 #include <logdepthbuf_pars_fragment>
 uniform vec3 uSun;
 uniform float uIntensity;
+uniform sampler2D uGround;
+uniform sampler2D uClouds;
+uniform float uHasTex;
 varying vec3 vN;
 varying vec3 vWN;
 varying vec3 vView;
@@ -100,9 +103,14 @@ void main() {
   vec3 landCol = mix(green, desert, clamp(dry + tex * 0.3, 0.0, 1.0));
   vec3 ocean = mix(vec3(0.012, 0.035, 0.09), vec3(0.03, 0.09, 0.16), shelf);
   vec3 albedo = mix(ocean, landCol, isLand);
+  // NASA imagery when it is there (cinematic/tools/fetch-assets.mjs): Blue Marble ground, VIIRS clouds.
+  vec2 ll = vec2(atan(p.z, p.x) / (2.0 * PI) + 0.5, lat / PI + 0.5);
+  vec3 groundTex = texture2D(uGround, ll).rgb;
+  float isOcean = 1.0 - smoothstep(0.06, 0.12, dot(groundTex, vec3(0.3, 0.6, 0.1)) + groundTex.r * 0.5 - groundTex.b * 0.6);
   // Ice caps.
   float ice = smoothstep(1.08, 1.2, al + fbm(p * 5.0, 3) * 0.12);
   albedo = mix(albedo, vec3(0.85, 0.88, 0.92), ice);
+  if (uHasTex > 0.5) { albedo = groundTex * 0.85; isLand = 1.0 - isOcean; ice = 0.0; }
   // Clouds: latitude bands (tropics, storm tracks) and warped fbm swirls.
   vec3 w = p * 3.0;
   w += vec3(fbm(p * 4.0 + 1.7, 4), fbm(p * 4.0 + 9.2, 4), fbm(p * 4.0 - 4.4, 4)) * 0.9;
@@ -111,6 +119,11 @@ void main() {
   float cloud = smoothstep(0.02, 0.35, c + (band - 0.6) * 0.35);
   float wisp = smoothstep(0.1, 0.5, fbm(w * 3.0 + 5.0, 4)) * 0.35;
   cloud = clamp(cloud + wisp * (1.0 - cloud) * 0.6, 0.0, 1.0);
+  if (uHasTex > 0.5) {
+    vec3 cl = texture2D(uClouds, ll).rgb;
+    float lum = dot(cl, vec3(0.3, 0.55, 0.15));
+    cloud = smoothstep(0.03, 0.5, lum);
+  }
   vec3 col;
   vec3 n = normalize(vWN);
   float mu = dot(n, uSun);
@@ -119,15 +132,15 @@ void main() {
   // Surface (Lambert), ocean glint, clouds over.
   vec3 surf = albedo * lit;
   vec3 h = normalize(uSun + normalize(vView));
-  float spec = pow(max(dot(n, h), 0.0), 60.0) * (1.0 - isLand) * (1.0 - ice) * lit * 0.6;
+  float spec = pow(max(dot(n, h), 0.0), 220.0) * (1.0 - isLand) * (1.0 - ice) * lit * 0.5;
   surf += vec3(1.0, 0.95, 0.85) * spec;
   vec3 cloudCol = vec3(0.92, 0.93, 0.95) * (0.08 + 0.92 * lit);
   col = mix(surf, cloudCol * day, cloud * 0.92);
   // Atmosphere: blue scattering on the day side, strongest at the limb; a thin warm terminator.
   float rim = 1.0 - max(dot(n, normalize(vView)), 0.0);
   vec3 sky = vec3(0.25, 0.45, 1.0) * (0.12 + 1.2 * pow(rim, 3.0)) * smoothstep(-0.15, 0.25, mu);
-  col += sky * 0.55;
-  col += vec3(1.0, 0.45, 0.2) * 0.08 * exp(-pow(mu / 0.05, 2.0)) * (1.0 - cloud * 0.5);
+  col += sky * 0.3;
+  col += vec3(1.0, 0.45, 0.2) * 0.04 * exp(-pow(mu / 0.05, 2.0)) * (1.0 - cloud * 0.5) * (1.0 - rim);
   gl_FragColor = vec4(col * uIntensity, 1.0);
 }`;
 
@@ -137,12 +150,38 @@ export class Earth {
   private readonly dir: THREE.Vector3;
   private readonly distance = 300_000;
 
+  /** With NASA textures if fetched (fetch-assets.mjs), else the procedural surface. */
+  static async create(earthDir: THREE.Vector3, sunDir: THREE.Vector3, intensity = 1.6): Promise<Earth> {
+    const e = new Earth(earthDir, sunDir, intensity);
+    const load = async (name: string) => {
+      try {
+        const t = await new THREE.TextureLoader().loadAsync(`/cinematic/assets/download/${name}`);
+        t.colorSpace = THREE.SRGBColorSpace;
+        t.anisotropy = 8;
+        return t;
+      } catch {
+        return null;
+      }
+    };
+    const [ground, clouds] = await Promise.all([load('world-ground.jpg'), load('world-clouds.jpg')]);
+    if (ground && clouds) {
+      const u = e.material.uniforms;
+      u.uGround!.value = ground;
+      u.uClouds!.value = clouds;
+      u.uHasTex!.value = 1;
+      e.textures.push(ground, clouds);
+    }
+    return e;
+  }
+
+  private readonly textures: THREE.Texture[] = [];
+
   constructor(earthDir: THREE.Vector3, sunDir: THREE.Vector3, intensity = 1.6) {
     this.dir = earthDir.clone().normalize();
     this.material = new THREE.ShaderMaterial({
       vertexShader: VERT,
       fragmentShader: FRAG,
-      uniforms: { uSun: { value: sunDir.clone().normalize() }, uIntensity: { value: intensity } },
+      uniforms: { uSun: { value: sunDir.clone().normalize() }, uIntensity: { value: intensity }, uGround: { value: null }, uClouds: { value: null }, uHasTex: { value: 0 } },
     });
     const r = this.distance * Math.tan((EARTH_RADIUS_DEG * Math.PI) / 180) * 1.004;
     this.mesh = new THREE.Mesh(new THREE.SphereGeometry(r, 128, 64), this.material);
@@ -160,6 +199,7 @@ export class Earth {
   dispose(): void {
     this.mesh.geometry.dispose();
     this.material.dispose();
+    for (const t of this.textures) t.dispose();
     this.mesh.removeFromParent();
   }
 }

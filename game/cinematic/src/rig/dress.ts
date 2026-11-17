@@ -202,6 +202,45 @@ export function dressRover(model: THREE.Object3D, opts: DressOptions): RoverDres
   const bodyGroup = model.children.find((c) => c instanceof THREE.Group && !c.name.startsWith('rig:')) ?? model;
   bodyGroup.add(ledGroup);
 
+  // Wheel hubs: a drive-motor housing in dark anodised metal on the outer face, a bolt circle and a machined
+  // cap ring, so the hub reads as hardware rather than a flat disc. Added to each wheel's rolling part.
+  const hubMat = make({ color: 0x14161a, roughness: 0.34, metalness: 0.7, normalMap: detailMaps().brushed, normalScale: new THREE.Vector2(0.25, 0.25) }, false, 'rover');
+  const boltMat = make({ color: 0x9a9ea5, roughness: 0.3, metalness: 0.9 }, false, 'rover');
+  const hubGeos: THREE.BufferGeometry[] = [];
+  const hubMeshes: THREE.Mesh[] = [];
+  {
+    const housing = new THREE.CylinderGeometry(0.088, 0.096, 0.05, 32).rotateX(Math.PI / 2);
+    const cap = new THREE.CylinderGeometry(0.05, 0.062, 0.022, 28).rotateX(Math.PI / 2);
+    const ring = new THREE.TorusGeometry(0.09, 0.006, 6, 40);
+    const fin = new THREE.BoxGeometry(0.012, 0.03, 0.04);
+    const bolt = new THREE.CylinderGeometry(0.0065, 0.0065, 0.012, 6).rotateX(Math.PI / 2);
+    hubGeos.push(housing, cap, ring, fin, bolt);
+    const wheelHalf = 0.11;
+    for (const wheel of model.children) {
+      if (wheel instanceof THREE.Group || wheel instanceof THREE.Light || wheel.type !== 'Object3D') continue;
+      const spin = wheel.children.find((c) => !(c instanceof THREE.Mesh) && c.children.some((m) => m instanceof THREE.Mesh));
+      if (!spin) continue;
+      const zs = wheel.position.z >= 0 ? 1 : -1;
+      const add = (g: THREE.BufferGeometry, m: THREE.Material, x: number, y: number, z: number, rz = 0) => {
+        const mesh = new THREE.Mesh(g, m);
+        mesh.position.set(x, y, z);
+        mesh.rotation.z = rz;
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        spin.add(mesh);
+        hubMeshes.push(mesh);
+      };
+      add(housing, hubMat, 0, 0, zs * (wheelHalf - 0.005));
+      add(cap, boltMat, 0, 0, zs * (wheelHalf + 0.03));
+      add(ring, boltMat, 0, 0, zs * (wheelHalf + 0.02));
+      for (let k = 0; k < 8; k++) {
+        const a = (k / 8) * Math.PI * 2;
+        add(bolt, boltMat, Math.cos(a) * 0.072, Math.sin(a) * 0.072, zs * (wheelHalf + 0.024));
+        add(fin, hubMat, Math.cos(a + 0.39) * 0.1, Math.sin(a + 0.39) * 0.1, zs * (wheelHalf - 0.01), a + 0.39);
+      }
+    }
+  }
+
   const glow = opts.glowLights ?? true;
   const ledLight = glow ? new THREE.PointLight(0xffffff, 0, 5, 2) : null;
   if (ledLight) {
@@ -264,6 +303,10 @@ export function dressRover(model: THREE.Object3D, opts: DressOptions): RoverDres
       for (const led of leds) (led.mesh.material as THREE.Material).dispose();
       bezelMat.dispose();
       plateMat.dispose();
+      for (const m of hubMeshes) m.removeFromParent();
+      for (const g of hubGeos) g.dispose();
+      hubMat.dispose();
+      boltMat.dispose();
       for (const [src, dst] of replaced) {
         src.dispose();
         dst.dispose();
