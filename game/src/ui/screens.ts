@@ -19,7 +19,6 @@ import { briefingLines, kmText } from './surveyText';
 import { missionVars } from './tutorialText';
 import { creditsScreen } from './creditsScreen';
 import { filmScreen } from './filmScreen';
-import { introScreen } from './introScreen';
 import { renderDashboard } from './dashboard';
 import { designScreen } from './designScreen';
 import { missionScreen } from './missionScreen';
@@ -443,7 +442,6 @@ export const screens: Record<ScreenId, Screen> = {
   settings,
   credits: creditsScreen,
   film: filmScreen,
-  intro: introScreen,
   design: designScreen,
   ticket: ticketScreen,
   landing,

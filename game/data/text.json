@@ -9,115 +9,8 @@
     "continueCampaign": "Continue campaign"
   },
   "intro": {
-    "heading": "REL | Rover Operations Guide",
-    "skip": "Skip intro",
-    "done": "Go to the design desk",
     "filmSkip": "Skip",
-    "filmLabel": "Intro film: a rover's journey from launch on Earth to the Moon, Mars and Titan",
-    "pages": [
-      {
-        "title": "Mission overview",
-        "body": [
-          "### Welcome to the Rover Exploration Laboratory",
-          "The Rover Exploration Laboratory (REL) designs and operates robotic rovers for planetary exploration.",
-          "As a rover engineer, you are responsible for designing the vehicle, securing its launch, and conducting surface operations.",
-          "### Mission funding",
-          "Each mission is allocated a budget covering rover components and launch costs. Surface operations generate revenue through the completion of mission milestones.",
-          "To qualify for the next mission, the final balance must meet or exceed the **pass mark**.",
-          "**Initial Mission: Moon**",
-          {
-            "table": {
-              "head": [
-                "Financial requirement",
-                "Amount"
-              ],
-              "rows": [
-                [
-                  "Mission budget",
-                  "{budget}"
-                ],
-                [
-                  "Pass mark",
-                  "{nextMinimum}"
-                ]
-              ]
-            }
-          },
-          "If the final balance is below the pass mark, the mission must be repeated."
-        ]
-      },
-      {
-        "title": "Rover configuration",
-        "body": [
-          "### Components",
-          "The rover consists of four required component slots (frame, wheels, power and battery) and a payload bay. Select one component for each slot. All four slots must be occupied before launch.",
-          "Each component is specified by:",
-          "- **Cost:** Deducted from the mission budget.",
-          "- **Mass:** Added to the rover's total mass.",
-          "- **Size:** Contributes to the rover's overall size.",
-          "The specification sheet displays the combined values for the selected components.",
-          "### Payload bay",
-          "The payload bay accommodates scientific instruments and systems such as lights and a heater. Each item occupies one mounting point, with the available capacity determined by the chassis ({minPoints} or {maxPoints} points).",
-          "- Only one of each instrument may be installed.",
-          "- Instruments cannot be added when all mounting points are occupied.",
-          "- Selecting a chassis with fewer mounting points removes the last instruments installed.",
-          "Each instrument card specifies its cost, mass, size, and energy consumption.",
-          "**Energy requirements**",
-          "- **Active consumption:** Energy used each time an instrument operates.",
-          "- **Standby consumption:** Energy drawn while an instrument is switched on.",
-          "Both values are shown as energy chips on the specification sheet.",
-          "Each instrument also lists its associated mission milestones. Instrument installation order determines its assigned number key during surface operations (first installed = Key 1).",
-          "Leaving the payload bay empty is permitted, but limits the rover's earning potential."
-        ]
-      },
-      {
-        "title": "Launch operations",
-        "body": [
-          "### Launch ticket classification",
-          "A launch ticket must accommodate both the rover's total mass and size. The system assigns the lowest eligible ticket tier.",
-          {
-            "tiersTable": {
-              "head": [
-                "Ticket",
-                "Maximum mass",
-                "Maximum size",
-                "Cost"
-              ],
-              "row": [
-                "{name}",
-                "{mass} kg",
-                "{size}",
-                "{price}"
-              ]
-            }
-          },
-          "Exceeding either limit requires the next ticket tier. Rovers exceeding either Large-tier limit are ineligible for launch.",
-          "The mass and size gauges on the specification sheet indicate the applicable tier limits. Verify both specifications before purchasing a ticket.",
-          "### Pre-launch review",
-          "The launch ticket screen displays a review of relevant entries from the engineering notebook.",
-          "The review identifies:",
-          "- **Engineering lessons:** Previous mission findings applicable to the current rover configuration.",
-          "- **No lights:** A standard system check performed on every rover.",
-          "The review is advisory and does not restrict launch authorization.",
-          "The engineering notebook is initially limited. Additional entries are recorded as the rover encounters new conditions during surface operations."
-        ]
-      },
-      {
-        "title": "Surface operations",
-        "body": [
-          "### Mission execution",
-          "Following launch, operate the rover on the planetary surface and complete the milestones associated with its installed instruments.",
-          "**Operational considerations**",
-          "- **Energy management:** Active instrument use and standby consumption affect available energy and estimated range.",
-          "- **Milestone completion:** Completed milestones generate mission revenue.",
-          "- **Financial target:** The final mission balance must meet or exceed the designated pass mark.",
-          "For the initial Moon mission, the required final balance is **{nextMinimum}**.",
-          "### Engineering records",
-          "The engineering notebook accumulates findings from surface operations. These records inform subsequent rover configurations and appear in future pre-launch reviews when applicable.",
-          "Use recorded findings to evaluate equipment selection and mission readiness."
-        ]
-      }
-    ]
+    "filmLabel": "Intro film: a rover's journey from launch on Earth to the Moon, Mars and Titan"
   },
   "story": {
     "kicker": "Mission 1 · The Moon, de Gerlache rim",
@@ -769,6 +662,7 @@
   "tutorial": {
     "label": "Tutorial",
     "designHeading": "Rover design",
+    "designLabel": "REL | Rover Operations Guide",
     "driveHeading": "First drive",
     "help": "Help",
     "helpDesign": "Open the rover design tutorial",
@@ -783,35 +677,105 @@
     "tierJoin": "; ",
     "design": [
       {
-        "title": "Parts, mass and cost",
+        "title": "Mission overview",
         "body": [
-          "Choose one part for each of the four bus slots: chassis, wheels, power source and battery. Then fit the payload bay. Everything starts empty, and the rover can launch once the four bus slots have a part; the bay may stay empty. Each part has a cost, a mass and a size. The specification sheet shows the totals for the rover.",
-          "Cheap parts are heavy and light parts are expensive. A heavier rover is slower, uses more energy per meter and sinks deeper in soft ground."
+          "### Welcome to the Rover Exploration Laboratory",
+          "The Rover Exploration Laboratory (REL) designs and operates robotic rovers for planetary exploration.",
+          "As a rover engineer, you are responsible for designing the vehicle, securing its launch, and conducting surface operations.",
+          "### Mission funding",
+          "Each mission is allocated a budget covering rover components and launch costs. Surface operations generate revenue through the completion of mission milestones.",
+          "To qualify for the next mission, the final balance must meet or exceed the **pass mark**.",
+          "**Initial Mission: Moon**",
+          {
+            "table": {
+              "head": [
+                "Financial requirement",
+                "Amount"
+              ],
+              "rows": [
+                [
+                  "Mission budget",
+                  "{budget}"
+                ],
+                [
+                  "Pass mark",
+                  "{nextMinimum}"
+                ]
+              ]
+            }
+          },
+          "If the final balance is below the pass mark, the mission must be repeated."
         ]
       },
       {
-        "title": "Payload bay",
+        "title": "Rover configuration",
         "body": [
-          "The payload bay holds the instruments, one of each, and the rover's systems: the lights and a heater. Each item takes one mounting point, and the chassis sets how many there are: {bayMin} or {bayMax}, depending on the frame. A full bay cannot take another item, and a chassis with fewer points removes the instruments added last. To leave something off, just do not fit it.",
-          "Each instrument card shows its cost, mass and size, and what it costs in energy: some use energy every time they work, and some draw a little while switched on. The specification sheet adds these to the range estimate. An empty bay is allowed, but a rover with no instruments cannot earn much.",
-          "Each instrument card lists the milestones it can earn.",
-          "The order of the bay is the order of the number keys in the mission: the first instrument added is key 1."
+          "### Components",
+          "The rover consists of four required component slots (frame, wheels, power and battery) and a payload bay. Select one component for each slot. All four slots must be occupied before launch.",
+          "Each component is specified by:",
+          "- **Cost:** Deducted from the mission budget.",
+          "- **Mass:** Added to the rover's total mass.",
+          "- **Size:** Contributes to the rover's overall size.",
+          "The specification sheet displays the combined values for the selected components.",
+          "### Payload bay",
+          "The payload bay accommodates scientific instruments and systems such as lights and a heater. Each item occupies one mounting point, with the available capacity determined by the chassis ({minPoints} or {maxPoints} points).",
+          "- Only one of each instrument may be installed.",
+          "- Instruments cannot be added when all mounting points are occupied.",
+          "- Selecting a chassis with fewer mounting points removes the last instruments installed.",
+          "Each instrument card specifies its cost, mass, size, and energy consumption.",
+          "**Energy requirements**",
+          "- **Active consumption:** Energy used each time an instrument operates.",
+          "- **Standby consumption:** Energy drawn while an instrument is switched on.",
+          "Both values are shown as energy chips on the specification sheet.",
+          "Each instrument also lists its associated mission milestones. Instrument installation order determines its assigned number key during surface operations (first installed = Key 1).",
+          "Leaving the payload bay empty is permitted, but limits the rover's earning potential."
         ]
       },
       {
-        "title": "Launch ticket",
+        "title": "Launch operations",
         "body": [
-          "REL buys the rover a spot on the next launch. The ticket tier is the smallest one that fits both the rover's mass and its size: {tiers}.",
-          "A rover just over a tier limit pays the much higher price of the next tier. A rover above the {top} limits cannot launch. The marks on the mass and size gauges show each limit.",
-          "On the launch ticket screen, the pre-launch review lists lessons from the engineering notebook that apply to this rover, and one problem that is always checked (no lights). It never stops a launch. At first it has little to say: the notebook fills as the rover learns things on the surface."
+          "### Launch ticket classification",
+          "A launch ticket must accommodate both the rover's total mass and size. The system assigns the lowest eligible ticket tier.",
+          {
+            "tiersTable": {
+              "head": [
+                "Ticket",
+                "Maximum mass",
+                "Maximum size",
+                "Cost"
+              ],
+              "row": [
+                "{name}",
+                "{mass} kg",
+                "{size}",
+                "{price}"
+              ]
+            }
+          },
+          "Exceeding either limit requires the next ticket tier. Rovers exceeding either Large-tier limit are ineligible for launch.",
+          "The mass and size gauges on the specification sheet indicate the applicable tier limits. Verify both specifications before purchasing a ticket.",
+          "### Pre-launch review",
+          "The launch ticket screen displays a review of relevant entries from the engineering notebook.",
+          "The review identifies:",
+          "- **Engineering lessons:** Previous mission findings applicable to the current rover configuration.",
+          "- **No lights:** A standard system check performed on every rover.",
+          "The review is advisory and does not restrict launch authorization.",
+          "The engineering notebook is initially limited. Additional entries are recorded as the rover encounters new conditions during surface operations."
         ]
       },
       {
-        "title": "Chassis and budget",
+        "title": "Surface operations",
         "body": [
-          "Each chassis has a maximum load. If the total mass exceeds it, the frame takes damage throughout the mission.",
-          "The parts and the ticket are paid from the budget. After the mission, the balance must meet the minimum budget for the next mission ({nextMinimum}), or the round is restarted.",
-          "Optional: the i button beside the maximum speed compares game speeds with real rover speeds."
+          "### Mission execution",
+          "Following launch, operate the rover on the planetary surface and complete the milestones associated with its installed instruments.",
+          "**Operational considerations**",
+          "- **Energy management:** Active instrument use and standby consumption affect available energy and estimated range.",
+          "- **Milestone completion:** Completed milestones generate mission revenue.",
+          "- **Financial target:** The final mission balance must meet or exceed the designated pass mark.",
+          "For the initial Moon mission, the required final balance is **{nextMinimum}**.",
+          "### Engineering records",
+          "The engineering notebook accumulates findings from surface operations. These records inform subsequent rover configurations and appear in future pre-launch reviews when applicable.",
+          "Use recorded findings to evaluate equipment selection and mission readiness."
         ]
       }
     ],

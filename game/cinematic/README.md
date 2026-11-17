@@ -4,7 +4,7 @@ A ~39 s wordless cinematic intro, rendered offline from code (three.js in headle
 with a synthesized score. This code is **not part of the game build**; the game plays the rendered film.
 
 **In the game:** Start new campaign plays `game/public/intro/rover-engineer-intro.mp4` (the 25 MB web encode),
-then the Welcome to REL cards (`game/src/ui/filmScreen.ts`, design in `game-design.md` §11, Intro video).
+then the design desk with the Rover Operations Guide open (`game/src/ui/filmScreen.ts`, design in `game-design.md` §11, Intro video).
 After a re-render, copy the new web encode over it:
 `cp cinematic/out/rover-engineer-intro.mp4 public/intro/`.
 

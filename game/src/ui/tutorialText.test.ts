@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import type { Instrument } from '../rules/types';
-import { introPages, missionVars, tutorialPages } from './tutorialText';
+import { missionVars, tutorialPages } from './tutorialText';
 import { fill } from './dom';
 
 const data = loadGameData();
@@ -46,8 +46,8 @@ describe('tutorial text', () => {
         .flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
     const design = join('design');
     expect(design).toContain('mounting point');
-    expect(design).toContain('An empty bay is allowed');
-    expect(design).not.toMatch(/No instruments|No lights|No heater/); // leaving a part off is not a choice on the desk (November 16)
+    expect(design).toContain('Leaving the payload bay empty is permitted');
+    expect(design).not.toMatch(/No instruments|No heater/); // leaving a part off is not a choice on the desk (November 16); "No lights" is the review's check
     expect(design).toContain('pre-launch review');
     expect(design).toMatch(/energy/i);
     const drive = join('drive');
@@ -81,15 +81,15 @@ describe('tutorial text', () => {
 
   it('the design tutorial says each instrument card lists its milestones (every Moon instrument earns some)', () => {
     const design = tutorialPages('design', data, { mission: 'moon', instruments: [] }).flatMap((p) => p.paragraphs).join('\n');
-    expect(design).toMatch(/lists the milestones it can earn/);
+    expect(design).toMatch(/lists its associated mission milestones/);
     expect(design).not.toMatch(/earn no milestones yet/);
     expect(design).not.toMatch(/a few problems/);
   });
 });
 
-describe('Welcome to REL intro and briefing lines', () => {
+describe('the Rover Operations Guide (the Moon design tutorial) and briefing lines', () => {
   it('has the four guide pages, every number filled from the data', () => {
-    const pages = introPages(data);
+    const pages = tutorialPages('design', data, { mission: 'moon', instruments: [] });
     expect(pages.map((p) => p.title)).toEqual(['Mission overview', 'Rover configuration', 'Launch operations', 'Surface operations']);
     const strings = pages.flatMap((p) => [p.title, ...p.blocks.flatMap((b) => (b.kind === 'list' ? b.items : b.kind === 'table' ? [...b.head, ...b.rows.flat()] : [b.text]))]);
     for (const s of strings) expect(s).not.toMatch(/\{\w+\}/);

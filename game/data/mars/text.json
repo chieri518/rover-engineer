@@ -190,6 +190,7 @@
   },
   "tutorial": {
     "designHeading": "Rover design for Mars",
+    "designLabel": "",
     "driveHeading": "First drive on Mars",
     "design": [
       {
