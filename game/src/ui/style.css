@@ -378,7 +378,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .row.total .value, .row.bad .value { font-weight: 500; }
 .row.bad .value { color: var(--warn); }
 .row.good .value { color: var(--good); }
-.why { font-size: 0.8rem; color: var(--muted); margin: 2px 0 0; }
 /* The specification's sections (game-design.md, "The engineer's desk as a parts editor"): short labels, large
    numbers with small units that never wrap, and state by colour: green ok, amber near the limit, red over. */
 .spec-section { margin-top: 10px; }

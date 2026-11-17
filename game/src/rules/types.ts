@@ -703,10 +703,10 @@ export interface SharedTextFile {
     spec: SpecText;
   };
   ticket: Record<
-    'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
+    'heading' | 'briefing' | 'and',
     string
   >;
-  review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'blocked' | 'hardBlock', string>; // the pre-launch review on the ticket screen
+  review: Record<'heading' | 'empty' | 'green' | 'yellow' | 'caution', string>; // the pre-launch review on the ticket screen
   notebook: Record<
     | 'open' | 'openTitle' | 'openMission' | 'unread' | 'heading' | 'count' | 'intro' | 'empty' | 'worldEmpty' | 'answers' | 'source' | 'newBadge' | 'close' | 'closeHint',
     string

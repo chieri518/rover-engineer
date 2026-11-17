@@ -172,22 +172,14 @@
   "ticket": {
     "heading": "Launch ticket",
     "briefing": "REL secures a spot for the rover on the next commercial launch to the lunar south pole.",
-    "tierRule": "The ticket tier is the smallest one that fits both the rover's mass and its size.",
-    "whySmallest": "The rover fits the {tier} tier, the smallest available.",
-    "whyPushed": "The rover exceeds the {lower} tier's {reasons}, so {tier} is the smallest tier that fits.",
-    "whyNone": "The rover exceeds the {tier} tier's {reasons}. No tier can carry it.",
-    "massOver": "mass limit by {n} kg",
-    "sizeOver": "size limit by {n}",
     "and": " and "
   },
   "review": {
     "heading": "Pre-launch review",
-    "intro": "Lessons from the engineering notebook that apply to this rover, plus hard blocks. You can launch either way.",
     "empty": "No lesson in the notebook applies to this rover yet. Lessons are learned on the surface, when parts affect each other in a mission.",
     "green": "Fine",
     "yellow": "Risk",
-    "blocked": "Blocked",
-    "hardBlock": "Always checked"
+    "caution": "Caution"
   },
   "notebook": {
     "open": "Notebook",
