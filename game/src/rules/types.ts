@@ -767,7 +767,8 @@ export interface SharedTextFile {
   >;
   /** The Campaign complete dashboard (game-design.md, "Titan goal and the campaign dashboard"). */
   dashboard: DashboardText;
-  milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture', string>;
+  milestone: Record<'reached' | 'stage' | 'reward' | 'record' | 'recordHeld' | 'notCredited' | 'categoryCapability' | 'categoryScientific' | 'categoryRecord' | 'categoryPicture'
+    | 'logHeading' | 'logEmpty' | 'logHeldReward' | 'logToggle', string>;
   instruments: Record<
     | 'buttonsLabel' | 'photoTaken' | 'photoNoZone' | 'photoAlbumFull'
     | 'viewpointHint' | 'earthHint' | 'iceSearchHint' | 'drillDone' | 'drillIce' | 'drillNoIce' | 'drillNearLander' | 'drillSameSite' | 'earthDarkHint' | 'earthTooCloseHint' | 'partialCrossingHint'

@@ -11,8 +11,9 @@
 // sol line for day or night, and shows a banner while the rover sleeps.
 import type { TextFile } from '../rules/types';
 import type { RadarColumn } from '../rules/instruments';
-import { el } from './dom';
+import { el, fill } from './dom';
 import { noticeNeeded, staleNotices } from './noticeStack';
+import type { MilestoneLogView } from './milestoneText';
 
 /** How the radar strip draws each layer kind (presentation only): band count, dip across the strip, colors. */
 const RADAR_LOOK: Record<string, { bands: number; dip: number; jumble?: boolean; colors: [string, string] }> = {
@@ -56,6 +57,10 @@ const SITE_NOTICE_SECONDS = 8; // a located site with its instrument lines: up t
 const LONG_NOTICE_SECONDS = 9; // a relationship's notice: longer text, read once per mission
 const MILESTONE_SECONDS = 6;
 const MILESTONE_FACT_SECONDS = 10; // longer when the history fact is shown, so it can be read
+
+/** Folds the milestone list away or opens it again (game-design.md, section 4). */
+export const MILESTONE_LOG_KEY = 'KeyL';
+const MILESTONE_LOG_KEY_LABEL = 'L';
 
 /** A milestone pop-up, already worded. */
 export interface MilestoneCard {
@@ -113,6 +118,14 @@ export class Hud {
   private readonly hint = el('div', { class: 'hud-hint', hidden: true });
   private readonly banner = el('div', { class: 'hud-banner', hidden: true, role: 'status' });
   private readonly cards = el('div', { class: 'milestone-cards', 'aria-live': 'polite' });
+  // The milestones reached so far, with their rewards (the pop-up cards fade): bottom left, open at the start.
+  private readonly logToggle: HTMLButtonElement;
+  private readonly logCount = el('span', { class: 'milestone-log-count' });
+  private readonly logTotal = el('span', { class: 'milestone-log-total' });
+  private readonly logList = el('ul', { class: 'milestone-log-list' });
+  private readonly logEmpty = el('p', { class: 'milestone-log-empty' });
+  private readonly logBody = el('div', { class: 'milestone-log-body', id: 'milestone-log-body' }, this.logList, this.logEmpty);
+  private logKey = '';
   private readonly hydrogen;
   private readonly earthLight = el('div', { class: 'earth-light', hidden: true });
   private readonly trace = el('div', { class: 'quake-trace', hidden: true });
@@ -150,6 +163,25 @@ export class Hud {
     this.sol.append(this.solText, this.nightText);
     this.radar.append(this.radarLabel, this.radarCanvas);
     this.progress.append(this.progressText, el('div', { class: 'hold-progress-track' }, this.progressFill));
+    const tm = text.milestone;
+    this.logToggle = el('button', {
+      type: 'button',
+      class: 'milestone-log-head',
+      id: 'milestone-log-toggle',
+      'aria-expanded': 'true',
+      'aria-controls': 'milestone-log-body',
+      title: fill(tm.logToggle, { key: MILESTONE_LOG_KEY_LABEL }),
+      onclick: (e: Event) => {
+        this.toggleMilestoneLog();
+        // A pointer click leaves focus on the button, and Space (the brake) would then click it again.
+        if ((e as MouseEvent).detail > 0) this.logToggle.blur();
+      },
+    },
+      el('span', { class: 'milestone-log-title' }, tm.logHeading),
+      this.logCount,
+      this.logTotal,
+      el('span', { class: 'instrument-key', 'aria-hidden': 'true' }, MILESTONE_LOG_KEY_LABEL),
+    );
     this.root = el('div', { class: 'hud-layer' },
       el('div', { class: 'hud' },
         this.energy.root,
@@ -170,8 +202,34 @@ export class Hud {
       el('div', { class: 'hud-center' }, this.banner, this.flare, this.warnings, this.lessons, this.notices, this.hint, this.progress),
       this.reticle,
       this.cards,
+      el('section', { class: 'milestone-log' }, this.logToggle, this.logBody),
       this.flash,
     );
+    this.setMilestoneLog({ count: 0, total: '', rows: [], empty: tm.logEmpty });
+  }
+
+  /** The milestone list: the count and totals in the header, one row per milestone. Rebuilt only when it changes. */
+  setMilestoneLog(view: MilestoneLogView): void {
+    const key = JSON.stringify(view);
+    if (key === this.logKey) return;
+    this.logKey = key;
+    this.logCount.textContent = String(view.count);
+    this.logTotal.textContent = view.count > 0 ? view.total : '';
+    this.logTotal.hidden = view.count === 0;
+    this.logList.replaceChildren(...view.rows.map((r) => el('li', { 'data-milestone': r.id, class: r.held ? 'held' : undefined },
+      el('span', { class: 'milestone-log-name' }, r.title),
+      el('span', { class: 'milestone-log-reward' }, r.reward),
+    )));
+    this.logList.hidden = view.rows.length === 0;
+    this.logEmpty.textContent = view.empty;
+    this.logEmpty.hidden = view.rows.length > 0;
+  }
+
+  /** Fold the milestone list away, or open it again (its header button and the L key). */
+  toggleMilestoneLog(): void {
+    const open = this.logToggle.getAttribute('aria-expanded') !== 'true';
+    this.logToggle.setAttribute('aria-expanded', String(open));
+    this.logBody.hidden = !open;
   }
 
   update(m: HudMeters): void {

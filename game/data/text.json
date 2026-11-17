@@ -552,7 +552,11 @@
     "categoryCapability": "Capability",
     "categoryScientific": "Scientific",
     "categoryRecord": "Record",
-    "categoryPicture": "Pretty picture"
+    "categoryPicture": "Pretty picture",
+    "logHeading": "Milestones",
+    "logEmpty": "None yet. Rewards are added to the budget at the debrief.",
+    "logHeldReward": "Record held, no reward",
+    "logToggle": "Show or hide the milestones reached this mission ({key})"
   },
   "instruments": {
     "buttonsLabel": "Instruments",

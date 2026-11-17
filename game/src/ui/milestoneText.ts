@@ -1,7 +1,7 @@
 // Wording for milestone pop-ups and the debrief, from text.json and milestones.json.
 import type { Missed, Reached } from '../rules/milestones';
 import { instrumentMilestones, unmetSupport } from '../rules/milestoneLists';
-import { milestoneReward, type MissionResult } from '../rules/payout';
+import { milestoneReward, type EarnedLine, type MissionResult } from '../rules/payout';
 import type { BusSlot, GameData, Instrument, Milestone, MilestoneCategory, Part, TextFile } from '../rules/types';
 import { fill, money } from './dom';
 import type { MilestoneCard } from './hud';
@@ -94,6 +94,41 @@ export function milestoneCard(r: Reached, data: GameData, history: boolean, reco
     note: held ? text.milestone.recordHeld : undefined,
     // One fact per milestone: staged milestones show it on the first stage only.
     fact: history && r.stage === 1 ? m.fact : undefined,
+  };
+}
+
+/** The HUD's milestone list, already worded (Hud.setMilestoneLog). */
+export interface MilestoneLogView {
+  count: number;
+  total: string; // "+$210k, +18 RP": the milestone money and RP so far
+  rows: { id: string; title: string; reward: string; held: boolean }[]; // newest first
+  empty: string; // shown while no milestone is reached
+}
+
+/**
+ * The HUD's milestone list (game-design.md, section 4): one row per earned line (rules/payout.ts
+ * earnedLines), in `newestFirst` order (milestone ids, the latest reached first; lines it does not name
+ * go last, in their own order). A staged milestone reads "Odometer 2 of 3" with the reward of every stage
+ * reached; a record already held reads "Record held, no reward". The total is the debrief's milestone
+ * money and RP.
+ */
+export function milestoneLog(lines: readonly EarnedLine[], newestFirst: readonly string[], text: TextFile): MilestoneLogView {
+  const rank = (id: string) => {
+    const i = newestFirst.indexOf(id);
+    return i === -1 ? newestFirst.length : i;
+  };
+  const sorted = [...lines].sort((a, b) => rank(a.milestone.id) - rank(b.milestone.id));
+  const reward = (amount: number, rp: number) => fill(text.milestone.reward, { money: money(amount, text), rp });
+  return {
+    count: lines.length,
+    total: reward(lines.reduce((s, l) => s + l.money, 0), lines.reduce((s, l) => s + l.rp, 0)),
+    rows: sorted.map((l) => ({
+      id: l.milestone.id,
+      title: l.stagesTotal > 1 ? milestoneTitle(l.milestone, l.stages, l.stagesTotal, text) : l.milestone.name,
+      reward: l.recordHeld ? text.milestone.logHeldReward : reward(l.money, l.rp),
+      held: l.recordHeld,
+    })),
+    empty: text.milestone.logEmpty,
   };
 }
 
