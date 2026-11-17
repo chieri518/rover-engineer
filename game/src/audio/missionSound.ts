@@ -93,6 +93,12 @@ export class MissionSound {
         case 'instrument-done':
           this.useDone(n.instrument);
           break;
+        case 'instrument-stopped':
+          // A use charged as it runs ran out of battery: its sound stops short, with the switch-off.
+          this.held?.stop(0.1);
+          this.held = null;
+          sound.cue('switchOff');
+          break;
       }
     }
   }
@@ -121,13 +127,14 @@ export class MissionSound {
     this.weather?.set(wind, rain);
   }
 
-  /** An instrument was used (a held use starts its whir; the camera clicks; a switch beeps). */
+  /** An instrument was used (a held use starts its whir, scan or laser ticks; the camera clicks; a switch beeps). */
   useStart(inst: Instrument, holdSeconds: number): void {
     this.held?.stop();
     const seconds = holdSeconds + 0.5;
     if (inst === 'camera') sound.cue('shutter');
     else if (inst === 'drill') this.held = sound.cue('drill', { seconds });
-    else if (inst === 'xray') this.held = sound.cue('scan', { seconds });
+    else if (inst === 'xray' || inst === 'organics') this.held = sound.cue('scan', { seconds });
+    else if (inst === 'laser') this.held = sound.cue('laser', { seconds });
     else if (inst === 'seismometer' || inst === 'reflector') this.held = sound.cue('deploy', { seconds });
     else sound.cue('switchOn');
   }
@@ -136,7 +143,7 @@ export class MissionSound {
     this.held?.stop();
     this.held = null;
     if (inst === 'drill') sound.cue('drillDone');
-    else if (inst === 'xray') sound.cue('scanDone');
+    else if (inst === 'xray' || inst === 'organics' || inst === 'laser') sound.cue('scanDone');
     else if (inst === 'seismometer' || inst === 'reflector') sound.cue('stationDown');
   }
 
