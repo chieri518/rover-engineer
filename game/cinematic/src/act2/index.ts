@@ -247,7 +247,7 @@ export const act2: SequenceDef[] = [
 
       // Shadows: a big map, framed tightly per shot.
       const shadow = o.sunLight.shadow;
-      shadow.mapSize.set(final ? 6144 : 2048, final ? 6144 : 2048);
+      shadow.mapSize.set(final ? 4096 : 2048, final ? 4096 : 2048);
       shadow.map?.dispose();
       shadow.map = null;
       shadow.radius = 3.5;
@@ -395,7 +395,7 @@ export const act2: SequenceDef[] = [
           fov: lerp(40, 37, e),
           focus: pos.distanceTo(focusPoint),
           aperture: 0.0075,
-          post: { exposure: 1.9, bloomThreshold: 1.3, bloomStrength: 0.5, bloomRadius: 0.6, minSubframes: 28, lift: 0.003, liftColor: [0.5, 0.65, 1] },
+          post: { exposure: 1.9, bloomThreshold: 1.3, bloomStrength: 0.5, bloomRadius: 0.6, minSubframes: 20, lift: 0.003, liftColor: [0.5, 0.65, 1] },
           shadow: { center: L(1.6, 2.3, -0.2), half: 2.6, up: 2.0, down: 2.0, depth: 120, bias: -0.00005, normalBias: 0.01 },
         };
       };
