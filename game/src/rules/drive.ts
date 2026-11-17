@@ -29,7 +29,7 @@ export function driveSpeed(baseSpeed: number, massKg: number, mass: Tuning['mass
   return baseSpeed * massSpeedFactor(massKg, mass);
 }
 
-/** Time is compressed (14 days in 5 minutes), so driving is too: game speed = real speed × compression. */
+/** Time is compressed (about one Earth day per minute of play), so driving is too: game speed = real speed × compression. */
 export function gameSpeed(realSpeed: number, speed: Tuning['speed']): number {
   return realSpeed * speed.compression;
 }
