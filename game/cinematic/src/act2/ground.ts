@@ -370,7 +370,7 @@ export class Ground {
     const { tracks, frame, envMap } = this.opts;
     const rand = seeded(1234);
     // A lumpy rock: an icosahedron with noise, flattened.
-    const ico = new THREE.IcosahedronGeometry(1, 3);
+    const ico = new THREE.IcosahedronGeometry(1, 2);
     ico.deleteAttribute('normal');
     ico.deleteAttribute('uv');
     const geo = mergeVertices(ico);
@@ -385,7 +385,7 @@ export class Ground {
     this.disposables.push(geo);
     const mat = cinePatch(new THREE.MeshStandardMaterial({ color: new THREE.Color(0.27, 0.26, 0.245), roughness: 0.95, metalness: 0, envMap }), { moon: this.opts.moon, key: 'pebble' });
     this.disposables.push(mat);
-    const count = 900;
+    const count = 2600;
     const mesh = new THREE.InstancedMesh(geo, mat, count);
     const m = new THREE.Matrix4();
     const q = new THREE.Quaternion();
@@ -398,7 +398,7 @@ export class Ground {
       if (tracks.lines.some((line) => Math.abs(lz - line) < tracks.halfWidth * 1.9)) continue;
       // Sizes: mostly grit and pebbles, a few fist-sized rocks.
       const u = rand();
-      const size = u < 0.8 ? 0.006 + rand() * 0.018 : u < 0.97 ? 0.025 + rand() * 0.03 : 0.06 + rand() * 0.06;
+      const size = u < 0.85 ? 0.003 + rand() * 0.008 : u < 0.98 ? 0.012 + rand() * 0.014 : 0.03 + rand() * 0.035;
       const y = this.heightLocal(lx, lz) + frame.origin.y - size * 0.35;
       const wx = frame.origin.x + lx * c + lz * s;
       const wz = frame.origin.z - lx * s + lz * c;
