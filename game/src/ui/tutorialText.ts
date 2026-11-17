@@ -1,12 +1,52 @@
 // Tutorial pages with their {name} placeholders filled from the game data (no DOM, so it is testable).
 import { isPlayable, nextMission } from '../rules/campaign';
-import type { GameData, Instrument, CampaignStep } from '../rules/types';
+import type { GameData, Instrument, CampaignStep, TutorialBlock } from '../rules/types';
 import type { TutorialId } from '../save/tutorialSeen';
 import { fill, money } from './dom';
 
+/** A block of a tutorial page, ready to show: a paragraph, a subheading, a list or a table (text may hold `**bold**`). */
+export type TutorialBlockText =
+  | { kind: 'p'; text: string }
+  | { kind: 'h'; text: string }
+  | { kind: 'list'; items: string[] }
+  | { kind: 'table'; head: string[]; rows: string[][] };
+
 export interface TutorialPageText {
   title: string;
+  blocks: TutorialBlockText[];
+  /** Every line of text on the page, in order (paragraphs, subheadings, list items, table rows): for search and tests. */
   paragraphs: string[];
+}
+
+/** The page's text lines (a table row is its cells joined by " · "). */
+function linesOf(blocks: TutorialBlockText[]): string[] {
+  return blocks.flatMap((b) => (b.kind === 'list' ? b.items : b.kind === 'table' ? [b.head.join(' · '), ...b.rows.map((r) => r.join(' · '))] : [b.text]));
+}
+
+/** Parse a page's body: `### ` subheadings, `- ` list items (grouped), tables, and paragraphs; placeholders filled. */
+function blocksOf(body: TutorialBlock[], vars: Record<string, string | number>, data: GameData): TutorialBlockText[] {
+  const blocks: TutorialBlockText[] = [];
+  for (const b of body) {
+    if (typeof b !== 'string') {
+      if ('table' in b) blocks.push({ kind: 'table', head: b.table.head.map((c) => fill(c, vars)), rows: b.table.rows.map((r) => r.map((c) => fill(c, vars))) });
+      else {
+        const rows = data.tiers.tiers.map((tier) => {
+          const v = { ...vars, name: tier.name, mass: tier.massLimit, size: tier.sizeLimit, price: money(tier.price, data.text) };
+          return b.tiersTable.row.map((c) => fill(c, v));
+        });
+        blocks.push({ kind: 'table', head: b.tiersTable.head.map((c) => fill(c, vars)), rows });
+      }
+      continue;
+    }
+    const line = fill(b, vars);
+    if (line.startsWith('### ')) blocks.push({ kind: 'h', text: line.slice(4) });
+    else if (line.startsWith('- ')) {
+      const last = blocks[blocks.length - 1];
+      if (last?.kind === 'list') last.items.push(line.slice(2));
+      else blocks.push({ kind: 'list', items: [line.slice(2)] });
+    } else blocks.push({ kind: 'p', text: line });
+  }
+  return blocks;
 }
 
 export function tutorialPages(
@@ -17,6 +57,7 @@ export function tutorialPages(
   const { text, tiers } = data;
   const t = text.tutorial;
   const list = tiers.tiers;
+  const points = data.parts.parts.flatMap((p) => (p.slot === 'chassis' && p.effects.mountingPoints ? [p.effects.mountingPoints] : []));
   const vars: Record<string, string | number> = {
     ...missionVars(data),
     balance: money(opts.balance ?? 0, text),
@@ -25,25 +66,20 @@ export function tutorialPages(
       .join(t.tierJoin),
     top: list[list.length - 1]?.name ?? '',
     nextMinimum: nextMinimum(opts.mission, data),
+    maxPoints: points.length ? Math.max(...points) : 0, // the chassis mounting points (the Moon's guide)
+    minPoints: points.length ? Math.min(...points) : 0,
   };
   return t[id].map((page) => {
     // One line per carried instrument, with its mission key (bay order).
-    const instrumentLines = opts.instruments.flatMap((inst, i) => {
+    const instrumentLines: TutorialBlock[] = opts.instruments.flatMap((inst, i) => {
       const line = page.instrument?.[inst];
       return line ? [fill(line, { ...vars, key: i + 1 })] : [];
     });
-    return {
-      title: fill(page.title, vars),
-      // In the drive tutorial, a body line that mentions the bay's number keys ({bayMax}) is left out for an empty bay.
-      paragraphs: [...instrumentLines, ...page.body.filter((p) => id !== 'drive' || opts.instruments.length > 0 || !p.includes('{bayMax}')).map((p) => fill(p, vars))],
-    };
+    // In the drive tutorial, a body line that mentions the bay's number keys ({bayMax}) is left out for an empty bay.
+    const body = page.body.filter((p) => id !== 'drive' || opts.instruments.length > 0 || typeof p !== 'string' || !p.includes('{bayMax}'));
+    const blocks = blocksOf([...instrumentLines, ...body], vars, data);
+    return { title: fill(page.title, vars), blocks, paragraphs: linesOf(blocks) };
   });
-}
-
-/** The Welcome to REL intro pages (text.intro), filled from the Moon's data: {budget}, {nextMinimum}. */
-export function introPages(data: GameData): TutorialPageText[] {
-  const vars = { ...missionVars(data), nextMinimum: nextMinimum('moon', data) };
-  return data.text.intro.pages.map((page) => ({ title: fill(page.title, vars), paragraphs: page.body.map((p) => fill(p, vars)) }));
 }
 
 /** The next mission's minimum budget (the pass mark); empty after the last mission, which passes on survival. */

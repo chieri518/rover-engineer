@@ -204,7 +204,8 @@ describe('SOLVABLE_IDS', () => {
 
   it('the no-lights text states the consequence rather than that the rover will not work', () => {
     const text = file.relationships.find((r) => r.id === 'no-lights')!.reviewText;
-    expect(text).toMatch(/stops at the edge of permanent shadow/);
+    expect(text).toMatch(/cannot drive into permanent shadow/);
+    expect(text).not.toMatch(/will not work|broken|fail/i);
   });
 });
 

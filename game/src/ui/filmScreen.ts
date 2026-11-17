@@ -1,6 +1,7 @@
-// The intro film (game-design.md §11, Intro video): after Start new campaign, before the Welcome to REL
-// cards. A full-screen, wordless 39 s video with its own score; it ends on black, then the cards open.
-// Skip (or Esc) jumps to the cards; if the video cannot load or play, the cards open straight away.
+// The intro film (game-design.md §11, Intro video): after Start new campaign, before the design desk.
+// A full-screen, wordless 39 s video with its own score; it ends on black, then the desk opens with the
+// Rover Operations Guide over it. Skip (or Esc) jumps to the desk; if the video cannot load or play, the desk
+// opens straight away.
 // The film is rendered offline by game/cinematic/ and shipped as public/intro/rover-engineer-intro.mp4.
 import type { Screen } from '../flow/flow';
 import { FILM } from '../audio/mix';
@@ -31,23 +32,23 @@ export const filmScreen: Screen = (game, root) => {
     video.volume = v;
   };
 
-  const toCards = (delay: number) => {
+  const toDesk = (delay: number) => {
     if (done) return;
     done = true;
     video.pause();
-    timer = setTimeout(() => game.go('intro'), delay);
+    timer = setTimeout(() => game.go('design'), delay);
   };
   const skip = () => {
     if (done) return;
     stage.classList.add('film-fade');
-    toCards(FADE_MS);
+    toDesk(FADE_MS);
   };
 
   const skipButton = el('button', { type: 'button', class: 'film-skip', id: 'film-skip', onclick: skip }, t.filmSkip);
   const stage = el('section', { class: 'film', id: 'film' }, video, skipButton);
 
-  video.addEventListener('ended', () => toCards(HOLD_MS));
-  video.addEventListener('error', () => toCards(0));
+  video.addEventListener('ended', () => toDesk(HOLD_MS));
+  video.addEventListener('error', () => toDesk(0));
   const onKey = (e: KeyboardEvent) => {
     if (e.key === 'Escape') skip();
   };
@@ -65,8 +66,8 @@ export const filmScreen: Screen = (game, root) => {
   document.addEventListener('visibilitychange', onVisibility);
   skipButton.focus();
   // Start new campaign was a click, so the browser lets the film play with sound. If it refuses anyway
-  // (autoplay rules, no video support), go straight to the cards rather than leave a black screen.
-  void video.play().catch(() => toCards(0));
+  // (autoplay rules, no video support), go straight to the desk rather than leave a black screen.
+  void video.play().catch(() => toDesk(0));
 
   return () => {
     done = true;

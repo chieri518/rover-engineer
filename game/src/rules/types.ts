@@ -665,8 +665,8 @@ export interface SharedTextFile {
   moneyPrefix: string;
   moneySuffix: string;
   title: Record<'heading' | 'subtitle' | 'kicker' | 'newCampaign' | 'continueCampaign', string>;
-  /** The Welcome to REL intro, after Start new campaign (base only). Pages are filled by introPages(); **text** is bold. */
-  intro: { heading: string; skip: string; done: string; filmSkip: string; filmLabel: string; pages: TutorialPage[] };
+  /** The intro film's Skip button and accessible label (base only). */
+  intro: { filmSkip: string; filmLabel: string };
   /** Why REL goes to this world: the design desk kicker and site context, and the context's sources (credits). Each world sets its own. */
   story: { kicker: string; site: string; sourcesLabel: string; sources: string[] };
   slots: Record<BusSlot | 'instrument', string> & Partial<Record<SupportSlot, string>>; // support slot names come with the world that offers them
@@ -703,17 +703,17 @@ export interface SharedTextFile {
     spec: SpecText;
   };
   ticket: Record<
-    'heading' | 'briefing' | 'tierRule' | 'whySmallest' | 'whyPushed' | 'whyNone' | 'massOver' | 'sizeOver' | 'and',
+    'heading' | 'briefing' | 'and',
     string
   >;
-  review: Record<'heading' | 'intro' | 'empty' | 'green' | 'yellow' | 'blocked' | 'hardBlock', string>; // the pre-launch review on the ticket screen
+  review: Record<'heading' | 'empty' | 'green' | 'yellow' | 'caution', string>; // the pre-launch review on the ticket screen
   notebook: Record<
     | 'open' | 'openTitle' | 'openMission' | 'unread' | 'heading' | 'count' | 'intro' | 'empty' | 'worldEmpty' | 'answers' | 'source' | 'newBadge' | 'close' | 'closeHint',
     string
   > & { worlds: Record<MissionId, string> }; // the engineering notebook; worlds: each world's section heading
   landing: Record<'heading' | 'briefing', string>;
   survey: Record<
-    | 'heading' | 'intro' | 'lead' | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName' | 'loading'
+    | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName'
     | 'foundNote' // {name}, {note}: a found site with its note (siteNotes, else siteKindNotes)
     | 'siteLineDocumented', // with the camera and the X-ray spectrometer aboard, at young craters and rocky areas: {documentedRange}
     string
@@ -791,7 +791,12 @@ export interface SharedTextFile {
     | 'label' | 'designHeading' | 'driveHeading' | 'help' | 'helpDesign' | 'helpDrive'
     | 'next' | 'back' | 'skip' | 'done' | 'step' | 'reopen' | 'tierItem' | 'tierJoin',
     string
-  > & { design: TutorialPage[]; drive: TutorialPage[] };
+  > & {
+    design: TutorialPage[];
+    drive: TutorialPage[];
+    /** The design tutorial's whole header in place of "label · designHeading" (the Moon's Rover Operations Guide); empty: none. */
+    designLabel?: string;
+  };
   credits: Record<
     | 'open' | 'heading' | 'intro' | 'disclaimer'
     | 'terrain' | 'imagery' | 'spaceWeather' | 'soil' | 'milestones' | 'debrief' | 'generatedHeading' | 'generated'
@@ -838,10 +843,18 @@ export interface InstrumentText {
   logStorm?: string; // the weather mast: added to its log line when it forecast the dust storm early
 }
 
+/**
+ * One block of a tutorial page. A string is a paragraph (`**bold**` spans), a subheading when it starts
+ * with `### `, or a list item when it starts with `- ` (consecutive items form one list). `table` is a small
+ * table; `tiersTable` is the launch ticket tiers, one row per tier from tiers.json, each cell filled from
+ * `row` with {name}, {mass}, {size} and {price}. {name} placeholders are filled from the game data.
+ */
+export type TutorialBlock = string | { table: { head: string[]; rows: string[][] } } | { tiersTable: { head: string[]; row: string[] } };
+
 /** One page of a tutorial. {name} placeholders are filled from the game data. */
 export interface TutorialPage {
   title: string;
-  body: string[]; // one paragraph per entry
+  body: TutorialBlock[];
   instrument?: Partial<Record<Instrument, string>>; // shown only for the instruments carried, in bay order; {key} is the mission key
 }
 

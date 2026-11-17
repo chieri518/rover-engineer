@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { loadGameData } from '../gameData';
 import type { Instrument } from '../rules/types';
-import { introPages, missionVars, tutorialPages } from './tutorialText';
+import { missionVars, tutorialPages } from './tutorialText';
 import { fill } from './dom';
 
 const data = loadGameData();
@@ -40,15 +40,12 @@ describe('tutorial text', () => {
     }
   });
 
-  it('covers the bay, the review and the notebook, and announces no relationship', () => {
+  it('covers the bay and the notebook, and announces no relationship', () => {
     const join = (id: 'design' | 'drive') =>
       tutorialPages(id, data, { mission: 'moon', instruments: ['camera', 'drill', 'neutron', 'xray', 'seismometer', 'reflector'] })
         .flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
     const design = join('design');
-    expect(design).toContain('mounting point');
-    expect(design).toContain('An empty bay is allowed');
     expect(design).not.toMatch(/No instruments|No lights|No heater/); // leaving a part off is not a choice on the desk (November 16)
-    expect(design).toContain('pre-launch review');
     expect(design).toMatch(/energy/i);
     const drive = join('drive');
     expect(drive).toContain('engineering notebook');
@@ -81,20 +78,30 @@ describe('tutorial text', () => {
 
   it('the design tutorial says each instrument card lists its milestones (every Moon instrument earns some)', () => {
     const design = tutorialPages('design', data, { mission: 'moon', instruments: [] }).flatMap((p) => p.paragraphs).join('\n');
-    expect(design).toMatch(/lists the milestones it can earn/);
+    expect(design).toMatch(/the milestones each instrument can earn/);
     expect(design).not.toMatch(/earn no milestones yet/);
     expect(design).not.toMatch(/a few problems/);
   });
 });
 
-describe('Welcome to REL intro and briefing lines', () => {
-  it('has three intro pages with the Moon budget and pass mark filled from the data', () => {
-    const pages = introPages(data);
-    expect(pages.length).toBe(3);
-    for (const p of pages) for (const s of [p.title, ...p.paragraphs]) expect(s).not.toMatch(/\{\w+\}/);
-    const all = pages.flatMap((p) => p.paragraphs).join('\n');
-    expect(all).toContain(`the budget is $${data.tuning.budget.startingBudget}k`);
-    expect(all).toContain(`the pass mark is $${data.tuning.budget.minimumBudget.mars}k`);
+describe('the Rover Operations Guide (the Moon design tutorial) and briefing lines', () => {
+  it('has the three guide pages, every number filled from the data', () => {
+    const pages = tutorialPages('design', data, { mission: 'moon', instruments: [] });
+    expect(pages.map((p) => p.title)).toEqual(['Welcome to REL', 'Mission funding', 'Rover design']);
+    const strings = pages.flatMap((p) => [p.title, ...p.blocks.flatMap((b) => (b.kind === 'list' ? b.items : b.kind === 'table' ? [...b.head, ...b.rows.flat()] : [b.text]))]);
+    for (const s of strings) expect(s).not.toMatch(/\{\w+\}/);
+    const all = strings.join('\n');
+    const budget = `$${data.tuning.budget.startingBudget}k`;
+    const pass = `$${data.tuning.budget.minimumBudget.mars}k`;
+    // The Moon's finances table.
+    const finances = pages[1]!.blocks.find((b) => b.kind === 'table');
+    expect(finances?.kind === 'table' && finances.rows.map((r) => r[1])).toEqual([budget, pass]);
+    // The ticket table: one row per tier, from tiers.json.
+    const tickets = pages[2]!.blocks.find((b) => b.kind === 'table');
+    expect(tickets?.kind === 'table' && tickets.rows).toEqual(data.tiers.tiers.map((t) => [t.name, `${t.massLimit} kg`, `${t.sizeLimit}`, `$${t.price}k`]));
+    // Lines are parsed, not shown as markdown.
+    expect(pages[0]!.blocks[0]).toMatchObject({ kind: 'p', text: expect.stringMatching(/^The Rover Exploration Laboratory \(REL\) designs/) });
+    expect(all).not.toMatch(/^(### |- )/m);
     expect(all).not.toMatch(/research point|\bRP\b/);
   });
 

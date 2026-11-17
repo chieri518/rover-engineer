@@ -125,6 +125,7 @@
   },
   "tutorial": {
     "designHeading": "Rover design for Titan",
+    "designLabel": "",
     "driveHeading": "First drive on Titan",
     "design": [
       {
@@ -208,7 +209,6 @@
   "survey": {
     "_owner": "T5. Lead ids match data/titan/tuning.json survey.leads. Directions and distances are computed, so the text names none. Lead texts fact-checked by research (R).",
     "_sources": "Interdunes: Lorenz et al. 2021, Planet. Sci. J. 2:24; Radebaugh et al. 2008, Icarus 194:690. Dunes: Radebaugh et al. 2008. Selk and its ejecta: Lorenz et al. 2021 (Cassini RADAR and radiometry); IAU Gazetteer of Planetary Nomenclature, Selk.",
-    "intro": "Cassini radar maps show areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: radar maps of Titan locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
     "leads": {
       "patch": {
         "name": "Bright interdune patch",

@@ -177,7 +177,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .minimap-leads { list-style: none; margin: 6px 0 0; padding: 6px 0 0; border-top: 1px solid var(--edge); display: grid; gap: 2px; font-family: var(--font-mono); font-size: 0.72rem; color: var(--info); }
 .minimap-leads[hidden] { display: none; }
 .minimap-leads li.nearest { color: var(--text); font-weight: 600; }
-.survey-leads { margin: 0 0 12px; padding-left: 20px; display: grid; gap: 6px; }
 @media (max-width: 640px) {
   .hud { width: calc(60% - 24px); }
   .minimap { width: calc(40% - 16px); }
@@ -378,7 +377,6 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 .row.total .value, .row.bad .value { font-weight: 500; }
 .row.bad .value { color: var(--warn); }
 .row.good .value { color: var(--good); }
-.why { font-size: 0.8rem; color: var(--muted); margin: 2px 0 0; }
 /* The specification's sections (game-design.md, "The engineer's desk as a parts editor"): short labels, large
    numbers with small units that never wrap, and state by colour: green ok, amber near the limit, red over. */
 .spec-section { margin-top: 10px; }
@@ -671,9 +669,22 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 .film-skip:hover, .film-skip:focus-visible { color: #fff; border-color: rgba(255, 255, 255, 0.6); }
 @keyframes film-skip-in { to { opacity: 1; } }
-/* After the film's black, the Welcome to REL cards fade in. */
-[data-screen="intro"] .tutorial.intro { animation: intro-in 700ms ease both; }
-@keyframes intro-in { from { opacity: 0; } to { opacity: 1; } }
+/* The Rover Operations Guide (the Moon's design tutorial, tutorial.ts): a wider card whose body scrolls, so
+   Skip / Back / Next stay in view, over a lighter veil so the lab and the rover show behind it. */
+.tutorial-overlay.tutorial-design:has(.tutorial-rich) { background: rgba(3, 6, 12, 0.38); }
+.tutorial.tutorial-rich { width: min(640px, 100%); display: flex; flex-direction: column; overflow: hidden; animation: guide-in 600ms ease both; }
+@keyframes guide-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.tutorial-rich .tutorial-body { overflow-y: auto; min-height: 0; flex: 1 1 auto; padding-right: 6px; margin-right: -6px; }
+.tutorial-rich .tutorial-actions { flex: none; }
+.tutorial-subhead { font-family: var(--font-head); font-size: 1rem; color: var(--text); margin: 14px 0 4px; }
+.tutorial-subhead:first-child { margin-top: 2px; }
+.tutorial-list { margin: 4px 0 8px; padding-left: 20px; }
+.tutorial-list li { margin: 2px 0; font-size: 0.92rem; }
+.tutorial-table { border-collapse: collapse; margin: 6px 0 10px; font-size: 0.9rem; min-width: 60%; }
+.tutorial-table th, .tutorial-table td { padding: 4px 12px; border-bottom: 1px solid var(--edge); text-align: right; font-variant-numeric: tabular-nums; }
+.tutorial-table th:first-child, .tutorial-table td:first-child { text-align: left; padding-left: 0; }
+.tutorial-table thead th { color: var(--muted); font-weight: 600; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.05em; }
+.tutorial-table tbody th { font-weight: 400; }
 /* On narrower screens the drive tutorial sits bottom left, clear of the milestone pop-ups (bottom right). */
 @media (max-width: 1000px) {
   .tutorial-overlay.tutorial-drive { place-items: end start; }
@@ -685,7 +696,7 @@ button:disabled { opacity: 0.4; cursor: not-allowed; }
 }
 @media (max-height: 640px) {
   .tutorial { padding: 12px 16px; }
-  .tutorial-body p { font-size: 0.88rem; margin: 4px 0; }
+  .tutorial-body p, .tutorial-list li { font-size: 0.88rem; margin: 4px 0; }
 }
 
 /* Data sources and credits */
