@@ -107,8 +107,8 @@ vec3 vac(vec3 p, vec3 V) {
   float n = fbm3(q);
   float x = rho / R;
   float body = exp(-x * x * 2.2) * exp(-s / boundL * 2.2);
-  float shell = exp(-pow((x - 0.92) / 0.09, 2.0)) * exp(-s / boundL * 1.6) * 0.55;
-  float dens = (body + shell) * (0.75 + 0.35 * n) / (1.0 + R * 0.15);
+  float shell = exp(-pow((x - 0.92) / 0.08, 2.0)) * exp(-s / boundL * 1.6) * 0.9;
+  float dens = (body + shell) * (0.7 + 0.45 * n) / (1.0 + R * 0.05);
   // Sunlight scattered by the exhaust: forward-peaked phase function.
   float mu = dot(V, sunDir);
   float phase = 0.25 + 1.6 * pow(max(mu * 0.5 + 0.5, 0.0), 6.0);

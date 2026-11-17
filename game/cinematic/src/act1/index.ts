@@ -17,7 +17,6 @@ import { Plume } from './plume';
 import { SmokeSystem, SparkSystem } from './particles';
 import { buildSpawns, engineLevel, ENGINE_START, groundAt, igniterFlash, nozzleY, rise, rocketBaseY, T } from './launch';
 import { buildOrbit } from './orbit';
-import { DBG } from './debug';
 import { clamp01, easeInOutCubic, easeInOutSine, easeOutCubic, lerp, noise1, phase, shake, smoothstep } from '../lib/ease';
 
 /** The sun: below the eastern horizon at the pad (pre-dawn), ENE. */
@@ -277,16 +276,7 @@ export const act1: SequenceDef[] = [
           };
         }
         sparks.uniforms.focus.value = post.focusDistance ?? 10;
-        sparks.uniforms.aperture.value = DBG.noDof ? 0 : post.aperture ?? 0;
-        if (DBG.cam) {
-          camera.position.set(...DBG.cam.pos);
-          camera.lookAt(...DBG.cam.look);
-          camera.fov = DBG.cam.fov;
-          post.aperture = 0;
-        }
-        if (DBG.exposure) post.exposure = DBG.exposure;
-        if (DBG.noBloom) post.bloomStrength = 0;
-        if (DBG.noDof) post.aperture = 0;
+        sparks.uniforms.aperture.value = post.aperture ?? 0;
         camera.aspect = ctx.width / ctx.height;
         camera.near = 0.05;
         camera.far = 40000;
@@ -329,9 +319,6 @@ export const act1: SequenceDef[] = [
           });
           plume.uniforms.jitter.value = sub % 997;
           plume.prepare(cam);
-          smoke.far.mesh.visible = smoke.near.mesh.visible = !DBG.noSmoke;
-          plume.mesh.visible = !DBG.noPlume;
-          sparks.mesh.visible = !DBG.noSparks;
           renderer.setRenderTarget(target);
           renderer.render(scene, cam);
         },

@@ -13,7 +13,6 @@ import { Plume } from './plume';
 import { Kind, SmokeSystem, type Spawn } from './particles';
 import { ACT1_CUES, ACT1_SHOTS } from './timing';
 import { clamp01, easeInOutSine, lerp, smoothstep, shake } from '../lib/ease';
-import { DBG } from './debug';
 
 const ALT = 112e3;
 const LAT0 = 27.2;
@@ -121,13 +120,13 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
         v: toWorld([Math.cos(a) * sp, -1 - r() * 2, Math.sin(a) * sp], false),
         drag: 0.25,
         buoy: 0,
-        size0: 0.4 + r() * 0.6,
-        grow: 4 + r() * 4,
+        size0: 0.3 + r() * 0.4,
+        grow: 3 + r() * 3,
         rot: r() * 6.28,
         spin: (r() - 0.5) * 0.6,
         kind: Kind.Steam,
         tint: 0.9,
-        opacity: 0.035 + r() * 0.05,
+        opacity: 0.02 + r() * 0.03,
         heat: 0,
         cool: 1,
         fadeIn: 0.05,
@@ -190,13 +189,13 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
       const u1 = plume1.uniforms;
       u1.time.value = t;
       u1.vacExpand.value = 0.75 + 0.8 * clamp01((t - MECO) / 0.3);
-      u1.vacScatter.value = 0.25 * on1;
+      u1.vacScatter.value = 0.12 * on1;
       u1.vacHot.value = 9 * on1;
       u1.gain.value = 1;
       const u2 = plume2.uniforms;
       u2.time.value = t;
       u2.vacExpand.value = 0.85;
-      u2.vacScatter.value = 0.3 * lv2;
+      u2.vacScatter.value = 0.12 * lv2;
       u2.vacHot.value = 14 * lv2;
       plume1.mesh.visible = on1 > 0.001;
       plume2.mesh.visible = lv2 > 0.001;
@@ -214,11 +213,6 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
       target.y += 3;
       camera.lookAt(target);
       camera.fov = 40;
-      if (DBG.cam && DBG.orbitCam) {
-        camera.position.set(...DBG.cam.pos);
-        camera.lookAt(...DBG.cam.look);
-        camera.fov = DBG.cam.fov;
-      }
       camera.aspect = ctx.width / ctx.height;
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld();
@@ -242,15 +236,12 @@ export async function buildOrbit(ctx: SequenceContext, rocket: Rocket) {
         lift: 0.004,
         liftColor: [0.3, 0.45, 1.0],
         flare: inFrame ? { x: sp.x, y: sp.y, intensity: 0.5, color: [1, 0.9, 0.75] } : null,
-        fade: 1 - smoothstep(DUR - 0.5, DUR, t) * 0,
       };
-      if (DBG.exposure) post.exposure = DBG.exposure;
       return { camera, post };
     },
     render(target: THREE.WebGLRenderTarget, cam: THREE.PerspectiveCamera) {
       sub++;
       const hide = [plume1.mesh, plume2.mesh, gas.far.mesh, gas.near.mesh, earth.group.children[1]!];
-      earth.group.children[1]!.visible = !DBG.noAtmo;
       const vis = hide.map((o) => o.visible);
       for (const o of hide) o.visible = false;
       scene.overrideMaterial = depthMat;
