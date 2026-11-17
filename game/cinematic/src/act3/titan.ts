@@ -10,6 +10,7 @@ import { Beams } from './fx/beams';
 import { Rain } from './fx/rain';
 import { SkyGlow } from './fx/skyglow';
 import { Splashes } from './fx/splashes';
+import { RoverMarkers } from './fx/lampGlow';
 
 const HEADING = 45; // north-east across the landing corridor, Dune 1 rising ahead-left
 const START = { x: -1480, z: -1085 };
@@ -41,10 +42,10 @@ export const titanClip = chaseClip({
   drive: () => ({ throttle: 0.45, steer: 0, brake: false }),
   framing: {
     distance: (t) => 6.6 + 3.5 * smoothstep(0.3, 5, t),
-    height: (t) => 2.5 + 0.6 * smoothstep(0.3, 5, t),
-    side: () => 1.4,
+    height: (t) => 2.1 + 0.5 * smoothstep(0.3, 5, t),
+    side: () => -0.5,
     lookAhead: () => 12,
-    lookHeight: () => 0,
+    lookHeight: () => 0.9,
     fov: () => 40,
     followY: 0.15,
   },
@@ -64,7 +65,10 @@ export const titanClip = chaseClip({
     const splashes = new Splashes(lamps, ground, { count: 9000, boxM: 34, life: 0.09, gain: 1.2 });
     const sky = new SkyGlow();
     const rain = new Rain(lamps, { stretch: 5, count: 80000, boxM: 26, fallMps: 5, wind: [0.8, 0.3], radiusMm: [1.5, 4.5], drawScale: 1.6, lampGain: 5, minPx: 1.2 });
-    o.scene.add(sky.object, beams.object, rain.object, splashes.object);
+    // Two small amber status LEDs on the rover's back: in the rain at night they keep its silhouette readable.
+    const b = w.data.tuning.rover.body;
+    const markers = new RoverMarkers([-1, 1].map((s) => new THREE.Vector3(-b.lengthM / 2 - 0.03, b.heightM / 2 - 0.06, s * b.widthM * 0.42)), 0xff7a2a, 0.07);
+    o.scene.add(sky.object, beams.object, rain.object, splashes.object, markers.object);
     const hemi = o.skyLight as THREE.HemisphereLight;
     const ambient = new THREE.Color();
     const dark = new THREE.Color();
@@ -82,14 +86,15 @@ export const titanClip = chaseClip({
         lamp = t < out ? 1 : t < out + 0.05 ? 0.15 : t < out + 0.09 ? 0.6 : 0;
         o.setLamp(lamp);
         lamps.update(o.rover.object, lamp);
+        markers.update(o.rover.object, lamp > 0.5 ? 2.2 : 0);
         night = 1 - smoothstep(1.8, out - 0.1, t); // the night closes in: only the lights stay
         return {
           exposure: 2.4,
-          contrast: 1.08,
-          saturation: 0.9,
-          tint: [1.0, 0.96, 0.9],
-          lift: 0.006,
-          liftColor: [0.55, 0.75, 1.0],
+          contrast: 1.15,
+          saturation: 0.95,
+          tint: [1.0, 0.95, 0.88],
+          lift: 0.01,
+          liftColor: [0.35, 0.6, 0.75],
           bloomStrength: 0.45,
           bloomThreshold: 0.9,
           bloomRadius: 0.6,
@@ -100,16 +105,16 @@ export const titanClip = chaseClip({
       afterView(_f, t) {
         hemi.color.multiplyScalar(0.6 + 2.5 * night);
         hemi.groundColor.multiplyScalar(0.6 + 2.5 * night);
-        horizon.setRGB(0.06, 0.04, 0.025).multiplyScalar(0.05 + 0.95 * night);
+        horizon.setRGB(0.028, 0.022, 0.017).multiplyScalar(0.05 + 0.95 * night);
         zenith.setRGB(0.006, 0.006, 0.008).multiplyScalar(night);
-        glow.setRGB(0.05, 0.03, 0.015).multiplyScalar(night);
+        glow.setRGB(0.03, 0.018, 0.009).multiplyScalar(night);
         sky.update(o.camera, horizon, zenith, glow, glowDir);
         const fog = o.scene.fog as THREE.FogExp2;
         fog.color.copy(horizon);
         fog.density = Math.min(fog.density, 0.0028); // thinner than the game's rain haze: the dunes stay in view
         ambient.copy(horizon).multiplyScalar(0.6);
-        beams.update(o.camera, t, { haze: 0.02, curtains: 0.06, ambient, scatter: 1.2 });
-        rain.update(o.camera, t, dark.copy(horizon).multiplyScalar(0.8), 1);
+        beams.update(o.camera, t, { haze: 0.03, curtains: 0.09, ambient, scatter: 2.6 });
+        rain.update(o.camera, t, dark.copy(horizon).multiplyScalar(2.5), 1);
         splashes.update(o.camera, t);
       },
       dispose() {
@@ -117,6 +122,7 @@ export const titanClip = chaseClip({
         rain.dispose();
         sky.dispose();
         splashes.dispose();
+        markers.dispose();
       },
     };
   },

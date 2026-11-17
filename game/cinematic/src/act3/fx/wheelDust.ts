@@ -26,6 +26,7 @@ uniform vec3 ambient;
 uniform vec4 shadowLine; // xz normal, offset, softness: sun visible where dot(n, xz) + offset < 0
 uniform float lampGain;
 uniform float opacity;
+uniform float growth;
 varying vec2 vUv;
 varying vec4 vColor;
 void main() {
@@ -45,7 +46,7 @@ void main() {
   float landed = smoothstep( 0.02, -0.04, p.y - seed.x ) * step( 0.06, a );
   p.y = max( p.y, seed.x );
   vec4 view = viewMatrix * vec4( p, 1.0 );
-  float r = vel.w * ( 1.0 + 0.6 * a );
+  float r = vel.w * ( 1.0 + growth * a );
   view.xy += corner * r;
   gl_Position = projectionMatrix * view;
   #include <logdepthbuf_vertex>
@@ -89,6 +90,8 @@ export interface WheelDustOptions {
   life: [number, number];
   albedo: THREE.ColorRepresentation;
   opacity: number;
+  /** Size growth per second (puffs spread as they drift). */
+  growth?: number;
   lampGain: number;
   /** Wheel geometry (chassis frame). */
   wheelBase: number;
@@ -169,6 +172,7 @@ export class WheelDust {
         shadowLine: { value: new THREE.Vector4(0, 0, -1, 1) },
         lampGain: { value: o.lampGain },
         opacity: { value: o.opacity },
+        growth: { value: o.growth ?? 0.6 },
         albedo: { value: new THREE.Color(o.albedo) },
       },
       transparent: true,

@@ -19,7 +19,7 @@ void medium( vec3 p, vec3 rd, float dist, out vec3 L, out float ext ) {
   float n = noise3( q * vec3( 0.22, 0.06, 0.22 ) );
   float m = noise3( q * vec3( 0.9, 0.25, 0.9 ) + 7.3 );
   ext = haze + curtains * smoothstep( 0.35, 0.8, n ) * ( 0.6 + 0.8 * m );
-  L = lampLight( p, 4.0 ) * scatter + ambient;
+  L = lampLight( p, 6.0 ) * scatter + ambient;
 }
 `;
 

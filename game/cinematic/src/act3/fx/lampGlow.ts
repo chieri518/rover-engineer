@@ -39,11 +39,11 @@ export class LampGlow {
   private readonly mats: THREE.ShaderMaterial[] = [];
   private readonly geometry = new THREE.BufferGeometry();
 
-  constructor(private readonly lamps: LampRig, color: THREE.ColorRepresentation, size: number) {
+  constructor(private readonly lamps: Pick<LampRig, 'positions'>, color: THREE.ColorRepresentation, size: number) {
     this.geometry.setAttribute('corner', new THREE.BufferAttribute(new Float32Array([-1, -1, 1, -1, 1, 1, -1, 1]), 2));
     this.geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(12), 3));
     this.geometry.setIndex([0, 1, 2, 0, 2, 3]);
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < lamps.positions.length; i++) {
       const mat = new THREE.ShaderMaterial({
         vertexShader: VERTEX,
         fragmentShader: FRAGMENT,
@@ -73,5 +73,30 @@ export class LampGlow {
   dispose(): void {
     this.geometry.dispose();
     for (const m of this.mats) m.dispose();
+  }
+}
+
+/** Small glowing markers fixed to the rover (status LEDs), in the chassis frame: forward +x, up +y, right +z. */
+export class RoverMarkers {
+  readonly positions: THREE.Vector3[];
+  readonly glow: LampGlow;
+
+  constructor(private readonly local: THREE.Vector3[], color: THREE.ColorRepresentation, size: number) {
+    this.positions = local.map(() => new THREE.Vector3());
+    this.glow = new LampGlow(this, color, size);
+  }
+
+  get object(): THREE.Object3D {
+    return this.glow.object;
+  }
+
+  update(rover: THREE.Object3D, k: number): void {
+    rover.updateMatrixWorld(true);
+    this.local.forEach((p, i) => this.positions[i]!.copy(p).applyMatrix4(rover.matrixWorld));
+    this.glow.update(k);
+  }
+
+  dispose(): void {
+    this.glow.dispose();
   }
 }
