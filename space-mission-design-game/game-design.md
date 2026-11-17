@@ -729,7 +729,7 @@ The map is **bigger than one mission can cover**, so the player feels they could
 
   - **Site notices are instrument-aware but lesson-blind.** They say what the carried instruments can do there, never what might go wrong (no "watch the cold", no "drive away from the station").
   - The dark crater keeps its existing outline; surveying it adds no new mark *(decided in Phase 0)*.
-- **Bearings, not markers: orbital survey leads.** The landing briefing lists four leads from orbital data (see the table), each a rough direction and distance from the lander. Real missions plan their drives on orbital maps the same way; NASA planned VIPER's routes on Lunar Reconnaissance Orbiter elevation and illumination data.
+- **Bearings, not markers: orbital survey leads.** The landing briefing lists four leads from orbital data (see the table), each a rough direction and distance from the lander. *(November 16, by the user: the landing briefing no longer lists them, on any world; the leads still point the way in the mission, as arrows at the minimap's edge and the live list under it.)* Real missions plan their drives on orbital maps the same way; NASA planned VIPER's routes on Lunar Reconnaissance Orbiter elevation and illumination data.
   - While a lead's area is undiscovered, an arrow on the minimap's edge points from the rover toward the area's center, and a list under the minimap gives its current direction and distance. Once the rover discovers the area, the arrow goes and the site itself appears.
   - Leads point to areas, not exact spots: the direction is one of 16 compass points and the distance is rounded (to 0.1 km below 1 km, to 0.5 km above) and measured to the near edge of the area.
   - Each winning archetype has a starting direction:
