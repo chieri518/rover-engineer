@@ -784,7 +784,8 @@ export interface SharedTextFile {
   instrumentText: Record<Instrument, InstrumentText>;
   /** X-ray spectrometer rock types (placeholder content), keyed by tuning.instruments.xray.rocks ids. */
   rocks: Record<string, { name: string; elements: string }>;
-  settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'back', string>;
+  /** Settings screen; mute and unmute also label the mission HUD's sound toggle. */
+  settings: Record<'heading' | 'open' | 'history' | 'historyHelp' | 'music' | 'effects' | 'soundHelp' | 'muted' | 'mute' | 'unmute' | 'back', string>;
   tutorial: Record<
     | 'label' | 'designHeading' | 'driveHeading' | 'help' | 'helpDesign' | 'helpDrive'
     | 'next' | 'back' | 'skip' | 'done' | 'step' | 'reopen' | 'tierItem' | 'tierJoin',

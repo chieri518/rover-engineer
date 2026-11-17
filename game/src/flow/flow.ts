@@ -27,6 +27,12 @@ export type ScreenId = 'title' | 'settings' | 'credits' | 'intro' | 'design' | '
 /** A screen renders into root and may return a cleanup function. */
 export type Screen = (game: Game, root: HTMLElement) => void | (() => void);
 
+/** Follows the game from outside the screens (the sound): screen changes and settings changes. */
+export interface GameListener {
+  screen?(screen: ScreenId, from: ScreenId): void;
+  settings?(settings: Settings): void;
+}
+
 export class Game {
   campaign: CampaignState | null;
   /** The rover on the design screen. A new campaign starts with every slot empty; a restart keeps the last design. */
@@ -54,6 +60,7 @@ export class Game {
   private cleanup: (() => void) | null = null;
   /** false for a debug start (?world=mars, ?world=titan): the throwaway campaign does not overwrite the save. */
   private persist = true;
+  private readonly listeners = new Set<GameListener>();
 
   constructor(
     private readonly dataFor: (world: WorldId) => GameData,
@@ -97,10 +104,18 @@ export class Game {
     return this.current;
   }
 
+  /** Follow screen and settings changes; returns a function that stops listening. */
+  listen(listener: GameListener): () => void {
+    this.listeners.add(listener);
+    return () => this.listeners.delete(listener);
+  }
+
   go(screen: ScreenId): void {
     this.cleanup?.();
     this.cleanup = null;
+    const from = this.current;
     this.current = screen;
+    for (const l of this.listeners) l.screen?.(screen, from);
     this.root.replaceChildren();
     window.scrollTo?.(0, 0); // each screen starts at the top (the credits page is long)
     this.root.dataset.screen = screen;
@@ -174,6 +189,7 @@ export class Game {
   setSettings(patch: Partial<Settings>): void {
     this.settings = { ...this.settings, ...patch };
     saveSettings(this.settings);
+    for (const l of this.listeners) l.settings?.(this.settings);
   }
 
   markTutorialSeen(id: TutorialId): void {

@@ -11,6 +11,7 @@ import { Game } from './flow/flow';
 import { screens } from './ui/screens';
 import { worldFromQuery } from './worlds';
 import { demoCampaign, isDemoVariant } from './ui/dashboardDemo';
+import { installSound, sound } from './audio';
 
 const root = document.querySelector<HTMLElement>('#app');
 if (!root) throw new Error('missing #app');
@@ -18,6 +19,7 @@ if (!root) throw new Error('missing #app');
 loadGameData('mars'); // check every world's data at startup, not when the campaign reaches it
 loadGameData('titan');
 const game = new Game(loadGameData, root, screens);
+installSound(game); // before the first screen, so the music follows it from the start
 // Debug start: ?world=mars or ?world=titan begins a throwaway campaign on that world (not saved).
 // ?dashboard=demo, demo-lost or demo-old opens the Campaign complete dashboard on a fake finished campaign (not saved).
 const debugWorld = worldFromQuery(location.search);
@@ -28,3 +30,11 @@ else game.go('title');
 
 // Development hook for testing the screen flow (not in production builds).
 if (import.meta.env.DEV) (window as unknown as { __game?: Game }).__game = game;
+// Development hook for checking the sound: its state, play a cue, and an offline level check (dev only).
+if (import.meta.env.DEV) {
+  (window as unknown as { __sound?: unknown }).__sound = {
+    state: () => ({ context: sound.state, mood: sound.currentMood, muted: sound.muted }),
+    cue: (id: Parameters<typeof sound.cue>[0]) => sound.cue(id) !== null,
+    measure: async (seconds?: number) => (await import('./audio/measure')).measureMix(game.settings, seconds),
+  };
+}

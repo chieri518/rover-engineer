@@ -15,6 +15,7 @@ import type { BriefItem, DraftBuild, RequiredSlot, SoftGroundRating, Tier } from
 import type { BuildPreview } from './buildPreview';
 import { categoryOfGroup, choosePart, mountPalette, partForGroup } from './deskPalette';
 import { el, fill, money } from './dom';
+import { sound } from '../audio';
 import { costsText, titanSolar } from './partCard';
 import { openTutorial, type TutorialHandle } from './tutorial';
 import { openNotebook, type NotebookHandle } from './notebook';
@@ -92,7 +93,11 @@ export const designScreen: Screen = (game, root) => {
   // Before a chassis is chosen the bay may take as many items as the roomiest chassis (rules/payload
   // bayCapacity); choosing a smaller chassis then drops the instruments added last.
   let bayNotice = ''; // why instruments were just dropped from the bay
+  /** Real parts on the rover (a "none" option weighs nothing): more is a part added, fewer a part removed. */
+  const partCount = (build: DraftBuild) => chosenParts(build, data.parts).filter((p) => p.mass > 0).length;
   const setBuild = (build: DraftBuild, notice = '') => {
+    const [before, after] = [partCount(game.build), partCount(build)];
+    if (after !== before || JSON.stringify(build) !== JSON.stringify(game.build)) sound.cue(after < before ? 'partRemove' : 'partAdd');
     game.build = build;
     bayNotice = notice;
     update();

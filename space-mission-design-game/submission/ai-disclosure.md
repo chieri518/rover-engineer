@@ -10,7 +10,7 @@
 
 ## Form version (one paragraph)
 
-Rover Engineer is the work of a two-person human team, which originated the game concept and made all key design decisions: a player designs a rover within constraints, it is delivered to another world, and the player keeps it working on the surface, with a mass-versus-cost puzzle, launch "ticket" tiers, a Moon → Mars → Titan progression, research points versus money, and optional history facts. We used Anthropic's Claude, through Claude Code, extensively: for background research and literature summaries on NASA missions and rovers; for drafting and organizing design documents from our decisions; for writing essentially all of the game's code (TypeScript, Three.js, Rapier) and the Python scripts that process NASA data; for balancing numbers; for drafting the in-game text (tutorial, milestone pop-ups, history facts, debrief and credits) and fact-checking the history facts against cited sources; and for drafting these submission texts. Team members directed, reviewed and tested this work. The game contains no AI-generated images, video or audio: its visuals are real NASA data (terrain and imagery) plus procedural rendering. It uses no NASA logos or branding; REL (Rover Exploration Laboratory) is a fictional agency.
+Rover Engineer is the work of a two-person human team, which originated the game concept and made all key design decisions: a player designs a rover within constraints, it is delivered to another world, and the player keeps it working on the surface, with a mass-versus-cost puzzle, launch "ticket" tiers, a Moon → Mars → Titan progression, research points versus money, and optional history facts. We used Anthropic's Claude, through Claude Code, extensively: for background research and literature summaries on NASA missions and rovers; for drafting and organizing design documents from our decisions; for writing essentially all of the game's code (TypeScript, Three.js, Rapier) and the Python scripts that process NASA data; for balancing numbers; for drafting the in-game text (tutorial, milestone pop-ups, history facts, debrief and credits) and fact-checking the history facts against cited sources; and for drafting these submission texts. Team members directed, reviewed and tested this work. The game contains no AI-generated images, video or audio files: its visuals are real NASA data (terrain and imagery) plus procedural rendering, and its music and sound effects are synthesized at run time by the game's own code. It uses no NASA logos or branding; REL (Rover Exploration Laboratory) is a fictional agency.
 
 ## Full disclosure
 
@@ -57,6 +57,8 @@ The team members made the design decisions, directed the work, reviewed what Cla
 ### Generated media
 
 No AI-generated images, video or audio are used in the game. Its visuals are real NASA data (LOLA terrain and LROC imagery) plus procedural rendering: the rover model, the Earth disc, the star field, the boulders and fine ground detail are drawn at run time by the game's code, not taken from image files. Because that code is Claude-written (see above), these procedural visuals are covered by the code acknowledgement. In-game photos are screenshots the player takes of the game view.
+
+The game's music and sound effects are not recordings or generated audio files: they are synthesized at run time in the browser (Web Audio API) by Claude-written code, so they too are covered by the code acknowledgement.
 
 ### NASA branding
 
