@@ -6,6 +6,8 @@ Last updated November 15, 2026 (story context decided: a Welcome to REL intro, p
 
 **How to read this doc.** Everything is **decided** unless it is marked *Proposed* (suggested, waiting for a yes or no) or *Open* (not settled yet). All open items are collected in [Open questions](#2-open-questions).
 
+**Time on each world (November 17, 2026, by the user):** every world runs at about one Earth day per minute of play, so the Moon mission now covers 5 Earth days of daylight in its 5 minutes instead of 14 ([§5](#5-time-on-each-world), [Sun and shadows](#sun-and-shadows)).
+
 **Titan draft (November 15, 2026, Owner B):** the Titan lesson (a steady power budget in the deep cold), site (Shangri-La dunes near Selk), time (one Titan day in 15 minutes), cold, rainstorm, milestones and campaign end are drafted in [The Titan mission](#the-titan-mission). Titan parts wait for Owner A.
 
 **Mars draft (November 15, 2026, Owner B):** the Mars lesson, site (Jezero crater), time (10 sols, 60 s each), night, cold, events, and milestones are drafted in [The Mars mission](#the-mars-mission). Items the team plan says to decide together are marked for Owner A to confirm.
@@ -121,7 +123,7 @@ Drive ──► Reach milestones ──► Earn RP and money
 
 - **Driving uses energy.** Heavier rovers use more energy per meter.
 - **Speed depends on the configuration.** The wheels set a base speed, and a heavier rover is slower. A heavy rover reaches fewer places in the mission time.
-- **Speed is compressed like time.** 14 days pass in 5 minutes, so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 13 m/s for a light one on wire-mesh wheels). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation), and 16 times faster while its wheels are off the ground (see [Ride over bumps](#ride-over-bumps)). Measured before the balance pass: a light build (12 m/s) reached the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. *Balance pass (November 15):* wire-mesh wheels now model 3.3 m/s of real driving (11.9 km/h, inside the Apollo LRV's 9 to 13 km/h), so a light build drives 13.2 m/s; this keeps the dark crater reachable with good, not perfect, driving. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts. *Generous pass (November 15, after the user's playtest):* compression 4 → 6, so a light build drives about 19.8 m/s and the slowest about 11; see [Generous pass](#generous-pass-november-15-2026-after-the-users-playtest).
+- **Speed is compressed like time.** Time is compressed (about one Earth day per minute of play), so driving is sped up too: roughly 4 to 6 times real rover speeds (about 6 m/s for a heavy build, about 13 m/s for a light one on wire-mesh wheels). A light build can just reach the dark crater; a heavy one cannot. To keep the rover grounded at these speeds, it falls about 4 times faster than real lunar gravity (a game-feel choice made during implementation), and 16 times faster while its wheels are off the ground (see [Ride over bumps](#ride-over-bumps)). Measured before the balance pass: a light build (12 m/s) reached the dark crater entry in about 240 s; a heavy one (6 m/s) ends about 1 km short. *Balance pass (November 15):* wire-mesh wheels now model 3.3 m/s of real driving (11.9 km/h, inside the Apollo LRV's 9 to 13 km/h), so a light build drives 13.2 m/s; this keeps the dark crater reachable with good, not perfect, driving. On the design screen, an optional info pop-up next to the speed readout explains real drive speeds, like the optional history facts. *Generous pass (November 15, after the user's playtest):* compression 4 → 6, so a light build drives about 19.8 m/s and the slowest about 11; see [Generous pass](#generous-pass-november-15-2026-after-the-users-playtest).
 - **Milestones** come from driving and from using equipped instruments. A rover without a drill drives past the ice.
 - **Night (Mars and Titan only).** The player chooses:
   - **Lights on:** keep exploring, but energy drains fast.
@@ -182,17 +184,22 @@ Real causes of rover loss and survival tactics: [rover-engineering/03](research/
 
 ## 5. Time on each world
 
-Missions get longer with each destination, and the player should feel that time passes differently on each world.
+Missions get longer with each destination. **Time runs at the same rate on every world** *(decided November 17, by the user)*: about one Earth day per minute of play, so the worlds can be compared. A Mars sol and a Titan day feel long because they are long, not because the clock changes. Until November 17 the Moon ran about 2.7 times faster (14 Earth days in 5 minutes).
 
-| Mission | Play time | Game time covered | One local day equals | Day and night |
-| --- | --- | --- | --- | --- |
-| Moon | 5 min | 14 Earth days (one lunar daylight period) | about 21 s per Earth day | All daylight |
+| Mission | Play time | Game time covered | Seconds of play per Earth day | One local day equals | Day and night |
+| --- | --- | --- | --- | --- | --- |
+| Moon | 5 min | 5 Earth days (about a third of one lunar daylight period) | 60 s | A lunar day (29.5 Earth days) would take about 30 minutes | All daylight |
+| Mars | 10 min | 10 sols (about 10.3 Earth days) | about 58 s | 60 s per sol: 45 s of day, 15 s of night | Day and night every sol; night is time-lapsed three times faster than day |
+| Titan | 15 min | 1 Titan day (about 16 Earth days) | about 56 s | The whole day: 450 s of light, then 450 s of dark; the mission starts 150 s after sunrise | Always cold; one long day and one long night |
+
+- **The rate is "about".** Mars and Titan are left within 7% of 60 s per Earth day instead of being stretched to match it exactly: 10 sols would need 616 s and one Titan day 957 s.
+- **Two exceptions inside a mission, both kept on purpose.** Mars nights are time-lapsed three times faster than days, so the night lessons fit in 15 s. A rover asleep on Titan fast-forwards the night four times ([Sleep fast-forwards the night](#the-titan-mission)), so a sleeping player does not wait out 7.5 minutes of dark. Both are time-lapses of one stretch of the mission; the mission as a whole keeps the common rate.
 | Mars | 10 min | 10 sols (about 10.3 Earth days); Owner A to confirm | 60 s per sol: 45 s of day, 15 s of night | Day and night every sol; night is time-lapsed three times faster than day |
 | Titan | 15 min | 1 Titan day (about 16 Earth days) | The whole day: 450 s of light, then 450 s of dark; the mission starts 150 s after sunrise | Always cold; one long day and one long night |
 
 **Real basis**
 
-- **Moon.** A lunar day lasts 29.53 Earth days, so most sites get about 14 Earth days of light, then 14 of dark ([NSSDCA](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html)). ISRO's Pragyan rover was designed for exactly one lunar daylight period, the same shape as our Moon mission ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#day-night-and-survival)).
+- **Moon.** A lunar day lasts 29.53 Earth days, so most sites get about 14 Earth days of light, then 14 of dark ([NSSDCA](https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html)). ISRO's Pragyan rover was designed for exactly one lunar daylight period ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#day-night-and-survival)).
 - **Mars.** A sol is 24 h 39 m 35 s ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#mars-time-restricted-sols-and-solidays)).
 - **Titan.** One Titan day is about 16 Earth days, and the surface is about 94 K, or −179 °C ([rover-engineering/03](research/rover-engineering/03-surface-environments-and-operations.md#physical-and-orbital-environment)).
 
@@ -658,9 +665,9 @@ Background on real rover parts and trade-offs: [rover-engineering/02](research/r
 
 | Element | Design |
 | --- | --- |
-| Length | 5 minutes of play covering 14 Earth days of daylight |
+| Length | 5 minutes of play covering 5 Earth days of daylight (14 until November 17; see [Time on each world](#5-time-on-each-world)) |
 | Map | Real NASA terrain, bigger than one mission can cover. See [Map](#map). |
-| Sun and shadows | All daylight, but the Sun stays low and shadows sweep across the map |
+| Sun and shadows | All daylight, but the Sun stays low and shadows move across the map |
 | Shadowed craters | Very cold zones that may hold water ice. High risk, high reward. |
 | Events | Solar flares and moonquakes |
 | Core puzzle | Mass versus cost |
@@ -746,7 +753,28 @@ The map is **bigger than one mission can cover**, so the player feels they could
 
 ### Sun and shadows
 
-At the south pole the Sun stays within 1.5° of the horizon and circles the sky once per lunar day, so it sweeps about halfway around during the mission. The Moon stays all daylight, but shadows move, and a sunny charging spot can fall into shadow. This matches real south pole conditions.
+At the south pole the Sun stays within 1.5° of the horizon and circles the sky once per lunar day, so it sweeps about 61° (a sixth of the way around) during the 5-day mission. The Moon stays all daylight, but shadows move, and a sunny charging spot can fall into shadow or come into the light. This matches real south pole conditions.
+
+**Five days (decided November 17, by the user; see [Time on each world](#5-time-on-each-world)): `mission.gameDays` 14 → 5, the Sun path otherwise unchanged (start azimuth 75°, subsolar latitude −1.54°).** The mission is the first 5 days of the old 14-day path: the Sun sweeps from azimuth 75° to 14°. Same offline shadow test as below (sampled every 5 s; reproduces the 14-day column within 1 point; script kept outside the repo):
+
+| Place | 14 days (until November 17) | **5 days, from 75°** |
+| --- | --- | --- |
+| Landing | 100% | **100%** |
+| Rim viewpoint 1 | 89% | **100%** |
+| Rim viewpoint 2 | 93% | **100%** |
+| Route to the dark crater (share lit) | 77% | **96%** (over 90% from 35 s to the end, never below a third) |
+| de Gerlache wall descent (Crater layers) | 16% (lit from 255 s) | **0%** |
+| A light build (12 m/s) driving the crater route | 72% (dark from 220 s) | **91%** (dark from 280 s) |
+| Boulder field (Rocky area 1, east side) | 86% | **64%** |
+| East crater | 20% (lit 60 to 115 s) | **47%** (lit from 165 s) |
+| Sun elevation | 0.4° to 3.0° | **0.4° to 1.75°** |
+| Closest Sun–Earth pass | about 1.5° | **14°** |
+| Earth photo window (Earth at least 25% lit) | 0 to 25 s and 240 s to the end, up to 55% | **0 to 70 s**, a 37% to 25% crescent |
+
+- **Why 75° and not another start.** Of the 5-day windows measured (starts 136°, 105°, 75°, 44°, 14°, 325°, and 323°, which centres the window on the Sun's highest point), 75° keeps the most of the old mission: the same opening view (99% of the ground ahead lit), the rims and route lit, shadows that visibly move (part of the route starts shaded; East crater comes into the light at 165 s) and an Earth photo window. 44° and 14° are brighter but Earth never reaches 25% lit, so the Earth photo could not be earned. 325° and 323° light the wall but darken the route below a third from about 150 s. 105° and 136° start in shadow.
+- **Cost of this choice.** The north flank no longer goes dark late in the mission, so the late shadow pressure on the route is gone; solar income is more generous on the north side (the light build is lit 91% of its drive instead of 72%). The Crater layers point is never lit: a photo there still counts in the dark. The Sun stays lower (at most 1.75°). The Earth photo must now be taken early: at least 300 m from the lander within the first 70 s. *Not re-measured:* the balance estimates in [Balance](#balance) were made with the 14-day path; the landing stays 100% lit, so the idle and camera-scout figures do not change, but routes on the north side earn more.
+
+The rest of this section records how the 14-day path was chosen.
 
 *Measured on the real terrain (fix pass):* with the first Sun path (start azimuth 17.4°, subsolar latitude −0.52°), the landing point stayed sunlit for the whole mission, but once the Sun swung west past about azimuth 300° (about 145 s, day 6.8) it sat behind the rim as seen from the north flank, and the whole route to the dark crater and both rim viewpoints were in shadow until the end. This is real geometry, not a rendering error.
 
@@ -790,7 +818,7 @@ The starting list. Distances and amounts are game values to balance.
 | Boulder field | Capability: difficulty | Cross the rocky area | None |
 | Into the dark | Capability: robustness | Enter a shadowed crater and come back out | Lights, heater |
 | Flare survivor | Capability: robustness | Get through a solar flare without damage | None |
-| Clean run | Capability: robustness | Finish all 14 days without damage | None |
+| Clean run | Capability: robustness | Finish all 5 days without damage | None |
 | Crater layers | Scientific: historical formation | Image the old layers exposed in a crater wall | Camera |
 | Regolith sample | Scientific: new information | Drill soil samples at up to three sites, each at least 200 m from the lander and from each other (one reward per site) | Drill |
 | Water ice | Scientific: new material, and Record: first discovery | Find and drill the small ice spot inside the dark crater (not marked on the map) | Drill, lights, heater |
@@ -825,7 +853,7 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
 - **Crater descent.** The rover counts as inside when it is more than 150 m below the landing point on the de Gerlache side of the rim (the side the rim viewpoints face), and back out once it climbs above 100 m below landing. The north flank toward the dark crater also drops far below the landing point and does not count.
 - **Boulder field.** Each rocky area is a circle of 1.1 times its radius (where the boulders lie). Crossing means leaving at least 90° around the center from where the rover entered; turning back out the same side does not count. A rover that leaves a field short of that angle gets a "Partial crossing" notice, once per field and only until the milestone is earned; `milestones.partialCrossingHint` in tuning switches it off.
 - **Into the dark** counts only for the dark crater (its permanent-shadow outline), not the small cold patch in Rocky area 1.
-- **Camera (its number key or HUD button; C before the payload bay).** Viewpoint zones are 60 m circles: the two rim viewpoints (Rim panorama) and the de Gerlache wall descent point on the inner wall (Crater layers). The Earth photo has no zone: it counts wherever Earth's center is above the real terrain horizon as seen from the camera and inside the frame, so it works only from the north side of the rim and only facing Earth. Earth must also be at least 25% lit (its phase, from the angle between the Sun and Earth; `earthPhotoMinLit` in tuning). With the decided Sun path (start 75°, subsolar latitude −1.54°), Earth is at least a quarter lit only in the first 26 s, a 37% to 25% crescent, and from about 238 s to the end, up to 55%: about 90 s in all. With the old start (17.4°), the window ran from about 137 s to the end. The photo also counts only at least 300 m from the landing point (`earthPhotoMinDistanceM`, decided November 15), because Earth is in view from the landing at the start and the photo should not be free. It can be earned in the late window at both rim viewpoints and anywhere on the north side 300 m or more from the lander (offline horizon test), so a camera build can plan for it. A photo of a darker Earth, or one taken too close to the lander, goes into the album, with a notice that says why it does not count. A photo is a real capture of the view. Photos can be taken anywhere for the album (up to 12 per mission) but earn milestones only at viewpoints or with Earth in view. The album is shown in the debrief and is not saved between sessions.
+- **Camera (its number key or HUD button; C before the payload bay).** Viewpoint zones are 60 m circles: the two rim viewpoints (Rim panorama) and the de Gerlache wall descent point on the inner wall (Crater layers). The Earth photo has no zone: it counts wherever Earth's center is above the real terrain horizon as seen from the camera and inside the frame, so it works only from the north side of the rim and only facing Earth. Earth must also be at least 25% lit (its phase, from the angle between the Sun and Earth; `earthPhotoMinLit` in tuning). With the 5-day Sun path (decided November 17; start 75°, subsolar latitude −1.54°), Earth is at least a quarter lit only in the first 70 s, a 37% to 25% crescent. With the 14-day path the window was the first 26 s and from about 238 s to the end, up to 55%; with the old start (17.4°), from about 137 s to the end. The photo also counts only at least 300 m from the landing point (`earthPhotoMinDistanceM`, decided November 15), because Earth is in view from the landing at the start and the photo should not be free. It can be earned anywhere on the north side 300 m or more from the lander (offline horizon test), including Rim viewpoint 1 (about 540 m of driving, reachable in the window); Rim viewpoint 2 (about 1.6 km) is too far for the window. A camera build has to go for it first. *(November 17: with the 14-day path it could also be earned late, at both rim viewpoints.)* A photo of a darker Earth, or one taken too close to the lander, goes into the album, with a notice that says why it does not count. A photo is a real capture of the view. Photos can be taken anywhere for the album (up to 12 per mission) but earn milestones only at viewpoints or with Earth in view. The album is shown in the debrief and is not saved between sessions.
 - **Drill (its number key or HUD button; F before the payload bay).** The rover must be stopped; drilling takes 3 mission seconds, during which it holds still, and uses 10 energy per sample (the drill part's `useSeconds` and `energyPerUse`, Phase 2). A sample counts only at least 200 m from the landing point (`sampleMinDistanceM`), where the lander's engine plume did not disturb the ground, so there is no free sample at the start. *Balance pass (November 15):* Regolith sample is staged like the Odometer: one reward per sample site, up to three sites, each at least 200 m from the others (`sampleSpacingM`; `sites` on the trigger in `milestones.json`, 1 restores the single sample). A sample at an earlier site still goes in, with a notice that a new site must be 200 m away. This makes the drill a reason to travel, as the camera's viewpoints are.
 - **Water ice is found by searching** *(team decision, fix pass)*. The minimap marks the dark crater (the permanent-shadow region), not the ice. The ice spot is a 50 m circle (under 1% of the crater) placed by the terrain pipeline about 100 m inside the shadow edge, on the side facing the landing. It is fully permanently shadowed in the LOLA maps and in the game's own shadow test. A sample there earns Water ice. Anywhere else in the crater the drill reports "No water ice detected at this site." Inside the crater, a drill rover sees a hint to test-drill, never the spot itself. Reaching it needs about 3.2 km of driving.
 - **Hydrogen signal** *(decided November 15; replaced in Phase 3)*. Until Phase 3 each drill sample inside the dark crater reported a hydrogen signal (strong within 100 m of the ice, moderate within 250 m, weak farther). It is removed: the clue is now the neutron spectrometer's live meter (see [Moon parts](#moon-parts)), and the drill gives no reading of its own.
@@ -839,7 +867,7 @@ Rules in `game/src/rules/milestones.ts`; triggers, rewards and text in `game/dat
 - **Mission history setting** (title screen → Settings; on by default, saved in the browser). When on, each milestone pop-up shows its real fact (staged milestones on the first stage only), the debrief lists the facts, and the debrief compares the rover's fate with a real rover's. Every fact has a source in `milestones.json` or `text.json`; the debrief shows the comparison's source.
 - **Rollover** is reported as "Destroyed by rollover", with its own real-rover comparison (no planetary rover is known to have been lost to a rollover).
 - **Earth's look.** Earth's phase follows the angle between the Sun and Earth, which is real geometry.
-  - With the decided Sun path (start 75°, subsolar latitude −1.54°), Earth starts as a 37% crescent. It is nearly dark (new Earth, 1% lit) when the Sun passes 1.5° beside it at about 132 s, then fills again to 55% at the end.
+  - With the 5-day Sun path (start 75°, subsolar latitude −1.54°), Earth starts as a 37% crescent and wanes to a thin crescent (about 1.5% lit) by the end, as the Sun closes to 14° from it. *(With the 14-day path it was nearly new, 1% lit, at about 132 s, then filled again to 55% at the end.)*
   - The Sun no longer passes behind Earth (see [Sun and shadows](#sun-and-shadows)).
 
 #### Rules for the new milestones
