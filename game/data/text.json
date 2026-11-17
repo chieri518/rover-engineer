@@ -203,9 +203,6 @@
     "briefing": "The lander has touched down on the de Gerlache crater rim. The rover is deploying."
   },
   "survey": {
-    "heading": "Orbital survey leads",
-    "intro": "Orbital data show four areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
-    "lead": "{name}: about {distance} km {direction}. {source}",
     "leads": {
       "layers": {
         "name": "Layered wall exposure",
@@ -260,7 +257,6 @@
     "siteLineDocumented": "Camera: photograph a boulder after reading it, from within {documentedRange} m.",
     "legendLead": "Survey lead",
     "shadowedCraterName": "Permanently shadowed crater",
-    "loading": "Loading orbital survey data.",
     "compass": [
       "north",
       "north-northeast",

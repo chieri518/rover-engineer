@@ -713,7 +713,7 @@ export interface SharedTextFile {
   > & { worlds: Record<MissionId, string> }; // the engineering notebook; worlds: each world's section heading
   landing: Record<'heading' | 'briefing', string>;
   survey: Record<
-    | 'heading' | 'intro' | 'lead' | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName' | 'loading'
+    | 'hudHeading' | 'hudLead' | 'found' | 'legendLead' | 'shadowedCraterName'
     | 'foundNote' // {name}, {note}: a found site with its note (siteNotes, else siteKindNotes)
     | 'siteLineDocumented', // with the camera and the X-ray spectrometer aboard, at young craters and rocky areas: {documentedRange}
     string

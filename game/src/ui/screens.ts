@@ -12,10 +12,9 @@ import type { InstrumentLog } from '../rules/instruments';
 import { categoryLabel, causeText, milestoneSummary, notReachedLine, rewardText } from './milestoneText';
 import { el, fill, money, panel } from './dom';
 import { gameDaysElapsed } from '../rules/sun';
-import { azimuthDeg, buildLeads, buildSites, compassPoint } from '../rules/survey';
-import { resolveSites, type SiteFeatures } from '../rules/sites';
+import { azimuthDeg, compassPoint } from '../rules/survey';
 import { isPlayable, nextMission } from '../rules/campaign';
-import { briefingLines, kmText } from './surveyText';
+import { kmText } from './surveyText';
 import { missionVars } from './tutorialText';
 import { creditsScreen } from './creditsScreen';
 import { filmScreen } from './filmScreen';
@@ -66,20 +65,12 @@ const landing: Screen = (game, root) => {
   const mars = data.text.campaign; // after the Moon (Mars, Titan): what is new on this world
   const titan = data.text.titanCampaign; // Titan only: a few facts, the distance to Selk
   const vars = missionVars(data);
-  // Orbital survey leads: a rough bearing and distance from the lander to each area of interest. The
-  // terrain features load here (and stay cached for the mission).
-  const leadsHeading = el('h3', {}, s.heading);
-  const leadsIntro = el('p', {}, s.intro);
-  const leads = el('ul', { class: 'survey-leads' }, el('li', { class: 'muted' }, s.loading));
+  // Mars and Titan: a landmark's distance and direction from the lander. The terrain features load here
+  // (and stay cached for the mission). The orbital survey leads are not listed here; the mission shows them.
   const landmark = el('p', { hidden: true });
   void import('../world/terrainMasks')
     .then(async ({ loadTerrainMasks }) => {
       const masks = await loadTerrainMasks(data.tuning, game.world, data.sites.sites);
-      const placed = resolveSites(data.sites.sites, masks.info.features as SiteFeatures); // the Moon's sites.json sites (none on Mars)
-      const sites = buildSites(masks.info.features, data.tuning.milestones, s.shadowedCraterName, placed);
-      const lines = briefingLines(buildLeads(sites, data.tuning.survey), masks.info.landing.local, data);
-      leads.replaceChildren(...lines.map((l) => el('li', {}, l)));
-      if (lines.length === 0) for (const n of [leadsHeading, leadsIntro, leads]) n.remove(); // no leads for this world yet
       // Mars: how far Perseverance's 2021 landing site is from the lander.
       const percy = (masks.info.features as { perseveranceLanding?: { local: { x: number; z: number } } }).perseveranceLanding;
       if (mars && percy) {
@@ -103,7 +94,7 @@ const landing: Screen = (game, root) => {
         landmark.hidden = false;
       }
     })
-    .catch(() => leads.remove());
+    .catch(() => {}); // no landmark line without the terrain features
   root.append(
     panel(
       el('p', { class: 'title-kicker' }, data.text.story.kicker),
@@ -115,9 +106,6 @@ const landing: Screen = (game, root) => {
       landmark,
       mars && el('h3', {}, mars.newHeading),
       mars && el('ul', { class: 'new-on-world' }, ...mars.newOnMars.map((line) => el('li', {}, fill(line, vars)))),
-      leadsHeading,
-      leadsIntro,
-      leads,
       mars && el('p', { class: 'note' }, mars.sources),
       el('div', { class: 'actions' }, el('button', { class: 'primary', onclick: () => game.go('mission') }, 'Begin mission')),
     ),

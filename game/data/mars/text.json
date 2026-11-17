@@ -340,7 +340,6 @@
   "survey": {
     "_owner": "M5. Lead ids match data/mars/tuning.json survey.leads. Directions and distances are computed, so the text names none.",
     "_sources": "Delta: Fassett and Head, GRL 32 (2005), doi.org/10.1029/2005GL023456. Seitah: NASA JPL, \"NASA's Perseverance Rover Begins Its First Science Campaign on Mars\" (jpl.nasa.gov/news/nasas-perseverance-rover-begins-its-first-science-campaign-on-mars/). HiRISE scale: uahirise.org/TRA_000823_1720; usgs.gov/news/mars-2020-mission-be-guided-usgs-astrogeology-maps. Young crater lead: the pipeline's freshness test on the 25 cm HiRISE mosaic (game/tools/mars_sites.py; terrain.json youngCraters young-crater-ene).",
-    "intro": "Orbital data from Mars Reconnaissance Orbiter show four areas of interest near the landing site. Directions and distances are measured from the lander and are approximate: orbital maps locate areas, not exact sites. The rover's own survey locates each site; until then, an arrow at the edge of the map points toward each area.",
     "leads": {
       "delta": {
         "name": "Delta front",
