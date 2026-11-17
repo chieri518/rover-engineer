@@ -20,7 +20,7 @@ node cinematic/tools/render.mjs --mux --out cinematic/out/rover-engineer-intro-h
 ```
 
 The deliverables (1920x1080, 60 fps, 39.3 s, −16 LUFS integrated, true peak −2.3 dBTP):
-`rover-engineer-intro.mp4` (H.264 High, ~24.6 MB, for sharing), `rover-engineer-intro-hq.mp4` (CRF 17, ~41 MB)
+`rover-engineer-intro.mp4` (H.264 High, ~24.9 MB, for sharing), `rover-engineer-intro-hq.mp4` (CRF 17, ~41 MB)
 and the VP9/Opus WebM (~20 MB). The film's grain makes a CRF encode large; the 25 MB two-pass encode measures
 SSIM 0.99 against the CRF 17 master. The last full final render took 62 min (0.64 output fps on average; the
 ignition close-up, the wake/gaze shallow-focus shots and the Mars storm are the costly ones).
