@@ -39,7 +39,7 @@ export function act3(s: Score, T: Times): void {
   const split = (t0: number, t1: number) => Math.min(t1, t0 + Math.max(1, Math.round((t1 - t0) / BEAT / 2)) * BEAT);
   sections.push({
     t0: T.wheelTouch,
-    t1: T.crater,
+    t1: T.moonDark,
     chord: ['D2', 'A2', 'D3', 'F#3', 'A3', 'E4'],
     melody: [[0, 'A4', 0.5], [0.5, 'D5', 1], [1.5, 'E5', 0.5], [2, 'F#5', 2], [4, 'E5', 1], [5, 'D5', 1], [6, 'A4', 2]],
   });
@@ -65,14 +65,15 @@ export function act3(s: Score, T: Times): void {
   boom(s, low.in, T.wheelTouch, 70, 34, 0.32, 2.2, 0.12);
   bell(s, theme.in, T.wheelTouch, hz(m('A5')), 0.05, 2.5, moonBell.partial, 0.3);
 
-  // The crater: the theme drops out on the cut; one lonely tone (a slowly beating A4) in the dark.
-  theme.to(T.crater, 0, 0.03);
-  low.to(T.crater, 0, 0.03);
+  // The crater: the theme carries over the cut and drops out as the ground falls into shadow (moonDark); one
+  // lonely tone (a slowly beating A4) in the dark.
+  theme.to(T.moonDark, 0, 0.03);
+  low.to(T.moonDark, 0, 0.03);
   {
     const lone = new Layer(s, 'music', 1, 1);
-    const sh = { a: 0.25, h: Math.max(0.05, T.floodlights - T.crater - 0.3), r: 0.05 };
-    tone(s, lone.in, T.crater, hz(m('A4')), 0.05, sh, { pan: -0.15 });
-    tone(s, lone.in, T.crater, hz(m('A4')) + 0.7, 0.05, sh, { pan: 0.15 });
+    const sh = { a: 0.25, h: Math.max(0.05, T.floodlights - T.moonDark - 0.3), r: 0.05 };
+    tone(s, lone.in, T.moonDark, hz(m('A4')), 0.05, sh, { pan: -0.15 });
+    tone(s, lone.in, T.moonDark, hz(m('A4')) + 0.7, 0.05, sh, { pan: 0.15 });
   }
 
   // Floodlights: the hit. A brassy B minor stab whose filter snaps shut, a deep boom, bells; the theme comes back.

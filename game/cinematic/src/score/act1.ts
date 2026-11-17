@@ -31,7 +31,8 @@ export function act1(s: Score, T: Times): void {
     { type: 'lowpass', hz: 7000, q: 0.5 },
   ], 0.5);
   sparks.gain.gain.setValueAtTime(0, 0);
-  sparks.gain.gain.linearRampToValueAtTime(0.35, 0.8);
+  sparks.gain.gain.setValueAtTime(0, Math.max(0, T.sparks - 0.03));
+  sparks.gain.gain.linearRampToValueAtTime(0.35, T.sparks + 0.12);
   sparks.gain.gain.setValueAtTime(0.35, ign);
   sparks.gain.gain.linearRampToValueAtTime(0, ign + 0.8);
 
@@ -136,6 +137,9 @@ export function act1(s: Score, T: Times): void {
   ]);
   ramp(crackle.gain.gain, [[ign + 0.3, 0], [full + 0.4, 1.1], [top - 0.02, 1.2], [top + 0.06, 0.6], [top + 0.5, 0.8], [top + 0.5 + (gone - top) * 0.5, 0]]);
 
+  // --- Liftoff: the hold-downs let go: a heavy low thump under the roar.
+  if (T.liftoff > ign + 0.2 && T.liftoff < top - 0.2) boom(s, fx.in, T.liftoff, 52, 26, 0.3, 1.4, 0.3);
+
   // --- clearTower: the first big chord. D major add9: brassy saws blooming open, a triangle bed, a sub boom, bells.
   {
     const notes = [m('D2'), m('A2'), m('D3'), m('F#3'), m('A3'), m('E4'), m('F#4')];
@@ -162,6 +166,13 @@ export function act1(s: Score, T: Times): void {
     const bl = MOODS.moon.bell!;
     bell(s, music.in, sep + 0.5, hz(m('A5')), 0.05, 2.5, bl.partial, 0.5);
     if (sep + 1.4 < end) bell(s, music.in, sep + 1.4, hz(m('E6')), 0.04, 2.2, bl.partial, -0.5);
+    // The upper stage lights: silent in vacuum, so only a soft swell (a low sine fifth) and a bell.
+    const up = T.upperIgnition;
+    if (up > sep && up < end - 0.4) {
+      const shUp = { a: 0.5, h: Math.max(0.05, end - up - 0.9), r: 0.35 };
+      chord(s, music.in, up, [m('D3'), m('A3')], 0.04, shUp, { type: 'sine', detune: [-3, 3] });
+      bell(s, music.in, up + 0.05, hz(m('D6')), 0.045, 2.4, bl.partial, 0.2);
+    }
   }
 }
 

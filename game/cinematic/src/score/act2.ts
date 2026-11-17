@@ -72,6 +72,8 @@ export function act2(s: Score, T: Times): void {
     chord(s, music.in, T.eyeOn, notes.slice(2), 0.02, sh, { type: 'sine', detune: [-4, 4] });
     bell(s, music.in, T.eyeOn + 0.05, hz(m('B5')), 0.05, 3, moonBell.partial, 0.3);
   }
+  // The head turns to the door: a soft sine gliding up a fourth, panned with the turn.
+  tone(s, music.in, T.eyeTurn, hz(m('D5')), 0.025, { a: 0.25, h: 0.4, r: 0.8 }, { type: 'sine', glideTo: hz(m('G5')), glide: 0.6, pan: 0.35 });
 
   // The build: A sus4 in saws opening up, a rising tone, and quickening low hits; a breath of silence just
   // before the wheel touches (the theme lands on it).

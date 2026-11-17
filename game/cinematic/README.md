@@ -1,6 +1,6 @@
 # Rover Engineer intro video
 
-A ~37 s wordless cinematic intro, rendered offline from code (three.js in headless Chrome on the real GPU),
+A ~39 s wordless cinematic intro, rendered offline from code (three.js in headless Chrome on the real GPU),
 with a synthesized score. It is **not part of the game build** and is not wired into the game.
 
 ## Re-render
@@ -40,7 +40,24 @@ deleted at the end of every run. Outputs go to `cinematic/out/` (gitignored).
   moments the score hits; `src/cues.ts` turns those into film times for the score (`src/score/`).
 - `src/lib/world.ts`: starts the game's real worlds (terrain, sky, light, weather, rover, lander) for offline
   rendering through an opt-in hook in `src/world/moonScene.ts` (`offline`; unset in the game).
-- `tools/render.mjs`: Vite + a local capture server + headless Chrome + ffmpeg, and the loudness/mux step.
+- `src/rig/`: the hero rover's cinematic look (`dressRover`, used in Acts 2 and 3) and its animatable rig.
+- `src/score/`: the score and sound effects, synthesized offline with the game's own sound engine (`src/audio/`):
+  every hit is scheduled from `src/cues.ts`, so moving a cue in an act's `timing.ts` moves the music with it.
+  Re-render the score (`--score`) and mux again after any timing change.
+- `tools/render.mjs`: Vite + a local capture server + headless Chrome + ffmpeg, and the mux step (one linear gain
+  to −16 LUFS integrated measured with ebur128, true peak kept under −1.5 dBTP, AAC 192k).
+- `tools/fetch-assets.mjs`: downloads the public-domain NASA Earth imagery Act 1 needs into `assets/download/`
+  (gitignored, ~16 MB; credits in `assets/CREDITS.md`). Without it the Earth falls back to plain colors.
+
+## The film
+
+| Act | Shots (in order) | Score cues (`timing.ts`) |
+|-----|------------------|--------------------------|
+| 1 · Leaving Earth | ignition, liftoff, orbit | sparks, ignition, liftoff, clearTower (first big chord), separation, upperIgnition |
+| 2 · Arrival (Moon) | touchdown, doors, wake, gaze, tracks | hatchStart, rampDown, led1..4, panelStart, mastStart, eyeOn, eyeTurn, wheelTouch (the theme begins) |
+| 3 · Survive the extremes | moon-crater, mars-storm, titan-rain | moonDark, floodlights, lightsOut, black (silence) |
+
+The Moon has no air: from touchdown to the Mars cut the soundtrack is score only, no diegetic sound.
 
 ## Presets
 
