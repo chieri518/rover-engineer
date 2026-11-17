@@ -48,6 +48,8 @@ export class Game {
   album: AlbumPhoto[] = [];
   /** What the instruments recorded in the last mission, for the debrief (not saved). */
   instrumentLog: InstrumentLog | null = null;
+  /** The notebook at the last mission's launch, so the debrief can mark the lessons that are new (not saved; null: unknown). */
+  notebookAtLaunch: readonly string[] | null = null;
   settings: Settings = loadSettings();
   /** Tutorials already seen, per world; each opens by itself only the first time its screen is reached. */
   private seenByWorld: TutorialSeenByWorld = loadTutorialSeen();
@@ -204,10 +206,11 @@ export class Game {
     if (next !== this.campaign) this.setCampaign(next);
   }
 
-  endMission(result: MissionResult, album: AlbumPhoto[] = [], instrumentLog: InstrumentLog | null = null): void {
+  endMission(result: MissionResult, album: AlbumPhoto[] = [], instrumentLog: InstrumentLog | null = null, notebookAtLaunch: readonly string[] | null = null): void {
     this.lastResult = result;
     this.album = album;
     this.instrumentLog = instrumentLog;
+    this.notebookAtLaunch = notebookAtLaunch;
     this.outcome = finishMission(this.state, result, this.data);
     this.setCampaign(this.outcome.state);
     this.go('debrief');
