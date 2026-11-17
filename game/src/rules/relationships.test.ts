@@ -3,8 +3,8 @@ import { loadGameData } from '../gameData';
 import type { SeismometerOutcome } from './instruments';
 import type { UseSite } from './mission';
 import {
-  addToNotebook, BUILD_PREDICATES, FIRED_RELATIONSHIPS, LESSON_IDS, lessonFor, meet, metIds, notebookView, onSeismometer, onShadowStop, onUseDone,
-  onUseStart, relationshipProblems, reviewItems, shortUseLines, SOLVABLE_IDS, taughtLessons, type BuildFacts, type RelationshipEvent,
+  addToNotebook, BUILD_PREDICATES, FIRED_RELATIONSHIPS, LESSON_IDS, lessonFor, meet, metIds, notebookView, notebookWorlds, onSeismometer, onShadowStop, onUseDone,
+  onUseStart, onWorld, relationshipProblems, relationshipsOf, reviewItems, shortUseLines, SOLVABLE_IDS, taughtLessons, type BuildFacts, type RelationshipEvent, type RelationshipId,
 } from './relationships';
 import type { Build, Relationship, RelationshipsFile } from './types';
 
@@ -119,12 +119,12 @@ describe('engineering notebook', () => {
   });
 
   it('shows discovered lessons in order and counts all Moon lessons; unknown or repeated ids are skipped', () => {
-    const v = notebookView(['cold-dark', 'retired-lesson', 'neutron-drill', 'cold-dark'], file);
+    const v = notebookView(['cold-dark', 'retired-lesson', 'neutron-drill', 'cold-dark'], file, 'moon');
     expect(v.entries.map((e) => e.id)).toEqual(['cold-dark', 'neutron-drill']);
     expect(v.entries[0]!.lesson.answers.length).toBeGreaterThanOrEqual(2);
-    expect(v.total).toBe(LESSON_IDS.length);
+    expect(v.total).toBe(LESSON_IDS.filter((id) => relationshipsOf(file, 'moon').some((r) => r.id === id)).length);
     expect(v.total).toBe(5);
-    expect(notebookView([], file).entries).toEqual([]);
+    expect(notebookView([], file, 'moon').entries).toEqual([]);
   });
 });
 
@@ -180,7 +180,16 @@ describe('SOLVABLE_IDS', () => {
     for (const heater of [false, true]) {
       for (const lights of [false, true]) {
         for (const costs of [[], [{ useSeconds: 5, coldTolerant: false }]]) {
-          facts.push({ instruments: all.filter((_, i) => mask & (1 << i)), costs: costs as BuildFacts['costs'], heater, lights });
+          for (let power = 0; power < 4; power++) {
+            const solar = (power & 1) !== 0;
+            const steady = (power & 2) !== 0;
+            for (const contact of [false, true]) {
+              facts.push({
+                instruments: all.filter((_, i) => mask & (1 << i)), costs: costs as BuildFacts['costs'], heater, lights,
+                solar, steady, neutronNoise: steady, contact,
+              });
+            }
+          }
         }
       }
     }
@@ -190,7 +199,7 @@ describe('SOLVABLE_IDS', () => {
     const canSolve = (Object.keys(BUILD_PREDICATES) as (keyof typeof BUILD_PREDICATES)[])
       .filter((id) => facts.some((f) => BUILD_PREDICATES[id].verdict(f) === 'solved'));
     expect([...SOLVABLE_IDS].sort()).toEqual([...canSolve].sort());
-    expect(SOLVABLE_IDS).toEqual(['neutron-drill', 'cold-dark']);
+    expect(SOLVABLE_IDS).toEqual(['neutron-drill', 'cold-dark', 'rtg-neutron', 'dust-panels']);
   });
 
   it('the no-lights text states the consequence rather than that the rover will not work', () => {
@@ -200,10 +209,10 @@ describe('SOLVABLE_IDS', () => {
 });
 
 describe('relationships.json', () => {
-  const partIds = new Set(data.parts.parts.map((p) => p.id));
+  const partIds = data.allParts.parts;
 
   it('holds the four Moon relationships and the no-lights hard block, each fired one with a lesson', () => {
-    expect(file.relationships.map((r) => r.id)).toEqual(['neutron-drill', 'seismometer-quiet', 'cold-dark', 'xray-cold', 'no-lights']);
+    expect(relationshipsOf(file, 'moon').map((r) => r.id)).toEqual(['neutron-drill', 'seismometer-quiet', 'cold-dark', 'xray-cold', 'no-lights']);
     expect(file.relationships.find((r) => r.id === 'no-lights')).toMatchObject({ hardBlock: true, review: 'red' });
     for (const id of Object.keys(FIRED_RELATIONSHIPS)) expect(lessonFor(file, { id })?.notice, id).toBeTruthy();
     expect(relationshipProblems(file, partIds)).toEqual([]);
@@ -217,6 +226,7 @@ describe('relationships.json', () => {
         { ...quiet!, notice: '', answers: ['Drive away.'] },
         { ...quiet!, review: 'orange' as 'red' },
         { ...block!, review: 'yellow' },
+        ...relationshipsOf(file, 'mars'),
       ],
     };
     expect(relationshipProblems(bad, partIds)).toEqual([
@@ -254,6 +264,68 @@ describe('relationships.json', () => {
     ]);
   });
 });
+
+describe('relationships per world', () => {
+  const mars = loadGameData('mars');
+  const all: RelationshipEvent[] = LESSON_IDS.map((id) => ({ id }));
+  const moonBuild: Build = {
+    chassis: 'chassis-steel', wheels: 'wheels-solid', power: 'power-fixed-panel', battery: 'battery-li-ion',
+    lights: 'lights-none', heater: 'heater-none', payload: ['instrument-drill', 'instrument-xray'],
+  };
+
+  it('each world has its own relationships: the Moon five, the Mars four', () => {
+    expect(relationshipsOf(file, 'moon').map((r) => r.id)).toEqual(MOON_IDS);
+    expect(relationshipsOf(mars.relationships, 'mars').map((r) => r.id)).toEqual(MARS_IDS);
+  });
+
+  it('Moon relationships never fire on Mars, nor Mars ones on the Moon: their events are dropped before they are met', () => {
+    expect(onWorld(all, file, 'moon')).toEqual(MOON_IDS.map((id) => ({ id })));
+    expect(onWorld(all, mars.relationships, 'mars')).toEqual(MARS_IDS.map((id) => ({ id })));
+    // What the Moon hooks report on Mars (the cold slowing a held use, a faster reading in shadow) is not met there.
+    const events = onWorld(onUseStart({ slowedByCold: true, fasterInShadow: true }), mars.relationships, mars.world);
+    expect(meet([], events).fresh).toEqual([]);
+    expect(shortUseLines({ slowedByCold: true, fasterInShadow: true }, events)).toEqual({ slowCold: true, fastShadow: true });
+  });
+
+  it('the Mars review shows no Moon line, not even the Moon no-lights hard block; the Moon review no Mars line', () => {
+    expect(reviewItems(moonBuild, LESSON_IDS, data).map((i) => i.id)).toEqual(['xray-cold', 'no-lights']);
+    expect(reviewItems(moonBuild, MOON_IDS, mars).map((i) => i.id)).toEqual(['no-lights-night']);
+    expect(reviewItems(moonBuild, LESSON_IDS, mars).every((i) => (MARS_IDS as string[]).includes(i.id))).toBe(true);
+  });
+
+  it('the Mars notebook shows no Moon lesson and counts only Mars lessons', () => {
+    expect(notebookView(MOON_IDS, mars.relationships, 'mars')).toEqual({ entries: [], total: 4 });
+    expect(notebookView(LESSON_IDS, mars.relationships, 'mars').entries.map((e) => e.id)).toEqual(MARS_IDS);
+    expect(notebookView(LESSON_IDS, file, 'moon').entries).toHaveLength(5);
+  });
+
+  it('the notebook shows every world reached under its own heading: Moon lessons stay readable on Mars (decided November 15, 2026)', () => {
+    const ids = ['cold-dark', 'neutron-drill'];
+    const onMars = notebookWorlds(ids, mars.relationships, 'mars');
+    expect(onMars.map((w) => [w.world, w.entries.map((e) => e.id), w.total])).toEqual([
+      ['moon', ['cold-dark', 'neutron-drill'], 5],
+      ['mars', [], 4],
+    ]);
+    // On the Moon, the later world has no heading yet.
+    expect(notebookWorlds(ids, file, 'moon').map((w) => w.world)).toEqual(['moon']);
+    expect(notebookWorlds([], file, 'moon')).toEqual([{ world: 'moon', entries: [], total: 5 }]);
+  });
+
+  it('validation accepts any world id, and checks a relationship\'s parts are offered on its world', () => {
+    const quiet = file.relationships.find((r) => r.id === 'seismometer-quiet')!;
+    const marsQuiet = { ...quiet, world: 'mars' as const };
+    expect(relationshipProblems({ relationships: [...file.relationships.filter((r) => r !== quiet), marsQuiet] }, data.allParts.parts)).toEqual([
+      'relationship seismometer-quiet names part instrument-seismometer, which mars does not offer',
+    ]);
+    const venus = { ...quiet, world: 'venus' as 'mars' };
+    expect(relationshipProblems({ relationships: [...file.relationships.filter((r) => r !== quiet), venus] }, data.allParts.parts)).toEqual([
+      'relationship seismometer-quiet has unknown world venus',
+    ]);
+  });
+});
+
+const MOON_IDS: RelationshipId[] = ['neutron-drill', 'seismometer-quiet', 'cold-dark', 'xray-cold', 'no-lights'];
+const MARS_IDS: RelationshipId[] = ['rtg-neutron', 'dust-panels', 'arm-slope', 'no-lights-night'];
 
 function lessonName(id: string): string {
   return file.relationships.find((r) => r.id === id)!.name;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cheapestBuild, chosenParts, isChassisOverloaded, isCompleteBuild, meetsRequirements, missingSlots, roverTotals, selectedParts } from './rover';
+import { cheapestBuild, chosenParts, completeBuild, isChassisOverloaded, isCompleteBuild, meetsRequirements, missingSlots, roverTotals, selectedParts } from './rover';
 import { testMilestones, testParts } from './testData';
 import type { Build } from './types';
 
@@ -20,8 +20,9 @@ describe('rover totals', () => {
     expect(() => parts({ wheels: 'steel' })).toThrow();
   });
 
-  it('defaults to the cheapest option in every slot, with an empty bay', () => {
-    expect(cheapestBuild(testParts)).toEqual({ ...build, lights: 'no-lights', payload: [] });
+  it('defaults to the cheapest option in every required slot, with no systems and an empty bay', () => {
+    const { lights: _l, heater: _h, ...bus } = build;
+    expect(cheapestBuild(testParts)).toEqual({ ...bus, payload: [] });
   });
 });
 
@@ -39,12 +40,23 @@ describe('payload bay in the build', () => {
     expect(() => parts({ payload: ['steel'] })).toThrow();
   });
 
-  it('needs a confirmed bay to be complete; an empty bay counts once confirmed', () => {
-    const { payload: _payload, ...bus } = build;
-    expect(missingSlots(bus, testParts)).toEqual(['instrument']);
-    expect(isCompleteBuild(bus, testParts)).toBe(false);
-    expect(isCompleteBuild({ ...bus, payload: [] }, testParts)).toBe(true);
-    expect(missingSlots({}, testParts)).toEqual([...testParts.slots, 'instrument']);
+  it('is complete once the required bus is chosen: systems and the bay may be empty', () => {
+    const { payload: _payload, lights: _l, heater: _h, ...bus } = build;
+    expect(missingSlots(bus, testParts)).toEqual([]);
+    expect(isCompleteBuild(bus, testParts)).toBe(true);
+    expect(completeBuild(bus, testParts)).toEqual({ ...bus, payload: [] }); // an untouched bay is an empty one
+    expect(completeBuild({ ...build, payload: ['drill'] }, testParts)).toEqual({ ...build, payload: ['drill'] });
+    expect(missingSlots({}, testParts)).toEqual(['chassis', 'wheels', 'power', 'battery']);
+    expect(missingSlots({ chassis: 'steel', lights: 'lamp' }, testParts)).toEqual(['wheels', 'power', 'battery']);
+    expect(isCompleteBuild({ ...bus, battery: undefined }, testParts)).toBe(false);
+    expect(completeBuild({ ...bus, battery: undefined }, testParts)).toBeNull();
+  });
+
+  it('a system left off is skipped in the part list; a none part stays (it adds nothing)', () => {
+    const { lights: _l, heater: _h, ...bus } = build;
+    expect(selectedParts(bus, testParts).map((p) => p.id)).toEqual(['steel', 'solid', 'panel', 'battery', 'camera']);
+    expect(selectedParts({ ...bus, lights: 'no-lights' }, testParts).map((p) => p.id)).toEqual(['steel', 'solid', 'panel', 'battery', 'no-lights', 'camera']);
+    expect(() => selectedParts({ ...bus, battery: undefined as unknown as string }, testParts)).toThrow();
   });
 
   it('chosen parts of a draft include the bay so far', () => {
@@ -74,9 +86,11 @@ describe('milestone requirements', () => {
     expect(meetsRequirements(parts({ payload: [] }), byId('layers'))).toBe(false);
   });
 
-  it('needs a slot part that actually provides its capability', () => {
+  it('needs a slot part that actually provides its capability: a none part and an empty slot alike fail', () => {
     expect(meetsRequirements(parts({}), byId('dark'))).toBe(true);
     expect(meetsRequirements(parts({ lights: 'no-lights' }), byId('dark'))).toBe(false);
+    expect(meetsRequirements(parts({ lights: undefined }), byId('dark'))).toBe(false);
+    expect(meetsRequirements(parts({ heater: undefined }), byId('dark'))).toBe(false);
   });
 
   it('passes milestones with no requirements', () => {

@@ -86,7 +86,7 @@ export function titanSolarFactor(isNight: boolean, power: TitanPowerTuning | und
  */
 export function titanDrainPerSecond(isNight: boolean, poweredDown: boolean, hasLights: boolean, night: NightTuning): number {
   if (poweredDown) return night.sleepDrainPerSecond;
-  return isNight && hasLights ? night.lightsDrainPerSecond : night.awakeDrainPerSecond;
+  return isNight && hasLights ? night.lightsDrainPerSecond ?? night.awakeDrainPerSecond : night.awakeDrainPerSecond;
 }
 
 // ---------------------------------------------------------------------------------------------------

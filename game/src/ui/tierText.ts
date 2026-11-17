@@ -1,4 +1,4 @@
-// Turns the rules' tier explanation into a sentence for the design and ticket screens.
+// Turns the rules' tier explanation into a sentence for the launch ticket screen (the desk shows the tier alone).
 import type { TierExplanation, TierFit } from '../rules/tiers';
 import type { TextFile } from '../rules/types';
 import { fill } from './dom';

@@ -46,7 +46,8 @@ describe('tutorial text', () => {
         .flatMap((p) => [p.title, ...p.paragraphs]).join('\n');
     const design = join('design');
     expect(design).toContain('mounting point');
-    expect(design).toContain('No instruments');
+    expect(design).toContain('An empty bay is allowed');
+    expect(design).not.toMatch(/No instruments|No lights|No heater/); // leaving a part off is not a choice on the desk (November 16)
     expect(design).toContain('pre-launch review');
     expect(design).toMatch(/energy/i);
     const drive = join('drive');
@@ -136,11 +137,42 @@ describe('Mars tutorial and briefing text', () => {
     expect(design).toContain(`($${mars.tuning.budget.minimumBudget.titan}k)`);
   });
 
+  it('Mars step 8: a line for each of the eight Mars instruments, keyed in bay order, and the near sites first', () => {
+    const names: Partial<Record<Instrument, string>> = {
+      camera: 'Camera', drill: 'Drill', neutron: 'Neutron spectrometer', xray: 'X-ray spectrometer',
+      weather: 'Weather mast', radar: 'Radar', laser: 'Laser spectrometer', organics: 'Organics spectrometer',
+    };
+    const offered = mars.parts.parts.flatMap((p) => (p.slot === 'instrument' && p.effects.instrument ? [p.effects.instrument] : []));
+    expect(offered).toHaveLength(8);
+    const lines = tutorialPages('drive', mars, { mission: 'mars', instruments: offered }).flatMap((p) => p.paragraphs);
+    for (const [i, inst] of offered.entries()) {
+      const line = lines.find((l) => l.startsWith(`${names[inst]}: `));
+      expect(line, inst).toBeDefined();
+      expect(line, inst).toMatch(new RegExp(`\\b${i + 1}\\b`));
+    }
+    const drive = lines.join('\n');
+    const mt = mars.tuning.milestones;
+    expect(drive).toContain(`at least ${mt.sampleMinDistanceM} m from the lander and ${mt.sampleSpacingM} m from each other`);
+    for (const site of ['Rocky area 2', 'Rocky area 1', 'young craters']) expect(drive).toContain(site);
+    expect(drive).toMatch(/nearest lead is drawn larger and listed first/);
+    // With an empty bay every page still has text (the instrument page keeps its notebook line).
+    for (const p of tutorialPages('drive', mars, { mission: 'mars', instruments: [] })) expect(p.paragraphs.length, p.title).toBeGreaterThan(0);
+  });
+
+  it('Mars step 8: the design tutorial explains the night budget line, the power choices, the two heaters and the support slots', () => {
+    const design = all(tutorialPages('design', mars, { mission: 'mars', instruments: [], balance: 900 }));
+    expect(design).toContain(`one ${mars.tuning.sol!.nightSeconds} s night`);
+    expect(design).toContain('Night energy tile');
+    for (const part of ['deployable solar arrays', 'radioisotope generator (RTG)', 'Radioisotope heater units', 'electric heater', 'robotic arm', 'remote sensing mast']) {
+      expect(design).toContain(part);
+    }
+  });
+
   it('the landing and design transition text is complete', () => {
     const c = mars.text.campaign!;
     const vars = missionVars(mars);
     for (const line of c.newOnMars) expect(fill(line, vars)).not.toMatch(unfilled);
-    for (const s of [mars.text.story.kicker, c.sameParts, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
+    for (const s of [mars.text.story.kicker, c.ticketNote, c.sources, mars.text.landing.briefing, mars.text.comingSoon.heading]) {
       expect(s).not.toMatch(unfilled);
     }
     expect(mars.text.comingSoon.heading).toBe('Titan: coming soon');

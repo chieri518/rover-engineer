@@ -8,8 +8,8 @@ const part = (id: string, slot: Part['slot'], cost: number, mass: number, size: 
 export const testParts: PartsFile = {
   slots: ['chassis', 'wheels', 'power', 'battery', 'lights', 'heater'],
   parts: [
-    part('steel', 'chassis', 60, 30, 5, { maxLoad: 80, mountingPoints: 3 }),
-    part('titanium', 'chassis', 160, 15, 4, { maxLoad: 70, mountingPoints: 2 }),
+    part('steel', 'chassis', 60, 30, 5, { maxLoad: 80, mountingPoints: 5 }),
+    part('titanium', 'chassis', 160, 15, 4, { maxLoad: 70, mountingPoints: 4 }),
     part('solid', 'wheels', 30, 20, 4),
     part('mesh', 'wheels', 70, 10, 5),
     part('panel', 'power', 40, 10, 4),
@@ -40,7 +40,7 @@ export const testTuning: Tuning = {
     deathPenalty: { energy: 100, stuck: 200, froze: 300, destroyed: 400 },
     penaltyMinFraction: 0.25,
   },
-  mass: { referenceMass: 60, speedLossPerKg: 0.006, minSpeedFactor: 0.4, energyGainPerKg: 0.01 },
+  mass: { referenceMass: 60, speedLossPerKg: 0.006, minSpeedFactor: 0.4, energyGainPerKg: 0.01, loadWarningShare: 0.9 },
   speed: { compression: 4 },
   energy: { slopeEnergyFactor: 0.05, lowWarningShare: 0.2 },
   damage: {
@@ -55,6 +55,7 @@ export const testTuning: Tuning = {
     maxSlopeDegrees: 20, slopeWarningDegrees: 18, slipLimit: 0.2, stuckSeconds: 5, digRecoveryPerSecond: 0.25,
     normalSinkageCm: [1, 2], softRimSinkageCm: [5, 7], slipPerSinkageCm: 0.03, referenceGrip: 0.55,
     slopeSlipFreeDeg: 10, slipPerUphillDeg: 0.01, softRadiusFactor: 1, softFadeFactor: 1.5, movingSpeedMps: 0.5,
+    softGroundRating: { referenceSoftness: 1, fairFromCm: 4.5, poorFromCm: 6.5 },
   },
   explore: { cellM: 20, revealRadiusM: 250 },
   boulderTrack: { widthM: 2.8, tileLengthM: 14, stepAlongM: 1, pointsAcross: 7, liftM: 0.04, stopShortM: 2.5, brighten: 1.25, glow: 0.14 },

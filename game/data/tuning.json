@@ -26,7 +26,8 @@
     "referenceMass": 60,
     "speedLossPerKg": 0.006,
     "energyGainPerKg": 0.01,
-    "minSpeedFactor": 0.4
+    "minSpeedFactor": 0.4,
+    "loadWarningShare": 0.9
   },
   "speed": {
     "compression": 6
@@ -71,7 +72,12 @@
     "slipPerUphillDeg": 0.01,
     "softRadiusFactor": 1.0,
     "softFadeFactor": 1.5,
-    "movingSpeedMps": 0.5
+    "movingSpeedMps": 0.5,
+    "softGroundRating": {
+      "referenceSoftness": 1,
+      "fairFromCm": 4.5,
+      "poorFromCm": 6.5
+    }
   },
   "boulders": {
     "perRockyArea": 160,

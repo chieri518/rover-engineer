@@ -29,6 +29,9 @@ import { TerrainColliders } from './terrainColliders';
 import { initRapier } from './physics';
 import { terrainUrl, WORLDS, type WorldId } from '../worlds';
 import { createStationMesh, disposeStationMesh } from './stations';
+import { DustDevils, devilFramePoints } from './dustDevil';
+import { LaserMarker } from './laserMarker';
+import type { DustDevil } from '../rules/marsTypes';
 import { RoverVehicle } from '../rover/vehicle';
 import { floodlightOrigin } from '../rover/roverModel';
 import { KeyboardInput } from '../rover/input';
@@ -178,6 +181,28 @@ export interface MoonScene {
   inFrame(p: { x: number; y: number; z: number }, frameMargin: number): boolean;
   /** Set only with MoonSceneOptions.offline. */
   offline?: MoonOfflineScene;
+  /**
+   * Is this ground point (at the terrain height) in front of the camera and inside the frame
+   * (|ndc| <= frameMargin)? Terrain does not hide it: from a crater's rim band the near rim can hide the
+   * crater's center while its far wall fills the frame, which is the crater-wall photo (generous).
+   * The photo's view.groundInFrame (rules/milestones.ts PhotoView).
+   */
+  groundInFrame(p: { x: number; z: number }, frameMargin: number): boolean;
+  /**
+   * Mars: the dust devils the mission has placed so far (MissionState.mars.devils, rules/dust.ts
+   * placeDustDevil). The scene draws those standing at its clock each frame. Ignored on the Moon.
+   */
+  setDustDevils(devils: readonly DustDevil[]): void;
+  /**
+   * Mars: where each dust devil standing now is, for those in the frame: any of a few points up the column
+   * inside the frame and not hidden by terrain (inFrame). The photo's view.dustDevilsInFrame.
+   */
+  dustDevilsInFrame(frameMargin: number): { x: number; z: number }[];
+  /**
+   * Mark the laser spectrometer's target (rules/instruments.ts laserTarget: a boulder by its index in the
+   * boulder list, or a point of the delta cliff), or hide the marker (null).
+   */
+  setLaserTarget(target: { x: number; z: number; index: number | null } | null): void;
   dispose(): void;
 }
 
@@ -187,6 +212,7 @@ const FLOODLIGHT_INTENSITY = 300;
 // ground, not a blown-out white wedge (the Mars night already has some sky light).
 const MARS_FLOODLIGHT = { color: 0xffe8cc, intensity: 70, angle: 0.65, penumbra: 0.9, decay: 1.0, targetDrop: 0.8 };
 const HARD_STOP_KEEP = 0.9; // share of horizontal velocity kept per physics step during a hard stop
+const CLIFF_MARKER_LIFT_M = 1; // the laser marker over a cliff point: this far above the foot
 
 export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene> {
   const { container, data } = opts;
@@ -372,8 +398,18 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     });
   };
   const boulders = new Boulders(rapier, world, opts.boulders ?? [], tuning.boulders, (x, z) => fine.sample(x, z));
-  patchMoonLighting(boulders.mesh.material as THREE.MeshLambertMaterial, lightUniforms, photometry);
-  scene.add(boulders.mesh);
+  for (const mesh of boulders.meshes) {
+    patchMoonLighting(mesh.material as THREE.MeshLambertMaterial, lightUniforms, photometry);
+    scene.add(mesh);
+  }
+  // Mars: the dust devils (events.dustdevil), drawn where the mission placed them; and the laser's target.
+  const devilSpec = mars ? data.events.dustdevil : undefined;
+  const devils = devilSpec ? new DustDevils(devilSpec) : null;
+  if (devils) scene.add(devils.group);
+  let missionDevils: readonly DustDevil[] = [];
+  const testDevils: DustDevil[] = []; // development: devils set off by __moon.spawnDevil
+  const laserMarker = new LaserMarker();
+  scene.add(laserMarker.object);
   const trackMesh = opts.boulderTrack ? createBoulderTrack(opts.boulderTrack, fine, tuning.boulderTrack) : null;
   if (trackMesh) scene.add(trackMesh);
   const titanGround = titan ? await startTitanGround({ scene, uniforms: lightUniforms, tuning, world: opts.world, landing, groundAt: (x, z) => fine.sample(x, z) }) : null; // titan-fx: ground
@@ -437,6 +473,25 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     renderer.render(scene, camera);
   };
   const ndc = new THREE.Vector3();
+  /** Inside the frame and in front of the camera (projection only). */
+  const projectsInFrame = (p: { x: number; y: number; z: number }, frameMargin: number) => {
+    ndc.set(p.x, p.y, p.z).project(camera);
+    return ndc.z < 1 && Math.abs(ndc.x) <= frameMargin && Math.abs(ndc.y) <= frameMargin;
+  };
+  const pointInFrame = (p: { x: number; y: number; z: number }, frameMargin: number) => {
+    if (!projectsInFrame(p, frameMargin)) return false;
+    const c = camera.position;
+    const dx = p.x - c.x;
+    const dy = p.y - c.y;
+    const dz = p.z - c.z;
+    const dist = Math.hypot(dx, dy, dz);
+    const { photoLosStepM, photoLosClearanceM, photoLosTailM } = tuning.milestones;
+    for (let d = photoLosStepM; d < dist - photoLosTailM; d += photoLosStepM) {
+      const k = d / dist;
+      if (terrain.heightAt(c.x + dx * k, c.z + dz * k) > c.y + dy * k + photoLosClearanceM) return false;
+    }
+    return true;
+  };
 
   // Airborne statistics for tuning the ride over bumps (development only).
   const air = { steps: 0, airSteps: 0, partSteps: 0, run: 0, longestS: 0, hops: 0, maxRiseMps: 0, maxClearM: 0, maxDeltaV: 0, distM: 0 };
@@ -554,6 +609,9 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       if (dust && look) dust.update(paused ? 0 : dt, storm, look.fog, renderer.domElement.height);
     }
 
+    devils?.update(testDevils.length ? [...missionDevils, ...testDevils] : missionDevils, seconds, (x, z) => terrain.heightAt(x, z), dt);
+    laserMarker.update(dt);
+
     rover.forward(forward);
     if (followRover) chase.update(dt, pos, forward);
     if (followRover && orbit) {
@@ -654,6 +712,33 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       boulders() {
         return boulders.list;
       },
+      /**
+       * Set off a dust devil (Mars) that crosses the view `passM` ahead of the rover, moving left to right,
+       * closest halfway through its life (events.dustdevil lifeSeconds).
+       */
+      spawnDevil(passM = 150) {
+        if (!devilSpec) return null;
+        const p = rover.position;
+        const f = rover.forward(new THREE.Vector3());
+        const h = Math.hypot(f.x, f.z) || 1;
+        const fx = f.x / h;
+        const fz = f.z / h;
+        const half = devilSpec.lifeSeconds / 2;
+        const v = { x: -fz * devilSpec.speedMps, z: fx * devilSpec.speedMps };
+        const closest = { x: p.x + fx * passM, z: p.z + fz * passM };
+        const d: DustDevil = { at: seconds, endAt: seconds + devilSpec.lifeSeconds, start: { x: closest.x - v.x * half, z: closest.z - v.z * half }, velocity: v };
+        testDevils.push(d);
+        return d;
+      },
+      /** Show the laser target marker on boulder `index` (null: hide); the mission sets it once wired. */
+      laser(index: number | null) {
+        const b = index === null ? undefined : boulders.list[index];
+        api.setLaserTarget(b ? { x: b.x, z: b.z, index } : null);
+      },
+      /** The dust devils standing now (Mars) and those in the photo frame. */
+      devils() {
+        return { standing: devils?.columns ?? [], inFrame: api.dustDevilsInFrame(tuning.milestones.photoFrameMargin) };
+      },
       stats() {
         const avg = frameTimes.reduce((a, b) => a + b, 0) / Math.max(frameTimes.length, 1);
         const p = rover.position;
@@ -716,7 +801,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
     },
   };
 
-  return {
+  const api: MoonScene = {
     terrain,
     offline: offlineScene,
     stopClock() {
@@ -753,20 +838,23 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       const inFrame = ndc.z < 1 && Math.abs(ndc.x) <= frameMargin && Math.abs(ndc.y) <= frameMargin;
       return inFrame && horizonMarginTan(terrain, c.x, c.z, c.y, dir) > 0;
     },
-    inFrame(p, frameMargin) {
-      ndc.set(p.x, p.y, p.z).project(camera);
-      if (ndc.z >= 1 || Math.abs(ndc.x) > frameMargin || Math.abs(ndc.y) > frameMargin) return false;
-      const c = camera.position;
-      const dx = p.x - c.x;
-      const dy = p.y - c.y;
-      const dz = p.z - c.z;
-      const dist = Math.hypot(dx, dy, dz);
-      const { photoLosStepM, photoLosClearanceM, photoLosTailM } = tuning.milestones;
-      for (let d = photoLosStepM; d < dist - photoLosTailM; d += photoLosStepM) {
-        const k = d / dist;
-        if (terrain.heightAt(c.x + dx * k, c.z + dz * k) > c.y + dy * k + photoLosClearanceM) return false;
-      }
-      return true;
+    inFrame: pointInFrame,
+    groundInFrame(p, frameMargin) {
+      return projectsInFrame({ x: p.x, y: terrain.heightAt(p.x, p.z), z: p.z }, frameMargin);
+    },
+    setDustDevils(list) {
+      missionDevils = list;
+    },
+    dustDevilsInFrame(frameMargin) {
+      if (!devils) return [];
+      return devils.columns
+        .filter((c) => devilFramePoints(c, terrain.heightAt(c.x, c.z), devils.heightM).some((p) => pointInFrame(p, frameMargin)))
+        .map((c) => ({ x: c.x, z: c.z }));
+    },
+    setLaserTarget(target) {
+      if (!target) return laserMarker.set(null);
+      const top = target.index !== null ? boulders.topY[target.index] : undefined;
+      laserMarker.set({ x: target.x, z: target.z, topY: top ?? terrain.heightAt(target.x, target.z) + CLIFF_MARKER_LIFT_M });
     },
     deploy(instrument, params, parts) {
       // To the rover's left (-z in the chassis frame), where the chase camera sees it.
@@ -799,6 +887,8 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       observer?.disconnect();
       input.dispose();
       boulders.dispose();
+      devils?.dispose();
+      laserMarker.dispose();
       if (trackMesh) disposeBoulderTrack(trackMesh);
       titanGround?.dispose(); // titan-fx: ground
       rain?.dispose();
@@ -822,6 +912,7 @@ export async function startMoonScene(opts: MoonSceneOptions): Promise<MoonScene>
       if (import.meta.env.DEV) delete (window as unknown as { __moon?: unknown }).__moon;
     },
   };
+  return api;
 }
 
 

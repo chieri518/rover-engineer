@@ -1,0 +1,7 @@
+{
+  "_about": "Mars parts overlay (rules/merge.ts withPartsOverlay): the support slots Mars offers, and effects merged into shared parts by part id. The parts themselves are all in data/parts.json (Mars-only ones carry worlds: [\"mars\"]).",
+  "supportSlots": ["arm", "mast"],
+  "effects": {
+    "_note": "No Mars-only effects on shared parts. The X-ray spectrometer needed the robotic arm on Mars until November 16 (Mars M6); since then it works on its own on every world and the arm is its optional upgrade (game-design.md, The X-ray spectrometer and the robotic arm; tuning.instruments.arm reachM and groundDownFactor)."
+  }
+}

@@ -177,7 +177,99 @@
         "driveDistanceFromLanding_m": 2501,
         "source": "Hawksbill Gap, where Perseverance drilled the Wildcat Ridge sample (sols 490-516): Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json)"
       },
-      "source": "Delta lobe fronts of Sun & Stack 2020 (USGS SIM 3464, doi:10.3133/sim3464; 100-200 m offsets to the Mars 2020 base map), Hawksbill Gap / Three Forks / Enchanted Lake rover positions (Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json)); the line itself is the HiRISE DTM contour at the scarp foot."
+      "source": "Delta lobe fronts of Sun & Stack 2020 (USGS SIM 3464, doi:10.3133/sim3464; 100-200 m offsets to the Mars 2020 base map), Hawksbill Gap / Three Forks / Enchanted Lake rover positions (Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json)); the line itself is the HiRISE DTM contour at the scarp foot.",
+      "footNear": {
+        "name": "Delta foot",
+        "description": "The nearest 400 m of the delta front's scarp-foot line to the landing, with a 50 m zone around it. Blocks fallen from the delta's layers lie at the foot.",
+        "lineLocal_xz": [
+          [
+            -425,
+            -1285
+          ],
+          [
+            -460,
+            -1243
+          ],
+          [
+            -480,
+            -1214
+          ],
+          [
+            -544,
+            -1080
+          ],
+          [
+            -615,
+            -965
+          ],
+          [
+            -634,
+            -940
+          ]
+        ],
+        "length_m": 405,
+        "zoneRadius_m": 50.0,
+        "nearestPoint": {
+          "name": "Delta foot nearest point",
+          "local": {
+            "x": -425,
+            "y": -2537.69,
+            "z": -1285
+          },
+          "latLon": [
+            18.46631,
+            77.42555
+          ],
+          "elevation_m": -2537.4,
+          "slope_deg": 10.9,
+          "distanceFromLanding_m": 1490,
+          "driveDistanceFromLanding_m": 1587
+        },
+        "lineDistanceFromLanding_m": [
+          1490,
+          1536
+        ],
+        "zoneMinDistanceFromLanding_m": 1441,
+        "driveDistanceFromLanding_m": 1545,
+        "drivePoint": {
+          "x": -390,
+          "z": -1250
+        },
+        "source": "This pipeline: the HiRISE DTM contour at the scarp foot (deltaFront.footContour_m, on the game's 5 m heights), the part nearest the landing"
+      },
+      "floodBoulder": {
+        "name": "Flood boulder",
+        "local": {
+          "x": -434.9,
+          "y": -2535.58,
+          "z": -1290.0
+        },
+        "latLon": [
+          18.466392,
+          77.42537
+        ],
+        "diameter_m": 2.5,
+        "slope_deg": 13.0,
+        "downhill": {
+          "x": 0.752,
+          "z": 0.659
+        },
+        "faceSlopes_deg": {
+          "uphill": 13.0,
+          "left": 13.0,
+          "right": 13.0,
+          "downhillWithin3m": 9.75
+        },
+        "readingSpot": {
+          "x": -431.0,
+          "z": -1286.5,
+          "slope_deg": 9.75
+        },
+        "distanceFromLanding_m": 1501,
+        "distanceFromFootLine_m": 11,
+        "driveDistanceFromLanding_m": 1601,
+        "source": "Placed by design (no such boulder was observed here); the spot is picked by this pipeline on the game's slope.png (nearest 5 m sample, as the game reads it)"
+      }
     },
     "seitah": {
       "name": "Seitah",
@@ -991,7 +1083,7 @@
         "driveDistanceFromLanding_m": 224,
         "source": "Picked by this pipeline on the HiRISE DTM: the sharpest small crater on the floor away from the other sites (fresh craters on the Jezero floor carry blocky ejecta in HiRISE images)",
         "radius_m": 204,
-        "description": "Small fresh crater about 255 m across; scatter boulders on its rim and out to about one crater radius. Its inner wall may be too steep to drive."
+        "description": "Crater about 340 m across (310 to 450 m by direction) and 16 m deep, an older crater; its rim is lowest on the south side. Its inner wall is steepest (26 deg) on the north-west side and most rim blocks are on the north-west side; scatter boulders on its rim. Its inner wall may be too steep to drive."
       }
     ],
     "viewpoints": [
@@ -1064,7 +1156,2983 @@
       "Names are ASCII; display names (Seitah with accents, etc.) live in the game's text data.",
       "The landing is near Perseverance's 2021 landing site but not on it; the real site is features.perseveranceLanding.",
       "Seitah's outline is approximate (+-100 m): no machine-readable map of the unit exists, so it was traced on the HiRISE data following published maps.",
-      "Soft ground is limited to Seitah's ripples (inside its outline plus 150 m); the ripple detection is automatic and may miss small ripple patches or include some finely layered rock."
+      "Soft ground is limited to Seitah's ripples (inside its outline plus 150 m); the ripple detection is automatic and may miss small ripple patches or include some finely layered rock.",
+      "Mars sites features (youngCraters, slopeTargets, deltaFront.footNear, deltaFront.floodBoulder, perseveranceSites, missionLandmarks) come from game/tools/mars_sites.py, for Chieri's review. They read the game's own 5 m heights and slope.png, so a features-only run gives the same lists.",
+      "youngCraters: rim crest fitted per direction on the 5 m heights; 80 to 400 m across, depth >= 2.5 m and >= 0.015 x diameter, crest on >= 75% of directions, center within 1600 m. freshness 'fresh': round (90th/10th percentile crest radius <= 1.5) and boulder shadows (compact blobs darker than 0.6 x the local mean, 0.25 to 8 m^2, in the 25 cm HiRISE mosaic) on the rim (0.8-1.2 R) at >= 20/ha and >= 3 x the 2.5-3.5 R ring, and a raised rim (rimUplift_m >= 2). Every crater here has a sand-filled floor and none keeps a blocky ejecta blanket beyond its rim: 'fresh' means a sharp, round, blocky rim. driveDistanceFromLanding_m and drivePoint are for the cheapest rim cell; floorDriveDistance_m is to the center (null if the floor cannot be reached under 18 deg).",
+      "slopeTargets: 5 m cells at 10-18 deg in slope.png with a 4-neighbour under 8 deg, reachable and off the ripples, grouped (8-connected) per site: young craters (rim radius + 40 m), the two knobs (100 m) and the delta foot zone; a cell belongs to its nearest site. The 4 largest patches per site are listed; local is the target cell nearest the patch center (cells x 25 m^2 is its area), levelCell its level neighbour, and driveDistanceFromLanding_m the route to that level cell.",
+      "deltaFront.footNear: the nearest 400 m of the scarp-foot contour, 50 m zone. deltaFront.floodBoulder is placed by design: a spot on the lower scarp slope where a 2.5 m boulder has 12-18 deg ground on its uphill and side faces and ground under 10 deg within 3 m of its downhill face (readingSpot), outside 1350 m from the landing.",
+      "perseveranceSites: rocks Perseverance abraded and sampled within 1600 m, at the rover's end-of-drive waypoint for the sample sol (roverStayedSols: from that waypoint until it next moved). Names, sols and dates are from NASA's sample list and must be fact-checked again before they reach game text.",
+      "missionLandmarks: Wright Brothers Field from the waypoints (approximate). The Mars 2020 backshell, parachute and descent stage are not placed: their positions need sources this pipeline does not use (HiRISE images or the Ingenuity flight log)."
+    ],
+    "youngCraters": [
+      {
+        "id": "young-crater-rocky-area-2",
+        "name": "Rocky area 2",
+        "local": {
+          "x": 450,
+          "y": -2574.53,
+          "z": -720
+        },
+        "latLon": [
+          18.45678,
+          77.44111
+        ],
+        "elevation_m": -2574.4,
+        "slope_deg": 0.8,
+        "distanceFromLanding_m": 448,
+        "radius_m": 172,
+        "diameter_m": 345,
+        "diameterRange_m": [
+          311,
+          450
+        ],
+        "depth_m": 15.5,
+        "depthToDiameter": 0.045,
+        "rimCompleteness": 1.0,
+        "rimUplift_m": 3.6,
+        "innerWallSlope_deg": 12.5,
+        "innerWallSlopeMax_deg": 25.8,
+        "rimBoulderShadowsPerHa": 19,
+        "backgroundBoulderShadowsPerHa": 10,
+        "rimBlockRatio": 1.9,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "south",
+        "blockiestRimSide": "north-west",
+        "driveDistanceFromLanding_m": 266,
+        "drivePoint": {
+          "x": 640,
+          "z": -650
+        },
+        "floorDriveDistance_m": 485,
+        "rockyArea": "Rocky area 2"
+      },
+      {
+        "id": "young-crater-s",
+        "name": "S crater",
+        "local": {
+          "x": 880,
+          "y": -2570.19,
+          "z": 80
+        },
+        "latLon": [
+          18.44328,
+          77.44876
+        ],
+        "elevation_m": -2570.1,
+        "slope_deg": 1.1,
+        "distanceFromLanding_m": 572,
+        "radius_m": 68,
+        "diameter_m": 135,
+        "diameterRange_m": [
+          100,
+          180
+        ],
+        "depth_m": 3.0,
+        "depthToDiameter": 0.022,
+        "rimCompleteness": 0.9,
+        "rimUplift_m": 1.2,
+        "innerWallSlope_deg": 6.8,
+        "innerWallSlopeMax_deg": 14.5,
+        "rimBoulderShadowsPerHa": 13,
+        "backgroundBoulderShadowsPerHa": 7,
+        "rimBlockRatio": 1.8,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "south",
+        "blockiestRimSide": "north",
+        "driveDistanceFromLanding_m": 504,
+        "drivePoint": {
+          "x": 850,
+          "z": 10
+        },
+        "floorDriveDistance_m": 587
+      },
+      {
+        "id": "young-crater-wsw",
+        "name": "WSW crater",
+        "local": {
+          "x": 305,
+          "y": -2552.81,
+          "z": -245
+        },
+        "latLon": [
+          18.44876,
+          77.43853
+        ],
+        "elevation_m": -2552.8,
+        "slope_deg": 3.5,
+        "distanceFromLanding_m": 584,
+        "radius_m": 60,
+        "diameter_m": 120,
+        "diameterRange_m": [
+          90,
+          160
+        ],
+        "depth_m": 2.6,
+        "depthToDiameter": 0.021,
+        "rimCompleteness": 0.86,
+        "rimUplift_m": 2.0,
+        "innerWallSlope_deg": 7.2,
+        "innerWallSlopeMax_deg": 10.2,
+        "rimBoulderShadowsPerHa": 30,
+        "backgroundBoulderShadowsPerHa": 15,
+        "rimBlockRatio": 2.0,
+        "freshness": "subdued",
+        "steepestWallSide": "east",
+        "lowestRimSide": "south-west",
+        "blockiestRimSide": "west",
+        "driveDistanceFromLanding_m": 557,
+        "drivePoint": {
+          "x": 370,
+          "z": -280
+        },
+        "floorDriveDistance_m": 644
+      },
+      {
+        "id": "young-crater-sw",
+        "name": "SW crater",
+        "local": {
+          "x": 435,
+          "y": -2557.5,
+          "z": 5
+        },
+        "latLon": [
+          18.44454,
+          77.44084
+        ],
+        "elevation_m": -2557.5,
+        "slope_deg": 5.3,
+        "distanceFromLanding_m": 636,
+        "radius_m": 68,
+        "diameter_m": 135,
+        "diameterRange_m": [
+          100,
+          180
+        ],
+        "depth_m": 2.7,
+        "depthToDiameter": 0.02,
+        "rimCompleteness": 0.76,
+        "rimUplift_m": 2.0,
+        "innerWallSlope_deg": 9.8,
+        "innerWallSlopeMax_deg": 19.8,
+        "rimBoulderShadowsPerHa": 42,
+        "backgroundBoulderShadowsPerHa": 17,
+        "rimBlockRatio": 2.5,
+        "freshness": "subdued",
+        "steepestWallSide": "west",
+        "lowestRimSide": "north",
+        "blockiestRimSide": "north-west",
+        "driveDistanceFromLanding_m": 585,
+        "drivePoint": {
+          "x": 490,
+          "z": -50
+        },
+        "floorDriveDistance_m": 656
+      },
+      {
+        "id": "young-crater-sse",
+        "name": "SSE crater",
+        "local": {
+          "x": 1130,
+          "y": -2571.69,
+          "z": 295
+        },
+        "latLon": [
+          18.43965,
+          77.4532
+        ],
+        "elevation_m": -2571.5,
+        "slope_deg": 3.0,
+        "distanceFromLanding_m": 839,
+        "radius_m": 50,
+        "diameter_m": 100,
+        "diameterRange_m": [
+          80,
+          140
+        ],
+        "depth_m": 3.1,
+        "depthToDiameter": 0.031,
+        "rimCompleteness": 0.88,
+        "rimUplift_m": 1.5,
+        "innerWallSlope_deg": 8.0,
+        "innerWallSlopeMax_deg": 14.0,
+        "rimBoulderShadowsPerHa": 29,
+        "backgroundBoulderShadowsPerHa": 22,
+        "rimBlockRatio": 1.3,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "north-east",
+        "blockiestRimSide": "north-west",
+        "driveDistanceFromLanding_m": 842,
+        "drivePoint": {
+          "x": 1110,
+          "z": 240
+        },
+        "floorDriveDistance_m": 910
+      },
+      {
+        "id": "young-crater-se",
+        "name": "SE crater",
+        "local": {
+          "x": 1385,
+          "y": -2580.29,
+          "z": 320
+        },
+        "latLon": [
+          18.43923,
+          77.45774
+        ],
+        "elevation_m": -2580.0,
+        "slope_deg": 3.4,
+        "distanceFromLanding_m": 979,
+        "radius_m": 78,
+        "diameter_m": 155,
+        "diameterRange_m": [
+          130,
+          210
+        ],
+        "depth_m": 3.9,
+        "depthToDiameter": 0.025,
+        "rimCompleteness": 0.81,
+        "rimUplift_m": 0.9,
+        "innerWallSlope_deg": 9.6,
+        "innerWallSlopeMax_deg": 14.2,
+        "rimBoulderShadowsPerHa": 17,
+        "backgroundBoulderShadowsPerHa": 29,
+        "rimBlockRatio": 0.6,
+        "freshness": "subdued",
+        "steepestWallSide": "west",
+        "lowestRimSide": "south-east",
+        "blockiestRimSide": "north-east",
+        "driveDistanceFromLanding_m": 937,
+        "drivePoint": {
+          "x": 1340,
+          "z": 240
+        },
+        "floorDriveDistance_m": 1034
+      },
+      {
+        "id": "young-crater-ese",
+        "name": "ESE crater",
+        "local": {
+          "x": 1785,
+          "y": -2577.64,
+          "z": -200
+        },
+        "latLon": [
+          18.448,
+          77.46485
+        ],
+        "elevation_m": -2577.2,
+        "slope_deg": 1.7,
+        "distanceFromLanding_m": 993,
+        "radius_m": 80,
+        "diameter_m": 160,
+        "diameterRange_m": [
+          140,
+          190
+        ],
+        "depth_m": 4.8,
+        "depthToDiameter": 0.03,
+        "rimCompleteness": 1.0,
+        "rimUplift_m": 2.2,
+        "innerWallSlope_deg": 10.2,
+        "innerWallSlopeMax_deg": 17.0,
+        "rimBoulderShadowsPerHa": 25,
+        "backgroundBoulderShadowsPerHa": 13,
+        "rimBlockRatio": 2.0,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "north-east",
+        "blockiestRimSide": "south-west",
+        "driveDistanceFromLanding_m": 964,
+        "drivePoint": {
+          "x": 1700,
+          "z": -240
+        },
+        "floorDriveDistance_m": 1060
+      },
+      {
+        "id": "young-crater-ene",
+        "name": "ENE crater",
+        "local": {
+          "x": 1820,
+          "y": -2583.57,
+          "z": -720
+        },
+        "latLon": [
+          18.45677,
+          77.46548
+        ],
+        "elevation_m": -2583.0,
+        "slope_deg": 0.7,
+        "distanceFromLanding_m": 1011,
+        "radius_m": 165,
+        "diameter_m": 330,
+        "diameterRange_m": [
+          320,
+          350
+        ],
+        "depth_m": 19.4,
+        "depthToDiameter": 0.059,
+        "rimCompleteness": 1.0,
+        "rimUplift_m": 8.2,
+        "innerWallSlope_deg": 15.8,
+        "innerWallSlopeMax_deg": 24.2,
+        "rimBoulderShadowsPerHa": 37,
+        "backgroundBoulderShadowsPerHa": 7,
+        "rimBlockRatio": 5.0,
+        "freshness": "fresh",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "north-west",
+        "blockiestRimSide": "south",
+        "driveDistanceFromLanding_m": 865,
+        "drivePoint": {
+          "x": 1630,
+          "z": -670
+        },
+        "floorDriveDistance_m": 1075
+      },
+      {
+        "id": "young-crater-sse-2",
+        "name": "SSE crater 2",
+        "local": {
+          "x": 1180,
+          "y": -2583.92,
+          "z": 590
+        },
+        "latLon": [
+          18.43467,
+          77.45409
+        ],
+        "elevation_m": -2583.7,
+        "slope_deg": 1.7,
+        "distanceFromLanding_m": 1134,
+        "radius_m": 145,
+        "diameter_m": 290,
+        "diameterRange_m": [
+          241,
+          399
+        ],
+        "depth_m": 7.8,
+        "depthToDiameter": 0.027,
+        "rimCompleteness": 0.85,
+        "rimUplift_m": 3.8,
+        "innerWallSlope_deg": 9.4,
+        "innerWallSlopeMax_deg": 18.2,
+        "rimBoulderShadowsPerHa": 25,
+        "backgroundBoulderShadowsPerHa": 21,
+        "rimBlockRatio": 1.2,
+        "freshness": "subdued",
+        "steepestWallSide": "north-east",
+        "lowestRimSide": "south-east",
+        "blockiestRimSide": "north-east",
+        "driveDistanceFromLanding_m": 1036,
+        "drivePoint": {
+          "x": 1120,
+          "z": 430
+        },
+        "floorDriveDistance_m": 1221
+      },
+      {
+        "id": "young-crater-ssw",
+        "name": "SSW crater",
+        "local": {
+          "x": 505,
+          "y": -2575.53,
+          "z": 685
+        },
+        "latLon": [
+          18.43307,
+          77.44209
+        ],
+        "elevation_m": -2575.4,
+        "slope_deg": 1.9,
+        "distanceFromLanding_m": 1220,
+        "radius_m": 95,
+        "diameter_m": 190,
+        "diameterRange_m": [
+          140,
+          260
+        ],
+        "depth_m": 3.9,
+        "depthToDiameter": 0.021,
+        "rimCompleteness": 0.83,
+        "rimUplift_m": 0.4,
+        "innerWallSlope_deg": 9.0,
+        "innerWallSlopeMax_deg": 16.5,
+        "rimBoulderShadowsPerHa": 27,
+        "backgroundBoulderShadowsPerHa": 14,
+        "rimBlockRatio": 2.0,
+        "freshness": "subdued",
+        "steepestWallSide": "north-east",
+        "lowestRimSide": "south-east",
+        "blockiestRimSide": "west",
+        "driveDistanceFromLanding_m": 1194,
+        "drivePoint": {
+          "x": 540,
+          "z": 580
+        },
+        "floorDriveDistance_m": 1311
+      },
+      {
+        "id": "young-crater-ne",
+        "name": "NE crater",
+        "local": {
+          "x": 1640,
+          "y": -2567.19,
+          "z": -1445
+        },
+        "latLon": [
+          18.469,
+          77.46228
+        ],
+        "elevation_m": -2566.5,
+        "slope_deg": 1.8,
+        "distanceFromLanding_m": 1249,
+        "radius_m": 95,
+        "diameter_m": 190,
+        "diameterRange_m": [
+          180,
+          230
+        ],
+        "depth_m": 7.0,
+        "depthToDiameter": 0.037,
+        "rimCompleteness": 1.0,
+        "rimUplift_m": 2.7,
+        "innerWallSlope_deg": 12.0,
+        "innerWallSlopeMax_deg": 19.8,
+        "rimBoulderShadowsPerHa": 58,
+        "backgroundBoulderShadowsPerHa": 4,
+        "rimBlockRatio": 13.9,
+        "freshness": "fresh",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "north-east",
+        "blockiestRimSide": "south",
+        "driveDistanceFromLanding_m": 1165,
+        "drivePoint": {
+          "x": 1600,
+          "z": -1340
+        },
+        "floorDriveDistance_m": 1281
+      },
+      {
+        "id": "young-crater-se-2",
+        "name": "SE crater 2",
+        "local": {
+          "x": 1825,
+          "y": -2591.02,
+          "z": 325
+        },
+        "latLon": [
+          18.43914,
+          77.46556
+        ],
+        "elevation_m": -2590.5,
+        "slope_deg": 3.9,
+        "distanceFromLanding_m": 1282,
+        "radius_m": 55,
+        "diameter_m": 110,
+        "diameterRange_m": [
+          90,
+          150
+        ],
+        "depth_m": 2.9,
+        "depthToDiameter": 0.026,
+        "rimCompleteness": 0.99,
+        "rimUplift_m": 0.9,
+        "innerWallSlope_deg": 8.4,
+        "innerWallSlopeMax_deg": 13.2,
+        "rimBoulderShadowsPerHa": 36,
+        "backgroundBoulderShadowsPerHa": 26,
+        "rimBlockRatio": 1.4,
+        "freshness": "subdued",
+        "steepestWallSide": "north",
+        "lowestRimSide": "west",
+        "blockiestRimSide": "north-east",
+        "driveDistanceFromLanding_m": 1253,
+        "drivePoint": {
+          "x": 1770,
+          "z": 290
+        },
+        "floorDriveDistance_m": 1316
+      },
+      {
+        "id": "young-crater-se-3",
+        "name": "SE crater 3",
+        "local": {
+          "x": 1595,
+          "y": -2587.61,
+          "z": 580
+        },
+        "latLon": [
+          18.43484,
+          77.46147
+        ],
+        "elevation_m": -2587.2,
+        "slope_deg": 2.0,
+        "distanceFromLanding_m": 1312,
+        "radius_m": 75,
+        "diameter_m": 150,
+        "diameterRange_m": [
+          100,
+          210
+        ],
+        "depth_m": 2.5,
+        "depthToDiameter": 0.017,
+        "rimCompleteness": 0.78,
+        "rimUplift_m": 1.1,
+        "innerWallSlope_deg": 6.2,
+        "innerWallSlopeMax_deg": 12.8,
+        "rimBoulderShadowsPerHa": 23,
+        "backgroundBoulderShadowsPerHa": 19,
+        "rimBlockRatio": 1.2,
+        "freshness": "subdued",
+        "steepestWallSide": "south",
+        "lowestRimSide": "north-west",
+        "blockiestRimSide": "south",
+        "driveDistanceFromLanding_m": 1288,
+        "drivePoint": {
+          "x": 1560,
+          "z": 500
+        },
+        "floorDriveDistance_m": 1385
+      },
+      {
+        "id": "young-crater-ese-2",
+        "name": "ESE crater 2",
+        "local": {
+          "x": 1975,
+          "y": -2594.21,
+          "z": 185
+        },
+        "latLon": [
+          18.4415,
+          77.46823
+        ],
+        "elevation_m": -2593.6,
+        "slope_deg": 1.8,
+        "distanceFromLanding_m": 1325,
+        "radius_m": 75,
+        "diameter_m": 150,
+        "diameterRange_m": [
+          120,
+          210
+        ],
+        "depth_m": 3.2,
+        "depthToDiameter": 0.021,
+        "rimCompleteness": 0.94,
+        "rimUplift_m": 0.4,
+        "innerWallSlope_deg": 8.0,
+        "innerWallSlopeMax_deg": 13.2,
+        "rimBoulderShadowsPerHa": 51,
+        "backgroundBoulderShadowsPerHa": 19,
+        "rimBlockRatio": 2.6,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "south-west",
+        "blockiestRimSide": "north",
+        "driveDistanceFromLanding_m": 1319,
+        "drivePoint": {
+          "x": 1890,
+          "z": 160
+        },
+        "floorDriveDistance_m": 1418
+      },
+      {
+        "id": "young-crater-ese-3",
+        "name": "ESE crater 3",
+        "local": {
+          "x": 2135,
+          "y": -2586.89,
+          "z": -155
+        },
+        "latLon": [
+          18.44724,
+          77.47108
+        ],
+        "elevation_m": -2586.2,
+        "slope_deg": 2.2,
+        "distanceFromLanding_m": 1342,
+        "radius_m": 50,
+        "diameter_m": 100,
+        "diameterRange_m": [
+          90,
+          140
+        ],
+        "depth_m": 3.0,
+        "depthToDiameter": 0.03,
+        "rimCompleteness": 0.96,
+        "rimUplift_m": 1.0,
+        "innerWallSlope_deg": 7.8,
+        "innerWallSlopeMax_deg": 16.5,
+        "rimBoulderShadowsPerHa": 54,
+        "backgroundBoulderShadowsPerHa": 15,
+        "rimBlockRatio": 3.5,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "north-east",
+        "blockiestRimSide": "south-east",
+        "driveDistanceFromLanding_m": 1373,
+        "drivePoint": {
+          "x": 2080,
+          "z": -170
+        },
+        "floorDriveDistance_m": 1437
+      },
+      {
+        "id": "young-crater-se-4",
+        "name": "SE crater 4",
+        "local": {
+          "x": 1625,
+          "y": -2588.57,
+          "z": 655
+        },
+        "latLon": [
+          18.43358,
+          77.462
+        ],
+        "elevation_m": -2588.1,
+        "slope_deg": 5.5,
+        "distanceFromLanding_m": 1391,
+        "radius_m": 78,
+        "diameter_m": 155,
+        "diameterRange_m": [
+          100,
+          210
+        ],
+        "depth_m": 2.5,
+        "depthToDiameter": 0.016,
+        "rimCompleteness": 0.76,
+        "rimUplift_m": 1.2,
+        "innerWallSlope_deg": 6.8,
+        "innerWallSlopeMax_deg": 12.8,
+        "rimBoulderShadowsPerHa": 30,
+        "backgroundBoulderShadowsPerHa": 22,
+        "rimBlockRatio": 1.4,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "south",
+        "blockiestRimSide": "north-west",
+        "driveDistanceFromLanding_m": 1375,
+        "drivePoint": {
+          "x": 1600,
+          "z": 570
+        },
+        "floorDriveDistance_m": 1473
+      },
+      {
+        "id": "young-crater-se-5",
+        "name": "SE crater 5",
+        "local": {
+          "x": 1965,
+          "y": -2599.25,
+          "z": 405
+        },
+        "latLon": [
+          18.43779,
+          77.46805
+        ],
+        "elevation_m": -2598.7,
+        "slope_deg": 3.6,
+        "distanceFromLanding_m": 1442,
+        "radius_m": 85,
+        "diameter_m": 170,
+        "diameterRange_m": [
+          130,
+          230
+        ],
+        "depth_m": 3.6,
+        "depthToDiameter": 0.021,
+        "rimCompleteness": 0.75,
+        "rimUplift_m": 1.6,
+        "innerWallSlope_deg": 10.1,
+        "innerWallSlopeMax_deg": 15.8,
+        "rimBoulderShadowsPerHa": 34,
+        "backgroundBoulderShadowsPerHa": 21,
+        "rimBlockRatio": 1.6,
+        "freshness": "subdued",
+        "steepestWallSide": "east",
+        "lowestRimSide": "south-east",
+        "blockiestRimSide": "north-east",
+        "driveDistanceFromLanding_m": 1386,
+        "drivePoint": {
+          "x": 1870,
+          "z": 370
+        },
+        "floorDriveDistance_m": 1489
+      },
+      {
+        "id": "young-crater-ese-4",
+        "name": "ESE crater 4",
+        "local": {
+          "x": 2250,
+          "y": -2590.79,
+          "z": -170
+        },
+        "latLon": [
+          18.44749,
+          77.47312
+        ],
+        "elevation_m": -2590.0,
+        "slope_deg": 2.4,
+        "distanceFromLanding_m": 1451,
+        "radius_m": 70,
+        "diameter_m": 140,
+        "diameterRange_m": [
+          130,
+          160
+        ],
+        "depth_m": 4.6,
+        "depthToDiameter": 0.033,
+        "rimCompleteness": 1.0,
+        "rimUplift_m": 0.8,
+        "innerWallSlope_deg": 8.9,
+        "innerWallSlopeMax_deg": 19.2,
+        "rimBoulderShadowsPerHa": 28,
+        "backgroundBoulderShadowsPerHa": 13,
+        "rimBlockRatio": 2.1,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "south-west",
+        "blockiestRimSide": "south",
+        "driveDistanceFromLanding_m": 1454,
+        "drivePoint": {
+          "x": 2170,
+          "z": -190
+        },
+        "floorDriveDistance_m": 1543
+      },
+      {
+        "id": "young-crater-sw-2",
+        "name": "SW crater 2",
+        "local": {
+          "x": -325,
+          "y": -2552.64,
+          "z": 390
+        },
+        "latLon": [
+          18.43805,
+          77.42733
+        ],
+        "elevation_m": -2552.6,
+        "slope_deg": 4.4,
+        "distanceFromLanding_m": 1456,
+        "radius_m": 110,
+        "diameter_m": 220,
+        "diameterRange_m": [
+          190,
+          259
+        ],
+        "depth_m": 8.8,
+        "depthToDiameter": 0.04,
+        "rimCompleteness": 0.76,
+        "rimUplift_m": 4.0,
+        "innerWallSlope_deg": 13.0,
+        "innerWallSlopeMax_deg": 19.5,
+        "rimBoulderShadowsPerHa": 34,
+        "backgroundBoulderShadowsPerHa": 17,
+        "rimBlockRatio": 2.0,
+        "freshness": "subdued",
+        "steepestWallSide": "north",
+        "lowestRimSide": "east",
+        "blockiestRimSide": "north",
+        "driveDistanceFromLanding_m": 1388,
+        "drivePoint": {
+          "x": -200,
+          "z": 350
+        },
+        "floorDriveDistance_m": 1525
+      },
+      {
+        "id": "young-crater-wsw-2",
+        "name": "WSW crater 2",
+        "local": {
+          "x": -600,
+          "y": -2545.25,
+          "z": -85
+        },
+        "latLon": [
+          18.44606,
+          77.42244
+        ],
+        "elevation_m": -2545.2,
+        "slope_deg": 3.9,
+        "distanceFromLanding_m": 1491,
+        "radius_m": 45,
+        "diameter_m": 90,
+        "diameterRange_m": [
+          80,
+          120
+        ],
+        "depth_m": 2.6,
+        "depthToDiameter": 0.029,
+        "rimCompleteness": 0.78,
+        "rimUplift_m": 0.8,
+        "innerWallSlope_deg": 8.2,
+        "innerWallSlopeMax_deg": 18.5,
+        "rimBoulderShadowsPerHa": 43,
+        "backgroundBoulderShadowsPerHa": 14,
+        "rimBlockRatio": 3.1,
+        "freshness": "subdued",
+        "steepestWallSide": "north-west",
+        "lowestRimSide": "west",
+        "blockiestRimSide": "west",
+        "driveDistanceFromLanding_m": 1556,
+        "drivePoint": {
+          "x": -550,
+          "z": -90
+        },
+        "floorDriveDistance_m": 1610
+      },
+      {
+        "id": "young-crater-s-2",
+        "name": "S crater 2",
+        "local": {
+          "x": 955,
+          "y": -2586.58,
+          "z": 1055
+        },
+        "latLon": [
+          18.42683,
+          77.45009
+        ],
+        "elevation_m": -2586.3,
+        "slope_deg": 2.0,
+        "distanceFromLanding_m": 1550,
+        "radius_m": 55,
+        "diameter_m": 110,
+        "diameterRange_m": [
+          100,
+          150
+        ],
+        "depth_m": 3.1,
+        "depthToDiameter": 0.028,
+        "rimCompleteness": 0.78,
+        "rimUplift_m": 1.4,
+        "innerWallSlope_deg": 8.5,
+        "innerWallSlopeMax_deg": 16.0,
+        "rimBoulderShadowsPerHa": 30,
+        "backgroundBoulderShadowsPerHa": 18,
+        "rimBlockRatio": 1.7,
+        "freshness": "subdued",
+        "steepestWallSide": "west",
+        "lowestRimSide": "north-east",
+        "blockiestRimSide": "south-east",
+        "driveDistanceFromLanding_m": 1531,
+        "drivePoint": {
+          "x": 940,
+          "z": 1000
+        },
+        "floorDriveDistance_m": 1600
+      },
+      {
+        "id": "young-crater-wsw-3",
+        "name": "WSW crater 3",
+        "local": {
+          "x": -475,
+          "y": -2540.06,
+          "z": 345
+        },
+        "latLon": [
+          18.43881,
+          77.42466
+        ],
+        "elevation_m": -2540.0,
+        "slope_deg": 1.1,
+        "distanceFromLanding_m": 1553,
+        "radius_m": 55,
+        "diameter_m": 110,
+        "diameterRange_m": [
+          90,
+          150
+        ],
+        "depth_m": 3.1,
+        "depthToDiameter": 0.028,
+        "rimCompleteness": 0.78,
+        "rimUplift_m": 3.5,
+        "innerWallSlope_deg": 8.2,
+        "innerWallSlopeMax_deg": 15.8,
+        "rimBoulderShadowsPerHa": 49,
+        "backgroundBoulderShadowsPerHa": 22,
+        "rimBlockRatio": 2.2,
+        "freshness": "subdued",
+        "steepestWallSide": "south-east",
+        "lowestRimSide": "south",
+        "blockiestRimSide": "south-west",
+        "driveDistanceFromLanding_m": 1609,
+        "drivePoint": {
+          "x": -440,
+          "z": 290
+        },
+        "floorDriveDistance_m": 1676
+      }
+    ],
+    "slopeTargets": [
+      {
+        "id": "slope-targets-young-crater-rocky-area-2",
+        "site": "young-crater-rocky-area-2",
+        "siteKind": "youngCrater",
+        "name": "Rocky area 2",
+        "cellCount": 75,
+        "patchCount": 28,
+        "patches": [
+          {
+            "local": {
+              "x": 460,
+              "z": -890
+            },
+            "slope_deg": 11.75,
+            "cells": 11,
+            "slopeMean_deg": 12.0,
+            "slopeMax_deg": 13.5,
+            "levelCell": {
+              "x": 460,
+              "z": -895,
+              "slope_deg": 5.75
+            },
+            "driveDistanceFromLanding_m": 591
+          },
+          {
+            "local": {
+              "x": 465,
+              "z": -905
+            },
+            "slope_deg": 12.0,
+            "cells": 8,
+            "slopeMean_deg": 10.6,
+            "slopeMax_deg": 12.0,
+            "levelCell": {
+              "x": 465,
+              "z": -900,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 591
+          },
+          {
+            "local": {
+              "x": 580,
+              "z": -780
+            },
+            "slope_deg": 11.5,
+            "cells": 7,
+            "slopeMean_deg": 12.9,
+            "slopeMax_deg": 16.5,
+            "levelCell": {
+              "x": 580,
+              "z": -785,
+              "slope_deg": 3.0
+            },
+            "driveDistanceFromLanding_m": 409
+          },
+          {
+            "local": {
+              "x": 305,
+              "z": -720
+            },
+            "slope_deg": 11.0,
+            "cells": 6,
+            "slopeMean_deg": 11.3,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": 300,
+              "z": -720,
+              "slope_deg": 7.5
+            },
+            "driveDistanceFromLanding_m": 635
+          }
+        ],
+        "searchRadius_m": 212
+      },
+      {
+        "id": "slope-targets-young-crater-s",
+        "site": "young-crater-s",
+        "siteKind": "youngCrater",
+        "name": "S crater",
+        "cellCount": 18,
+        "patchCount": 7,
+        "patches": [
+          {
+            "local": {
+              "x": 855,
+              "z": 30
+            },
+            "slope_deg": 11.5,
+            "cells": 5,
+            "slopeMean_deg": 10.6,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": 855,
+              "z": 35,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 538
+          },
+          {
+            "local": {
+              "x": 850,
+              "z": 10
+            },
+            "slope_deg": 11.5,
+            "cells": 3,
+            "slopeMean_deg": 11.9,
+            "slopeMax_deg": 13.0,
+            "levelCell": {
+              "x": 850,
+              "z": 5,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 494
+          },
+          {
+            "local": {
+              "x": 810,
+              "z": 150
+            },
+            "slope_deg": 12.25,
+            "cells": 3,
+            "slopeMean_deg": 11.2,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": 815,
+              "z": 150,
+              "slope_deg": 7.5
+            },
+            "driveDistanceFromLanding_m": 648
+          },
+          {
+            "local": {
+              "x": 860,
+              "z": -25
+            },
+            "slope_deg": 13.0,
+            "cells": 2,
+            "slopeMean_deg": 11.6,
+            "slopeMax_deg": 13.0,
+            "levelCell": {
+              "x": 855,
+              "z": -25,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 478
+          }
+        ],
+        "searchRadius_m": 108
+      },
+      {
+        "id": "slope-targets-young-crater-wsw",
+        "site": "young-crater-wsw",
+        "siteKind": "youngCrater",
+        "name": "WSW crater",
+        "cellCount": 22,
+        "patchCount": 11,
+        "patches": [
+          {
+            "local": {
+              "x": 245,
+              "z": -300
+            },
+            "slope_deg": 12.0,
+            "cells": 5,
+            "slopeMean_deg": 11.9,
+            "slopeMax_deg": 13.75,
+            "levelCell": {
+              "x": 245,
+              "z": -295,
+              "slope_deg": 1.75
+            },
+            "driveDistanceFromLanding_m": 679
+          },
+          {
+            "local": {
+              "x": 215,
+              "z": -250
+            },
+            "slope_deg": 10.0,
+            "cells": 3,
+            "slopeMean_deg": 10.4,
+            "slopeMax_deg": 10.75,
+            "levelCell": {
+              "x": 215,
+              "z": -245,
+              "slope_deg": 3.5
+            },
+            "driveDistanceFromLanding_m": 724
+          },
+          {
+            "local": {
+              "x": 330,
+              "z": -155
+            },
+            "slope_deg": 12.0,
+            "cells": 3,
+            "slopeMean_deg": 11.7,
+            "slopeMax_deg": 13.0,
+            "levelCell": {
+              "x": 330,
+              "z": -150,
+              "slope_deg": 7.5
+            },
+            "driveDistanceFromLanding_m": 651
+          },
+          {
+            "local": {
+              "x": 295,
+              "z": -310
+            },
+            "slope_deg": 10.0,
+            "cells": 2,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 11.75,
+            "levelCell": {
+              "x": 290,
+              "z": -310,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 625
+          }
+        ],
+        "searchRadius_m": 100
+      },
+      {
+        "id": "slope-targets-young-crater-sw",
+        "site": "young-crater-sw",
+        "siteKind": "youngCrater",
+        "name": "SW crater",
+        "cellCount": 34,
+        "patchCount": 18,
+        "patches": [
+          {
+            "local": {
+              "x": 445,
+              "z": -45
+            },
+            "slope_deg": 11.0,
+            "cells": 5,
+            "slopeMean_deg": 10.6,
+            "slopeMax_deg": 11.0,
+            "levelCell": {
+              "x": 440,
+              "z": -45,
+              "slope_deg": 6.75
+            },
+            "driveDistanceFromLanding_m": 639
+          },
+          {
+            "local": {
+              "x": 425,
+              "z": 100
+            },
+            "slope_deg": 10.0,
+            "cells": 4,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 12.0,
+            "levelCell": {
+              "x": 425,
+              "z": 95,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 764
+          },
+          {
+            "local": {
+              "x": 380,
+              "z": -25
+            },
+            "slope_deg": 11.0,
+            "cells": 3,
+            "slopeMean_deg": 11.0,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": 375,
+              "z": -25,
+              "slope_deg": 3.75
+            },
+            "driveDistanceFromLanding_m": 666
+          },
+          {
+            "local": {
+              "x": 505,
+              "z": 50
+            },
+            "slope_deg": 10.75,
+            "cells": 3,
+            "slopeMean_deg": 10.8,
+            "slopeMax_deg": 10.75,
+            "levelCell": {
+              "x": 505,
+              "z": 55,
+              "slope_deg": 6.0
+            },
+            "driveDistanceFromLanding_m": 691
+          }
+        ],
+        "searchRadius_m": 108
+      },
+      {
+        "id": "slope-targets-young-crater-sse",
+        "site": "young-crater-sse",
+        "siteKind": "youngCrater",
+        "name": "SSE crater",
+        "cellCount": 10,
+        "patchCount": 2,
+        "patches": [
+          {
+            "local": {
+              "x": 1110,
+              "z": 255
+            },
+            "slope_deg": 13.25,
+            "cells": 6,
+            "slopeMean_deg": 11.4,
+            "slopeMax_deg": 13.25,
+            "levelCell": {
+              "x": 1110,
+              "z": 250,
+              "slope_deg": 6.25
+            },
+            "driveDistanceFromLanding_m": 852
+          },
+          {
+            "local": {
+              "x": 1150,
+              "z": 315
+            },
+            "slope_deg": 10.75,
+            "cells": 4,
+            "slopeMean_deg": 10.4,
+            "slopeMax_deg": 10.75,
+            "levelCell": {
+              "x": 1150,
+              "z": 320,
+              "slope_deg": 6.0
+            },
+            "driveDistanceFromLanding_m": 938
+          }
+        ],
+        "searchRadius_m": 90
+      },
+      {
+        "id": "slope-targets-young-crater-se",
+        "site": "young-crater-se",
+        "siteKind": "youngCrater",
+        "name": "SE crater",
+        "cellCount": 59,
+        "patchCount": 21,
+        "patches": [
+          {
+            "local": {
+              "x": 1460,
+              "z": 300
+            },
+            "slope_deg": 11.25,
+            "cells": 12,
+            "slopeMean_deg": 11.1,
+            "slopeMax_deg": 12.5,
+            "levelCell": {
+              "x": 1460,
+              "z": 305,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 1047
+          },
+          {
+            "local": {
+              "x": 1405,
+              "z": 285
+            },
+            "slope_deg": 10.75,
+            "cells": 10,
+            "slopeMean_deg": 10.7,
+            "slopeMax_deg": 11.75,
+            "levelCell": {
+              "x": 1405,
+              "z": 280,
+              "slope_deg": 6.75
+            },
+            "driveDistanceFromLanding_m": 1002
+          },
+          {
+            "local": {
+              "x": 1395,
+              "z": 265
+            },
+            "slope_deg": 12.5,
+            "cells": 5,
+            "slopeMean_deg": 11.2,
+            "slopeMax_deg": 12.5,
+            "levelCell": {
+              "x": 1395,
+              "z": 260,
+              "slope_deg": 4.5
+            },
+            "driveDistanceFromLanding_m": 982
+          },
+          {
+            "local": {
+              "x": 1480,
+              "z": 260
+            },
+            "slope_deg": 11.0,
+            "cells": 4,
+            "slopeMean_deg": 10.8,
+            "slopeMax_deg": 11.0,
+            "levelCell": {
+              "x": 1475,
+              "z": 260,
+              "slope_deg": 5.0
+            },
+            "driveDistanceFromLanding_m": 1015
+          }
+        ],
+        "searchRadius_m": 118
+      },
+      {
+        "id": "slope-targets-young-crater-ese",
+        "site": "young-crater-ese",
+        "siteKind": "youngCrater",
+        "name": "ESE crater",
+        "cellCount": 35,
+        "patchCount": 13,
+        "patches": [
+          {
+            "local": {
+              "x": 1745,
+              "z": -250
+            },
+            "slope_deg": 11.75,
+            "cells": 7,
+            "slopeMean_deg": 12.2,
+            "slopeMax_deg": 14.75,
+            "levelCell": {
+              "x": 1745,
+              "z": -255,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 995
+          },
+          {
+            "local": {
+              "x": 1720,
+              "z": -215
+            },
+            "slope_deg": 12.25,
+            "cells": 7,
+            "slopeMean_deg": 13.1,
+            "slopeMax_deg": 14.25,
+            "levelCell": {
+              "x": 1715,
+              "z": -215,
+              "slope_deg": 5.0
+            },
+            "driveDistanceFromLanding_m": 992
+          },
+          {
+            "local": {
+              "x": 1720,
+              "z": -185
+            },
+            "slope_deg": 10.0,
+            "cells": 4,
+            "slopeMean_deg": 10.2,
+            "slopeMax_deg": 10.75,
+            "levelCell": {
+              "x": 1720,
+              "z": -180,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1008
+          },
+          {
+            "local": {
+              "x": 1820,
+              "z": -145
+            },
+            "slope_deg": 10.75,
+            "cells": 4,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 11.25,
+            "levelCell": {
+              "x": 1820,
+              "z": -150,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 1121
+          }
+        ],
+        "searchRadius_m": 120
+      },
+      {
+        "id": "slope-targets-young-crater-ene",
+        "site": "young-crater-ene",
+        "siteKind": "youngCrater",
+        "name": "ENE crater",
+        "cellCount": 171,
+        "patchCount": 68,
+        "patches": [
+          {
+            "local": {
+              "x": 1860,
+              "z": -865
+            },
+            "slope_deg": 14.25,
+            "cells": 10,
+            "slopeMean_deg": 14.3,
+            "slopeMax_deg": 17.0,
+            "levelCell": {
+              "x": 1860,
+              "z": -870,
+              "slope_deg": 5.25
+            },
+            "driveDistanceFromLanding_m": 1186
+          },
+          {
+            "local": {
+              "x": 1740,
+              "z": -870
+            },
+            "slope_deg": 11.0,
+            "cells": 8,
+            "slopeMean_deg": 12.9,
+            "slopeMax_deg": 18.0,
+            "levelCell": {
+              "x": 1745,
+              "z": -870,
+              "slope_deg": 6.0
+            },
+            "driveDistanceFromLanding_m": 1057
+          },
+          {
+            "local": {
+              "x": 1670,
+              "z": -775
+            },
+            "slope_deg": 10.25,
+            "cells": 7,
+            "slopeMean_deg": 12.1,
+            "slopeMax_deg": 16.5,
+            "levelCell": {
+              "x": 1670,
+              "z": -770,
+              "slope_deg": 2.75
+            },
+            "driveDistanceFromLanding_m": 946
+          },
+          {
+            "local": {
+              "x": 1900,
+              "z": -590
+            },
+            "slope_deg": 12.25,
+            "cells": 7,
+            "slopeMean_deg": 11.1,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": 1905,
+              "z": -590,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1101
+          }
+        ],
+        "searchRadius_m": 205
+      },
+      {
+        "id": "slope-targets-young-crater-sse-2",
+        "site": "young-crater-sse-2",
+        "siteKind": "youngCrater",
+        "name": "SSE crater 2",
+        "cellCount": 79,
+        "patchCount": 25,
+        "patches": [
+          {
+            "local": {
+              "x": 1270,
+              "z": 450
+            },
+            "slope_deg": 11.5,
+            "cells": 9,
+            "slopeMean_deg": 11.7,
+            "slopeMax_deg": 12.75,
+            "levelCell": {
+              "x": 1265,
+              "z": 450,
+              "slope_deg": 3.75
+            },
+            "driveDistanceFromLanding_m": 1114
+          },
+          {
+            "local": {
+              "x": 1220,
+              "z": 505
+            },
+            "slope_deg": 13.75,
+            "cells": 8,
+            "slopeMean_deg": 12.6,
+            "slopeMax_deg": 18.0,
+            "levelCell": {
+              "x": 1220,
+              "z": 500,
+              "slope_deg": 5.75
+            },
+            "driveDistanceFromLanding_m": 1147
+          },
+          {
+            "local": {
+              "x": 1220,
+              "z": 710
+            },
+            "slope_deg": 11.0,
+            "cells": 8,
+            "slopeMean_deg": 10.6,
+            "slopeMax_deg": 11.75,
+            "levelCell": {
+              "x": 1225,
+              "z": 710,
+              "slope_deg": 6.5
+            },
+            "driveDistanceFromLanding_m": 1357
+          },
+          {
+            "local": {
+              "x": 1245,
+              "z": 520
+            },
+            "slope_deg": 14.75,
+            "cells": 5,
+            "slopeMean_deg": 11.8,
+            "slopeMax_deg": 14.75,
+            "levelCell": {
+              "x": 1245,
+              "z": 515,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 1176
+          }
+        ],
+        "searchRadius_m": 185
+      },
+      {
+        "id": "slope-targets-young-crater-ssw",
+        "site": "young-crater-ssw",
+        "siteKind": "youngCrater",
+        "name": "SSW crater",
+        "cellCount": 35,
+        "patchCount": 15,
+        "patches": [
+          {
+            "local": {
+              "x": 535,
+              "z": 655
+            },
+            "slope_deg": 11.25,
+            "cells": 6,
+            "slopeMean_deg": 11.3,
+            "slopeMax_deg": 12.5,
+            "levelCell": {
+              "x": 535,
+              "z": 650,
+              "slope_deg": 5.75
+            },
+            "driveDistanceFromLanding_m": 1264
+          },
+          {
+            "local": {
+              "x": 565,
+              "z": 695
+            },
+            "slope_deg": 10.0,
+            "cells": 6,
+            "slopeMean_deg": 10.5,
+            "slopeMax_deg": 11.0,
+            "levelCell": {
+              "x": 565,
+              "z": 690,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1296
+          },
+          {
+            "local": {
+              "x": 590,
+              "z": 780
+            },
+            "slope_deg": 14.75,
+            "cells": 4,
+            "slopeMean_deg": 12.2,
+            "slopeMax_deg": 14.75,
+            "levelCell": {
+              "x": 590,
+              "z": 785,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 1374
+          },
+          {
+            "local": {
+              "x": 420,
+              "z": 690
+            },
+            "slope_deg": 11.5,
+            "cells": 3,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": 420,
+              "z": 695,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 1364
+          }
+        ],
+        "searchRadius_m": 135
+      },
+      {
+        "id": "slope-targets-young-crater-ne",
+        "site": "young-crater-ne",
+        "siteKind": "youngCrater",
+        "name": "NE crater",
+        "cellCount": 95,
+        "patchCount": 29,
+        "patches": [
+          {
+            "local": {
+              "x": 1710,
+              "z": -1385
+            },
+            "slope_deg": 10.0,
+            "cells": 10,
+            "slopeMean_deg": 11.2,
+            "slopeMax_deg": 13.25,
+            "levelCell": {
+              "x": 1710,
+              "z": -1390,
+              "slope_deg": 3.25
+            },
+            "driveDistanceFromLanding_m": 1260
+          },
+          {
+            "local": {
+              "x": 1630,
+              "z": -1355
+            },
+            "slope_deg": 12.75,
+            "cells": 10,
+            "slopeMean_deg": 12.5,
+            "slopeMax_deg": 15.25,
+            "levelCell": {
+              "x": 1630,
+              "z": -1350,
+              "slope_deg": 5.5
+            },
+            "driveDistanceFromLanding_m": 1187
+          },
+          {
+            "local": {
+              "x": 1645,
+              "z": -1345
+            },
+            "slope_deg": 14.5,
+            "cells": 10,
+            "slopeMean_deg": 12.0,
+            "slopeMax_deg": 14.5,
+            "levelCell": {
+              "x": 1645,
+              "z": -1350,
+              "slope_deg": 2.0
+            },
+            "driveDistanceFromLanding_m": 1191
+          },
+          {
+            "local": {
+              "x": 1565,
+              "z": -1480
+            },
+            "slope_deg": 11.0,
+            "cells": 9,
+            "slopeMean_deg": 12.9,
+            "slopeMax_deg": 15.5,
+            "levelCell": {
+              "x": 1560,
+              "z": -1480,
+              "slope_deg": 1.25
+            },
+            "driveDistanceFromLanding_m": 1288
+          }
+        ],
+        "searchRadius_m": 135
+      },
+      {
+        "id": "slope-targets-young-crater-se-2",
+        "site": "young-crater-se-2",
+        "siteKind": "youngCrater",
+        "name": "SE crater 2",
+        "cellCount": 22,
+        "patchCount": 7,
+        "patches": [
+          {
+            "local": {
+              "x": 1810,
+              "z": 290
+            },
+            "slope_deg": 12.5,
+            "cells": 9,
+            "slopeMean_deg": 11.0,
+            "slopeMax_deg": 12.5,
+            "levelCell": {
+              "x": 1810,
+              "z": 285,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 1289
+          },
+          {
+            "local": {
+              "x": 1830,
+              "z": 260
+            },
+            "slope_deg": 11.0,
+            "cells": 4,
+            "slopeMean_deg": 11.1,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": 1825,
+              "z": 260,
+              "slope_deg": 4.5
+            },
+            "driveDistanceFromLanding_m": 1291
+          },
+          {
+            "local": {
+              "x": 1805,
+              "z": 330
+            },
+            "slope_deg": 11.5,
+            "cells": 3,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": 1800,
+              "z": 330,
+              "slope_deg": 6.25
+            },
+            "driveDistanceFromLanding_m": 1300
+          },
+          {
+            "local": {
+              "x": 1820,
+              "z": 275
+            },
+            "slope_deg": 12.0,
+            "cells": 2,
+            "slopeMean_deg": 11.4,
+            "slopeMax_deg": 12.0,
+            "levelCell": {
+              "x": 1815,
+              "z": 275,
+              "slope_deg": 5.25
+            },
+            "driveDistanceFromLanding_m": 1299
+          }
+        ],
+        "searchRadius_m": 95
+      },
+      {
+        "id": "slope-targets-young-crater-se-3",
+        "site": "young-crater-se-3",
+        "siteKind": "youngCrater",
+        "name": "SE crater 3",
+        "cellCount": 15,
+        "patchCount": 9,
+        "patches": [
+          {
+            "local": {
+              "x": 1580,
+              "z": 620
+            },
+            "slope_deg": 12.25,
+            "cells": 3,
+            "slopeMean_deg": 11.1,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": 1575,
+              "z": 620,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 1417
+          },
+          {
+            "local": {
+              "x": 1640,
+              "z": 485
+            },
+            "slope_deg": 10.25,
+            "cells": 2,
+            "slopeMean_deg": 11.1,
+            "slopeMax_deg": 12.0,
+            "levelCell": {
+              "x": 1640,
+              "z": 480,
+              "slope_deg": 7.5
+            },
+            "driveDistanceFromLanding_m": 1301
+          },
+          {
+            "local": {
+              "x": 1640,
+              "z": 520
+            },
+            "slope_deg": 10.0,
+            "cells": 2,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 11.75,
+            "levelCell": {
+              "x": 1645,
+              "z": 520,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 1341
+          },
+          {
+            "local": {
+              "x": 1605,
+              "z": 530
+            },
+            "slope_deg": 12.5,
+            "cells": 2,
+            "slopeMean_deg": 11.2,
+            "slopeMax_deg": 12.5,
+            "levelCell": {
+              "x": 1610,
+              "z": 530,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1339
+          }
+        ],
+        "searchRadius_m": 115
+      },
+      {
+        "id": "slope-targets-young-crater-ese-2",
+        "site": "young-crater-ese-2",
+        "siteKind": "youngCrater",
+        "name": "ESE crater 2",
+        "cellCount": 9,
+        "patchCount": 5,
+        "patches": [
+          {
+            "local": {
+              "x": 1930,
+              "z": 185
+            },
+            "slope_deg": 10.25,
+            "cells": 4,
+            "slopeMean_deg": 10.4,
+            "slopeMax_deg": 11.0,
+            "levelCell": {
+              "x": 1925,
+              "z": 185,
+              "slope_deg": 4.5
+            },
+            "driveDistanceFromLanding_m": 1358
+          },
+          {
+            "local": {
+              "x": 1955,
+              "z": 135
+            },
+            "slope_deg": 10.0,
+            "cells": 2,
+            "slopeMean_deg": 10.1,
+            "slopeMax_deg": 10.25,
+            "levelCell": {
+              "x": 1960,
+              "z": 135,
+              "slope_deg": 6.25
+            },
+            "driveDistanceFromLanding_m": 1381
+          },
+          {
+            "local": {
+              "x": 2000,
+              "z": 145
+            },
+            "slope_deg": 10.0,
+            "cells": 1,
+            "slopeMean_deg": 10.0,
+            "slopeMax_deg": 10.0,
+            "levelCell": {
+              "x": 2000,
+              "z": 150,
+              "slope_deg": 7.5
+            },
+            "driveDistanceFromLanding_m": 1425
+          },
+          {
+            "local": {
+              "x": 2010,
+              "z": 145
+            },
+            "slope_deg": 10.25,
+            "cells": 1,
+            "slopeMean_deg": 10.2,
+            "slopeMax_deg": 10.25,
+            "levelCell": {
+              "x": 2010,
+              "z": 140,
+              "slope_deg": 5.25
+            },
+            "driveDistanceFromLanding_m": 1431
+          }
+        ],
+        "searchRadius_m": 115
+      },
+      {
+        "id": "slope-targets-young-crater-ese-3",
+        "site": "young-crater-ese-3",
+        "siteKind": "youngCrater",
+        "name": "ESE crater 3",
+        "cellCount": 29,
+        "patchCount": 8,
+        "patches": [
+          {
+            "local": {
+              "x": 2115,
+              "z": -195
+            },
+            "slope_deg": 11.5,
+            "cells": 8,
+            "slopeMean_deg": 12.2,
+            "slopeMax_deg": 15.25,
+            "levelCell": {
+              "x": 2115,
+              "z": -200,
+              "slope_deg": 4.25
+            },
+            "driveDistanceFromLanding_m": 1400
+          },
+          {
+            "local": {
+              "x": 2120,
+              "z": -125
+            },
+            "slope_deg": 11.25,
+            "cells": 7,
+            "slopeMean_deg": 11.3,
+            "slopeMax_deg": 13.0,
+            "levelCell": {
+              "x": 2120,
+              "z": -130,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 1429
+          },
+          {
+            "local": {
+              "x": 2180,
+              "z": -125
+            },
+            "slope_deg": 12.0,
+            "cells": 5,
+            "slopeMean_deg": 11.1,
+            "slopeMax_deg": 12.0,
+            "levelCell": {
+              "x": 2175,
+              "z": -125,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 1493
+          },
+          {
+            "local": {
+              "x": 2055,
+              "z": -130
+            },
+            "slope_deg": 10.75,
+            "cells": 3,
+            "slopeMean_deg": 11.8,
+            "slopeMax_deg": 13.0,
+            "levelCell": {
+              "x": 2055,
+              "z": -135,
+              "slope_deg": 2.75
+            },
+            "driveDistanceFromLanding_m": 1365
+          }
+        ],
+        "searchRadius_m": 90
+      },
+      {
+        "id": "slope-targets-young-crater-se-4",
+        "site": "young-crater-se-4",
+        "siteKind": "youngCrater",
+        "name": "SE crater 4",
+        "cellCount": 10,
+        "patchCount": 4,
+        "patches": [
+          {
+            "local": {
+              "x": 1670,
+              "z": 720
+            },
+            "slope_deg": 12.25,
+            "cells": 5,
+            "slopeMean_deg": 11.0,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": 1670,
+              "z": 715,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 1554
+          },
+          {
+            "local": {
+              "x": 1530,
+              "z": 710
+            },
+            "slope_deg": 10.75,
+            "cells": 2,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 11.0,
+            "levelCell": {
+              "x": 1530,
+              "z": 705,
+              "slope_deg": 5.75
+            },
+            "driveDistanceFromLanding_m": 1476
+          },
+          {
+            "local": {
+              "x": 1655,
+              "z": 725
+            },
+            "slope_deg": 10.25,
+            "cells": 2,
+            "slopeMean_deg": 10.1,
+            "slopeMax_deg": 10.25,
+            "levelCell": {
+              "x": 1655,
+              "z": 730,
+              "slope_deg": 5.0
+            },
+            "driveDistanceFromLanding_m": 1560
+          },
+          {
+            "local": {
+              "x": 1590,
+              "z": 655
+            },
+            "slope_deg": 10.0,
+            "cells": 1,
+            "slopeMean_deg": 10.0,
+            "slopeMax_deg": 10.0,
+            "levelCell": {
+              "x": 1595,
+              "z": 655,
+              "slope_deg": 5.25
+            },
+            "driveDistanceFromLanding_m": 1465
+          }
+        ],
+        "searchRadius_m": 118
+      },
+      {
+        "id": "slope-targets-young-crater-se-5",
+        "site": "young-crater-se-5",
+        "siteKind": "youngCrater",
+        "name": "SE crater 5",
+        "cellCount": 51,
+        "patchCount": 22,
+        "patches": [
+          {
+            "local": {
+              "x": 1975,
+              "z": 355
+            },
+            "slope_deg": 11.25,
+            "cells": 7,
+            "slopeMean_deg": 10.7,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": 1970,
+              "z": 355,
+              "slope_deg": 6.0
+            },
+            "driveDistanceFromLanding_m": 1482
+          },
+          {
+            "local": {
+              "x": 1920,
+              "z": 370
+            },
+            "slope_deg": 10.0,
+            "cells": 5,
+            "slopeMean_deg": 11.0,
+            "slopeMax_deg": 13.25,
+            "levelCell": {
+              "x": 1915,
+              "z": 370,
+              "slope_deg": 5.0
+            },
+            "driveDistanceFromLanding_m": 1436
+          },
+          {
+            "local": {
+              "x": 1900,
+              "z": 400
+            },
+            "slope_deg": 13.25,
+            "cells": 5,
+            "slopeMean_deg": 12.0,
+            "slopeMax_deg": 13.25,
+            "levelCell": {
+              "x": 1900,
+              "z": 395,
+              "slope_deg": 5.25
+            },
+            "driveDistanceFromLanding_m": 1429
+          },
+          {
+            "local": {
+              "x": 2030,
+              "z": 340
+            },
+            "slope_deg": 10.0,
+            "cells": 4,
+            "slopeMean_deg": 10.1,
+            "slopeMax_deg": 10.25,
+            "levelCell": {
+              "x": 2025,
+              "z": 340,
+              "slope_deg": 4.75
+            },
+            "driveDistanceFromLanding_m": 1524
+          }
+        ],
+        "searchRadius_m": 125
+      },
+      {
+        "id": "slope-targets-young-crater-ese-4",
+        "site": "young-crater-ese-4",
+        "siteKind": "youngCrater",
+        "name": "ESE crater 4",
+        "cellCount": 33,
+        "patchCount": 11,
+        "patches": [
+          {
+            "local": {
+              "x": 2195,
+              "z": -205
+            },
+            "slope_deg": 13.0,
+            "cells": 10,
+            "slopeMean_deg": 12.4,
+            "slopeMax_deg": 14.75,
+            "levelCell": {
+              "x": 2190,
+              "z": -205,
+              "slope_deg": 7.25
+            },
+            "driveDistanceFromLanding_m": 1470
+          },
+          {
+            "local": {
+              "x": 2235,
+              "z": -225
+            },
+            "slope_deg": 10.5,
+            "cells": 4,
+            "slopeMean_deg": 13.2,
+            "slopeMax_deg": 16.25,
+            "levelCell": {
+              "x": 2235,
+              "z": -230,
+              "slope_deg": 3.25
+            },
+            "driveDistanceFromLanding_m": 1508
+          },
+          {
+            "local": {
+              "x": 2275,
+              "z": -225
+            },
+            "slope_deg": 10.0,
+            "cells": 4,
+            "slopeMean_deg": 10.8,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": 2275,
+              "z": -230,
+              "slope_deg": 4.75
+            },
+            "driveDistanceFromLanding_m": 1548
+          },
+          {
+            "local": {
+              "x": 2195,
+              "z": -150
+            },
+            "slope_deg": 11.5,
+            "cells": 4,
+            "slopeMean_deg": 10.8,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": 2190,
+              "z": -150,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 1491
+          }
+        ],
+        "searchRadius_m": 110
+      },
+      {
+        "id": "slope-targets-young-crater-sw-2",
+        "site": "young-crater-sw-2",
+        "siteKind": "youngCrater",
+        "name": "SW crater 2",
+        "cellCount": 62,
+        "patchCount": 37,
+        "patches": [
+          {
+            "local": {
+              "x": -300,
+              "z": 295
+            },
+            "slope_deg": 12.75,
+            "cells": 5,
+            "slopeMean_deg": 12.2,
+            "slopeMax_deg": 14.0,
+            "levelCell": {
+              "x": -300,
+              "z": 300,
+              "slope_deg": 6.75
+            },
+            "driveDistanceFromLanding_m": 1467
+          },
+          {
+            "local": {
+              "x": -400,
+              "z": 465
+            },
+            "slope_deg": 10.0,
+            "cells": 4,
+            "slopeMean_deg": 12.2,
+            "slopeMax_deg": 15.25,
+            "levelCell": {
+              "x": -405,
+              "z": 465,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1634
+          },
+          {
+            "local": {
+              "x": -300,
+              "z": 470
+            },
+            "slope_deg": 11.25,
+            "cells": 4,
+            "slopeMean_deg": 10.7,
+            "slopeMax_deg": 11.25,
+            "levelCell": {
+              "x": -300,
+              "z": 475,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1542
+          },
+          {
+            "local": {
+              "x": -390,
+              "z": 305
+            },
+            "slope_deg": 15.5,
+            "cells": 3,
+            "slopeMean_deg": 14.0,
+            "slopeMax_deg": 15.5,
+            "levelCell": {
+              "x": -395,
+              "z": 305,
+              "slope_deg": 4.0
+            },
+            "driveDistanceFromLanding_m": 1567
+          }
+        ],
+        "searchRadius_m": 150
+      },
+      {
+        "id": "slope-targets-young-crater-wsw-2",
+        "site": "young-crater-wsw-2",
+        "siteKind": "youngCrater",
+        "name": "WSW crater 2",
+        "cellCount": 45,
+        "patchCount": 16,
+        "patches": [
+          {
+            "local": {
+              "x": -670,
+              "z": -60
+            },
+            "slope_deg": 10.5,
+            "cells": 8,
+            "slopeMean_deg": 10.8,
+            "slopeMax_deg": 12.0,
+            "levelCell": {
+              "x": -670,
+              "z": -55,
+              "slope_deg": 5.25
+            },
+            "driveDistanceFromLanding_m": 1688
+          },
+          {
+            "local": {
+              "x": -585,
+              "z": -135
+            },
+            "slope_deg": 10.75,
+            "cells": 7,
+            "slopeMean_deg": 11.0,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": -585,
+              "z": -130,
+              "slope_deg": 4.25
+            },
+            "driveDistanceFromLanding_m": 1569
+          },
+          {
+            "local": {
+              "x": -625,
+              "z": -130
+            },
+            "slope_deg": 12.25,
+            "cells": 5,
+            "slopeMean_deg": 10.8,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": -625,
+              "z": -125,
+              "slope_deg": 1.5
+            },
+            "driveDistanceFromLanding_m": 1613
+          },
+          {
+            "local": {
+              "x": -655,
+              "z": -120
+            },
+            "slope_deg": 11.0,
+            "cells": 5,
+            "slopeMean_deg": 10.7,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": -655,
+              "z": -125,
+              "slope_deg": 3.75
+            },
+            "driveDistanceFromLanding_m": 1653
+          }
+        ],
+        "searchRadius_m": 85
+      },
+      {
+        "id": "slope-targets-young-crater-s-2",
+        "site": "young-crater-s-2",
+        "siteKind": "youngCrater",
+        "name": "S crater 2",
+        "cellCount": 35,
+        "patchCount": 13,
+        "patches": [
+          {
+            "local": {
+              "x": 935,
+              "z": 1105
+            },
+            "slope_deg": 11.0,
+            "cells": 7,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 12.5,
+            "levelCell": {
+              "x": 935,
+              "z": 1110,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1650
+          },
+          {
+            "local": {
+              "x": 995,
+              "z": 1095
+            },
+            "slope_deg": 16.75,
+            "cells": 6,
+            "slopeMean_deg": 13.7,
+            "slopeMax_deg": 16.75,
+            "levelCell": {
+              "x": 995,
+              "z": 1090,
+              "slope_deg": 6.75
+            },
+            "driveDistanceFromLanding_m": 1646
+          },
+          {
+            "local": {
+              "x": 910,
+              "z": 1020
+            },
+            "slope_deg": 11.5,
+            "cells": 5,
+            "slopeMean_deg": 11.4,
+            "slopeMax_deg": 12.25,
+            "levelCell": {
+              "x": 910,
+              "z": 1025,
+              "slope_deg": 5.75
+            },
+            "driveDistanceFromLanding_m": 1539
+          },
+          {
+            "local": {
+              "x": 910,
+              "z": 1055
+            },
+            "slope_deg": 16.0,
+            "cells": 4,
+            "slopeMean_deg": 12.8,
+            "slopeMax_deg": 16.0,
+            "levelCell": {
+              "x": 905,
+              "z": 1055,
+              "slope_deg": 6.25
+            },
+            "driveDistanceFromLanding_m": 1575
+          }
+        ],
+        "searchRadius_m": 95
+      },
+      {
+        "id": "slope-targets-young-crater-wsw-3",
+        "site": "young-crater-wsw-3",
+        "siteKind": "youngCrater",
+        "name": "WSW crater 3",
+        "cellCount": 49,
+        "patchCount": 20,
+        "patches": [
+          {
+            "local": {
+              "x": -495,
+              "z": 375
+            },
+            "slope_deg": 11.5,
+            "cells": 8,
+            "slopeMean_deg": 11.0,
+            "slopeMax_deg": 12.0,
+            "levelCell": {
+              "x": -495,
+              "z": 370,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 1696
+          },
+          {
+            "local": {
+              "x": -420,
+              "z": 330
+            },
+            "slope_deg": 11.0,
+            "cells": 5,
+            "slopeMean_deg": 11.3,
+            "slopeMax_deg": 14.25,
+            "levelCell": {
+              "x": -415,
+              "z": 330,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 1606
+          },
+          {
+            "local": {
+              "x": -550,
+              "z": 345
+            },
+            "slope_deg": 12.0,
+            "cells": 4,
+            "slopeMean_deg": 12.1,
+            "slopeMax_deg": 12.75,
+            "levelCell": {
+              "x": -550,
+              "z": 340,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1734
+          },
+          {
+            "local": {
+              "x": -560,
+              "z": 355
+            },
+            "slope_deg": 13.75,
+            "cells": 4,
+            "slopeMean_deg": 13.3,
+            "slopeMax_deg": 14.75,
+            "levelCell": {
+              "x": -560,
+              "z": 360,
+              "slope_deg": 1.75
+            },
+            "driveDistanceFromLanding_m": 1758
+          }
+        ],
+        "searchRadius_m": 95
+      },
+      {
+        "id": "slope-targets-knob-wnw",
+        "site": "knob-wnw",
+        "siteKind": "knob",
+        "name": "WNW knob",
+        "cellCount": 46,
+        "patchCount": 16,
+        "patches": [
+          {
+            "local": {
+              "x": 325,
+              "z": -850
+            },
+            "slope_deg": 12.0,
+            "cells": 12,
+            "slopeMean_deg": 12.2,
+            "slopeMax_deg": 16.5,
+            "levelCell": {
+              "x": 325,
+              "z": -855,
+              "slope_deg": 3.75
+            },
+            "driveDistanceFromLanding_m": 673
+          },
+          {
+            "local": {
+              "x": 295,
+              "z": -800
+            },
+            "slope_deg": 12.5,
+            "cells": 11,
+            "slopeMean_deg": 12.2,
+            "slopeMax_deg": 17.0,
+            "levelCell": {
+              "x": 290,
+              "z": -800,
+              "slope_deg": 3.5
+            },
+            "driveDistanceFromLanding_m": 684
+          },
+          {
+            "local": {
+              "x": 255,
+              "z": -770
+            },
+            "slope_deg": 15.0,
+            "cells": 5,
+            "slopeMean_deg": 12.6,
+            "slopeMax_deg": 15.0,
+            "levelCell": {
+              "x": 260,
+              "z": -770,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 696
+          },
+          {
+            "local": {
+              "x": 260,
+              "z": -800
+            },
+            "slope_deg": 11.5,
+            "cells": 3,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 11.5,
+            "levelCell": {
+              "x": 265,
+              "z": -800,
+              "slope_deg": 7.5
+            },
+            "driveDistanceFromLanding_m": 708
+          }
+        ],
+        "searchRadius_m": 100,
+        "knob": {
+          "name": "WNW knob",
+          "local": {
+            "x": 305,
+            "y": -2548.7,
+            "z": -825
+          },
+          "latLon": [
+            18.45855,
+            77.43853
+          ],
+          "elevation_m": -2548.6,
+          "slope_deg": 2.9,
+          "distanceFromLanding_m": 627,
+          "driveDistanceFromLanding_m": 688,
+          "relief_m": 13.2,
+          "flankSlopeMax_deg": 25.75
+        }
+      },
+      {
+        "id": "slope-targets-knob-ssw",
+        "site": "knob-ssw",
+        "siteKind": "knob",
+        "name": "SSW knob",
+        "cellCount": 41,
+        "patchCount": 14,
+        "patches": [
+          {
+            "local": {
+              "x": 605,
+              "z": 435
+            },
+            "slope_deg": 15.5,
+            "cells": 6,
+            "slopeMean_deg": 12.4,
+            "slopeMax_deg": 15.5,
+            "levelCell": {
+              "x": 605,
+              "z": 440,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1029
+          },
+          {
+            "local": {
+              "x": 600,
+              "z": 470
+            },
+            "slope_deg": 16.5,
+            "cells": 6,
+            "slopeMean_deg": 13.1,
+            "slopeMax_deg": 16.5,
+            "levelCell": {
+              "x": 600,
+              "z": 465,
+              "slope_deg": 6.5
+            },
+            "driveDistanceFromLanding_m": 1049
+          },
+          {
+            "local": {
+              "x": 655,
+              "z": 420
+            },
+            "slope_deg": 10.5,
+            "cells": 5,
+            "slopeMean_deg": 10.8,
+            "slopeMax_deg": 11.75,
+            "levelCell": {
+              "x": 655,
+              "z": 415,
+              "slope_deg": 4.75
+            },
+            "driveDistanceFromLanding_m": 985
+          },
+          {
+            "local": {
+              "x": 635,
+              "z": 435
+            },
+            "slope_deg": 12.0,
+            "cells": 5,
+            "slopeMean_deg": 10.9,
+            "slopeMax_deg": 12.0,
+            "levelCell": {
+              "x": 635,
+              "z": 440,
+              "slope_deg": 6.5
+            },
+            "driveDistanceFromLanding_m": 1013
+          }
+        ],
+        "searchRadius_m": 100,
+        "knob": {
+          "name": "SSW knob",
+          "local": {
+            "x": 635,
+            "y": -2558.5,
+            "z": 445
+          },
+          "latLon": [
+            18.43712,
+            77.4444
+          ],
+          "elevation_m": -2558.4,
+          "slope_deg": 2.5,
+          "distanceFromLanding_m": 956,
+          "driveDistanceFromLanding_m": 1013,
+          "relief_m": 8.0,
+          "flankSlopeMax_deg": 16.5
+        }
+      },
+      {
+        "id": "slope-targets-delta-foot",
+        "site": "delta-foot",
+        "siteKind": "deltaFoot",
+        "name": "Delta foot",
+        "cellCount": 19,
+        "patchCount": 16,
+        "patches": [
+          {
+            "local": {
+              "x": -565,
+              "z": -1010
+            },
+            "slope_deg": 10.25,
+            "cells": 3,
+            "slopeMean_deg": 10.4,
+            "slopeMax_deg": 10.75,
+            "levelCell": {
+              "x": -565,
+              "z": -1005,
+              "slope_deg": 7.0
+            },
+            "driveDistanceFromLanding_m": 1611
+          },
+          {
+            "local": {
+              "x": -585,
+              "z": -980
+            },
+            "slope_deg": 10.0,
+            "cells": 2,
+            "slopeMean_deg": 10.6,
+            "slopeMax_deg": 11.25,
+            "levelCell": {
+              "x": -580,
+              "z": -980,
+              "slope_deg": 6.0
+            },
+            "driveDistanceFromLanding_m": 1623
+          },
+          {
+            "local": {
+              "x": -395,
+              "z": -1245
+            },
+            "slope_deg": 10.75,
+            "cells": 1,
+            "slopeMean_deg": 10.8,
+            "slopeMax_deg": 10.75,
+            "levelCell": {
+              "x": -400,
+              "z": -1245,
+              "slope_deg": 5.5
+            },
+            "driveDistanceFromLanding_m": 1551
+          },
+          {
+            "local": {
+              "x": -480,
+              "z": -1170
+            },
+            "slope_deg": 10.0,
+            "cells": 1,
+            "slopeMean_deg": 10.0,
+            "slopeMax_deg": 10.0,
+            "levelCell": {
+              "x": -475,
+              "z": -1170,
+              "slope_deg": 7.75
+            },
+            "driveDistanceFromLanding_m": 1602
+          }
+        ]
+      }
+    ],
+    "perseveranceSites": [
+      {
+        "id": "roubion",
+        "name": "Roubion",
+        "local": {
+          "x": 1043,
+          "y": -2585.18,
+          "z": 1004
+        },
+        "latLon": [
+          18.42767,
+          77.45169
+        ],
+        "elevation_m": -2584.9,
+        "slope_deg": 3.0,
+        "distanceFromLanding_m": 1510,
+        "driveDistanceFromLanding_m": 1573,
+        "kind": "sample-attempt",
+        "abrasion": "Guillaumes",
+        "samples": [
+          {
+            "name": "Roubion",
+            "sol": 164,
+            "date": "2021-08-06",
+            "note": "First sample attempt: the rock crumbled and the tube held only Martian air"
+          }
+        ],
+        "waypoint": {
+          "sol": 157,
+          "rmc": "6_0"
+        },
+        "roverStayedSols": [
+          157,
+          167
+        ],
+        "source": "Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json); sample names, sols and dates: NASA (https://science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/)"
+      },
+      {
+        "id": "rochette",
+        "name": "Rochette",
+        "local": {
+          "x": 633,
+          "y": -2574.65,
+          "z": 823
+        },
+        "latLon": [
+          18.43071,
+          77.4444
+        ],
+        "elevation_m": -2574.5,
+        "slope_deg": 2.9,
+        "distanceFromLanding_m": 1330,
+        "driveDistanceFromLanding_m": 1393,
+        "kind": "sample",
+        "abrasion": "Bellegarde",
+        "samples": [
+          {
+            "name": "Montdenier",
+            "sol": 190,
+            "date": "2021-09-01"
+          },
+          {
+            "name": "Montagnac",
+            "sol": 196,
+            "date": "2021-09-08"
+          }
+        ],
+        "waypoint": {
+          "sol": 180,
+          "rmc": "7_0"
+        },
+        "roverStayedSols": [
+          180,
+          198
+        ],
+        "source": "Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json); sample names, sols and dates: NASA (https://science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/)"
+      },
+      {
+        "id": "brac",
+        "name": "Brac",
+        "local": {
+          "x": 557,
+          "y": -2569.49,
+          "z": 632
+        },
+        "latLon": [
+          18.434,
+          77.44298
+        ],
+        "elevation_m": -2569.4,
+        "slope_deg": 4.0,
+        "distanceFromLanding_m": 1154,
+        "driveDistanceFromLanding_m": 1236,
+        "kind": "sample",
+        "abrasion": "Dourbes",
+        "samples": [
+          {
+            "name": "Salette",
+            "sol": 262,
+            "date": "2021-11-15"
+          },
+          {
+            "name": "Coulettes",
+            "sol": 271,
+            "date": "2021-11-24"
+          }
+        ],
+        "waypoint": {
+          "sol": 248,
+          "rmc": "8_0"
+        },
+        "roverStayedSols": [
+          248,
+          277
+        ],
+        "source": "Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json); sample names, sols and dates: NASA (https://science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/)",
+        "checkSimon2023_m": 1
+      },
+      {
+        "id": "issole",
+        "name": "Issole",
+        "local": {
+          "x": 462,
+          "y": -2574.3,
+          "z": 712
+        },
+        "latLon": [
+          18.43265,
+          77.44129
+        ],
+        "elevation_m": -2574.2,
+        "slope_deg": 3.9,
+        "distanceFromLanding_m": 1257,
+        "driveDistanceFromLanding_m": 1357,
+        "kind": "sample",
+        "abrasion": "Quartier",
+        "samples": [
+          {
+            "name": "Robine",
+            "sol": null,
+            "date": "2021-12"
+          },
+          {
+            "name": "Malay",
+            "sol": 337,
+            "date": "2022-01-31"
+          }
+        ],
+        "waypoint": {
+          "sol": 335,
+          "rmc": "9_276"
+        },
+        "roverStayedSols": [
+          335,
+          339
+        ],
+        "source": "Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json); sample names, sols and dates: NASA (https://science.nasa.gov/mission/mars-2020-perseverance/mars-rock-samples/)"
+      }
+    ],
+    "missionLandmarks": [
+      {
+        "id": "wright-brothers-field",
+        "name": "Wright Brothers Field",
+        "local": {
+          "x": 1008,
+          "y": -2570.14,
+          "z": -18
+        },
+        "latLon": [
+          18.44497,
+          77.45107
+        ],
+        "elevation_m": -2570.0,
+        "slope_deg": 0.7,
+        "distanceFromLanding_m": 502,
+        "driveDistanceFromLanding_m": 540,
+        "kind": "airfield",
+        "waypoint": {
+          "sol": 43,
+          "rmc": "3_1398"
+        },
+        "note": "The rover's position on sol 43 (April 3, 2021), when it set Ingenuity down on the airfield from beneath its belly; Ingenuity's first flights took off within a few meters of here. Approximate (+-10 m): not from the Ingenuity flight log.",
+        "source": "Mars 2020 rover waypoints (https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json)"
+      }
     ]
   },
   "horizonFromLanding": {

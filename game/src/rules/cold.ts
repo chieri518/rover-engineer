@@ -38,6 +38,15 @@ export function marsFreezeRate(isNight: boolean, heat: number, stormFactor: numb
   return Math.max(0, night.freezeRatePerSecond - cold.heaterReductionPerHeat * heat) * stormFactor;
 }
 
+/**
+ * Mars: the heat that counts now. An electric heater's heat (PartPower.electricHeat) counts only while its
+ * draw is paid, that is while the battery is above zero; other heat (radioisotope units, an RTG's waste heat)
+ * always counts. An empty battery also ends the mission, so this matters within the step that empties it.
+ */
+export function heatNow(totalHeat: number, electricHeat: number, batteryEnergy: number): number {
+  return batteryEnergy > 0 ? totalHeat : Math.max(0, totalHeat - electricHeat);
+}
+
 /** Seconds of clear-sky night a rover lasts from a warm start before it freezes (Infinity if it never does). */
 export function marsSecondsToFreeze(heat: number, cold: Tuning['cold'], night: NightTuning): number {
   const rate = marsFreezeRate(true, heat, 1, cold, night);

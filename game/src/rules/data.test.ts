@@ -6,6 +6,7 @@ import { cheapestBuild } from './rover';
 import { meetsRequirements, selectedParts } from './rover';
 import type { Build, GameData } from './types';
 import terrain from '../../public/terrain/terrain.json';
+import marsTerrain from '../../public/terrain/mars/terrain.json';
 import { missionSetup, startMission, stepMission, type MissionState } from './mission';
 import { allBuilds as everyBuild, dominatedPairs, evaluateBuild, simulate } from './balance';
 import { flareDamage } from './events';
@@ -85,6 +86,22 @@ describe('game data', () => {
     ]);
   });
 
+  it('validation per world: worlds lists name known worlds, and every world has a part in each bus slot', () => {
+    const allParts = { ...data.allParts, parts: data.allParts.parts.map((p) =>
+      p.id === 'instrument-camera' ? { ...p, worlds: [] }
+      : p.id === 'instrument-drill' ? { ...p, worlds: ['venus' as 'mars'] }
+      : p) };
+    // A world whose catalog leaves a bus slot empty (here, no heater offered on Mars).
+    const mars = worldGameData('mars');
+    const parts = { ...mars.parts, parts: mars.parts.parts.filter((p) => p.slot !== 'heater') };
+    expect(validateGameData({ ...mars, parts, allParts })).toEqual([
+      'slot heater has no parts on mars',
+      'part instrument-camera has an empty worlds list (leave it out to offer the part everywhere)',
+      'part instrument-drill names unknown world venus',
+      'relationship neutron-drill names part instrument-drill, which moon does not offer', // the drill is now offered nowhere
+    ]);
+  });
+
   it('instrument operating costs: the drill uses 10 energy per sample and holds 3 s; the camera is free and instant', () => {
     const effects = (id: string) => data.parts.parts.find((p) => p.id === id)!.effects;
     expect(effects('instrument-drill')).toMatchObject({ energyPerUse: 10, useSeconds: 3 });
@@ -119,17 +136,21 @@ describe('game data', () => {
     expect(instruments.sort()).toEqual(['camera', 'drill', 'neutron', 'reflector', 'seismometer', 'xray']);
   });
 
-  it('the chassis sets the payload bay: steel 3 mounting points, titanium 2', () => {
+  it('the chassis sets the payload bay: steel 5 mounting points, titanium 4 (shared by instruments and systems)', () => {
     const points = (id: string) => data.parts.parts.find((p) => p.id === id)!.effects.mountingPoints;
-    expect(points('chassis-steel')).toBe(3);
-    expect(points('chassis-titanium')).toBe(2);
+    expect(points('chassis-steel')).toBe(5);
+    expect(points('chassis-titanium')).toBe(4);
   });
 
-  it('every bay that fits is enumerated: 64 bus builds; steel takes up to 3 of the 6 instruments (42 bays), titanium up to 2 (22)', () => {
+  it('every bay that fits is enumerated: 64 bus builds; the lights and heater take a point each beside the instruments', () => {
+    // Per chassis 32 buses: 8 with no system, 16 with one, 8 with both. Bays of the 6 instruments up to
+    // k: k=2: 22, 3: 42, 4: 57, 5: 63. Steel (5 points) 8·63 + 16·57 + 8·42; titanium (4) 8·57 + 16·42 + 8·22.
     const builds = allBuilds();
-    expect(builds).toHaveLength(32 * 42 + 32 * 22);
-    expect(builds.filter((b) => b.payload.length === 2 && b.chassis === 'chassis-titanium').length).toBe(32 * 15);
-    expect(builds.some((b) => b.payload.length === 3 && b.chassis === 'chassis-titanium')).toBe(false);
+    expect(builds).toHaveLength(8 * 63 + 16 * 57 + 8 * 42 + (8 * 57 + 16 * 42 + 8 * 22));
+    // Titanium with lights and a heater keeps two instruments, as before the change.
+    const tiLH = builds.filter((b) => b.chassis === 'chassis-titanium' && b.lights === 'lights-led' && b.heater === 'heater-rhu');
+    expect(Math.max(...tiLH.map((b) => b.payload.length))).toBe(2);
+    expect(builds.some((b) => b.payload.length === 5 && b.chassis === 'chassis-titanium')).toBe(false);
   });
 
   it('a mid build fits the Medium tier and is affordable from the starting budget', () => {
@@ -455,11 +476,133 @@ describe('Moon sites and milestones data (Phase 2)', () => {
     ]);
   });
 
-  it('Mars has none of the Moon sites and still validates', () => {
+  it('Mars has none of the Moon sites: its own sites file replaces the Moon\'s whole', () => {
     const mars = worldGameData('mars');
-    expect(mars.sites.sites).toEqual([]);
+    expect(mars.sites.sites.length).toBeGreaterThan(0);
+    expect(mars.sites.sites.filter((s) => s.kind === 'cold-trap' || s.kind === 'rolled-boulder')).toEqual([]);
     expect(validateGameData(mars)).toEqual([]);
-    // Mars replaces the whole milestone list: the four new Moon instruments earn nothing there.
-    for (const inst of ['neutron', 'xray', 'seismometer', 'reflector'] as const) expect(earnsMilestones(inst, mars.milestones), inst).toBe(false);
+  });
+});
+
+describe('Mars sites and milestones data (Mars step 4b)', () => {
+  const mars = worldGameData('mars');
+  const byId = (id: string) => mars.milestones.milestones.find((m) => m.id === id)!;
+  const NEW = [
+    'crater-wall', 'dust-devil', 'seitah-core', 'ancient-lake', 'mars-rock-collection', 'mars-rare-rock', 'mars-documented-sample',
+    'organic-signals', 'lake-organics', 'remote-reading', 'rock-from-afar', 'buried-layers', 'long-profile', 'hydrated-ground',
+    'hydrogen-traverse', 'storm-log', 'night-weather', 'dust-devil-pass', 'sand-crossing', 'mars-clean-run',
+  ];
+  const withMilestone = (id: string, change: Partial<Milestone>): GameData => ({
+    ...mars,
+    milestones: { milestones: mars.milestones.milestones.map((m) => (m.id === id ? { ...m, ...change } : m)) },
+  });
+  const features = marsTerrain.features as unknown as Record<string, unknown>;
+
+  it('has 28 milestones: the eight built and the twenty new, each new one with a how-to line, fact and source', () => {
+    expect(mars.milestones.milestones).toHaveLength(28);
+    for (const id of NEW) {
+      const m = byId(id);
+      expect(m, id).toBeDefined();
+      for (const t of [m.howTo ?? '', m.fact, m.source ?? '']) expect(t.length, id).toBeGreaterThan(10);
+      expect(m.howTo, id).not.toMatch(/\d/); // numbers come from the data (ui/milestoneText.ts milestoneHowTo)
+    }
+    // Ids differ from the Moon's, because records are kept per campaign.
+    const moon = new Set(data.milestones.milestones.map((m) => m.id));
+    for (const m of mars.milestones.milestones) expect(moon.has(m.id), m.id).toBe(false);
+    expect(mars.milestones.milestones.filter((m) => m.record).map((m) => m.id)).toEqual(['mars-touchdown', 'ancient-lake', 'mars-rare-rock']);
+  });
+
+  it('every instrument on the Mars desk earns at least one milestone', () => {
+    const offered = new Set(mars.parts.parts.flatMap((p) => (p.effects.instrument ? [p.effects.instrument] : [])));
+    expect(offered.size).toBeGreaterThanOrEqual(8);
+    for (const inst of offered) expect(earnsMilestones(inst, mars.milestones), inst).toBe(true);
+  });
+
+  it('staged counts: Rock collection 3, Remote reading 3, Buried layers 3, Organic signals 2, Hydrogen traverse 2', () => {
+    const stages = (id: string) => milestoneStages(byId(id));
+    expect(['mars-rock-collection', 'remote-reading', 'buried-layers', 'organic-signals', 'hydrogen-traverse', 'long-profile'].map(stages)).toEqual([3, 3, 3, 2, 2, 1]);
+  });
+
+  it('rock suites: six Mars rock types, each with a name, and flood conglomerate only at the flood boulder', () => {
+    const suites = mars.tuning.instruments.xray.suites;
+    const rocks = new Set(suites.flatMap((s) => s.rocks.map((r) => r.id)));
+    expect(rocks.size).toBe(6);
+    for (const id of rocks) expect(mars.text.rocks[id]?.name, id).toBeTruthy();
+    expect(suites.filter((s) => s.rocks.some((r) => r.id === 'flood-conglomerate')).map((s) => s.id)).toEqual(['flood-boulder']);
+    expect(mars.sites.sites.filter((s) => s.rockSuite === 'flood-boulder').map((s) => s.kind)).toEqual(['flood-boulder']);
+  });
+
+  it('sites match the Mars terrain.json: features, pipeline ids and the stand-ins copied from it', () => {
+    expect(siteTerrainProblems(mars, features)).toEqual([]);
+    // MS6: East crater is the pipeline's fresh crater, so the fourth survey lead points at it.
+    const east = mars.sites.sites.find((s) => s.id === 'east-crater')!;
+    const crater = marsTerrain.features.youngCraters.find((c) => c.id === east.pipeline!.id)!;
+    expect(crater.freshness).toBe('fresh');
+    expect(mars.tuning.survey.leads.find((l) => l.id === 'youngCrater')?.site).toBe('east-crater');
+    expect(mars.text.survey.leads.youngCrater!.name).toBe('Young crater');
+    // Only the hydrated ground is a design choice with no terrain feature behind it.
+    expect(mars.sites.sites.filter((s) => s.provisional).map((s) => s.id)).toEqual(['hydrated-ground']);
+    // A stand-in that drifts from its feature, or names a feature that is gone, is reported.
+    const moved = { ...mars, sites: { sites: mars.sites.sites.map((s) => (s.id === 'flood-boulder' ? { ...s, local: { x: -400, z: -1290 } } : s.id === 'wnw-knob' ? { ...s, terrain: 'slopeTargets.knob-gone' } : s)) } };
+    expect(siteTerrainProblems(moved, features)).toEqual([
+      'site wnw-knob names terrain.json slopeTargets.knob-gone, which does not exist',
+      "site flood-boulder's local (-400, -1290) no longer matches terrain.json deltaFront.floodBoulder (-434.9, -1290)",
+    ]);
+  });
+
+  it('no Mars text calls Rocky area 2 fresh (the pipeline measured it subdued)', () => {
+    const s = mars.text.survey;
+    expect(s.siteNotes['rocky-area-2']).not.toMatch(/fresh/i);
+    expect(s.siteKindNotes['rocky-area']).not.toMatch(/fresh/i);
+  });
+
+  it('the hydrogen meter on Mars: unit readings above the floor and below the hydrated ground\'s edge; a 25 m core', () => {
+    const n = mars.tuning.instruments.neutron;
+    expect(mars.tuning.milestones.hydrogenZoneRadiusM).toBeGreaterThan(0);
+    for (const v of Object.values(n.unitReadings ?? {})) {
+      expect(v).toBeGreaterThan(n.noiseFloor);
+      expect(v).toBeLessThan(n.anomalyEdge);
+    }
+    const broken = { ...mars, tuning: { ...mars.tuning, instruments: { ...mars.tuning.instruments, neutron: { ...n, unitReadings: { 'cold-trap': 0.15, seitah: 0.4 } } } } };
+    expect(validateGameData(broken)).toEqual([
+      'tuning.instruments.neutron.unitReadings names unknown zone cold-trap',
+      'tuning.instruments.neutron.unitReadings.seitah must be above noiseFloor and below anomalyEdge',
+    ]);
+  });
+
+  it('validation per world: Mars zones, record events and seconds, transect zones, photo targets, Mars rocks', () => {
+    const broken = [
+      withMilestone('hydrated-ground', { trigger: { type: 'transect', instrument: 'neutron', zone: 'cold-trap', meters: 20 } }),
+      withMilestone('night-weather', { trigger: { type: 'record', instrument: 'weather', event: 'sunrise' as never, seconds: -1 } }),
+      withMilestone('buried-layers', { trigger: { type: 'transect', instrument: 'radar', zone: 'seitah', zones: ['young-crater'], meters: 150, sites: 3 } }),
+      withMilestone('buried-layers', { trigger: { type: 'transect', instrument: 'radar', zones: ['young-crater', 'ice-signal'], meters: 150, sites: 3 } }),
+      withMilestone('crater-wall', { trigger: { type: 'photo', target: 'crater' as never } }),
+    ];
+    expect(broken.map((d) => validateGameData(d))).toEqual([
+      ['milestone hydrated-ground names unknown zone cold-trap'],
+      ['milestone night-weather waits for unknown event sunrise', 'milestone night-weather needs record seconds as a finite number, not negative'],
+      ['milestone buried-layers needs either one zone or a non-empty zones list, not both'],
+      ['milestone buried-layers names unknown zone ice-signal'],
+      ['milestone crater-wall names unknown photo target crater'],
+    ]);
+    // The Moon's own zones do not accept a Mars zone.
+    const moonWithFoot = { ...data, milestones: { milestones: data.milestones.milestones.map((m) => (m.id === 'fresh-ejecta-sample' ? { ...m, trigger: { type: 'drill' as const, zone: 'delta-foot' } } : m)) } };
+    expect(validateGameData(moonWithFoot)).toEqual(['milestone fresh-ejecta-sample names unknown zone delta-foot']);
+    // A Moon rock in a Mars suite.
+    const xray = mars.tuning.instruments.xray;
+    const moonRock = { ...mars, tuning: { ...mars.tuning, instruments: { ...mars.tuning.instruments, xray: { ...xray, rocks: [{ id: 'ferroan-anorthosite', weight: 1 }] } } } };
+    expect(validateGameData(moonRock)).toEqual(['rock ferroan-anorthosite is not a Mars rock type (marsTypes.ts MARS_ROCK_IDS)']);
+  });
+
+  it('validation of the Mars boulder and milestone tuning', () => {
+    const b = mars.tuning.boulders;
+    const m = mars.tuning.milestones;
+    const broken = { ...mars, tuning: { ...mars.tuning, boulders: { ...b, perSiteKind: { volcano: 3 } as never, perSite: { 'east-crater': 1.5 }, slopeTargetShare: 2 }, milestones: { ...m, craterWallRimBand: [1.3, 0.8] as [number, number] } } };
+    expect(validateGameData(broken)).toEqual([
+      'tuning.milestones.craterWallRimBand must be [low, high] with 0 < low < high',
+      'tuning.boulders.perSiteKind names unknown site kind volcano',
+      'tuning.boulders.perSite.east-crater must be a whole number, not negative',
+      'tuning.boulders.slopeTargetShare must be a share, 0 to 1',
+    ]);
   });
 });

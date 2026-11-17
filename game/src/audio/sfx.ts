@@ -6,21 +6,21 @@ import { SFX } from './mix';
 export type CueId =
   | 'click' | 'partAdd' | 'partRemove' | 'launch'
   | 'milestone' | 'discover' | 'refuse'
-  | 'shutter' | 'drill' | 'scan' | 'deploy' | 'drillDone' | 'scanDone' | 'stationDown' | 'switchOn' | 'switchOff' | 'quakeRecord'
+  | 'shutter' | 'drill' | 'scan' | 'laser' | 'deploy' | 'drillDone' | 'scanDone' | 'stationDown' | 'switchOn' | 'switchOff' | 'quakeRecord'
   | 'lowEnergy' | 'damage' | 'cold' | 'caution' | 'impact' | 'bump' | 'quake'
   | 'flareWarning' | 'flareHit' | 'flareSafe' | 'stormForecast' | 'stormStart' | 'stormClear' | 'dusk' | 'dawn'
   | 'powerDown' | 'powerUp' | 'missionSurvived' | 'missionLost';
 
 export const CUE_IDS: CueId[] = [
   'click', 'partAdd', 'partRemove', 'launch', 'milestone', 'discover', 'refuse',
-  'shutter', 'drill', 'scan', 'deploy', 'drillDone', 'scanDone', 'stationDown', 'switchOn', 'switchOff', 'quakeRecord',
+  'shutter', 'drill', 'scan', 'laser', 'deploy', 'drillDone', 'scanDone', 'stationDown', 'switchOn', 'switchOff', 'quakeRecord',
   'lowEnergy', 'damage', 'cold', 'caution', 'impact', 'bump', 'quake',
   'flareWarning', 'flareHit', 'flareSafe', 'stormForecast', 'stormStart', 'stormClear', 'dusk', 'dawn',
   'powerDown', 'powerUp', 'missionSurvived', 'missionLost',
 ];
 
 export interface CueOptions {
-  seconds?: number; // held cues (drill, scan, deploy): how long
+  seconds?: number; // held cues (drill, scan, laser, deploy): how long
   strength?: number; // 0..1 (impact)
   noisy?: boolean; // quakeRecord: buried in the rover's own noise
 }
@@ -226,6 +226,20 @@ export class Sfx {
         const d = o.seconds ?? 1.5;
         this.tone(t, 330, d, s.instrument * 0.35, { attack: 0.3, endHz: 660, wet: true });
         for (let k = 0.25; k < d; k += 0.35) this.tone(t + k, 1760, 0.05, s.instrument * 0.35);
+        return d + 0.1;
+      }
+      case 'laser': {
+        // The laser spectrometer's zaps: bursts of sharp ticks (Perseverance's microphone heard SuperCam's
+        // laser on Mars as clicks), a short pause between bursts, and a faint charge tone under each burst.
+        const d = o.seconds ?? 2;
+        for (let burst = 0.1; burst < d - 0.2; burst += 1.2) {
+          this.tone(t + burst, 2200, 0.8, s.instrument * 0.12, { attack: 0.2, endHz: 2600 });
+          for (let k = 0; k < 8 && burst + k * 0.1 < d; k++) {
+            const z = t + burst + k * 0.1;
+            this.noise(z, 0.012, s.instrument * 1.1, 3500, { type: 'highpass' });
+            this.tone(z, 1400, 0.015, s.instrument * 0.3, { type: 'square' });
+          }
+        }
         return d + 0.1;
       }
       case 'deploy': {

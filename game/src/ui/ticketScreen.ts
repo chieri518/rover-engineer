@@ -2,10 +2,11 @@
 import type { Screen } from '../flow/flow';
 import { quoteBuild } from '../rules/quote';
 import { reviewItems } from '../rules/relationships';
-import { isCompleteBuild } from '../rules/rover';
+import { completeBuild } from '../rules/rover';
 import type { TierFit } from '../rules/tiers';
 import { el, money } from './dom';
 import { tierWhyText } from './tierText';
+import { missingSupportWarnings } from './supportText';
 
 export const ticketScreen: Screen = (game, root) => {
   const { data } = game;
@@ -15,7 +16,8 @@ export const ticketScreen: Screen = (game, root) => {
   // Pre-launch review: the build's relationships already in the notebook, plus hard blocks. It only
   // informs: the player can always launch.
   const r = text.review;
-  const review = isCompleteBuild(game.build, data.parts) ? reviewItems(game.build, game.state.notebook, data) : [];
+  const complete = completeBuild(game.build, data.parts);
+  const review = complete ? reviewItems(complete, game.state.notebook, data) : [];
   const reviewSection = el('section', { class: 'review', id: 'prelaunch-review', 'aria-labelledby': 'review-heading' },
     el('h3', { id: 'review-heading' }, r.heading),
     el('p', { class: 'muted' }, review.length ? r.intro : r.empty),
@@ -49,6 +51,14 @@ export const ticketScreen: Screen = (game, root) => {
       el('td', {}, fitText(f)),
     );
   });
+
+  const warnings: string[] = [
+    ...(!q.tier ? [text.design.overTopTier] : []),
+    ...(q.payloadProblems.some((p) => p.kind !== 'needs') ? [text.design.bayOverCapacity] : []),
+    ...missingSupportWarnings(q.payloadProblems, data),
+    ...(q.canLaunch && !q.canAfford ? [text.design.overBudget] : []),
+    ...(q.overloaded ? [text.design.chassisOverloaded] : []),
+  ];
 
   const row = (label: string, value: string, cls = '') =>
     el('div', { class: `row ${cls}` }, el('span', { class: 'label' }, label), el('span', { class: 'value' }, value));
@@ -86,10 +96,7 @@ export const ticketScreen: Screen = (game, root) => {
         row('Balance now', money(game.state.balance, text)),
         row('Balance after purchase', money(q.remaining, text), q.remaining < 0 ? 'bad' : ''),
       ),
-      !q.tier && el('ul', { class: 'warnings' }, el('li', {}, text.design.overTopTier)),
-      q.payloadProblems.length > 0 && el('ul', { class: 'warnings' }, el('li', {}, text.design.bayOverCapacity)),
-      q.canLaunch && !q.canAfford && el('ul', { class: 'warnings' }, el('li', {}, text.design.overBudget)),
-      q.overloaded && el('ul', { class: 'warnings' }, el('li', {}, text.design.chassisOverloaded)),
+      warnings.length > 0 && el('ul', { class: 'warnings' }, ...warnings.map((w) => el('li', {}, w))),
       reviewSection,
       el('div', { class: 'actions' },
         el('button', { onclick: () => game.go('design') }, 'Back to design'),

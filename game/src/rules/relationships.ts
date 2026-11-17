@@ -1,12 +1,15 @@
-// Relationships between parts (rover-engineering-design.md, section 10): when each Moon relationship
-// happens in a mission, and which builds the pre-launch review flags. The text and review colors are in
+// Relationships between parts (rover-engineering-design.md, section 10): when each Moon and Mars
+// relationship happens in a mission, and which builds the pre-launch review flags. Each relationship names
+// its world; the mission, the review and the notebook use only the current world's. The text and review colors are in
 // data/relationships.json; the rules that decide *when* are code here, keyed by id. The mission screen
 // calls the event hooks with what it measured and shows a relationship's notice the first time it
 // happens in a mission; the ticket screen calls reviewItems. Pure: no rendering, no DOM.
-import type { Build, Instrument, Part, PartsFile, Relationship, RelationshipLesson, RelationshipsFile, ReviewColor } from './types';
-import type { UseSite } from './mission';
+import type { Build, Instrument, MissionId, Part, PartsFile, Relationship, RelationshipLesson, RelationshipsFile, ReviewColor } from './types';
+import type { InstrumentRefusal, UseSite } from './mission';
 import type { SeismometerOutcome } from './instruments';
-import { instrumentCosts, instrumentsOf, type InstrumentCosts } from './payload';
+import type { DustTuning } from './marsTypes';
+import { dustLessonReached } from './dust';
+import { instrumentCosts, instrumentsOf, KNOWN_WORLDS, offeredOn, type InstrumentCosts } from './payload';
 import { selectedParts } from './rover';
 
 /**
@@ -20,16 +23,36 @@ export const FIRED_RELATIONSHIPS = {
   'cold-dark': [],
   'xray-cold': [],
   'no-lights': [],
+  // Mars (Mars M9, M14, M15): the RTG's neutron noise, dust on the panels, the arm on a slope, and the
+  // Mars no-lights hard block, fired at night on a rover without lights.
+  'rtg-neutron': [],
+  'dust-panels': ['loss'],
+  'arm-slope': [],
+  'no-lights-night': [],
 } as const satisfies Record<string, readonly string[]>;
 
 export type RelationshipId = keyof typeof FIRED_RELATIONSHIPS;
 
-/** The ids the mission fires, in a fixed order: the Moon lessons the notebook can hold. */
+/** The ids the mission fires, in a fixed order: every world's lessons the notebook can hold (each entry names its world). */
 export const LESSON_IDS = Object.keys(FIRED_RELATIONSHIPS) as RelationshipId[];
 
 /** A relationship that happened. */
 export interface RelationshipEvent {
   id: RelationshipId;
+}
+
+/** The relationships of one world, in data order: the mission, the review and the notebook show only these. */
+export function relationshipsOf(file: RelationshipsFile, world: MissionId): Relationship[] {
+  return file.relationships.filter((r) => r.world === world);
+}
+
+/**
+ * The events that belong to this world. The Moon's hooks still see what happens on Mars (the cold
+ * slowing a held use, say), so the mission drops other worlds' events before they are met: no Moon
+ * lesson fires, enters the debrief or reaches the notebook on Mars.
+ */
+export function onWorld(events: readonly RelationshipEvent[], file: RelationshipsFile, world: MissionId): RelationshipEvent[] {
+  return events.filter((e) => relationshipEntry(file, e.id)?.world === world);
 }
 
 /**
@@ -72,6 +95,39 @@ export function onSeismometer(outcome: SeismometerOutcome): RelationshipEvent[] 
 /** No lights, no permanent shadow: the mission stopped a rover without lights at the edge of permanent shadow. */
 export function onShadowStop(p: { hasLights: boolean; stopped: boolean }): RelationshipEvent[] {
   return !p.hasLights && p.stopped ? [{ id: 'no-lights' }] : [];
+}
+
+// --- Mars ---
+
+/**
+ * The hydrogen meter is reading on a noisy rover. The RTG adds neutron noise: the neutron spectrometer is
+ * switched on and awake (`reading`) on a rover whose power part has `neutronNoise` (the RTG), so its floor
+ * is raised and it jitters.
+ */
+export function onNeutronMeter(p: { reading: boolean; noisy: boolean }): RelationshipEvent[] {
+  return p.reading && p.noisy ? [{ id: 'rtg-neutron' }] : [];
+}
+
+/**
+ * Dust on the panels: dust has cut the rover's solar income by at least `tuning.dust.lessonLoss` (15%).
+ * A rover without solar income keeps a factor of 1, so it never fires there; nor on a world without dust.
+ */
+export function onDust(dustFactor: number, dust: DustTuning | undefined): RelationshipEvent[] {
+  return dustLessonReached(dustFactor, dust) ? [{ id: 'dust-panels' }] : [];
+}
+
+/** A use was refused. The organics reading needs gentle ground: a contact reading (organics since November 16) refused for the slope under the rover. */
+export function onUseRefused(reason: InstrumentRefusal): RelationshipEvent[] {
+  return reason === 'slope' ? [{ id: 'arm-slope' }] : [];
+}
+
+/**
+ * No lights, no driving at night (the Mars entry): night has stopped an awake rover without lights. Asleep,
+ * the rover is not trying to drive; a night that allows driving without lights (`canDrive`) stops nothing.
+ * The same moment the HUD shows its no-lights warning.
+ */
+export function onNightNoLights(p: { isNight: boolean; poweredDown: boolean; hasLights: boolean; canDrive: boolean }): RelationshipEvent[] {
+  return p.isNight && !p.poweredDown && !p.hasLights && !p.canDrive ? [{ id: 'no-lights-night' }] : [];
 }
 
 /**
@@ -146,18 +202,40 @@ export interface NotebookEntry {
 }
 
 /**
- * The engineering notebook: the discovered Moon lessons in the order discovered, and the count of all
- * Moon lessons (undiscovered ones are counted, never named). Unknown or repeated ids are skipped.
+ * The engineering notebook for one world: that world's discovered lessons in the order discovered, and
+ * the count of all its lessons (undiscovered ones are counted, never named). Unknown or repeated ids, and
+ * other worlds' lessons, are skipped. A world with no lessons in the data yet has a total of 0.
  */
-export function notebookView(notebook: readonly string[], file: RelationshipsFile): { entries: NotebookEntry[]; total: number } {
+export function notebookView(notebook: readonly string[], file: RelationshipsFile, world: MissionId): { entries: NotebookEntry[]; total: number } {
+  const ofWorld = (id: string) => (LESSON_IDS as readonly string[]).includes(id) && relationshipEntry(file, id)?.world === world;
   const entries: NotebookEntry[] = [];
   for (const id of new Set(notebook)) {
-    if (!(LESSON_IDS as readonly string[]).includes(id)) continue;
+    if (!ofWorld(id)) continue;
     const entry = relationshipEntry(file, id);
     const lesson = lessonFor(file, { id });
     if (entry && lesson) entries.push({ id: id as RelationshipId, entry, lesson });
   }
-  return { entries, total: LESSON_IDS.filter((id) => lessonFor(file, { id })).length };
+  return { entries, total: LESSON_IDS.filter((id) => ofWorld(id) && lessonFor(file, { id })).length };
+}
+
+/** One world's part of the notebook: its heading, its discovered lessons and the count of all its lessons. */
+export interface NotebookWorld {
+  world: MissionId;
+  entries: NotebookEntry[];
+  total: number;
+}
+
+/**
+ * The notebook as the overlay shows it: one section per world, in campaign order, from the first world
+ * through the current one (so the Moon's lessons stay readable on Mars), plus any later world that already
+ * holds a discovered lesson. Decided November 15, 2026 (game-design.md, "A catalog per world").
+ */
+export function notebookWorlds(notebook: readonly string[], file: RelationshipsFile, current: MissionId): NotebookWorld[] {
+  const reached = KNOWN_WORLDS.indexOf(current);
+  return KNOWN_WORLDS.flatMap((world, i) => {
+    const view = notebookView(notebook, file, world);
+    return i <= reached || view.entries.length > 0 ? [{ world, ...view }] : [];
+  });
 }
 
 // --- Pre-launch review ---
@@ -168,6 +246,10 @@ export interface BuildFacts {
   costs: InstrumentCosts[];
   heater: boolean;
   lights: boolean;
+  solar?: boolean; // a part with solar income (energyIncome): dust settles on it (Mars)
+  steady?: boolean; // a part with steady income (an RTG): power that dust cannot dim
+  neutronNoise?: boolean; // a part that adds neutron noise (the RTG)
+  contact?: boolean; // an instrument that needs the arm (a contact reading: the organics spectrometer on Mars; the X-ray needs none since November 16)
 }
 
 export function buildFacts(parts: Part[]): BuildFacts {
@@ -176,6 +258,10 @@ export function buildFacts(parts: Part[]): BuildFacts {
     costs: instrumentCosts(parts),
     heater: parts.some((p) => (p.effects.heat ?? 0) > 0),
     lights: parts.some((p) => (p.effects.lightRange ?? 0) > 0),
+    solar: parts.some((p) => (p.effects.energyIncome ?? 0) > 0),
+    steady: parts.some((p) => (p.effects.steadyIncome ?? 0) > 0),
+    neutronNoise: parts.some((p) => p.effects.neutronNoise === true),
+    contact: parts.some((p) => p.effects.instrument !== undefined && (p.effects.needs ?? []).includes('arm')),
   };
 }
 
@@ -203,6 +289,16 @@ export const BUILD_PREDICATES: Record<RelationshipId, BuildPredicate> = {
   'xray-cold': { solvable: false, verdict: (b) => (b.instruments.includes('xray') ? 'risk' : null) },
   'seismometer-quiet': { solvable: false, verdict: (b) => (b.instruments.includes('seismometer') ? 'risk' : null) },
   'no-lights': { solvable: false, verdict: (b) => (b.lights ? null : 'risk') },
+  // Mars. The RTG's noise matters only with the neutron spectrometer aboard; on solar power it is solved.
+  'rtg-neutron': {
+    solvable: true,
+    verdict: (b) => (!b.instruments.includes('neutron') ? null : b.neutronNoise ? 'risk' : 'solved'),
+  },
+  // Dust dims any solar part, the higher solar mast too (more slowly): a risk. Power from an RTG alone is solved.
+  'dust-panels': { solvable: true, verdict: (b) => (b.solar ? 'risk' : b.steady ? 'solved' : null) },
+  // Parking level is a plan, not a part: never solved. Only the organics spectrometer needs the arm, so an X-ray build never gets it.
+  'arm-slope': { solvable: false, verdict: (b) => (b.contact ? 'risk' : null) },
+  'no-lights-night': { solvable: false, verdict: (b) => (b.lights ? null : 'risk') },
 };
 
 /** The ids whose predicate can say 'solved' (derived from BUILD_PREDICATES). */
@@ -219,13 +315,14 @@ export interface ReviewItem {
 
 /**
  * The pre-launch review: the build's relationships that are in the notebook, plus hard blocks (always
- * shown, discovered or not), in data order. Relationships the build does not trigger are left out, so a
- * first build shows only its hard blocks. The player can always launch: the review only informs.
+ * shown, discovered or not), in data order, for the data's world only. Relationships the build does not
+ * trigger are left out, so a first build shows only its hard blocks. The player can always launch: the
+ * review only informs.
  */
-export function reviewItems(build: Build, notebook: readonly string[], data: { parts: PartsFile; relationships: RelationshipsFile }): ReviewItem[] {
+export function reviewItems(build: Build, notebook: readonly string[], data: { world: MissionId; parts: PartsFile; relationships: RelationshipsFile }): ReviewItem[] {
   const facts = buildFacts(selectedParts(build, data.parts));
   const known = new Set(notebook);
-  return data.relationships.relationships.flatMap((r) => {
+  return relationshipsOf(data.relationships, data.world).flatMap((r) => {
     if (!r.hardBlock && !known.has(r.id)) return [];
     const predicate = BUILD_PREDICATES[r.id as RelationshipId] as BuildPredicate | undefined;
     const verdict = predicate?.verdict(facts) ?? null;
@@ -253,11 +350,12 @@ function placeholders(s: string | undefined): string[] {
 }
 
 /**
- * relationships.json: unique ids, known parts, text present, a valid kind and review color, every fired
+ * relationships.json: unique ids, a known world, known parts offered on that world (`parts`: every
+ * world's parts), text present, a valid kind and review color, every fired
  * relationship present with its lesson and real fact, a build predicate for every entry, no variants
  * (the mission fires one lesson per relationship), and placeholders only where the mission fills them.
  */
-export function relationshipProblems(file: RelationshipsFile, partIds: ReadonlySet<string>): string[] {
+export function relationshipProblems(file: RelationshipsFile, parts: readonly Part[]): string[] {
   const problems: string[] = [];
   const ids = new Set<string>();
   const filled = (s: unknown) => typeof s === 'string' && s.trim().length > 0;
@@ -265,11 +363,16 @@ export function relationshipProblems(file: RelationshipsFile, partIds: ReadonlyS
   for (const r of file.relationships) {
     if (ids.has(r.id)) problems.push(`duplicate relationship id ${r.id}`);
     ids.add(r.id);
-    if (r.world !== 'moon') problems.push(`relationship ${r.id} has unknown world ${String(r.world)}`);
+    const knownWorld = KNOWN_WORLDS.includes(r.world);
+    if (!knownWorld) problems.push(`relationship ${r.id} has unknown world ${String(r.world)}`);
     if (!KINDS.includes(r.kind)) problems.push(`relationship ${r.id} has unknown kind ${String(r.kind)}`);
     if (!COLORS.includes(r.review)) problems.push(`relationship ${r.id} has unknown review color ${String(r.review)}`);
     if (r.parts.length === 0) problems.push(`relationship ${r.id} names no parts`);
-    for (const p of r.parts) if (!partIds.has(p)) problems.push(`relationship ${r.id} names unknown part ${p}`);
+    for (const id of r.parts) {
+      const part = parts.find((p) => p.id === id);
+      if (!part) problems.push(`relationship ${r.id} names unknown part ${id}`);
+      else if (knownWorld && !offeredOn(part, r.world)) problems.push(`relationship ${r.id} names part ${id}, which ${r.world} does not offer`);
+    }
     if (!filled(r.name) || !filled(r.reviewText)) problems.push(`relationship ${r.id} needs a name and review text`);
     if (r.review === 'red' && !r.hardBlock) problems.push(`relationship ${r.id} is red, which only a hard block can be (the review shows red as Blocked)`);
     if (r.hardBlock && r.review !== 'red') problems.push(`relationship ${r.id} is a hard block, so its review is red`);
