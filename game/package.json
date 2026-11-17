@@ -9,7 +9,10 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "cinematic:dev": "CINEMATIC_PORT=5410 vite --config cinematic/vite.config.mjs",
+    "cinematic:check": "tsc --noEmit -p cinematic/tsconfig.json",
+    "cinematic:render": "node cinematic/tools/render.mjs"
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.21.0",

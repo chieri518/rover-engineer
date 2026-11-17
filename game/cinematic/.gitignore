@@ -1,0 +1,4 @@
+# Render outputs, downloads and caches (re-create with the commands in README.md)
+out/
+assets/download/
+.vite/
