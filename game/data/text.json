@@ -103,7 +103,7 @@
     "speedInfoButton": "About drive speeds",
     "speedInfoTitle": "Drive speeds",
     "speedInfo": [
-      "The mission compresses 14 days of lunar daylight into 5 minutes. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
+      "The mission compresses {days} days of lunar daylight into {minutes} minutes, about one Earth day per minute, the same rate on every world. Driving is compressed too: rovers in this game drive {compression} times faster than the real speeds their parts are modeled on.",
       "On Apollo 15 in 1971, the crew reported that about 6 to 7 km/h was the most comfortable driving speed for the Lunar Roving Vehicle. Its top speed was of the order of 9 to 13 km/h, depending on slope, roughness, and soil.",
       "Robotic rovers drive far slower. NASA's Curiosity and Perseverance rovers on Mars have a top speed of about 4 cm/s (0.15 km/h) on flat ground."
     ],
@@ -312,7 +312,7 @@
     "poweredDown": "Powered down. The rover cannot drive.",
     "minimap": "Map of the operating area",
     "endedHeading": "Mission ended",
-    "endedSurvived": "The rover completed fourteen days of lunar daylight.",
+    "endedSurvived": "The rover completed its mission in the lunar daylight.",
     "endedFailed": "Cause: {cause}.",
     "legendLander": "Lander",
     "legendViewpoint": "Viewpoint",
@@ -410,7 +410,7 @@
     "destroyed": "Destroyed by damage"
   },
   "history": {
-    "survived": "India's Pragyan rover did likewise in 2023: it completed its planned one lunar day of operations, about 14 Earth days, before ISRO put it into sleep mode for the lunar night.",
+    "survived": "India's Pragyan rover survived its own mission in 2023: it completed its planned one lunar day of operations, about 14 Earth days, before ISRO put it into sleep mode for the lunar night.",
     "energy": "NASA's solar-powered Opportunity rover ended the same way: a Mars-wide dust storm covered its site, its last signal arrived on June 10, 2018, and NASA declared the mission over on February 13, 2019.",
     "stuck": "NASA's Spirit rover met this fate on Mars: it became stuck in soft soil on May 1, 2009, and in January 2010 NASA redefined its mission as a stationary science platform.",
     "froze": "India's Vikram lander and Pragyan rover entered sleep mode before the cold lunar night in September 2023, and ISRO has not reported regaining contact after its wake-up attempts around September 22.",
@@ -547,7 +547,7 @@
     "drillIce": "Sample collected. The regolith contains water ice.",
     "drillNoIce": "Sample collected. No water ice detected at this site.",
     "drillNearLander": "Sample not counted: the ground within {distance} m of the lander was disturbed by its engine plume. Drill farther away.",
-    "earthDarkHint": "Earth is in view but only {lit}% lit. The photo counts once at least {min}% of Earth is lit.",
+    "earthDarkHint": "Earth is in view but only {lit}% lit. The photo counts only while at least {min}% of Earth is lit.",
     "earthTooCloseHint": "Earth is in view, but the rover is only {distance} m from the lander. The Earth photo counts at least {min} m away.",
     "partialCrossingHint": "Partial crossing: the rover left the boulder field close to where it entered. Drive through to the far side to record a crossing.",
     "captionEarth": "Earth above the horizon",
@@ -848,6 +848,15 @@
         "text": "Sinkage on normal ground and on soft crater rims, and wheel slip, are based on Apollo 15 Lunar Roving Vehicle data.",
         "citation": "Costes, N.C., et al. (1972), Mobility Performance of the Lunar Roving Vehicle: Terrestrial Studies — Apollo 15 Results, NASA TR R-401, NASA Technical Reports Server",
         "url": "https://ntrs.nasa.gov/api/citations/19730008090/downloads/19730008090.pdf"
+      }
+    ],
+    "titleLabel": "Title screen",
+    "titleEntries": [
+      {
+        "label": "Earth",
+        "text": "Earth on the title screen is NASA's Blue Marble: the Blue Marble Next Generation surface (September, with topography and bathymetry) and the Blue Marble cloud composite. It is drawn south up, as Earth appears from the Moon's south pole.",
+        "citation": "NASA Earth Observatory (Reto Stöckli); clouds: NASA Goddard Space Flight Center (Reto Stöckli, Robert Simmon)",
+        "url": "https://earthobservatory.nasa.gov/features/BlueMarble"
       }
     ],
     "speedLabel": "Real drive speeds (design screen)",

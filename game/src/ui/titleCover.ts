@@ -5,7 +5,8 @@
 import * as THREE from 'three';
 import type { RoverHandling } from '../rules/types';
 import { buildRoverModel, type RoverLook } from '../rover/roverModel';
-import { earthTexture, glowTexture } from '../world/sky';
+import { earthGlobe, type EarthGlobe } from '../world/earthGlobe';
+import { glowTexture } from '../world/sky';
 
 // Look and motion. Presentation settings, not game rules.
 const MAX_PIXEL_RATIO = 2;
@@ -20,6 +21,10 @@ const SUN_ELEVATION_DEG = 5; // real south-pole Sun stays under about 1.5°; a l
 const SUN_INTENSITY = 7;
 const EARTH_ELEVATION_DEG = 2.6; // low in the north, as seen from the south pole site
 const EARTH_DIAMETER_DEG = 3.4; // Earth is about 1.9° across from the Moon; drawn larger to read on a cover
+const EARTH_FACING_LONGITUDE_DEG = 60; // with south up and the Sun to the right, Africa sits in the sunlit half
+// Seen from the lunar south pole, the local zenith points along the Moon's south spin axis, and Earth's axis is
+// within about 25° of the Moon's: Earth shows with its south pole up. 180 = exactly south up.
+const EARTH_ROLL_DEG = 180;
 const SKY_RADIUS = 3000;
 const GROUND_RADIUS = 2600;
 const STAR_COUNT = 3000;
@@ -280,7 +285,9 @@ export function mountTitleCover(container: HTMLElement, handling: RoverHandling)
     if (!loopRunning()) render();
   };
 
+  let globe: EarthGlobe | null = null;
   const disposeAll = () => {
+    globe?.dispose();
     scene.traverse((obj) => {
       if (obj instanceof THREE.Mesh || obj instanceof THREE.Points || obj instanceof THREE.Sprite) {
         obj.geometry.dispose();
@@ -339,13 +346,18 @@ export function mountTitleCover(container: HTMLElement, handling: RoverHandling)
 
     // Earth, lit by the same Sun, so it shows a real phase.
     const earthDistance = SKY_RADIUS * 0.8;
-    const earth = new THREE.Mesh(
-      new THREE.SphereGeometry(earthDistance * Math.tan(THREE.MathUtils.degToRad(EARTH_DIAMETER_DEG / 2)), 48, 32),
-      new THREE.MeshLambertMaterial({ map: earthTexture() }),
-    );
-    earth.position.copy(earthDir).multiplyScalar(earthDistance);
-    earth.rotation.set(0.4, 1.2, 0.2);
-    scene.add(earth);
+    globe = earthGlobe({
+      radius: earthDistance * Math.tan(THREE.MathUtils.degToRad(EARTH_DIAMETER_DEG / 2)),
+      sunDir,
+      viewDir: earthDir,
+      facingLongitudeDeg: EARTH_FACING_LONGITUDE_DEG,
+      rollDeg: EARTH_ROLL_DEG,
+      onLoad: () => {
+        if (shown && !loopRunning()) render();
+      },
+    });
+    globe.object.position.copy(earthDir).multiplyScalar(earthDistance);
+    scene.add(globe.object);
 
     // Ground and rocks.
     const regolith = regolithTexture();

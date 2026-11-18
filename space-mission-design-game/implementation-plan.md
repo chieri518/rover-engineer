@@ -144,7 +144,7 @@ Phases are in build order. "Submission" means it must be in the build we submit 
 
 ### Phase 4: Mission systems · Submission
 
-- Mission timer: 5 minutes covering 14 days. No clock on the HUD: time shows only through the Sun and shadows.
+- Mission timer: 5 minutes covering 5 Earth days (14 until November 17, 2026: every world now runs at about one Earth day per minute). No clock on the HUD: time shows only through the Sun and shadows.
 - Energy: solar income depends on sunlight (zero in shadow); driving cost grows with mass and slope.
 - Damage meter: rocks, steep slopes, quakes, flares, overloaded chassis, each from `tuning.json`.
 - Cold: a freeze meter inside the shadowed zone, slowed by the heater.

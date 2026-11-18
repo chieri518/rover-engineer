@@ -814,6 +814,9 @@ export interface SharedTextFile {
     /** A world's own parts with a real basis (Mars step 8): a label, then hand-written entries named after the parts. */
     partsLabel?: string;
     partEntries?: CreditEntry[];
+    /** The title screen's imagery (the Earth on the cover): a heading, then hand-written entries. */
+    titleLabel?: string;
+    titleEntries?: CreditEntry[];
   };
 }
 
