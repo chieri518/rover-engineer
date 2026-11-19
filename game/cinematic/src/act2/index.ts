@@ -117,7 +117,7 @@ export const act2: SequenceDef[] = [
       o.scene.add(lander.object);
       // The ramp's toe, and the first touch.
       const toeX = LANDER.hingeX + Math.sin(lander.openAngle) * (LANDER.doorTopY - LANDER.floorY);
-      tracks.startX = toeX + 0.02; // the wheel's contact leaves the toe here: wheelTouch
+      tracks.startX = toeX + 0.02; // provisional: the wheels' landing point past the toe is found below
 
       // The hero rover in the bay.
       const rover = new HeroRover(w.data, { offline: o, envMap });
@@ -125,14 +125,35 @@ export const act2: SequenceDef[] = [
       const r = w.data.tuning.rover;
       const BAY_X = 1.42;
 
-      /** Surface under a wheel (lander-local): bay floor, ramp, or regolith (in the rut once pressed). */
-      const surfaceLocal = (lx: number, lz: number): number => {
+      /** Surface at a point (lander-local): bay floor, ramp, or regolith (in the rut once pressed, with `ruts`). */
+      const surfaceAt = (lx: number, lz: number, ruts = true): number => {
         const g = ground.heightLocal(lx, lz);
         if (lx < LANDER.hingeX && Math.abs(lz) < LANDER.bayHalfW) return LANDER.floorY;
         const ramp = lander.rampHeight(lx, lz);
-        const rut = lx > tracks.startX ? -tracks.depth * 0.8 : 0;
+        const rut = ruts && lx > tracks.startX ? -tracks.depth * 0.8 : 0;
         return ramp !== null ? Math.max(ramp, g) : g + rut;
       };
+      // A wheel rolls over edges rather than through them: its contact height is the highest the surface
+      // reaches under the tyre's arc (the wheel's centre at x, radius R). Leaving the ramp's toe, the wheel
+      // pivots over the edge and eases down onto the regolith instead of dropping in one frame.
+      const R = w.data.tuning.rover.wheelRadiusM;
+      const ARC = 12;
+      const surfaceLocal = (lx: number, lz: number, ruts = true): number => {
+        let best = -Infinity;
+        for (let i = -ARC; i <= ARC; i++) {
+          const dx = (i / ARC) * R;
+          best = Math.max(best, surfaceAt(lx + dx, lz, ruts) - (R - Math.sqrt(R * R - dx * dx)));
+        }
+        return best;
+      };
+      // The first touch (wheelTouch) is where the front wheels, rolling off the toe, come to rest on the
+      // regolith; the ruts begin there.
+      {
+        const lz = wheelTrack / 2;
+        let x = toeX - 0.05;
+        while (x < toeX + 2 * R && surfaceLocal(x, lz, false) > surfaceAt(x, lz, false) + 0.001) x += 0.002;
+        ground.setTrackStart(x);
+      }
       const surfaceWorld = (wx: number, wz: number) => {
         const dx = wx - origin.x;
         const dz = wz - origin.z;

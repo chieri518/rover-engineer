@@ -99,6 +99,7 @@ export class Ground {
   private readonly opts: GroundOptions;
   private readonly NEAR = { x0: 1.6, x1: 17, z0: -2.55, z1: 2.55, step: 0.03, lift: 0.02, fade: 0.45 };
   private readonly HALO = { half: 26, step: 0.22, lift: 0.01, fade: 1.5 };
+  private nearPatch: THREE.Mesh | null = null;
 
   constructor(opts: GroundOptions) {
     this.opts = opts;
@@ -108,8 +109,7 @@ export class Ground {
     this.material = this.extend(m);
     this.disposables.push(this.material);
 
-    const near = this.NEAR;
-    this.group.add(this.patch(near.x0, near.x1, near.z0, near.z1, near.step, near.lift, near.fade, true));
+    this.buildNear();
     const h = this.HALO;
     this.group.add(this.patch(-h.half, h.half, -h.half, h.half, h.step, h.lift, h.fade, false));
     for (const p of opts.footpads) {
@@ -117,6 +117,24 @@ export class Ground {
       this.group.add(this.patch(p.x - r, p.x + r, p.z - r, p.z + r, 0.018, 0.015, 0.2, false, p));
     }
     this.group.add(this.pebbles());
+  }
+
+  /** The near patch, with the ruts pressed from `tracks.startX` on. */
+  private buildNear(): void {
+    const near = this.NEAR;
+    this.nearPatch = this.patch(near.x0, near.x1, near.z0, near.z1, near.step, near.lift, near.fade, true);
+    this.group.add(this.nearPatch);
+  }
+
+  /** Move where the ruts begin (the first touch, once the lander's ramp is known) and rebuild the near patch. */
+  setTrackStart(x: number): void {
+    if (x === this.opts.tracks.startX) return;
+    this.opts.tracks.startX = x;
+    if (this.nearPatch) {
+      this.nearPatch.removeFromParent();
+      this.nearPatch.geometry.dispose();
+    }
+    this.buildNear();
   }
 
   /** Ground height at lander-local (x, z), in the lander's frame (relative to its origin), with the patches' lift. */
