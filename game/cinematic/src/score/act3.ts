@@ -23,6 +23,10 @@ interface Section {
   melody: Melody;
   /** Extra low note under the bass (Titan's deepest note). */
   deep?: string;
+  /** Seconds the pad and the melody's last note ring on past the section's end, fading under the next. */
+  tail?: number;
+  /** Seconds the pad takes to come in (a crossfade from the section before). */
+  fadeIn?: number;
 }
 
 export function act3(s: Score, T: Times): void {
@@ -43,17 +47,22 @@ export function act3(s: Score, T: Times): void {
     chord: ['D2', 'A2', 'D3', 'F#3', 'A3', 'E4'],
     melody: [[0, 'A4', 0.5], [0.5, 'D5', 1], [1.5, 'E5', 0.5], [2, 'F#5', 2], [4, 'E5', 1], [5, 'D5', 1], [6, 'A4', 2]],
   });
+  // Moon -> Mars: B minor and G major share B and D. The Moon's short phrase comes down to D and holds it
+  // across the cut, where it is the Mars chord's fifth and the pickup to the Mars melody (which starts a beat
+  // later, on G); the Moon pad fades under the Mars pad instead of stopping on the cut.
   sections.push({
     t0: T.floodlights,
     t1: T.mars,
     chord: ['B1', 'F#2', 'B2', 'D3', 'F#3', 'B3'],
-    melody: [[0, 'F#5', 1.5], [1.5, 'E5', 0.5], [2, 'D5', 1], [3, 'B4', 1], [4, 'D5', 2]],
+    melody: [[0, 'F#5', 1], [1, 'E5', 0.5], [1.5, 'D5', 3.5]],
+    tail: 1.1,
   });
   const marsMid = split(T.mars, T.titan);
-  sections.push({ t0: T.mars, t1: marsMid, chord: ['G1', 'D2', 'G2', 'B2', 'D3', 'G3'], melody: [[0, 'B4', 0.5], [0.5, 'D5', 0.5], [1, 'G5', 1.5], [2.5, 'F#5', 0.5], [3, 'E5', 1]] });
-  sections.push({ t0: marsMid, t1: T.titan, chord: ['A1', 'E2', 'A2', 'C#3', 'E3', 'A3'], melody: [[0, 'C#5', 0.5], [0.5, 'E5', 0.5], [1, 'A5', 1.5], [2.5, 'G5', 0.5], [3, 'E5', 1]] });
+  sections.push({ t0: T.mars, t1: marsMid, chord: ['G1', 'D2', 'G2', 'B2', 'D3', 'G3'], melody: [[1, 'G5', 1.5], [2.5, 'F#5', 0.5], [3, 'E5', 1]], fadeIn: 0.45 });
+  // Mars -> Titan: A major and Bb major share no note, so the overlap is short (a fade, not a blend).
+  sections.push({ t0: marsMid, t1: T.titan, chord: ['A1', 'E2', 'A2', 'C#3', 'E3', 'A3'], melody: [[0, 'C#5', 0.5], [0.5, 'E5', 0.5], [1, 'A5', 1.5], [2.5, 'G5', 0.5], [3, 'E5', 1]], tail: 0.35 });
   const titanMid = split(T.titan, T.lightsOut);
-  sections.push({ t0: T.titan, t1: titanMid, chord: ['Bb1', 'F2', 'Bb2', 'D3', 'F3', 'Bb3'], deep: 'Bb0', melody: [[0, 'D5', 1], [1, 'F5', 1], [2, 'Bb5', 2]] });
+  sections.push({ t0: T.titan, t1: titanMid, chord: ['Bb1', 'F2', 'Bb2', 'D3', 'F3', 'Bb3'], deep: 'Bb0', melody: [[0, 'D5', 1], [1, 'F5', 1], [2, 'Bb5', 2]], fadeIn: 0.3 });
   sections.push({ t0: titanMid, t1: T.lightsOut, chord: ['C2', 'G2', 'C3', 'E3', 'G3', 'C4'], deep: 'C1', melody: [[0, 'E5', 1], [1, 'G5', 1], [2, 'C6', 2]] });
 
   for (const [i, sec] of sections.entries()) {
@@ -61,14 +70,17 @@ export function act3(s: Score, T: Times): void {
     groove(s, out, sec, i === 0 || i === 1);
   }
 
-  // The downbeat at the wheel: a boom and a bell on top.
-  boom(s, low.in, T.wheelTouch, 70, 34, 0.32, 2.2, 0.12);
+  // The downbeat at the wheel: a boom and a bell on top. The theme rises out of the build (which lets go under
+  // it) instead of slamming in: its layers start lower on the touch and reach full level over the first bar.
+  theme.to(T.wheelTouch - 0.005, 1.0, 0.005).to(T.wheelTouch, 2, 1.2);
+  low.to(T.wheelTouch - 0.005, 1.1, 0.005).to(T.wheelTouch, 2, 0.8);
+  boom(s, low.in, T.wheelTouch, 70, 34, 0.24, 2.2, 0.12);
   bell(s, theme.in, T.wheelTouch, hz(m('A5')), 0.05, 2.5, moonBell.partial, 0.3);
 
   // The crater: the theme carries over the cut and drops out as the ground falls into shadow (moonDark); one
   // lonely tone (a slowly beating A4) in the dark.
-  theme.to(T.moonDark, 0, 0.03);
-  low.to(T.moonDark, 0, 0.03);
+  theme.to(T.moonDark, 0, 0.3);
+  low.to(T.moonDark, 0, 0.3);
   {
     const lone = new Layer(s, 'music', 1, 1);
     const sh = { a: 0.25, h: Math.max(0.05, T.floodlights - T.moonDark - 0.3), r: 0.05 };
@@ -87,8 +99,8 @@ export function act3(s: Score, T: Times): void {
     bell(s, theme.in, t + 0.01, hz(m('F#6')), 0.035, 2.5, moonBell.partial, 0.3);
   }
   // Hits on the other cuts.
-  boom(s, low.in, T.mars, 65, 34, 0.26, 1.4, 0.12);
-  boom(s, low.in, T.titan, 55, 26, 0.36, 2.4, 0.2);
+  boom(s, low.in, T.mars, 65, 34, 0.16, 1.4, 0.12);
+  boom(s, low.in, T.titan, 55, 26, 0.3, 2.4, 0.2);
 
   // lightsOut: the last chord, D major, everything at once, held until black (the master cuts it there).
   {
@@ -122,13 +134,17 @@ function groove(s: Score, d: Dest, sec: Section, light: boolean): void {
   const len = t1 - t0;
   const notes = sec.chord.map(m);
   const pad = MOODS.calm.pad;
-  const sh = { a: 0.06, h: Math.max(0.01, len - 0.06 - 0.08), r: 0.08 };
+  const tail = sec.tail ?? 0;
+  const fadeIn = sec.fadeIn ?? 0.06;
+  const sh = { a: fadeIn, h: Math.max(0.01, len - fadeIn - 0.08), r: 0.08 + tail };
   chord(s, dest, t0, notes.slice(1), 0.03, sh, { type: 'sawtooth', detune: [-9, 9], cutoff: 1700, q: 0.6 });
   chord(s, dest, t0, notes.slice(1), 0.03, sh, { type: 'triangle', detune: [-pad.detuneCents, pad.detuneCents], cutoff: 2000 });
   if (sec.deep) {
-    // The deepest note: a sine and the game's Titan drone (a dark lowpassed saw) an octave up.
-    tone(s, d.low, t0, hz(m(sec.deep)), 0.16, sh, { type: 'sine' });
-    tone(s, d.low, t0, hz(m(sec.deep) + 12), 0.08, sh, { type: 'sawtooth', detune: [-4, 5], cutoff: MOODS.titan.drone!.cutoffHz });
+    // The deepest note: a sine and the game's Titan drone (a dark lowpassed saw) an octave up (no tail: the low
+    // end stays clean across the cut).
+    const deepSh = { ...sh, r: 0.08 };
+    tone(s, d.low, t0, hz(m(sec.deep)), 0.16, deepSh, { type: 'sine' });
+    tone(s, d.low, t0, hz(m(sec.deep) + 12), 0.08, deepSh, { type: 'sawtooth', detune: [-4, 5], cutoff: MOODS.titan.drone!.cutoffHz });
   }
   const root = notes[0]!;
   // Bass: eighths, root with an octave jump, accent on the beat.
@@ -156,11 +172,12 @@ function groove(s: Score, d: Dest, sec: Section, light: boolean): void {
       pan: k % 2 ? 0.35 : -0.35,
     });
   }
-  // Melody: the lead, cut at the section's end.
-  for (const [beat, note, beats] of sec.melody) {
+  // Melody: the lead, cut at the section's end (the last note may ring on into the tail).
+  for (const [i, [beat, note, beats]] of sec.melody.entries()) {
     const t = t0 + beat * BEAT;
     if (t > t1 - 0.08) break;
-    lead(s, dest, t, m(note), 0.06, Math.min(beats * BEAT, t1 - t) - 0.02);
+    const last = i === sec.melody.length - 1 || t0 + sec.melody[i + 1]![0] * BEAT > t1 - 0.08;
+    lead(s, dest, t, m(note), 0.06, Math.min(beats * BEAT, t1 - t + (last ? tail : 0)) - 0.02);
   }
 }
 
@@ -173,11 +190,12 @@ function lead(s: Score, dest: AudioNode, t: number, note: number, gain: number, 
 }
 
 /** The rover's motor hum (the game's RoverHum: a filtered saw with a faint whine at 3x), fixed at a cruise. */
-function roverHum(s: Score, dest: AudioNode, t0: number, t1: number, cutoff: number, gain: number): void {
+function roverHum(s: Score, dest: AudioNode, t0: number, t1: number, cutoff: number, gain: number, fadeIn = 0.015, fadeOut = 0.015): void {
   const f = MOTOR.idleHz + (MOTOR.topHz - MOTOR.idleHz) * 0.45;
   const lp = new BiquadFilterNode(s.ac, { type: 'lowpass', frequency: cutoff, Q: 1.5 });
   const g = new GainNode(s.ac, { gain: 0 });
-  ramp(g.gain, [[t0, 0], [t0 + 0.015, gain], [t1 - 0.015, gain], [t1, 0]]);
+  // Fades in from t0 and out ending fadeOut past t1 (a crossfade into the next world).
+  ramp(g.gain, [[t0, 0], [t0 + fadeIn, gain], [t1, gain], [t1 + fadeOut, 0]]);
   lp.connect(g).connect(dest);
   const o = new OscillatorNode(s.ac, { type: 'sawtooth', frequency: f });
   const w = new OscillatorNode(s.ac, { type: 'sine', frequency: f * 3 });
@@ -191,27 +209,28 @@ function roverHum(s: Score, dest: AudioNode, t0: number, t1: number, cutoff: num
   w.connect(wg).connect(lp);
   for (const x of [o, w, lfo]) {
     x.start(t0);
-    x.stop(t1 + 0.05);
+    x.stop(t1 + fadeOut + 0.05);
   }
 }
 
-/** Mars: storm wind through thin air (muffled, gusting, growing as the storm rolls in) and the rover's hum. */
+/** Mars: storm wind through thin air (muffled, gusting, growing as the storm rolls in) and the rover's hum, fading in. */
 function mars(s: Score, T: Times): void {
   const fx = new Layer(s, 'effects', 1.25, 1);
   const { mars: t0, titan: t1 } = T;
   const air = MOODS.mars.air!;
-  const wind = noiseBed(s, fx.in, s.b.white, t0, t1, [
+  const out = 0.4; // the wind fades out under Titan's rain
+  const wind = noiseBed(s, fx.in, s.b.white, t0, t1 + out, [
     { type: 'bandpass', hz: air.hz, q: air.q },
     { type: 'lowpass', hz: 650, q: 0.5 },
   ]);
   const bp = wind.filters[0]!.frequency;
   ramp(bp, [[t0, 380], [t0 + (t1 - t0) * 0.4, 620], [t0 + (t1 - t0) * 0.7, 420], [t1, 560]]);
   const w = WEATHER.windMax * 6;
-  ramp(wind.gain.gain, [[t0, 0], [t0 + 0.02, w * 0.45], [t0 + (t1 - t0) * 0.35, w * 0.7], [t0 + (t1 - t0) * 0.55, w * 0.55], [t1 - 0.03, w], [t1, 0]]);
-  roverHum(s, fx.in, t0, t1, MOTOR.thinAirCutoffHz[1] - 60, 0.11);
+  ramp(wind.gain.gain, [[t0, 0], [t0 + 0.6, w * 0.45], [t0 + (t1 - t0) * 0.35, w * 0.7], [t0 + (t1 - t0) * 0.55, w * 0.55], [t1, w], [t1 + out, 0]]);
+  roverHum(s, fx.in, t0, t1, MOTOR.thinAirCutoffHz[1] - 60, 0.11, 0.5, 0.3);
 }
 
-/** Titan: loud methane rain through thick air (hiss, patter, drops, a low rumble) and a fuller rover hum. */
+/** Titan: loud methane rain through thick air (hiss, patter, drops, a low rumble) and a fuller rover hum, fading in. */
 function titan(s: Score, T: Times): void {
   const fx = new Layer(s, 'effects', 0.7, 1.5);
   const { titan: t0, black: t1 } = T;
@@ -220,15 +239,15 @@ function titan(s: Score, T: Times): void {
     { type: 'highpass', hz: 2200, q: 0.5 },
     { type: 'lowpass', hz: 6500, q: 0.5 },
   ]);
-  ramp(hiss.gain.gain, [[t0, 0], [t0 + 0.03, r * 3.2], [t1, r * 3.6]]);
+  ramp(hiss.gain.gain, [[t0, 0], [t0 + 0.5, r * 3.2], [t1, r * 3.6]]);
   const patter = noiseBed(s, fx.in, s.b.brown, t0, t1, [{ type: 'bandpass', hz: 900, q: 0.8 }]);
-  ramp(patter.gain.gain, [[t0, 0], [t0 + 0.03, r * 5], [t1, r * 5]]);
+  ramp(patter.gain.gain, [[t0, 0], [t0 + 0.5, r * 5], [t1, r * 5]]);
   const drops = noiseBed(s, fx.in, impulses(s, t1 - t0 + 1, 90, 0.5), t0, t1, [
     { type: 'bandpass', hz: 2600, q: 0.6 },
     { type: 'lowpass', hz: 6000, q: 0.5 },
   ], 0.7);
-  ramp(drops.gain.gain, [[t0, 0], [t0 + 0.03, 1.4], [t1, 1.4]]);
+  ramp(drops.gain.gain, [[t0, 0], [t0 + 0.4, 1.4], [t1, 1.4]]);
   const rumble = noiseBed(s, fx.in, s.b.brown, t0, t1, [{ type: 'lowpass', hz: 140, q: 0.7 }]);
-  ramp(rumble.gain.gain, [[t0, 0], [t0 + 0.03, 0.5], [t1, 0.5]]);
-  roverHum(s, fx.in, t0, t1, MOTOR.cutoffHz[1] * 0.6, 0.09);
+  ramp(rumble.gain.gain, [[t0, 0], [t0 + 0.5, 0.5], [t1, 0.5]]);
+  roverHum(s, fx.in, t0, t1, MOTOR.cutoffHz[1] * 0.6, 0.09, 0.4);
 }

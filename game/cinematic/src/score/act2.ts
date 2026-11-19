@@ -1,7 +1,7 @@
 // Act 2 · Arrival on the Moon. The Moon has no air, so there is no diegetic sound at all here (no noise of any kind):
 // only the score. A held low D on touchdown; a slow rising tone as the doors open; a soft chime per status light;
 // a warm pad as the panel unfolds; a gentle filter sweep for the mast; a G chord blooming as the eye lights (the
-// emotional beat); then a build on A that breathes in just before the first wheel touches the regolith.
+// emotional beat); then a build on A that swells straight into the theme as the first wheel touches the regolith.
 import { MOODS } from '../../../src/audio/mix';
 import { Layer, bell, boom, chord, envelope, hz, m, tone, type Score } from './synth';
 import type { Times } from './times';
@@ -75,13 +75,13 @@ export function act2(s: Score, T: Times): void {
   // The head turns to the door: a soft sine gliding up a fourth, panned with the turn.
   tone(s, music.in, T.eyeTurn, hz(m('D5')), 0.025, { a: 0.25, h: 0.4, r: 0.8 }, { type: 'sine', glideTo: hz(m('G5')), glide: 0.6, pan: 0.35 });
 
-  // The build: A sus4 in saws opening up, a rising tone, and quickening low hits; a breath of silence just
-  // before the wheel touches (the theme lands on it).
+  // The build: A sus4 in saws opening up, a rising tone, and quickening low hits. No gap before the wheel: the
+  // build peaks on the touch and lets go under the theme's first bar, so the theme rises out of it.
   {
-    const stop = wheel - 0.09;
+    const stop = wheel;
     const span = Math.max(0.05, stop - build);
-    const sh = { a: span, h: 0, r: 0.03 };
-    chord(s, music.in, build, [m('A2'), m('E3'), m('A3'), m('D4'), m('E4')], 0.07, sh, { type: 'sawtooth', detune: [-9, 9], cutoff: 300, cutoffTo: 3200, sweep: span });
+    const sh = { a: span, h: 0, r: 0.5 };
+    chord(s, music.in, build, [m('A2'), m('E3'), m('A3'), m('D4'), m('E4')], 0.07, sh, { type: 'sawtooth', detune: [-9, 9], cutoff: 300, cutoffTo: 2400, sweep: span });
     tone(s, music.in, build, hz(m('A4')), 0.03, sh, { type: 'triangle', glideTo: hz(m('A5')), glide: span, cutoff: 3000 });
     for (const before of [1.2, 0.75, 0.45, 0.25]) {
       const t = wheel - before;
