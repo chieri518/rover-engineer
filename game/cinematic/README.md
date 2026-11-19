@@ -1,6 +1,6 @@
 # Rover Engineer intro video
 
-A ~39 s wordless cinematic intro, rendered offline from code (three.js in headless Chrome on the real GPU),
+A ~43 s wordless cinematic intro, rendered offline from code (three.js in headless Chrome on the real GPU),
 with a synthesized score. This code is **not part of the game build**; the game plays the rendered film.
 
 **In the game:** Start new campaign plays `game/public/intro/rover-engineer-intro.mp4` (the 25 MB web encode),
@@ -24,7 +24,7 @@ node cinematic/tools/render.mjs --mux --video cinematic/out/intro-video-web.mp4 
 node cinematic/tools/render.mjs --mux --out cinematic/out/rover-engineer-intro-hq.mp4   # also muxes the WebM (-hq.webm)
 ```
 
-The deliverables (1920x1080, 60 fps, 39.3 s, −16 LUFS integrated, true peak −2.3 dBTP):
+The deliverables (1920x1080, 60 fps, 42.7 s, −16 LUFS integrated, true peak −2.3 dBTP):
 `rover-engineer-intro.mp4` (H.264 High, ~24.9 MB, for sharing), `rover-engineer-intro-hq.mp4` (CRF 17, ~41 MB)
 and the VP9/Opus WebM (~20 MB). The film's grain makes a CRF encode large; the 25 MB two-pass encode measures
 SSIM 0.99 against the CRF 17 master. The last full final render took 62 min (0.64 output fps on average; the
