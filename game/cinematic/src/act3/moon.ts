@@ -16,6 +16,8 @@ const HEADING = 284; // toward the cold patch's centroid from its drive point (-
 const DIR = { x: Math.sin((HEADING * Math.PI) / 180), z: -Math.cos((HEADING * Math.PI) / 180) };
 const START_BACK_M = 104;
 const DURATION = ACT3_SHOTS.moon.reduce((a, s) => a + s.duration, 0);
+/** The framing's first part: the crest, the dark and the floodlights, as first cut (3.5 s); the rest pulls back. */
+const BASE = 3.5;
 const LAMP_COLOR = 0xf4f1ea;
 /** Where the crest's shadow begins along the drive (the rover crosses it about 1 s into the shot). */
 const TERMINATOR = { x: -949, z: -190 };
@@ -29,13 +31,15 @@ export const moonClip = chaseClip({
   start: { x: -1030 - DIR.x * START_BACK_M, z: -210 - DIR.z * START_BACK_M, headingDeg: HEADING },
   lead: 2.5,
   drive: () => ({ throttle: 0.55, steer: 0, brake: false }),
-  // An operator's chase: low, off to the rover's right, easing in and across as the rover tips over the rim.
+  // An operator's chase: low, off to the rover's right, easing in and across as the rover tips over the rim; once
+  // the floodlights are on, the camera slowly lets the rover pull ahead and rises a little, so the lit ground
+  // opens up in front of it.
   framing: {
-    distance: (t) => 5.6 - 0.8 * smoothstep(0, DURATION, t),
-    height: (t) => 1.15 + 0.25 * smoothstep(1.0, DURATION, t),
-    side: (t) => 1.25 - 0.75 * smoothstep(0, DURATION, t),
+    distance: (t) => 5.6 - 0.8 * smoothstep(0, BASE, t) + 1.6 * smoothstep(BASE - 0.4, DURATION, t),
+    height: (t) => 1.15 + 0.25 * smoothstep(1.0, BASE, t) + 0.4 * smoothstep(BASE - 0.4, DURATION, t),
+    side: (t) => 1.25 - 0.75 * smoothstep(0, BASE, t),
     lookAhead: () => 9,
-    lookHeight: (t) => 0.45 - 0.35 * smoothstep(1.0, DURATION, t),
+    lookHeight: (t) => 0.45 - 0.35 * smoothstep(1.0, BASE, t),
     fov: () => 40,
     followY: 0.12,
     shakeM: 0.025,
@@ -64,7 +68,7 @@ export const moonClip = chaseClip({
     lamp.shadow.bias = -0.0004;
     lamp.shadow.normalBias = 0.02;
     lamp.shadow.radius = 2;
-    const rocks = new Rocks(o, track, groundAt, { from: -0.5, to: DURATION, count: 1800, halfWidthM: 14, aheadM: 30, color: 0x8e8a83, sizeM: [0.025, 0.3], layer: ROCK_LAYER, sunLine: new THREE.Vector4(DIR.x, DIR.z, -(TERMINATOR.x * DIR.x + TERMINATOR.z * DIR.z) - 4, 2.5) });
+    const rocks = new Rocks(o, track, groundAt, { from: -0.5, to: DURATION, count: Math.round((1800 * DURATION) / BASE), halfWidthM: 14, aheadM: 30, color: 0x8e8a83, sizeM: [0.025, 0.3], layer: ROCK_LAYER, sunLine: new THREE.Vector4(DIR.x, DIR.z, -(TERMINATOR.x * DIR.x + TERMINATOR.z * DIR.z) - 4, 2.5) });
     const light = new RoverLight(o.rover.object);
     const lamps = lampRig(h, { color: LAMP_COLOR, intensity: 40, angleRad: 0.55, penumbra: 0.5, rangeM: 45, dropM: 1.2, toeOutDeg: 4 });
     const glow = new LampGlow(lamps, LAMP_COLOR, 0.32);

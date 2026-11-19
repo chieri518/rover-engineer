@@ -1,6 +1,6 @@
 // The master, done on the rendered samples (after the game's bus chain): a DC/subsonic highpass, a gentle
 // lowpass against harsh highs on laptop speakers, a look-ahead true-peak limiter (so the loudness normalization
-// in the mux can stay linear), and a hard cut to digital silence at black. Pure functions on Float32Arrays.
+// in the mux can stay linear), and a cut to exact digital silence at the end (cutAt). Pure functions on Float32Arrays.
 
 export interface MasterOpts {
   sampleRate: number;

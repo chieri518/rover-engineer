@@ -1,10 +1,11 @@
 // The hero's theme (D major, 96 BPM) from the first wheel touch to black, and the extremes under it.
 //   wheelTouch  D        the theme lands: boom, pad, driving bass, kick, arpeggio, the melody's call
 //   crater      -        everything drops to one tone in the dark (still the Moon: no diegetic sound)
-//   floodlights Bm       a hit as the lights snap on; the groove comes back
+//   floodlights Bm       a hit as the lights snap on; the groove comes back, then falls away to the lone tone of
+//                        the dark again, which rings on across the cut into Mars (A, the Mars chord's ninth)
 //   mars        G -> A   muffled wind (thin air) and the rover's low hum under the music
 //   titan       Bb -> C  loud methane rain (thick air), the deepest bass note (Bb0)
-//   lightsOut   D        the last chord, held until black, where everything cuts to silence
+//   lightsOut   D        the last chord, held until black, then left to die away with the rain into silence
 // Each section starts its own beat grid on its cut, so every chord change lands on a cut or a hit.
 import { MOODS, MOTOR, WEATHER } from '../../../src/audio/mix';
 import { Layer, bell, boom, chord, hz, impulses, m, noiseBed, tone, type Score } from './synth';
@@ -12,6 +13,10 @@ import type { Times } from './times';
 import { ramp } from './act1';
 
 const BEAT = 60 / 96;
+/** The lone tone of the dark comes back this long (two beats) before the Moon -> Mars cut. */
+const LONE_RETURN = 2 * BEAT;
+/** The last chord's release after black (seconds). */
+const FINAL_RELEASE = 1.5;
 
 type Melody = Array<[beat: number, note: string, beats: number]>;
 
@@ -47,15 +52,15 @@ export function act3(s: Score, T: Times): void {
     chord: ['D2', 'A2', 'D3', 'F#3', 'A3', 'E4'],
     melody: [[0, 'A4', 0.5], [0.5, 'D5', 1], [1.5, 'E5', 0.5], [2, 'F#5', 2], [4, 'E5', 1], [5, 'D5', 1], [6, 'A4', 2]],
   });
-  // Moon -> Mars: B minor and G major share B and D. The Moon's short phrase comes down to D and holds it
-  // across the cut, where it is the Mars chord's fifth and the pickup to the Mars melody (which starts a beat
-  // later, on G); the Moon pad fades under the Mars pad instead of stopping on the cut.
+  // Moon -> Mars: after the floodlights the groove plays one phrase that settles on D, then falls away (its pad
+  // and last note fading) to the lone tone of the dark, which returns LONE_RETURN before the cut and rings on into
+  // Mars, where A is the Mars chord's ninth; the Mars melody starts a beat in, on G.
   sections.push({
     t0: T.floodlights,
-    t1: T.mars,
+    t1: T.mars - LONE_RETURN,
     chord: ['B1', 'F#2', 'B2', 'D3', 'F#3', 'B3'],
-    melody: [[0, 'F#5', 1], [1, 'E5', 0.5], [1.5, 'D5', 3.5]],
-    tail: 1.1,
+    melody: [[0, 'F#5', 1], [1, 'E5', 0.5], [1.5, 'D5', 1], [2.5, 'B4', 0.5], [3, 'D5', 2]],
+    tail: 1.0,
   });
   const marsMid = split(T.mars, T.titan);
   sections.push({ t0: T.mars, t1: marsMid, chord: ['G1', 'D2', 'G2', 'B2', 'D3', 'G3'], melody: [[1, 'G5', 1.5], [2.5, 'F#5', 0.5], [3, 'E5', 1]], fadeIn: 0.45 });
@@ -81,12 +86,15 @@ export function act3(s: Score, T: Times): void {
   // lonely tone (a slowly beating A4) in the dark.
   theme.to(T.moonDark, 0, 0.3);
   low.to(T.moonDark, 0, 0.3);
-  {
-    const lone = new Layer(s, 'music', 1, 1);
-    const sh = { a: 0.25, h: Math.max(0.05, T.floodlights - T.moonDark - 0.3), r: 0.05 };
-    tone(s, lone.in, T.moonDark, hz(m('A4')), 0.05, sh, { pan: -0.15 });
-    tone(s, lone.in, T.moonDark, hz(m('A4')) + 0.7, 0.05, sh, { pan: 0.15 });
-  }
+  const lone = new Layer(s, 'music', 1, 1);
+  const loneTone = (t: number, sh: { a: number; h: number; r: number }, gain = 0.05) => {
+    tone(s, lone.in, t, hz(m('A4')), gain, sh, { pan: -0.15 });
+    tone(s, lone.in, t, hz(m('A4')) + 0.7, gain, sh, { pan: 0.15 });
+  };
+  loneTone(T.moonDark, { a: 0.25, h: Math.max(0.05, T.floodlights - T.moonDark - 0.3), r: 0.05 });
+  // ... and again at the end of the Moon, a little fuller: it fades in under the groove's last note, holds across
+  // the cut and dies away under the Mars music.
+  loneTone(T.mars - LONE_RETURN, { a: 0.5, h: LONE_RETURN, r: 1.3 }, 0.075);
 
   // Floodlights: the hit. A brassy B minor stab whose filter snaps shut, a deep boom, bells; the theme comes back.
   theme.to(T.floodlights - 0.004, 2, 0.004);
@@ -98,21 +106,25 @@ export function act3(s: Score, T: Times): void {
     bell(s, theme.in, t, hz(m('B5')), 0.05, 2.5, moonBell.partial, -0.3);
     bell(s, theme.in, t + 0.01, hz(m('F#6')), 0.035, 2.5, moonBell.partial, 0.3);
   }
-  // Hits on the other cuts.
-  boom(s, low.in, T.mars, 65, 34, 0.16, 1.4, 0.12);
+  // Mars comes in out of the lone tone rather than on top of it: the theme's layers start lower on the cut and
+  // rise to full over about a bar, with only a soft hit.
+  theme.to(T.mars - 0.005, 1.0, 0.005).to(T.mars, 2, 1.1);
+  low.to(T.mars - 0.005, 0.8, 0.005).to(T.mars, 2, 0.9);
+  boom(s, low.in, T.mars, 65, 34, 0.1, 1.4, 0.12);
   boom(s, low.in, T.titan, 55, 26, 0.3, 2.4, 0.2);
 
-  // lightsOut: the last chord, D major, everything at once, held until black (the master cuts it there).
+  // lightsOut: the last chord, D major, everything at once, held until black, then dying away over the black.
   {
     const t = T.lightsOut;
     const hold = Math.max(0.1, T.black - t);
     const notes = [m('D2'), m('A2'), m('D3'), m('F#3'), m('A3'), m('D4'), m('F#4'), m('A4')];
-    const sh = { a: 0.03, h: hold, r: 0.05 };
+    // Held until black, then a long release: the chord dies away into the hall over the black.
+    const sh = { a: 0.03, h: hold, r: FINAL_RELEASE };
     chord(s, theme.in, t, notes, 0.05, sh, { type: 'sawtooth', detune: [-9, 9], cutoff: 3200, cutoffTo: 1600, sweep: hold, q: 0.7 });
     chord(s, theme.in, t, notes, 0.04, sh, { type: 'triangle', detune: [-pad.detuneCents, pad.detuneCents], cutoff: 2400 });
     tone(s, low.in, t, hz(m('D1')), 0.08, sh, { type: 'sine' });
-    lead(s, theme.in, t, m('D6'), 0.045, hold + 0.05);
-    lead(s, theme.in, t, m('D5'), 0.03, hold + 0.05);
+    lead(s, theme.in, t, m('D6'), 0.045, hold + 0.5);
+    lead(s, theme.in, t, m('D5'), 0.03, hold + 0.5);
     boom(s, low.in, t, 70, 32, 0.38, 2.5, 0.15);
     bell(s, theme.in, t, hz(m('D6')), 0.05, 3, moonBell.partial, -0.35);
     bell(s, theme.in, t + 0.015, hz(m('A6')), 0.04, 3, moonBell.partial, 0.35);
@@ -235,19 +247,21 @@ function titan(s: Score, T: Times): void {
   const fx = new Layer(s, 'effects', 0.7, 1.5);
   const { titan: t0, black: t1 } = T;
   const r = WEATHER.rainMax;
-  const hiss = noiseBed(s, fx.in, s.b.white, t0, t1, [
+  const fade = 1.1; // the rain dies away over the black
+  const end = t1 + fade;
+  const hiss = noiseBed(s, fx.in, s.b.white, t0, end, [
     { type: 'highpass', hz: 2200, q: 0.5 },
     { type: 'lowpass', hz: 6500, q: 0.5 },
   ]);
-  ramp(hiss.gain.gain, [[t0, 0], [t0 + 0.5, r * 3.2], [t1, r * 3.6]]);
-  const patter = noiseBed(s, fx.in, s.b.brown, t0, t1, [{ type: 'bandpass', hz: 900, q: 0.8 }]);
-  ramp(patter.gain.gain, [[t0, 0], [t0 + 0.5, r * 5], [t1, r * 5]]);
-  const drops = noiseBed(s, fx.in, impulses(s, t1 - t0 + 1, 90, 0.5), t0, t1, [
+  ramp(hiss.gain.gain, [[t0, 0], [t0 + 0.5, r * 3.2], [t1, r * 3.6], [end, 0]]);
+  const patter = noiseBed(s, fx.in, s.b.brown, t0, end, [{ type: 'bandpass', hz: 900, q: 0.8 }]);
+  ramp(patter.gain.gain, [[t0, 0], [t0 + 0.5, r * 5], [t1, r * 5], [end, 0]]);
+  const drops = noiseBed(s, fx.in, impulses(s, end - t0 + 1, 90, 0.5), t0, end, [
     { type: 'bandpass', hz: 2600, q: 0.6 },
     { type: 'lowpass', hz: 6000, q: 0.5 },
   ], 0.7);
-  ramp(drops.gain.gain, [[t0, 0], [t0 + 0.4, 1.4], [t1, 1.4]]);
-  const rumble = noiseBed(s, fx.in, s.b.brown, t0, t1, [{ type: 'lowpass', hz: 140, q: 0.7 }]);
-  ramp(rumble.gain.gain, [[t0, 0], [t0 + 0.5, 0.5], [t1, 0.5]]);
-  roverHum(s, fx.in, t0, t1, MOTOR.cutoffHz[1] * 0.6, 0.09, 0.4);
+  ramp(drops.gain.gain, [[t0, 0], [t0 + 0.4, 1.4], [t1, 1.4], [end, 0]]);
+  const rumble = noiseBed(s, fx.in, s.b.brown, t0, end, [{ type: 'lowpass', hz: 140, q: 0.7 }]);
+  ramp(rumble.gain.gain, [[t0, 0], [t0 + 0.5, 0.5], [t1, 0.5], [end, 0]]);
+  roverHum(s, fx.in, t0, t1, MOTOR.cutoffHz[1] * 0.6, 0.09, 0.4, 0.6);
 }
