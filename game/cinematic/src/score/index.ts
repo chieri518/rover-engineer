@@ -1,7 +1,7 @@
 // The intro's score and sound effects, synthesized offline with the game's own sound engine (src/audio: the
 // buses, the hall reverb, the master compressor and limiter, the moods' instruments). Composed as a trailer:
 // tension (act 1) -> release as the rocket clears the tower -> space -> the Moon in silence (score only) -> the
-// hero's theme from the first wheel touch -> the extremes -> cut to silence on black.
+// hero's theme from the first wheel touch -> the extremes -> the last chord dying away into silence over black.
 // Every time comes from the cue sheet (cues.ts) at render time; all randomness is seeded, so renders are identical.
 // renderScore() returns the whole film, FILM_SECONDS long.
 import { seeded } from '../clock';
@@ -36,13 +36,15 @@ export async function renderScore(sampleRate: number): Promise<AudioBuffer> {
   act1(s, T);
   act2(s, T);
   act3(s, T);
-  // Black: everything (the reverb's tail too) cuts to silence.
-  b.master.gain.setValueAtTime(MASTER.gain, Math.max(0, T.black - 0.005));
-  b.master.gain.linearRampToValueAtTime(0, T.black);
+  // After black the last chord and the rain die away on their own; the hall's long tail is faded out under them
+  // so the film ends in true silence on its last frame.
+  const end = FILM_SECONDS - 0.05;
+  b.master.gain.setValueAtTime(MASTER.gain, Math.min(end - 0.1, T.black + 0.5));
+  b.master.gain.linearRampToValueAtTime(0, end);
 
   const out = await ac.startRendering();
   const chans = [out.getChannelData(0), out.getChannelData(1)];
-  const { reductionDb } = master(chans, { sampleRate, cutAt: T.black, ...MASTERING });
+  const { reductionDb } = master(chans, { sampleRate, cutAt: FILM_SECONDS - 0.05, ...MASTERING });
   console.log(`score master: limiter at most ${reductionDb.toFixed(1)} dB`);
   return out;
 }
